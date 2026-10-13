@@ -1,0 +1,322 @@
+# Mobs and combat: spawning, mob turns, damage, explosions, the bow, and arrows.
+class Game
+  def clear_arrows
+    @ar_x.clear
+    @ar_y.clear
+    @ar_z.clear
+    @ar_vx.clear
+    @ar_vy.clear
+    @ar_vz.clear
+    @ar_life.clear
+    @ar_stuck.clear
+    @ar_damage.clear
+  end
+
+  # Puts a mob on a surface block at a random distance from the player in [near, far).
+  def spawn_mob(kind, near, far)
+    tries = 0
+    while tries < 20
+      tries += 1
+      ang = rand01 * 6.283
+      dist = near + rand01 * (far - near)
+      x = (@player.x + Math.cos(ang) * dist).floor
+      z = (@player.z + Math.sin(ang) * dist).floor
+      next unless @world.loaded?(x, z)
+      h = @world.height_at(x, z)
+      ground = @world.get(x, h - 1, z)
+      next unless ground == Block::GRASS || ground == Block::SNOW_GRASS || (kind == Mob::ZOMBIE && ground == Block::SAND)
+      next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
+      @mobs << Mob.new(kind, x + 0.5, h + 0.01, z + 0.5, (rand01 * 100000.0).to_i)
+      return
+    end
+  end
+
+  def hurt(amount)
+    return if !@survival || @dead || amount <= 0
+    @health -= amount
+    play(Sfx::HURT, 0.8)
+    @since_damage = 0.0
+    @damage_flash = 0.35
+    if @health <= 0
+      @health = 0
+      @dead = true
+      @captured = false
+      Gfx.in_capture(0)
+    end
+  end
+
+  def update_mobs(dt)
+    day = daylight
+    @spawn_timer -= dt
+    if @spawn_timer <= 0.0
+      @spawn_timer = 2.0
+      zombies = 0
+      pigs = 0
+      @mobs.each { |m| m.kind == Mob::PIG || m.kind == Mob::SHEEP ? pigs += 1 : zombies += 1 }
+      roll = rand01
+      spawn_mob(roll < 0.3 ? Mob::SKELETON : (roll < 0.55 ? Mob::CREEPER : Mob::ZOMBIE), 18.0, 40.0) if day < 0.35 && zombies < MAX_ZOMBIES
+      spawn_mob(rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
+    end
+    @mobs.each do |m|
+      if rand01 < dt * 0.08
+        play(m.kind == Mob::PIG ? Sfx::OINK : (m.kind == Mob::ZOMBIE ? Sfx::GROAN : (m.kind == Mob::SHEEP ? Sfx::OINK : (m.kind == Mob::CREEPER ? Sfx::SPLASH : Sfx::STEP))), near_volume(m.x, m.z, 0.8))
+      end
+      if m.shoot
+        m.shoot = false
+        shoot_arrow(m)
+      end
+      if m.explode
+        m.explode = false
+        m.alive = false
+        explode(m.x, m.y + 0.8, m.z)
+      end
+      steps = dt > 0.025 ? 2 : 1
+      sdt = dt / steps
+      k = 0
+      while k < steps
+        damage = m.update(@world, sdt, @player, day)
+        if damage > 0
+          hurt(damage)
+          if @survival
+            dx = @player.x - m.x
+            dz = @player.z - m.z
+            len = Math.sqrt(dx * dx + dz * dz)
+            len = 1.0 if len < 0.001
+            @player.vx = dx / len * 8.0
+            @player.vz = dz / len * 8.0
+            @player.vy = 5.0
+          end
+        end
+        k += 1
+      end
+    end
+    if @survival
+      @mobs.each do |m|
+        next unless !m.alive && m.kind == Mob::SKELETON && m.hp <= 0 && m.by_player
+        n = 1 + (rand01 * 3.0).to_i
+        n.times { give(Block::ARROW) }
+        give(Block::BOW) if rand01 < 0.3
+        say("+#{n} ARROWS")
+      end
+    end
+    sheared = @mobs.count { |m| !m.alive && m.kind == Mob::SHEEP && m.hp <= 0 && m.by_player }
+    if sheared > 0 && @survival
+      (sheared * 2).times { give(Block::WOOL) }
+      say("+#{sheared * 2} WOOL")
+    end
+    killed = @mobs.count { |m| !m.alive && m.kind == Mob::PIG && m.hp <= 0 && m.by_player }
+    if killed > 0 && @survival
+      killed.times { give(Block::PORKCHOP) }
+      say("+#{killed} PORKCHOP  RIGHT CLICK TO EAT")
+    end
+    steps = (dt * 180.0).ceil
+    steps = 1 if steps < 1
+    steps.times { update_arrows(dt / steps) }
+    @mobs.reject! do |m|
+      d2 = (m.x - @player.x) ** 2 + (m.z - @player.z) ** 2
+      !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || d2 > 160.0 * 160.0 ||
+        (m.kind != Mob::PIG && m.kind != Mob::SHEEP && d2 > 64.0 * 64.0)
+    end
+  end
+
+  # Draw time (seconds) sets speed and damage; a full draw takes one second.
+  def shoot_bow(held)
+    pull = held > 1.0 ? 1.0 : held
+    return if pull < 0.1
+    if @survival
+      slot = -1
+      i = 0
+      while i < INV
+        slot = i if slot < 0 && @inv_block[i] == Block::ARROW && @inv_count[i] > 0
+        i += 1
+      end
+      if slot < 0
+        say("NO ARROWS")
+        return
+      end
+      @inv_count[slot] -= 1
+      @inv_block[slot] = Block::AIR if @inv_count[slot] == 0
+    end
+    speed = 12.0 + pull * 30.0
+    @ar_x << @player.x
+    @ar_y << @player.eye_y - 0.1
+    @ar_z << @player.z
+    @ar_vx << @player.fx * speed
+    @ar_vy << @player.fy * speed
+    @ar_vz << @player.fz * speed
+    @ar_life << 5.0
+    @ar_stuck << false
+    @ar_damage << 2 + (pull * 7.0).to_i
+    @swing = 0.25
+    play(Sfx::SHOOT, 0.8)
+  end
+
+  # Removes blocks within the radius and hurts what is near, less with distance.
+  def explode(cx, cy, cz)
+    r = 3
+    x = cx.floor - r
+    while x <= cx.floor + r
+      y = cy.floor - r
+      while y <= cy.floor + r
+        z = cz.floor - r
+        while z <= cz.floor + r
+          dx = x + 0.5 - cx
+          dy = y + 0.5 - cy
+          dz = z + 0.5 - cz
+          b = @world.get(x, y, z)
+          if dx * dx + dy * dy + dz * dz < 9.5 - rand01 * 2.5 && b != Block::AIR && b != Block::BEDROCK && !Block.water?(b) && !Block.lava?(b)
+            burst_particles(x, y, z, b) if rand01 < 0.15
+            set_block(x, y, z, Block::AIR)
+          end
+          z += 1
+        end
+        y += 1
+      end
+      x += 1
+    end
+    play(Sfx::BREAK, 1.0)
+    play(Sfx::HIT, 1.0)
+    pdx = @player.x - cx
+    pdy = @player.y + 0.9 - cy
+    pdz = @player.z - cz
+    dist = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz)
+    if dist < 7.0
+      hurt(((7.0 - dist) * 3.2).to_i)
+      len = dist < 0.1 ? 1.0 : dist
+      @player.vx += pdx / len * (7.0 - dist) * 2.0
+      @player.vz += pdz / len * (7.0 - dist) * 2.0
+      @player.vy += 4.0 + (7.0 - dist)
+    end
+    @mobs.each do |m|
+      next unless m.alive
+      mdx = m.x - cx
+      mdz = m.z - cz
+      d = Math.sqrt(mdx * mdx + mdz * mdz)
+      m.hit(((7.0 - d) * 3.0).to_i, cx, cz) if d < 7.0
+    end
+  end
+
+  def shoot_arrow(m)
+    sx = m.x
+    sy = m.y + 1.5
+    sz = m.z
+    dx = @player.x - sx
+    dy = @player.y + 1.2 - sy
+    dz = @player.z - sz
+    dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+    return if dist < 0.5
+    speed = 22.0
+    t = dist / speed
+    @ar_x << sx
+    @ar_y << sy
+    @ar_z << sz
+    @ar_vx << dx / t
+    @ar_vy << dy / t + 9.0 * t
+    @ar_vz << dz / t
+    @ar_life << 4.0
+    @ar_stuck << false
+    @ar_damage << 0
+    play(Sfx::SHOOT, near_volume(sx, sz, 0.9))
+  end
+
+  def update_arrows(dt)
+    i = 0
+    while i < @ar_life.size
+      @ar_life[i] -= dt
+      unless @ar_stuck[i]
+        @ar_vy[i] -= 18.0 * dt
+        nx = @ar_x[i] + @ar_vx[i] * dt
+        ny = @ar_y[i] + @ar_vy[i] * dt
+        nz = @ar_z[i] + @ar_vz[i] * dt
+        if Block::SOLID[@world.get(nx.floor, ny.floor, nz.floor)] == 1
+          @ar_stuck[i] = true
+          @ar_life[i] = 3.0 if @ar_life[i] > 3.0
+        else
+          @ar_x[i] = nx
+          @ar_y[i] = ny
+          @ar_z[i] = nz
+          p = @player
+          if @ar_damage[i] > 0
+            k = 0
+            while k < @mobs.size
+              m = @mobs[k]
+              if nx > m.x - m.half && nx < m.x + m.half && ny > m.y && ny < m.y + m.tall && nz > m.z - m.half && nz < m.z + m.half
+                m.hit(@ar_damage[i], nx - @ar_vx[i], nz - @ar_vz[i])
+                m.by_player = true
+                play(Sfx::HIT, near_volume(nx, nz, 0.8))
+                @ar_life[i] = 0.0
+                break
+              end
+              k += 1
+            end
+          elsif nx > p.x - Player::HALF && nx < p.x + Player::HALF && ny > p.y && ny < p.y + Player::TALL && nz > p.z - Player::HALF && nz < p.z + Player::HALF
+            hurt(3)
+            if @survival
+              len = Math.sqrt(@ar_vx[i] * @ar_vx[i] + @ar_vz[i] * @ar_vz[i])
+              len = 1.0 if len < 0.001
+              @player.vx += @ar_vx[i] / len * 5.0
+              @player.vz += @ar_vz[i] / len * 5.0
+            end
+            @ar_life[i] = 0.0
+          end
+        end
+      end
+      i += 1
+    end
+    i = @ar_life.size - 1
+    while i >= 0
+      if @ar_life[i] <= 0.0
+        @ar_x.delete_at(i)
+        @ar_y.delete_at(i)
+        @ar_z.delete_at(i)
+        @ar_vx.delete_at(i)
+        @ar_vy.delete_at(i)
+        @ar_vz.delete_at(i)
+        @ar_life.delete_at(i)
+        @ar_stuck.delete_at(i)
+        @ar_damage.delete_at(i)
+      end
+      i -= 1
+    end
+  end
+
+  def draw_arrows
+    i = 0
+    while i < @ar_life.size
+      vx = @ar_vx[i]
+      vy = @ar_vy[i]
+      vz = @ar_vz[i]
+      yaw = Math.atan2(-vx, vz)
+      pitch = -Math.atan2(vy, Math.sqrt(vx * vx + vz * vz))
+      @dyn.box(@ar_x[i], @ar_y[i], @ar_z[i], yaw, 0.0, 0.0, pitch, -0.03, -0.03, -0.6, 0.03, 0.03, 0.0, Tex::WHITE, 0.45, 0.32, 0.18, 1.0)
+      @dyn.box(@ar_x[i], @ar_y[i], @ar_z[i], yaw, 0.0, 0.0, pitch, -0.05, -0.05, -0.62, 0.05, 0.05, -0.5, Tex::WHITE, 0.9, 0.9, 0.9, 1.0)
+      i += 1
+    end
+  end
+
+  def find_target_mob
+    @target_mob = -1
+    return if @mobs.empty?
+    best = @player.hit ? @player.hit_t : 3.5
+    best = 3.5 if best > 3.5
+    ox = @player.x
+    oy = @player.eye_y
+    oz = @player.z
+    dx = @player.fx
+    dy = @player.fy
+    dz = @player.fz
+    i = 0
+    while i < @mobs.size
+      m = @mobs[i]
+      # Mob#ray allocates; skip the mobs that are out of reach.
+      if (m.x - ox) ** 2 + (m.z - oz) ** 2 < 25.0
+        t = m.ray(ox, oy, oz, dx, dy, dz)
+        if t >= 0.0 && t < best
+          best = t
+          @target_mob = i
+        end
+      end
+      i += 1
+    end
+  end
+end

@@ -89,7 +89,17 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 
 | File | Contents |
 | --- | --- |
-| `main.rb` | Game loop, input, creative and survival rules, HUD, chunk streaming, save and load |
+| `main.rb` | Game setup, spawn and respawn, the update step, particles, and the game loop |
+| `game/constants.rb` | Game constants that more than one file uses |
+| `game/save.rb` | Save and load |
+| `game/streaming.rb` | Chunk and far terrain streaming, and remeshing |
+| `game/block_changes.rb` | Block edits, flowing water and lava, falling sand and gravel |
+| `game/inventory.rb` | Hotbar, backpack, chests, crafting, and the inventory screen |
+| `game/actions.rb` | Keys, the mouse, mining, placing, beds, and food |
+| `game/combat.rb` | Mob spawning and turns, damage, explosions, the bow, and arrows |
+| `game/render.rb` | The 3D frame and the sky |
+| `game/hud.rb` | The 2D overlay: crosshair, hotbar, bars, messages, and menus |
+| `game/testing.rb` | The `SELFTEST`, `SHOWMOBS` and `DEMO` switches |
 | `world.rb` | Block tables, noise, chunk generation, block storage, and the store of changed chunks |
 | `mesher.rb` | Chunk meshing: one packed record for each visible face |
 | `lod.rb` | Far terrain: coarse tiles past the full-detail chunks |

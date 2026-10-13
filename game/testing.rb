@@ -1,0 +1,417 @@
+# Test switches: SELFTEST, SHOWMOBS, and DEMO.
+class Game
+  # SHOWMOBS=1 lines up one mob of each kind on a stone floor in front of the player.
+  def show_mobs
+    @mobs.clear
+    bx = @player.x.floor
+    bz = @player.z.floor - 6
+    y = 80
+    dx = -4
+    while dx <= 4
+      dz = -3
+      while dz <= 3
+        set_block(bx + dx, y, bz + dz, Block::STONE)
+        dz += 1
+      end
+      dx += 1
+    end
+    set_block(bx - 3, y + 1, bz + 2, Block::BED)
+    set_block(bx + 3, y + 1, bz + 2, Block::TORCH)
+    [Mob::PIG, Mob::SHEEP, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
+      m = Mob.new(kind, bx - 4.0 + i * 2.0, y + 1.0, bz + 0.5, 1)
+      m.yaw = 3.14159
+      @mobs << m
+    end
+    @player.x = bx + 0.5
+    @player.y = y + 1.5
+    @player.z = bz + 6.5
+    @player.yaw = 0.0
+    @player.pitch = -0.15
+    @player.flying = true
+    @time_of_day = 0.3
+  end
+
+  # DEMO=1 digs and builds in front of the player through the normal actions,
+  # so screenshots can check breaking, placing and particles.
+  def demo(frame)
+    @player.pitch = -1.3
+    return unless @player.hit
+    if frame % 20 == 0 && frame < 50
+      b = @world.get(@player.hx, @player.hy, @player.hz)
+      burst_particles(@player.hx, @player.hy, @player.hz, b)
+      play(Sfx::BREAK, 0.7)
+      set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
+    elsif frame % 20 == 0 && frame >= 60 && frame < 120
+      @slot = 7
+      place
+    end
+  end
+
+  def check(name, ok)
+    puts "#{ok ? "PASS" : "FAIL"} #{name}"
+    @failures += 1 unless ok
+  end
+
+  # SELFTEST=1 runs the game rules without input and reports PASS/FAIL lines.
+  def self_test
+    @failures = 0
+    x = @spawn_x.floor + 2
+    z = @spawn_z.floor + 2
+    h = @world.height_at(x, z)
+    ground = h - 1
+    set_block(x, ground + 6, z, Block::SAND)
+    check("sand falls to the ground", @world.get(x, ground + 1, z) == Block::SAND && @world.get(x, ground + 6, z) == Block::AIR)
+    set_block(x, ground + 1, z, Block::AIR)
+    torches = @world.chunk_torches[World.slot(x >> 4, z >> 4)]
+    lights = torches.size
+    set_block(x, ground + 3, z, Block::TORCH)
+    check("torch is listed", torches.size == lights + 3)
+    set_block(x, ground + 3, z, Block::AIR)
+    check("broken torch is unlisted", torches.size == lights)
+    set_block(x, ground + 1, z, Block::TORCH)
+    set_block(x, ground, z, Block::AIR)
+    check("breaking the block under a torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
+    set_block(x, ground, z, Block::DIRT)
+    # A torch sealed in a stone box lights nothing outside the box.
+    dx = -1
+    while dx <= 1
+      dy = 1
+      while dy <= 3
+        dz = -1
+        while dz <= 1
+          set_block(x + dx, ground + dy, z + dz, Block::STONE)
+          dz += 1
+        end
+        dy += 1
+      end
+      dx += 1
+    end
+    set_block(x, ground + 2, z, Block::TORCH)
+    @mesher.build(x / CHUNK, z / CHUNK)
+    inside = @mesher.torch_light(x, ground + 2, z)
+    outside = @mesher.torch_light(x + 2, ground + 2, z)
+    check("walls stop torch light", inside == 14 && outside == 0)
+    set_block(x + 1, ground + 2, z, Block::AIR)
+    @mesher.build(x / CHUNK, z / CHUNK)
+    check("an opening lets torch light out", @mesher.torch_light(x + 2, ground + 2, z) == 12)
+    dx = -1
+    while dx <= 1
+      dy = 1
+      while dy <= 3
+        dz = -1
+        while dz <= 1
+          set_block(x + dx, ground + dy, z + dz, Block::AIR)
+          dz += 1
+        end
+        dy += 1
+      end
+      dx += 1
+    end
+    set_block(x, ground + 1, z, Block::TORCH)
+    flush_dirty
+    puts "torch edit remesh: #{@mesh_ms.round(2)} ms"
+    set_block(x, ground + 1, z, Block::AIR)
+    flush_dirty
+    @survival = true
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    3.times { give(Block::LOG) }
+    @slot = 0
+    craft
+    check("craft log into planks", @inv_block[0] == Block::LOG && @inv_count[0] == 2 && @inv_block[1] == Block::PLANKS && @inv_count[1] == 4)
+    70.times { give(Block::DIRT) }
+    check("stacks split at 64", @inv_count[2] == 64 && @inv_block[3] == Block::DIRT && @inv_count[3] == 6)
+    @health = MAX_HEALTH
+    hurt(5)
+    check("hurt lowers health", @health == 15 && !@dead)
+    hurt(30)
+    check("death at zero health", @health == 0 && @dead)
+    respawn
+    check("respawn restores health", @health == MAX_HEALTH && !@dead)
+    @player.x = x + 0.5
+    @player.y = ground + 1.0
+    @player.z = z + 0.5
+    @player.pitch = -1.55
+    @player.raycast(@world)
+    check("raycast hits the ground", @player.hit && @player.hy == ground)
+    @slot = 1
+    before = @inv_count[1]
+    @player.y = ground + 3.0
+    @player.raycast(@world)
+    place
+    check("survival place uses one item", @inv_count[1] == before - 1 && @world.get(x, ground + 1, z) == Block::PLANKS)
+    # Stone drops cobblestone only to a pickaxe.
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    @slot = 0
+    set_block(x, ground + 1, z, Block::STONE)
+    @player.y = ground + 3.0
+    n = 0
+    while n < 200 && @world.get(x, ground + 1, z) == Block::STONE
+      @player.raycast(@world)
+      mine(0.05)
+      n += 1
+    end
+    check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && room_for(Block::COBBLE) == INV * STACK)
+    3.times { give(Block::PLANKS) }
+    craft
+    check("3 planks craft a wooden pickaxe", @inv_block[0] == Block::WOOD_PICK)
+    set_block(x, ground + 1, z, Block::STONE)
+    mining_frames = 0
+    while mining_frames < 200 && @world.get(x, ground + 1, z) == Block::STONE
+      @player.raycast(@world)
+      mine(0.05)
+      mining_frames += 1
+    end
+    check("a pickaxe mines stone faster and it drops cobblestone", mining_frames < n && @inv_block[1] == Block::COBBLE)
+    @inv_block[5] = Block::PORKCHOP
+    @inv_count[5] = 2
+    @slot = 5
+    @hunger = 5
+    eat
+    check("eating restores hunger", @hunger == 13 && @inv_count[5] == 1)
+    # A skeleton on a sky platform at night shoots the player.
+    px = @spawn_x.floor
+    pz = @spawn_z.floor
+    i = -2
+    while i <= 16
+      set_block(px + i, 88, pz, Block::STONE)
+      i += 1
+    end
+    flush_dirty
+    @mobs.clear
+    @time_of_day = 0.75
+    @health = MAX_HEALTH
+    @dead = false
+    @player.x = px + 0.5
+    @player.y = 89.0
+    @player.z = pz + 0.5
+    @mobs << Mob.new(Mob::SKELETON, px + 12.5, 89.0, pz + 0.5, 7)
+    frames = 0
+    while frames < 400 && @health == MAX_HEALTH
+      update_mobs(1.0 / 60.0)
+      frames += 1
+    end
+    check("skeleton arrow hurts the player", @health < MAX_HEALTH)
+    @mobs.clear
+    @mobs << Mob.new(Mob::ZOMBIE, px + 1.5, 89.0, pz + 0.5, 9)
+    @health = MAX_HEALTH
+    frames = 0
+    while frames < 400 && @health == MAX_HEALTH
+      update_mobs(1.0 / 60.0)
+      frames += 1
+    end
+    check("zombie hit hurts the player", @health < MAX_HEALTH)
+    @mobs.clear
+    @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
+    @health = MAX_HEALTH
+    frames = 0
+    while frames < 300 && @world.get(px + 2, 88, pz) == Block::STONE
+      update_mobs(1.0 / 60.0)
+      frames += 1
+    end
+    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @health < MAX_HEALTH && frames > 60)
+    @mobs.clear
+    @time_of_day = 0.3
+    @health = MAX_HEALTH
+    old = @world.get(x, ground + 1, z)
+    kept_block = @inv_block[1]
+    kept_count = @inv_count[1]
+    save
+    @world.set(x, ground + 1, z, Block::GLASS)
+    @health = 3
+    @inv_count[1] = 0
+    ok = load
+    apply_loaded if ok
+    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @health == MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
+    @health = 0
+    @dead = true
+    save
+    ok = load
+    apply_loaded if ok
+    check("loading a save made while dead respawns", ok && @health == MAX_HEALTH && !@dead)
+    i = 0
+    while i < INV
+      @inv_block[i] = Block::PLANKS
+      @inv_count[i] = 64
+      i += 1
+    end
+    @inv_block[0] = Block::LOG
+    @inv_count[0] = 5
+    @inv_count[1] = 62
+    @slot = 0
+    craft
+    check("crafting refuses when the result does not fit", @inv_count[0] == 5 && @inv_count[1] == 62)
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    @inv_block[3] = Block::PLANKS
+    @inv_count[3] = 2
+    @inv_block[20] = Block::PLANKS
+    @inv_count[20] = 4
+    craft_recipe(RECIPES.index { |r| r[2] == Block::BOW })
+    check("a recipe takes ingredients from several stacks", count_items(Block::PLANKS) == 1 && count_items(Block::BOW) == 1)
+    cx = @spawn_x.floor + 4
+    cz = @spawn_z.floor + 4
+    set_block(cx, 90, cz, Block::CHEST)
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    open_chest(cx, 90, cz)
+    @chest_block[5] = Block::DIAMOND
+    @chest_count[5] = 7
+    toggle_inventory
+    save
+    @chests = {}
+    ok = load
+    apply_loaded if ok
+    stored = @chests[World.key(cx, 90, cz)]
+    check("chest contents survive a save", ok && !stored.nil? && stored[5] == Block::DIAMOND && stored[CHEST_SLOTS + 5] == 7)
+    set_block(cx, 90, cz, Block::AIR)
+    check("breaking a chest gives its contents back", count_items(Block::DIAMOND) == 7 && @chests.empty?)
+    # An open chest destroyed by a blast never duplicates its contents.
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    set_block(cx, 90, cz, Block::CHEST)
+    open_chest(cx, 90, cz)
+    @chest_block[0] = Block::DIAMOND
+    @chest_count[0] = 7
+    set_block(cx, 90, cz, Block::AIR)
+    check("a chest destroyed while open does not duplicate items", count_items(Block::DIAMOND) == 7 && !@inventory_open && @chest_count[0] == 7 && @chests.empty?)
+    # Mobs that die without the player's help drop nothing.
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    far = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    far.hp = 0
+    far.alive = false
+    @mobs.clear
+    @mobs << far
+    update_mobs(1.0 / 60.0)
+    check("a pig that dies on its own drops nothing", count_items(Block::PORKCHOP) == 0)
+    # Wool is not a light source.
+    set_block(cx, 90, cz, Block::WOOL)
+    @mesher.build(cx / CHUNK, cz / CHUNK)
+    glow = false
+    k = 0
+    while k < @mesher.opaque.size
+      w0 = @mesher.opaque[k]
+      w1 = @mesher.opaque[k + 1]
+      if (w0 & 511) == cx && ((w0 >> 9) & 255) == 90 && ((w0 >> 17) & 511) == cz
+        glow = true if ((w1 >> 19) & 15) == 14
+      end
+      k += 2
+    end
+    check("wool does not glow", !glow)
+    set_block(cx, 90, cz, Block::AIR)
+    lx = @spawn_x.floor - 6
+    lz = @spawn_z.floor - 6
+    i = -1
+    while i <= 1
+      set_block(lx + i, 85, lz, Block::STONE)
+      set_block(lx + i, 86, lz, Block::AIR)
+      i += 1
+    end
+    set_block(lx, 86, lz, Block::LAVA)
+    @mesher.build(lx / CHUNK, lz / CHUNK)
+    check("lava lights its surroundings", @mesher.torch_light(lx, 87, lz) == 13)
+    set_block(lx + 1, 86, lz, Block::WATER)
+    20.times { update_water }
+    check("water turns lava into cobblestone", @world.get(lx, 86, lz) == Block::COBBLE)
+    set_block(lx + 1, 86, lz, Block::AIR)
+    set_block(lx, 86, lz, Block::AIR)
+    20.times { update_water }
+    @mobs.clear
+    bx = @spawn_x.floor
+    bz = @spawn_z.floor
+    i = -2
+    while i <= 12
+      set_block(bx + i, 88, bz, Block::STONE)
+      i += 1
+    end
+    @player.x = bx + 0.5
+    @player.y = 89.0
+    @player.z = bz + 0.5
+    @player.yaw = 1.5708
+    @player.pitch = -0.12
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    give(Block::ARROW)
+    pig = Mob.new(Mob::PIG, bx + 8.5, 89.0, bz + 0.5, 3)
+    @mobs << pig
+    shoot_bow(1.0)
+    frames = 0
+    while frames < 120 && pig.hp == 10
+      update_arrows(1.0 / 60.0)
+      frames += 1
+    end
+    check("a full bow draw hits a pig and uses an arrow", pig.hp < 10 && room_for(Block::ARROW) == INV * STACK)
+    @mobs.clear
+    # The platform is one block wide in z: sneaking toward its edge stays on it.
+    @player.x = bx + 4.5
+    @player.y = 89.0
+    @player.z = bz + 0.5
+    @player.vx = 0.0
+    @player.vy = 0.0
+    @player.vz = 0.0
+    @player.yaw = 3.14159
+    @player.flying = false
+    @player.on_ground = true
+    120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, true, false) }
+    @mobs.clear
+    set_block(bx + 6, 89, bz, Block::BED)
+    @time_of_day = 0.75
+    use_bed(bx + 6, 89, bz)
+    check("sleeping in a bed skips the night and sets spawn", daylight > 0.35 && @spawn_x == bx + 6.5)
+    set_block(bx + 6, 89, bz, Block::AIR)
+    @time_of_day = 0.3
+    check("sneaking stops at an edge", @player.y > 88.9 && @player.z < bz + 1.4)
+    120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, false, false) }
+    check("walking without sneaking falls off", @player.y < 88.0)
+    wx = @spawn_x.floor
+    wz = @spawn_z.floor + 3
+    i = -10
+    while i <= 10
+      set_block(wx + i, 85, wz, Block::STONE)
+      set_block(wx + i, 86, wz, Block::AIR)
+      i += 1
+    end
+    @flow_queue.clear
+    set_block(wx, 86, wz, Block::WATER)
+    40.times { update_water }
+    check("water spreads 7 blocks over a floor", Block::WATER_LEVEL[@world.get(wx + 7, 86, wz)] == 1 && @world.get(wx + 8, 86, wz) == Block::AIR && Block::WATER_LEVEL[@world.get(wx - 3, 86, wz)] == 5)
+    set_block(wx, 86, wz, Block::AIR)
+    40.times { update_water }
+    check("water drains when its source is gone", @world.get(wx + 3, 86, wz) == Block::AIR && @world.get(wx - 6, 86, wz) == Block::AIR)
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    (9 * STACK + 3).times { give(Block::DIRT) }
+    check("a full hotbar spills into the backpack", @inv_block[9] == Block::DIRT && @inv_count[9] == 3)
+    click_slot(9)
+    click_slot(20)
+    check("clicks move a stack", @inv_count[9] == 0 && @inv_block[20] == Block::DIRT && @inv_count[20] == 3 && @held_count == 0)
+    click_slot(20)
+    click_slot(0)
+    check("clicks merge into a full stack and keep the rest", @inv_count[0] == 64 && @held_count == 3)
+    return_held
+    # A chunk that unloads keeps its edits, and the generator gives the same chunk again.
+    ex = @player.x.floor
+    ez = @player.z.floor
+    eh = @world.height_at(ex, ez)
+    set_block(ex, eh + 4, ez, Block::GLASS)
+    before = @world.chunk_bytes(ex >> 4, ez >> 4)
+    far = @world.chunk_bytes((ex >> 4) + 3, ez >> 4)
+    stream_around((ex >> 4) + RING, ez >> 4, -1, SYNC_R)
+    gone = !@world.loaded?(ex, ez)
+    stream_around(ex >> 4, ez >> 4, -1, SYNC_R)
+    check("an edited chunk unloads and comes back the same", gone && @world.get(ex, eh + 4, ez) == Block::GLASS && @world.chunk_bytes(ex >> 4, ez >> 4) == before)
+    check("an unloaded chunk generates the same blocks again", @world.chunk_bytes((ex >> 4) + 3, ez >> 4) == far)
+    set_block(ex, eh + 4, ez, Block::AIR)
+    far = @lods[LEVELS - 1]
+    slot = far.build(3, -2)
+    check("a far tile has a top face for each cell, sorted by direction", far.faces.size / 2 == far.offsets[7] && far.offsets[3] - far.offsets[2] == Lod::CELLS * Lod::CELLS && slot == Lod.slot(3, -2))
+    old_seed = @seed
+    new_world
+    h = @world.height_at(@player.x.floor, @player.z.floor)
+    check("a new world has a new seed and the player stands on it", @seed != old_seed && h > 0 && (@player.y - h).abs < 1.5 && @mobs.size > 0)
+    File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
+    puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
+  end
+end
