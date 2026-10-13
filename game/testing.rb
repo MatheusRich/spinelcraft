@@ -111,6 +111,7 @@ class Game
     test_save(x, z, ground)
     test_crafting_limits
     test_inventory_layout
+    test_seen_recipes
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
     test_chests(cx, cz)
@@ -441,6 +442,8 @@ class Game
     drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
     set_raining(true)
     @weather_timer = 77.5
+    @seen.fill(0)
+    @seen[Block::DIAMOND] = 1
     save
     @world.set(x, ground + 1, z, Block::GLASS)
     @health = 3
@@ -448,6 +451,7 @@ class Game
     clear_items
     set_raining(false)
     @rain = 0.0
+    @seen.fill(0)
     ok = load
     apply_loaded if ok
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @health == MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
@@ -455,6 +459,7 @@ class Game
           @it_count.size == 1 && @it_block[0] == Block::STONE_SWORD && @it_count[0] == 17 &&
           @it_x[0] == x + 0.25 && @it_y[0] == ground + 1.0 && @it_z[0] == z + 0.75 &&
           @raining && @rain == 1.0 && @weather_timer == 77.5)
+    check("the save keeps the seen items", @seen[Block::DIAMOND] == 1)
     clear_items
     set_raining(false)
     @rain = 0.0
@@ -469,6 +474,22 @@ class Game
     keep_bad_save
     check("a save that does not load moves aside", !ok && !File.exist?(SAVE_PATH) && File.exist?(BAD_SAVE_PATH))
     File.delete(BAD_SAVE_PATH) if File.exist?(BAD_SAVE_PATH)
+  end
+
+  # The recipe list shows a recipe once the player has had its ingredient.
+  def test_seen_recipes
+    @seen.fill(0)
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    give(Block::LOG)
+    note_seen
+    logs = shown_recipes == [recipe_for(Block::PLANKS)]
+    give(Block::PLANKS)
+    note_seen
+    remove_items(Block::PLANKS, 1)
+    note_seen
+    planks = shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))
+    check("the recipe list shows only the recipes for seen ingredients", logs && planks)
   end
 
   # The inventory screen fits the frame and leaves the hotbar and the health

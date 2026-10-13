@@ -53,7 +53,7 @@ The game saves to `world.sav` in the current directory when you quit, when you p
 | Esc | Pause and release the mouse |
 | N (while paused) | New world from a random seed |
 
-To craft in survival, open the inventory (E) and click a recipe. A right-click on a crafting table or a furnace also opens it. By hand you can make only these:
+To craft in survival, open the inventory (E) and click a recipe. A right-click on a crafting table or a furnace also opens it. The list shows a recipe only after you have had its ingredient. By hand you can make only these:
 
 - 1 log gives 4 planks.
 - 1 coal gives 4 torches.
@@ -203,7 +203,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 73 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 75 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

@@ -224,18 +224,26 @@ class Game
     @ui.text(x + size - @ui.text_width(t, ts) - 1.0 * s, y + size - 6.0 * ts, t, ts, 1.0, 1.0, 1.0, 1.0)
   end
 
+  # The panel grows with the shown recipes: one column, then two.
   def draw_recipe_panel(w, h, s, pad)
+    shown = shown_recipes
+    n = shown.size
     first = recipe_cell(0, w, h, s)
-    last_r = recipe_cell(RECIPE_ROWS * 2 - 1, w, h, s)
-    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, last_r[0] + last_r[2] - first[0] + pad * 2.0, last_r[1] + last_r[3] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
+    bottom = recipe_cell(n < 1 ? 0 : (n < RECIPE_ROWS ? n - 1 : RECIPE_ROWS - 1), w, h, s)
+    right = recipe_cell(n > RECIPE_ROWS ? RECIPE_ROWS : 0, w, h, s)
+    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, bottom[1] + bottom[3] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
     table = station_near?(AT_TABLE)
     furnace = station_near?(AT_FURNACE)
     @ui.text(first[0], first[1] - 36.0 * s, "CRAFTING", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     rhover = recipe_hover(w, h, s)
-    k = 0
-    while k < RECIPES.size
+    if shown.empty?
+      @ui.text(first[0], first[1] + 4.0 * s, "PICK UP ITEMS TO FIND RECIPES", 2.0 * s, 0.8, 0.8, 0.8, 1.0)
+    end
+    j = 0
+    while j < shown.size
+      k = shown[j]
       r = RECIPES[k]
-      c = recipe_cell(k, w, h, s)
+      c = recipe_cell(j, w, h, s)
       can = count_items(r[0]) >= r[1] && (r[4] == BY_HAND || (r[4] == AT_TABLE ? table : furnace))
       shade = k == rhover ? 0.5 : 0.28
       @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 1.0)
@@ -244,7 +252,7 @@ class Game
       @ui.text(c[0] + 30.0 * s, c[1] + 4.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.0 * s, bright, bright, bright, 1.0)
       need = "#{r[1]} #{Block::NAMES[r[0]]}#{r[4] == AT_FURNACE ? " + FURNACE" : (r[4] == AT_TABLE ? " + TABLE" : "")}"
       @ui.text(c[0] + c[2] - @ui.text_width(need, 1.5 * s) - 4.0 * s, c[1] + 15.0 * s, need, 1.5 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
-      k += 1
+      j += 1
     end
   end
 

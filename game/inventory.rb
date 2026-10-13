@@ -244,14 +244,39 @@ class Game
     [last[0] + last[2] + 60.0 * s + col * (RECIPE_W + 8.0) * s, top[1] + (k % RECIPE_ROWS) * 30.0 * s, RECIPE_W * s, 26.0 * s]
   end
 
+  # Marks what is in the inventory or in the hand as seen. @seen stays
+  # through death and goes into the save.
+  def note_seen
+    i = 0
+    while i < INV
+      @seen[@inv_block[i]] = 1 if @inv_count[i] > 0
+      i += 1
+    end
+    @seen[@held_block] = 1 if @held_count > 0
+  end
+
+  # The recipes that the list shows, in the order of RECIPES: those whose
+  # ingredient the player has seen. Other recipes stay a surprise.
+  def shown_recipes
+    shown = []
+    k = 0
+    while k < RECIPES.size
+      shown << k if @seen[RECIPES[k][0]] == 1
+      k += 1
+    end
+    shown
+  end
+
+  # The recipe under the mouse, or -1.
   def recipe_hover(w, h, s)
     mx = Gfx.in_mouse_x
     my = Gfx.in_mouse_y
-    k = 0
-    while k < RECIPES.size
-      c = recipe_cell(k, w, h, s)
-      return k if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[3]
-      k += 1
+    shown = shown_recipes
+    j = 0
+    while j < shown.size
+      c = recipe_cell(j, w, h, s)
+      return shown[j] if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[3]
+      j += 1
     end
     -1
   end

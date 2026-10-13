@@ -67,6 +67,7 @@ class Game
     @hotbar = HOTBAR_START.dup
     @inv_block = Array.new(INV, 0)
     @inv_count = Array.new(INV, 0)
+    @seen = Array.new(Block::COUNT, 0)
     @held_block = 0
     @held_count = 0
     @chests = {}
@@ -256,6 +257,7 @@ class Game
     @seed = (Gfx.gfx_ns / 1000) % 1000000
     reset_world
     @chests = {}
+    @seen.fill(0)
     @mobs.clear
     clear_arrows
     clear_items
@@ -386,6 +388,7 @@ class Game
     sample_fire_blocks(dt)
     grow_plants(dt)
     update_items(dt)
+    note_seen if @survival
     update_weather(dt)
     Gfx.gfx_rain(@rain_mesh.v, @rain_mesh.count) if build_rain(dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD

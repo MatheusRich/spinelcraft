@@ -13,7 +13,8 @@ class Game
   F_HUNGER = F_HOTBAR + HOTBAR
   F_WEATHER = F_HUNGER + 1 # raining (1 or 0), seconds to the next change
   # The chest count, then the key and the contents of each chest. Then the
-  # item count and ITEM_FIELDS for each item on the ground.
+  # item count and ITEM_FIELDS for each item on the ground. Then the count
+  # of seen blocks, and their ids.
   F_CHESTS = F_WEATHER + 2
   ITEM_FIELDS = 6 # block, count, x, y, z, age
 
@@ -27,6 +28,12 @@ class Game
       chest_fields << key
       chest_fields.concat(stored)
     end
+    seen = []
+    b = 0
+    while b < Block::COUNT
+      seen << b if @seen[b] == 1
+      b += 1
+    end
     item_fields = [@it_count.size]
     i = 0
     while i < @it_count.size
@@ -38,9 +45,9 @@ class Game
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
     inv = (@inv_block + @inv_count + @hotbar + [@hunger, @raining ? 1 : 0, @weather_timer] + chest_fields +
-           item_fields + chunk_fields).map(&:to_s).join(" ")
+           item_fields + [seen.size] + seen + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
-      f.write("SPINELCRAFT5 #{header} #{inv}\n")
+      f.write("SPINELCRAFT6 #{header} #{inv}\n")
       keys.each { |k| f.write(chunks[k]) }
     end
     @changed = false
@@ -57,10 +64,11 @@ class Game
     return false if nl.nil?
     f = data[0, nl].split(" ")
     return false if f.size <= F_CHESTS
-    return false unless f[0] == "SPINELCRAFT5"
+    return false unless f[0] == "SPINELCRAFT6"
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
+    at += 1 + f[at].to_i
     n = f[at].to_i
     return false if data.bytesize - nl - 1 != n * CHUNK_BYTES
     @seed = f[F_SEED].to_i
@@ -151,6 +159,13 @@ class Game
       drop_item(f[at].to_i, f[at + 1].to_i, f[at + 2].to_f, f[at + 3].to_f, f[at + 4].to_f, 0.0, 0.0, 0.0, PICKUP_WAIT)
       @it_age[@it_age.size - 1] = f[at + 5].to_f
       at += ITEM_FIELDS
+      c += 1
+    end
+    @seen.fill(0)
+    seen = f[at].to_i
+    c = 0
+    while c < seen
+      @seen[f[at + 1 + c].to_i] = 1
       c += 1
     end
     stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
