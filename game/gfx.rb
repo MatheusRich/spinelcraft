@@ -62,6 +62,8 @@ module Gfx
     static Pending pending[MAX_SLOTS];
     static int npending;
 
+    /* A dynamic vertex: x y z, u v, layer, r g b a, glow (Mesh3#vert). */
+    #define DYN_FLOATS 11
     #define DYN_CAP (1 << 18)
     #define UI_CAP (1 << 16)
     static SDL_GPUBuffer *dyn_buf, *ui_buf, *sky_buf;
@@ -174,12 +176,13 @@ module Gfx
       "  float4 c = tex.sample(smp, in.uv, uint(in.layer)) * in.color;\n"
       "  return float4(mix(c.rgb, u.fog.rgb, in.fog), 1.0);\n"
       "}\n"
-      "struct VDyn { float3 pos [[attribute(0)]]; float2 uv [[attribute(1)]]; float layer [[attribute(2)]]; float4 color [[attribute(3)]]; };\n"
+      "struct VDyn { float3 pos [[attribute(0)]]; float2 uv [[attribute(1)]]; float layer [[attribute(2)]]; float4 color [[attribute(3)]]; float glow [[attribute(4)]]; };\n"
+      "// glow is the least light: 1 for flames, which are as bright at night.\n"
       "VOut dyn_out(VDyn in, float3 p, constant U &u) {\n"
       "  VOut o;\n"
       "  o.pos = u.vp * float4(p, 1.0);\n"
       "  o.uv = in.uv; o.layer = in.layer;\n"
-      "  float l = 0.2 + 0.8 * u.misc.x;\n"
+      "  float l = max(0.2 + 0.8 * u.misc.x, in.glow);\n"
       "  o.color = float4(in.color.rgb * l, in.color.a);\n"
       "  o.fog = fog_of(p, u);\n"
       "  return o;\n"
@@ -418,19 +421,20 @@ module Gfx
       p_water = pipeline(vchunk, fworld, &chunk_vb, &chunk_attr, 1, 1, 0, 1, 0);
       p_lod = pipeline(vlod, flod, &chunk_vb, &chunk_attr, 1, 1, 1, 0, 1);
 
-      SDL_GPUVertexBufferDescription dyn_vb = {.slot = 0, .pitch = 40, .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX};
-      SDL_GPUVertexAttribute dyn_attr[4] = {
+      SDL_GPUVertexBufferDescription dyn_vb = {.slot = 0, .pitch = DYN_FLOATS * 4, .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX};
+      SDL_GPUVertexAttribute dyn_attr[5] = {
         {.location = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, .offset = 0},
         {.location = 1, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, .offset = 12},
         {.location = 2, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, .offset = 20},
         {.location = 3, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 24},
+        {.location = 4, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, .offset = 40},
       };
-      p_dyn = pipeline(vdyn, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 1, 0);
-      p_hand = pipeline(vhand, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 1, 0);
+      p_dyn = pipeline(vdyn, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
+      p_hand = pipeline(vhand, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
       /* Cloud boxes: depth first, then the color of the nearest face only, so
          each pixel blends one cloud face. */
-      p_cloud_depth = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 2, 0);
-      p_cloud_box = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 4, 1, 0, 1, 0);
+      p_cloud_depth = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 2, 0);
+      p_cloud_box = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 5, 1, 0, 1, 0);
       /* The cloud layer makes its corners from the vertex index: no vertex buffer. */
       p_cloud = pipeline(vcloud, fcloud, NULL, NULL, 0, 1, 1, 1, 0);
 
@@ -489,14 +493,14 @@ module Gfx
       arena = make_buffer(arena_cap * 8);
       if (!arena) return fail("arena");
       free_range(0, arena_cap);
-      dyn_buf = make_buffer(DYN_CAP * 40);
+      dyn_buf = make_buffer(DYN_CAP * DYN_FLOATS * 4);
       ui_buf = make_buffer(UI_CAP * 36);
       sky_buf = make_buffer(SKY_CAP * 36);
       sky_tb = make_transfer(SKY_CAP * 36);
-      dyn_tb = make_transfer(DYN_CAP * 40);
+      dyn_tb = make_transfer(DYN_CAP * DYN_FLOATS * 4);
       ui_tb = make_transfer(UI_CAP * 36);
-      cloud_buf = make_buffer(CLOUD_CAP * 40);
-      cloud_tb = make_transfer(CLOUD_CAP * 40);
+      cloud_buf = make_buffer(CLOUD_CAP * DYN_FLOATS * 4);
+      cloud_tb = make_transfer(CLOUD_CAP * DYN_FLOATS * 4);
       if (!sampler || !cloud_sampler || !dyn_buf || !ui_buf || !dyn_tb || !ui_tb || !cloud_buf || !cloud_tb) return fail("SDL_CreateGPUBuffer");
       return true;
     }
@@ -609,14 +613,14 @@ module Gfx
 
     /* The floats from hand_floats on are the held item (see gfx_draw_hand). */
     long gfx_dyn(const double *v, long nfloats, long hand_floats) {
-      dyn_count = stage_floats(dyn_tb, v, nfloats, DYN_CAP * 10) / 10;
-      hand_first = hand_floats / 10 < dyn_count ? (Uint32)(hand_floats / 10) : dyn_count;
+      dyn_count = stage_floats(dyn_tb, v, nfloats, DYN_CAP * DYN_FLOATS) / DYN_FLOATS;
+      hand_first = hand_floats / DYN_FLOATS < dyn_count ? (Uint32)(hand_floats / DYN_FLOATS) : dyn_count;
       return 0;
     }
     long gfx_ui(const double *v, long nfloats) { ui_count = stage_floats(ui_tb, v, nfloats, UI_CAP * 9) / 9; return 0; }
     long gfx_sky(const double *v, long nfloats) { sky_count = stage_floats(sky_tb, v, nfloats, SKY_CAP * 9) / 9; return 0; }
     long gfx_cloud_boxes(const double *v, long nfloats) {
-      cloud_count = stage_floats(cloud_tb, v, nfloats, CLOUD_CAP * 10) / 10;
+      cloud_count = stage_floats(cloud_tb, v, nfloats, CLOUD_CAP * DYN_FLOATS) / DYN_FLOATS;
       cloud_changed = 1;
       return 0;
     }
@@ -665,7 +669,7 @@ module Gfx
       npending = 0;
       if (dyn_count) {
         SDL_GPUTransferBufferLocation src = {.transfer_buffer = dyn_tb};
-        SDL_GPUBufferRegion dst = {.buffer = dyn_buf, .size = dyn_count * 40};
+        SDL_GPUBufferRegion dst = {.buffer = dyn_buf, .size = dyn_count * DYN_FLOATS * 4};
         SDL_UploadToGPUBuffer(cp, &src, &dst, true);
       }
       if (ui_count) {
@@ -675,7 +679,7 @@ module Gfx
       }
       if (cloud_changed && cloud_count) {
         SDL_GPUTransferBufferLocation src = {.transfer_buffer = cloud_tb};
-        SDL_GPUBufferRegion dst = {.buffer = cloud_buf, .size = cloud_count * 40};
+        SDL_GPUBufferRegion dst = {.buffer = cloud_buf, .size = cloud_count * DYN_FLOATS * 4};
         SDL_UploadToGPUBuffer(cp, &src, &dst, true);
       }
       cloud_changed = 0;

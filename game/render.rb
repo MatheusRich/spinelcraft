@@ -167,14 +167,13 @@ class Game
     end
     draw_arrows
     draw_items(ex, ez, reach)
-    i = 0
-    while i < @pt_life.size
-      x = @pt_x[i]
-      y = @pt_y[i]
-      z = @pt_z[i]
-      @dyn.aabb(x - 0.06, y - 0.06, z - 0.06, x + 0.06, y + 0.06, z + 0.06, @pt_layer[i], 1.0, 1.0, 1.0, 1.0)
-      i += 1
-    end
+    # The camera's right and up axes, as in Camera#update.
+    fx = @player.fx
+    fy = @player.fy
+    fz = @player.fz
+    rx = Math.cos(@player.yaw)
+    rz = Math.sin(@player.yaw)
+    draw_particles(rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
     if @player.hit && @captured && @target_mob < 0
       @dyn.outline(@player.hx, @player.hy, @player.hz)
       if @mining && @mine_progress > 0.0

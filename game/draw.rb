@@ -50,9 +50,12 @@ class Mesh3
   SHADE = [0.82, 0.82, 1.0, 0.55, 0.9, 0.9]
 
   attr_reader :v
+  # The least light of the next vertices: 1.0 for flames (see dyn_out in gfx.rb).
+  attr_accessor :glow
 
   def initialize
     @v = []
+    @glow = 0.0
     @cx = Array.new(8, 0.0)
     @cy = Array.new(8, 0.0)
     @cz = Array.new(8, 0.0)
@@ -64,7 +67,25 @@ class Mesh3
   def count = @v.size
 
   def vert(x, y, z, u, w, layer, r, g, b, a)
-    @v << x << y << z << u << w << layer << r << g << b << a
+    @v << x << y << z << u << w << layer << r << g << b << a << @glow
+  end
+
+  # A square of half size h around x, y, z that faces the camera, whose
+  # right and up axes are (rx, 0, rz) and (ux, uy, uz).
+  def billboard(x, y, z, h, rx, rz, ux, uy, uz, layer, r, g, b, a)
+    l = layer.to_f
+    ax = (rx + ux) * h
+    ay = uy * h
+    az = (rz + uz) * h
+    bx = (rx - ux) * h
+    by = -uy * h
+    bz = (rz - uz) * h
+    vert(x - bx, y - by, z - bz, 0.0, 0.0, l, r, g, b, a)
+    vert(x + ax, y + ay, z + az, 1.0, 0.0, l, r, g, b, a)
+    vert(x + bx, y + by, z + bz, 1.0, 1.0, l, r, g, b, a)
+    vert(x - bx, y - by, z - bz, 0.0, 0.0, l, r, g, b, a)
+    vert(x + bx, y + by, z + bz, 1.0, 1.0, l, r, g, b, a)
+    vert(x - ax, y - ay, z - az, 0.0, 1.0, l, r, g, b, a)
   end
 
   # A box in a body's local space: the box swings by `swing` around the x axis

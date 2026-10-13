@@ -73,6 +73,7 @@ class Game
         m.alive = false
         explode(m.x, m.y + 0.8, m.z)
       end
+      emit_fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
       k = 0
@@ -186,6 +187,7 @@ class Game
       end
       x += 1
     end
+    smoke_puff(cx, cy, cz, 40, 3.0)
     play(Sfx::BREAK, 1.0)
     play(Sfx::HIT, 1.0)
     pdx = @player.x - cx

@@ -161,6 +161,7 @@ class Game
   # Lava destroys an item with a puff of smoke.
   def burn_item(i)
     @it_count[i] = 0
+    smoke_puff(@it_x[i], @it_y[i] + 0.3, @it_z[i], 4, 0.3)
     play(Sfx::FIZZ, near_volume(@it_x[i], @it_z[i], 0.6))
   end
 

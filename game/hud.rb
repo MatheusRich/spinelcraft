@@ -30,13 +30,25 @@ class Game
     end
   end
 
-  # Tints for water, lava and damage, the crosshair, and the bow pull.
+  # Tints for water, lava and damage, flames while the player burns, the
+  # crosshair, and the bow pull.
   def draw_view_overlays(w, h, s)
     eye_block = @world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor)
     if Block.water?(eye_block)
       @ui.rect(0.0, 0.0, w, h, 0.1, 0.25, 0.6, 0.25)
     elsif Block.lava?(eye_block)
       @ui.rect(0.0, 0.0, w, h, 0.9, 0.3, 0.05, 0.75)
+    end
+    if @fire_time > 0.0 && @survival && !@dead
+      # Two flames at the bottom corners that flicker.
+      size = h * 0.42
+      k = 0
+      while k < 2
+        flick = Math.sin(@anim_time * 23.0 + k * 2.0) * 0.04 * size
+        x = k == 0 ? -size * 0.15 : w - size * 0.85
+        @ui.quad(x, h - size * 0.8 + flick, size, size, Tex::FIRE, 1.0, 1.0, 1.0, 1.0, 1.0, 0.85)
+        k += 1
+      end
     end
     if @damage_flash > 0.0
       @ui.rect(0.0, 0.0, w, h, 0.8, 0.0, 0.0, @damage_flash)

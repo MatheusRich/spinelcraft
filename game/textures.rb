@@ -45,7 +45,10 @@ module Tex
   BED_SIDE = 48
   CHEST_TOP = 49
   CHEST_SIDE = 50
-  FONT = 51
+  # Flame tongues, and a round puff for smoke.
+  FIRE = 51
+  PUFF = 52
+  FONT = 53
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -234,6 +237,8 @@ module Tex
     ore(px, COAL, 30, 30, 30, 30)
     ore(px, IRON, 200, 160, 120, 40)
     ore(px, DIAMOND, 90, 220, 220, 50)
+    fire(px)
+    puff(px)
     heart(px, HEART, 220, 30, 40)
     heart(px, HEART_EMPTY, 50, 20, 20)
     font(px)
@@ -243,7 +248,51 @@ module Tex
     bleed(px, TALL_GRASS)
     bleed(px, ROSE)
     bleed(px, DANDELION)
+    bleed(px, FIRE)
+    bleed(px, PUFF)
     px
+  end
+
+  # Tongues of flame: tall in the middle, yellow at the base, red at the tips.
+  def self.fire(px)
+    x = 0
+    while x < 16
+      edge = (x - 7.5).abs / 8.0
+      tall = (16.0 * (1.0 - edge * edge) * (0.55 + rnd(x / 2, 0, 81) / 570.0)).to_i
+      y = 0
+      while y < 16
+        up = 15 - y
+        if up < tall
+          t = up.to_f / tall
+          if t < 0.4
+            set(px, FIRE, x, y, 255, 225, 90, 255)
+          elsif t < 0.75
+            set(px, FIRE, x, y, 250, 140, 30, 255)
+          else
+            set(px, FIRE, x, y, 215, 55, 20, 255)
+          end
+        end
+        y += 1
+      end
+      x += 1
+    end
+  end
+
+  # A white disk with a rough edge.
+  def self.puff(px)
+    y = 0
+    while y < 16
+      x = 0
+      while x < 16
+        dx = x - 7.5
+        dy = y - 7.5
+        r = 6.0 + rnd(x, y, 83) / 128.0
+        v = 225 + rnd(x, y, 84) / 9
+        set(px, PUFF, x, y, v, v, v, 255) if dx * dx + dy * dy < r * r
+        x += 1
+      end
+      y += 1
+    end
   end
 
   # Mining cracks, one layer per stage. Each stage keeps the cracks of the

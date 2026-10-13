@@ -16,6 +16,7 @@ require_relative "game/block_changes"
 require_relative "game/inventory"
 require_relative "game/items"
 require_relative "game/hand"
+require_relative "game/particles"
 require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
@@ -107,7 +108,9 @@ class Game
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
     @was_in_water = false
-    # Particles: position, velocity, life and texture layer, in parallel arrays.
+    # Particles (game/particles.rb): kind, position, velocity, life, the life
+    # at birth, and texture layer, in parallel arrays.
+    @pt_kind = []
     @pt_x = []
     @pt_y = []
     @pt_z = []
@@ -115,6 +118,7 @@ class Game
     @pt_vy = []
     @pt_vz = []
     @pt_life = []
+    @pt_max = []
     @pt_layer = []
     # Arrows: position, velocity and time left; a stuck arrow has stopped.
     @ar_x = []
@@ -148,6 +152,10 @@ class Game
     @since_damage = 0.0
     @damage_flash = 0.0
     @dead = false
+    # Seconds that the player keeps burning after lava, and until the next
+    # point of fire damage.
+    @fire_time = 0.0
+    @fire_tick = 0.0
     @mining = false
     @mine_x = 0
     @mine_y = 0
@@ -290,6 +298,7 @@ class Game
     @health = MAX_HEALTH
     @hunger = MAX_HUNGER
     @air = MAX_AIR
+    @fire_time = 0.0
     @dead = false
     @alive_time = 0.0
   end
@@ -304,54 +313,6 @@ class Game
     dz = z - @player.z
     v = 1.0 - Math.sqrt(dx * dx + dz * dz) / 24.0
     v > 0.0 ? v * gain : 0.0
-  end
-
-  def burst_particles(x, y, z, b)
-    layer = Block::SIDE[b]
-    i = 0
-    while i < 12
-      @pt_x << x + 0.2 + rand01 * 0.6
-      @pt_y << y + 0.2 + rand01 * 0.6
-      @pt_z << z + 0.2 + rand01 * 0.6
-      @pt_vx << (rand01 - 0.5) * 4.0
-      @pt_vy << rand01 * 4.0 + 1.0
-      @pt_vz << (rand01 - 0.5) * 4.0
-      @pt_life << 0.5 + rand01 * 0.4
-      @pt_layer << layer
-      i += 1
-    end
-  end
-
-  def update_particles(dt)
-    i = 0
-    while i < @pt_life.size
-      @pt_life[i] -= dt
-      @pt_vy[i] -= 18.0 * dt
-      nx = @pt_x[i] + @pt_vx[i] * dt
-      ny = @pt_y[i] + @pt_vy[i] * dt
-      nz = @pt_z[i] + @pt_vz[i] * dt
-      if Block.solid?(@world.get(nx.floor, ny.floor, nz.floor))
-        @pt_vx[i] *= 0.3
-        @pt_vz[i] *= 0.3
-        @pt_vy[i] = 0.0
-      else
-        @pt_x[i] = nx
-        @pt_y[i] = ny
-        @pt_z[i] = nz
-      end
-      i += 1
-    end
-    # Drop the dead ones from the front (they are the oldest).
-    while !@pt_life.empty? && @pt_life[0] <= 0.0
-      @pt_x.shift
-      @pt_y.shift
-      @pt_z.shift
-      @pt_vx.shift
-      @pt_vy.shift
-      @pt_vz.shift
-      @pt_life.shift
-      @pt_layer.shift
-    end
   end
 
   def say(text)
@@ -406,6 +367,7 @@ class Game
     play(Sfx::SPLASH, 0.6) if @player.in_water && !@was_in_water && !@player.flying
     @was_in_water = @player.in_water
     update_particles(dt)
+    sample_fire_blocks(dt)
     update_items(dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
@@ -432,14 +394,29 @@ class Game
     return unless @survival && !@dead
     @alive_time += dt
     feet = @world.get(@player.x.floor, (@player.y + 0.2).floor, @player.z.floor)
+    head = Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
     if Block.lava?(feet) || Block.lava?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
       @lava_timer -= dt
       if @lava_timer <= 0.0
         @lava_timer = 0.5
         hurt(4)
       end
+      # Out of the lava, the player burns on for a while.
+      @fire_time = 4.0
+      @fire_tick = 1.0
+    elsif @fire_time > 0.0
+      if head || Block.water?(feet)
+        @fire_time = 0.0
+        play(Sfx::FIZZ, 0.6)
+      else
+        @fire_time -= dt
+        @fire_tick -= dt
+        if @fire_tick <= 0.0
+          @fire_tick = 1.0
+          hurt(1)
+        end
+      end
     end
-    head = Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
     if head
       @air -= dt
       if @air < 0.0

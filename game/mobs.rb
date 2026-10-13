@@ -15,6 +15,8 @@ class Mob
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :shoot, :explode, :by_player
   attr_reader :fuse
+  # Seconds that the mob still burns.
+  attr_reader :fire
   attr_reader :kind, :half, :tall
 
   def initialize(kind, x, y, z, seed)
@@ -42,6 +44,7 @@ class Mob
     @attack_wait = 0.0
     @on_ground = false
     @burn = 0.0
+    @fire = 0.0
   end
 
   def passive? = PASSIVE[@kind] == 1
@@ -160,14 +163,7 @@ class Mob
         end
       end
       exposed = world.height_at(@x.floor, @z.floor) <= (@y + 1.6).floor
-      if day > 0.65 && exposed && @kind != CREEPER
-        @burn += dt
-        if @burn > 0.8
-          @burn = 0.0
-          @hp -= 4
-          @hurt = 0.3
-        end
-      end
+      @fire = 1.0 if day > 0.65 && exposed && @kind != CREEPER && @fire < 1.0
     end
     fx = -Math.sin(@yaw)
     fz = Math.cos(@yaw)
@@ -176,8 +172,13 @@ class Mob
     @vz += (fz * speed - @vz) * k
     feet = world.get(@x.floor, (@y + 0.3).floor, @z.floor)
     in_water = Block.water?(feet) || Block.lava?(feet)
-    if Block.lava?(feet)
-      @burn += dt * 3.0
+    # A mob burns on for a while after the sun or the lava, and water puts
+    # the fire out. Lava burns three times as fast.
+    @fire = 3.0 if Block.lava?(feet)
+    @fire = 0.0 if Block.water?(feet)
+    if @fire > 0.0
+      @fire -= dt
+      @burn += Block.lava?(feet) ? dt * 3.0 : dt
       if @burn > 0.8
         @burn = 0.0
         @hp -= 4

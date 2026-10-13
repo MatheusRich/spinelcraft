@@ -96,6 +96,7 @@ class Game
     test_falling_and_torches(x, z, ground)
     test_survival(x, z, ground)
     test_monsters
+    test_fire
     test_save(x, z, ground)
     test_crafting_limits
     cx = @spawn_x.floor + 4
@@ -291,6 +292,39 @@ class Game
     end
     check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @health < MAX_HEALTH && frames > 60)
     @mobs.clear
+    @time_of_day = 0.3
+    @health = MAX_HEALTH
+  end
+
+  # On the sky platform from test_monsters: a zombie in the sun burns with
+  # flames, and the player burns on after lava until water puts the fire out.
+  def test_fire
+    px = @spawn_x.floor
+    pz = @spawn_z.floor
+    @mobs.clear
+    @time_of_day = 0.25
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, 89.0, pz + 0.5, 9)
+    @mobs << zombie
+    @player.x = px + 0.5
+    @player.y = 89.0
+    @player.z = pz + 0.5
+    60.times { update_mobs(1.0 / 60.0) }
+    check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @pt_kind.count(FLAME) > 0)
+    @mobs.clear
+    @survival = true
+    @health = MAX_HEALTH
+    @dead = false
+    @world.set(px + 1, 89, pz, Block::LAVA)
+    @player.x = px + 1.5
+    update_survival(0.1)
+    @world.set(px + 1, 89, pz, Block::AIR)
+    @health = MAX_HEALTH
+    150.times { update_survival(1.0 / 60.0) }
+    burned = @fire_time > 0.0 && @health < MAX_HEALTH
+    @world.set(px + 1, 89, pz, Block::WATER)
+    update_survival(1.0 / 60.0)
+    @world.set(px + 1, 89, pz, Block::AIR)
+    check("the player burns on after lava, and water puts the fire out", burned && @fire_time == 0.0)
     @time_of_day = 0.3
     @health = MAX_HEALTH
   end
