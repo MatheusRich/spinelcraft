@@ -26,7 +26,7 @@ You need macOS, SDL3 (`brew install sdl3`) and a built Spinel compiler.
 
 `build.sh` uses `$SPINEL` if you set it. Otherwise it uses `spinel` from `PATH`, and then `~/Documents/dev/oss/spinel/spinel`. Use a recent Spinel. A binary built with Spinel master from 2026-10-12 starts about 40% faster than one built with an older compiler.
 
-The game saves to `world.sav` in the current directory when you quit, when you press F5, and when it pauses after the world changed. It pauses when you press Esc or when the window loses focus. It loads `world.sav` at start. To get a new world, delete the file or start with `NEW=1`. The save keeps only the chunks that you changed, because the generator makes the same blocks again for every other chunk. The game also reads saves from the old fixed-size world (format 3). The old 384 × 384 area becomes changed chunks, and new terrain continues past its edges.
+The game saves to `world.sav` in the current directory when you quit, when you press F5, and when it pauses after the world changed. It pauses when you press Esc or when the window loses focus. It loads `world.sav` at start. To get a new world, delete the file or start with `NEW=1`. If `world.sav` exists but does not load, the game renames it to `world-bad.sav` and starts a new world, so the next save does not replace the old one. The save keeps only the chunks that you changed, because the generator makes the same blocks again for every other chunk. The game also reads saves from the old fixed-size world (format 3). The old 384 × 384 area becomes changed chunks, and new terrain continues past its edges.
 
 ## Controls
 
@@ -165,10 +165,10 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `MUTE=1` | No sound |
 | `SHOWMOBS=1` | Put one mob of each kind on a stone floor in front of the player |
 | `INVENTORY=1` | Start with the inventory open |
-| `SELFTEST=1` | Check 44 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 47 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 
-`SELFTEST=1` writes and deletes `world.sav` in the current directory, so run it in a folder without a save that you want to keep.
+`SELFTEST=1` writes and deletes `world.sav` and `world-bad.sav` in the current directory, so run it in a folder without a save that you want to keep.
 
 `tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby.

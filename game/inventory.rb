@@ -94,35 +94,31 @@ class Game
       say("NEED #{r[1]} #{Block::NAMES[r[0]]}")
       return
     end
+    # Take the ingredients first: a slot that they empty is room for the result.
+    blocks = @inv_block.dup
+    counts = @inv_count.dup
+    remove_items(r[0], r[1])
     if room_for(r[2]) < r[3]
+      @inv_block = blocks
+      @inv_count = counts
       say("INVENTORY FULL")
       return
     end
-    remove_items(r[0], r[1])
     r[3].times { give(r[2]) }
     say("CRAFTED #{r[3]} #{Block::NAMES[r[2]]}")
     play(Sfx::PLACE, 0.6)
   end
 
+  # The C key: crafts the first recipe that the selected stack can make.
   def craft
     b = @inv_block[@slot]
-    RECIPES.each do |r|
-      next if r[0] != b || @inv_count[@slot] < r[1]
-      freed = @inv_count[@slot] == r[1] ? STACK : 0
-      if room_for(r[2]) + freed < r[3]
-        say("INVENTORY FULL")
+    k = 0
+    while k < RECIPES.size
+      if RECIPES[k][0] == b && @inv_count[@slot] >= RECIPES[k][1]
+        craft_recipe(k)
         return
       end
-      @inv_count[@slot] -= r[1]
-      @inv_block[@slot] = Block::AIR if @inv_count[@slot] == 0
-      n = 0
-      while n < r[3]
-        give(r[2])
-        n += 1
-      end
-      say("CRAFTED #{r[3]} #{Block::NAMES[r[2]]}")
-      play(Sfx::PLACE, 0.6)
-      return
+      k += 1
     end
     say("NOTHING TO CRAFT FROM #{Block::NAMES[b]}") if b != Block::AIR
   end

@@ -49,6 +49,10 @@ module Tex
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + 54
 
+  # How a layer's texture scrolls: 0 not at all, 1 like water, 2 like lava.
+  # The mesher puts it in bits 23-24 of a face record for the shader.
+  def self.scroll(layer) = layer == WATER ? 1 : (layer == LAVA ? 2 : 0)
+
   GLYPHS = [
     "... ... ... ... ...",
     "### #.# #.# #.# ###", ".#. ##. .#. .#. ###", "### ..# ### #.. ###", "### ..# ### ..# ###",

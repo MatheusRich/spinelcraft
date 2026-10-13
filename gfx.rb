@@ -19,7 +19,15 @@ module Gfx
     static SDL_GPURenderPass *pass;
     static SDL_GPUTexture *swap_tex;
     static Uint32 swap_w = 1280, swap_h = 720;
-    static float uni[44];
+    /* These sizes must match the Ruby side. gfx_limit returns them, and
+       Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS and
+       the GPU slots that the game uses. */
+    #define LEVELS 4
+    #define UNIFORMS (28 + 4 * LEVELS)
+    #define COLUMNS 1024
+    #define STR2(x) #x
+    #define STR(x) STR2(x)
+    static float uni[UNIFORMS];
     static char shot_path[1024];
     static Uint64 gpu_wait_ns, gpu_frames;
     static SDL_GPUTexture *shot_tex;
@@ -50,7 +58,7 @@ module Gfx
     static const char *MSL =
       "#include <metal_stdlib>\n"
       "using namespace metal;\n"
-      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[4]; };\n"
+      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; };\n"
       "struct VOut { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; };\n"
       "struct VChunk { uint2 d [[attribute(0)]]; };\n"
       "constant float3 CORNER[10][4] = {\n"
@@ -60,6 +68,7 @@ module Gfx
       "  {{0.15,0,0.15},{0.85,0,0.85},{0.85,1,0.85},{0.15,1,0.15}}, {{0.85,0,0.85},{0.15,0,0.15},{0.15,1,0.15},{0.85,1,0.85}},\n"
       "  {{0.85,0,0.15},{0.15,0,0.85},{0.15,1,0.85},{0.85,1,0.15}}, {{0.15,0,0.85},{0.85,0,0.15},{0.85,1,0.15},{0.15,1,0.85}} };\n"
       "constant float2 UV[4] = {{0,1},{1,1},{1,0},{0,0}};\n"
+      "// Light for each face direction; Mesh3::SHADE in draw.rb has the same values.\n"
       "constant float SHADE[10] = {0.82, 0.82, 1.0, 0.55, 0.9, 0.9, 0.95, 0.95, 0.95, 0.95};\n"
       "float fog_of(float3 p, constant U &u) {\n"
       "  float d = length(p - u.cam.xyz);\n"
@@ -71,9 +80,9 @@ module Gfx
       "vertex VOut vchunk(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
       "  uint w0 = in.d.x, w1 = in.d.y;\n"
       "  float3 bp = float3(w0 & 1023u, (w0 >> 10) & 127u, (w0 >> 17) & 1023u);\n"
-      "  // x and z are storage columns of a 1024-block ring; use the copy nearest the camera.\n"
-      "  bp.x += 1024.0 * floor((u.cam.x - bp.x) / 1024.0 + 0.5);\n"
-      "  bp.z += 1024.0 * floor((u.cam.z - bp.z) / 1024.0 + 0.5);\n"
+      "  // x and z are storage columns of a ring of COLUMNS blocks; use the copy nearest the camera.\n"
+      "  bp.x += " STR(COLUMNS) ".0 * floor((u.cam.x - bp.x) / " STR(COLUMNS) ".0 + 0.5);\n"
+      "  bp.z += " STR(COLUMNS) ".0 * floor((u.cam.z - bp.z) / " STR(COLUMNS) ".0 + 0.5);\n"
       "  uint face = (w0 >> 27) & 15u;\n"
       "  uint c = (vid + ((w1 >> 16) & 1u)) & 3u;\n"
       "  float3 corner = CORNER[face][c];\n"
@@ -90,23 +99,24 @@ module Gfx
       "  VOut o;\n"
       "  o.pos = u.vp * float4(p, 1.0);\n"
       "  o.uv = UV[c];\n"
-      "  uint layer = w1 & 255u;\n"
-      "  if (layer == 6u) o.uv += float2(u.cam.w * 0.06, u.cam.w * 0.1);\n"
-      "  if (layer == 45u) o.uv += float2(u.cam.w * 0.02, u.cam.w * 0.035);\n"
+      "  // Bits 23-24 scroll the texture: 1 like water, 2 like lava (Tex.scroll).\n"
+      "  uint scroll = (w1 >> 23) & 3u;\n"
+      "  if (scroll == 1u) o.uv += float2(u.cam.w * 0.06, u.cam.w * 0.1);\n"
+      "  if (scroll == 2u) o.uv += float2(u.cam.w * 0.02, u.cam.w * 0.035);\n"
       "  o.layer = float(w1 & 255u);\n"
       "  o.color = float4(float3(s) * mix(float3(1.0), float3(1.0, 0.82, 0.6), warm), 1.0);\n"
       "  o.fog = fog_of(p, u);\n"
       "  return o;\n"
       "}\n"
       "// Far terrain: one record per face of a cell of 2^s x 2^s blocks (level s - 2).\n"
-      "// w0 holds the cell column in a ring of 1024 cells, the base y and the face;\n"
+      "// w0 holds the cell column in a ring of COLUMNS cells, the base y and the face;\n"
       "// w1 the texture, the face height in blocks and s.\n"
       "struct VOutL { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; float2 wp; uint level [[flat]]; };\n"
       "vertex VOutL vlod(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
       "  uint w0 = in.d.x, w1 = in.d.y;\n"
       "  uint sh = (w1 >> 15) & 7u;\n"
       "  float cs = float(1u << sh);\n"
-      "  float ring = 1024.0 * cs;\n"
+      "  float ring = " STR(COLUMNS) ".0 * cs;\n"
       "  float3 bp = float3(float(w0 & 1023u) * cs, float((w0 >> 10) & 127u), float((w0 >> 17) & 1023u) * cs);\n"
       "  bp.x += ring * floor((u.cam.x - bp.x) / ring + 0.5);\n"
       "  bp.z += ring * floor((u.cam.z - bp.z) / ring + 0.5);\n"
@@ -395,7 +405,7 @@ module Gfx
        square x0 z0 x1 z1 that the next finer level covers.
        Returns 0 when there is a frame to draw. */
     long gfx_begin(const double *u) {
-      for (int i = 0; i < 44; i++) uni[i] = (float)u[i];
+      for (int i = 0; i < UNIFORMS; i++) uni[i] = (float)u[i];
       cmd = SDL_AcquireGPUCommandBuffer(dev);
       if (!cmd) return fail("SDL_AcquireGPUCommandBuffer");
       SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(cmd);
@@ -649,6 +659,8 @@ module Gfx
     double in_mouse_y(void) { float x, y; SDL_GetMouseState(&x, &y); return y * SDL_GetWindowPixelDensity(win); }
     void in_capture(long on) { SDL_SetWindowRelativeMouseMode(win, on != 0); }
     void gfx_fullscreen(long on) { SDL_SetWindowFullscreen(win, on != 0); }
+    /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots. */
+    long gfx_limit(long which) { return which == 0 ? LEVELS : (which == 1 ? COLUMNS : MAX_SLOTS); }
   C
   ffi_func :gfx_init, [:long, :long, :long], :long
   ffi_func :gfx_textures, [:int_array, :long], :long
@@ -683,6 +695,7 @@ module Gfx
   ffi_func :in_mouse_y, [], :double
   ffi_func :in_capture, [:long], :void
   ffi_func :gfx_fullscreen, [:long], :void
+  ffi_func :gfx_limit, [:long], :long
 end
 
 module Key

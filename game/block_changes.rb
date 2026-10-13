@@ -5,24 +5,30 @@ class Game
     drop_chest(x, y, z) if b != Block::CHEST && @world.get(x, y, z) == Block::CHEST
     old = @world.get(x, y, z)
     if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && near_lava?(x, y, z))
-      deferred = @defer
-      @defer = true
-      cx = (x - 14) / CHUNK
-      while cx <= (x + 14) / CHUNK
-        cz = (z - 14) / CHUNK
-        while cz <= (z + 14) / CHUNK
-          mark_chunk(cx, cz)
-          cz += 1
-        end
-        cx += 1
-      end
-      @defer = deferred
+      mark_light_area(x, z)
     end
     @world.set(x, y, z, b)
     mark_dirty(x, z)
     set_block(x, y + 1, z, Block::AIR) if b == Block::AIR && Block::PLANT[@world.get(x, y + 1, z)] == 1
     settle_column(x, z)
     wake_water(x, y, z)
+  end
+
+  # A light that changes at column x, z reaches 14 blocks, so every chunk in
+  # that square remeshes. These remeshes may wait for later frames.
+  def mark_light_area(x, z)
+    deferred = @defer
+    @defer = true
+    cx = (x - 14) / CHUNK
+    while cx <= (x + 14) / CHUNK
+      cz = (z - 14) / CHUNK
+      while cz <= (z + 14) / CHUNK
+        mark_chunk(cx, cz)
+        cz += 1
+      end
+      cx += 1
+    end
+    @defer = deferred
   end
 
   def near_lava?(x, y, z)
@@ -136,6 +142,8 @@ class Game
             break unless under == Block::AIR || Block.water?(under) || Block::PLANT[under] == 1
             ty -= 1
           end
+          # The block lands in the place of a plant or a torch: a buried torch's light goes out.
+          mark_light_area(x, z) if Block.emits?(@world.get(x, ty, z))
           @world.set(x, y, z, Block::AIR)
           @world.set(x, ty, z, b)
           wake_water(x, y, z)

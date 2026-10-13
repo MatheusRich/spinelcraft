@@ -86,7 +86,9 @@ class Game
   def make_lod_ring
     @lod_dx = Array.new(0, 0)
     @lod_dz = Array.new(0, 0)
-    max = LOD_REACH / 64 + 1
+    # Level L reaches LOD_REACH << L blocks with tiles of (4 << L) * CELLS
+    # blocks, so every level needs the same number of rings as lod_rings gives.
+    max = (LOD_REACH.to_f / (4 * Lod::CELLS)).ceil + 1
     r = 0
     while r <= max
       dx = -r
@@ -129,7 +131,7 @@ class Game
         @lod_at[level] = at + 1
         next if lod.ready?(tx, tz)
         slot = lod.build(tx, tz)
-        Gfx.gfx_mesh(LOD_SLOT0 + level * TILE_SLOTS + slot, lod.faces, lod.faces.size / 2, lod.offsets)
+        upload_mesh(LOD_SLOT0 + level * TILE_SLOTS + slot, lod.faces, lod.offsets)
       end
       level += 1
     end
@@ -159,9 +161,14 @@ class Game
     return unless meshable?(cx, cz)
     @mesher.build(cx, cz)
     s = World.slot(cx, cz)
-    Gfx.gfx_mesh(s * 2, @mesher.opaque, @mesher.opaque.size / 2, @mesher.offsets)
-    Gfx.gfx_mesh(s * 2 + 1, @mesher.water, @mesher.water.size / 2, @mesher.water_offsets)
+    upload_mesh(s * 2, @mesher.opaque, @mesher.offsets)
+    upload_mesh(s * 2 + 1, @mesher.water, @mesher.water_offsets)
     @meshed[s] = 1
+  end
+
+  # Sends face records (two Integers each) to GPU slot `slot`.
+  def upload_mesh(slot, faces, offsets)
+    abort "GPU mesh upload failed for slot #{slot}" if Gfx.gfx_mesh(slot, faces, faces.size / 2, offsets) != 0
   end
 
   # Marks the chunk of a block, and the chunks it touches across an edge.

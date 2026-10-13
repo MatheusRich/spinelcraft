@@ -9,6 +9,19 @@ class Mesher
     [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]]
   ]
 
+  # The x and z fields of a face record are 10 bits, so records hold columns
+  # of a ring this wide. The shaders wrap at the same width (COLUMNS in gfx.rb).
+  COLUMNS = 1024
+  COLUMN_MASK = COLUMNS - 1
+
+  # The first word of a face record: x and z (10 bits each), y (7 bits), and the face.
+  def self.pack(x, y, z, f) = x | (y << 10) | (z << 17) | (f << 27)
+  def self.face_x(w0) = w0 & COLUMN_MASK
+  def self.face_y(w0) = (w0 >> 10) & 127
+  def self.face_z(w0) = (w0 >> 17) & COLUMN_MASK
+  # The torch light in the second word of a record.
+  def self.face_light(w1) = (w1 >> 19) & 15
+
   attr_reader :opaque, :water, :offsets
 
   def initialize(world)
@@ -144,7 +157,7 @@ class Mesher
             plants = @lists[6]
             f = 6
             while f < 10
-              plants << (lx | (y << 10) | (lz << 17) | (f << 27))
+              plants << Mesher.pack(lx, y, lz, f)
               plants << w1
               f += 1
             end
@@ -165,11 +178,11 @@ class Mesher
                 sx = x + @nx[f]
                 sz = z + @nz[f]
                 sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
-                w0 = lx | (y << 10) | (lz << 17) | (f << 27)
+                w0 = Mesher.pack(lx, y, lz, f)
                 if water
                   low = water_level[World.byte(blocks, i + 1)] > 0 ? 0 : 1
                   # A sunk surface keeps 8 - level in the bits that hold AO for solid faces.
-                  w1 = tex | (low == 1 ? (8 - water_level[id]) << 8 : 255 << 8) | (sky << 17) | (low << 18)
+                  w1 = tex | (low == 1 ? (8 - water_level[id]) << 8 : 255 << 8) | (sky << 17) | (low << 18) | (Tex.scroll(tex) << 23)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
                   @water << w0
                   @water << w1
@@ -180,7 +193,7 @@ class Mesher
                   ao2 = ao_value(occludes[World.byte(blocks, i + @ao[a + 6])], occludes[World.byte(blocks, i + @ao[a + 7])], occludes[World.byte(blocks, i + @ao[a + 8])])
                   ao3 = ao_value(occludes[World.byte(blocks, i + @ao[a + 9])], occludes[World.byte(blocks, i + @ao[a + 10])], occludes[World.byte(blocks, i + @ao[a + 11])])
                   flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
-                  w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17)
+                  w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | (Tex.scroll(tex) << 23)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
                   w1 = (w1 & ~(15 << 19)) | (14 << 19) if Block.lava?(id)
                   list = @lists[f]

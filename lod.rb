@@ -4,8 +4,8 @@
 # far terrain needs no block storage. Edits do not show here.
 class Lod
   CELLS = 16
-  # Tiles live in a ring like chunks do; the shader wraps 1024 cells.
-  TRING = 1024 / CELLS
+  # Tiles live in a ring like chunks do; the shader wraps Mesher::COLUMNS cells.
+  TRING = Mesher::COLUMNS / CELLS
   TMASK = TRING - 1
   # Forest canopy height above the ground.
   CANOPY = 5
@@ -85,10 +85,10 @@ class Lod
       while j <= CELLS
         k = i * (CELLS + 2) + j
         h = @h[k]
-        cx = (c0x + i) & 1023
-        cz = (c0z + j) & 1023
+        cx = (c0x + i) & Mesher::COLUMN_MASK
+        cz = (c0z + j) & Mesher::COLUMN_MASK
         # The top face: the cell's top block is at y = h - 1.
-        @lists[2] << (cx | ((h - 1) << 10) | (cz << 17) | (2 << 27))
+        @lists[2] << Mesher.pack(cx, h - 1, cz, 2)
         @lists[2] << (@top[k] | (1 << 8) | (@shift << 15))
         f = 0
         while f < 6
@@ -97,7 +97,7 @@ class Lod
             if n < h
               tall = h - n
               tall = 127 if tall > 127
-              @lists[f] << (cx | (n << 10) | (cz << 17) | (f << 27))
+              @lists[f] << Mesher.pack(cx, n, cz, f)
               @lists[f] << (@side[k] | (tall << 8) | (@shift << 15))
             end
           end

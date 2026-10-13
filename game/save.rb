@@ -62,6 +62,14 @@ class Game
     true
   end
 
+  # Moves a save that exists but did not load to BAD_SAVE_PATH. Otherwise the
+  # next save writes the new world over it.
+  def keep_bad_save
+    return unless File.exist?(SAVE_PATH)
+    File.rename(SAVE_PATH, BAD_SAVE_PATH)
+    puts "#{SAVE_PATH} did not load, so the game moved it to #{BAD_SAVE_PATH}"
+  end
+
   # An empty world for @seed; stream_around fills it.
   def reset_world
     @world = World.new(@seed)

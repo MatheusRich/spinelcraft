@@ -135,6 +135,17 @@ class Game
     puts "torch edit remesh: #{@mesh_ms.round(2)} ms"
     set_block(x, ground + 1, z, Block::AIR)
     flush_dirty
+    # Sand that falls onto a torch buries it. A torch in the middle of a
+    # chunk lights the next chunk too, so that chunk must remesh.
+    tx = (x & ~15) + 8
+    th = @world.height_at(tx, z)
+    set_block(tx, th, z, Block::TORCH)
+    flush_dirty while !@later_list.empty?
+    set_block(tx, th + 3, z, Block::SAND)
+    lit = World.slot((tx >> 4) + 1, z >> 4)
+    check("sand that buries a torch remeshes the chunks that it lit", @world.get(tx, th, z) == Block::SAND && (@dirty[lit] == true || @later[lit] == true))
+    set_block(tx, th, z, Block::AIR)
+    flush_dirty while !@later_list.empty?
   end
 
   # Survival basics: crafting, stacks, health, placing, mining, and food.
@@ -265,6 +276,11 @@ class Game
     ok = load
     apply_loaded if ok
     check("loading a save made while dead respawns", ok && @health == MAX_HEALTH && !@dead)
+    File.write(SAVE_PATH, "NOT A SAVE\n")
+    ok = load
+    keep_bad_save
+    check("a save that does not load moves aside", !ok && !File.exist?(SAVE_PATH) && File.exist?(BAD_SAVE_PATH))
+    File.delete(BAD_SAVE_PATH) if File.exist?(BAD_SAVE_PATH)
   end
 
   # Crafting needs room for the result, and it takes from several stacks.
@@ -289,6 +305,17 @@ class Game
     @inv_count[20] = 4
     craft_recipe(RECIPES.index { |r| r[2] == Block::BOW })
     check("a recipe takes ingredients from several stacks", count_items(Block::PLANKS) == 1 && count_items(Block::BOW) == 1)
+    # The only free slot is the one that the recipe empties.
+    i = 0
+    while i < INV
+      @inv_block[i] = Block::DIRT
+      @inv_count[i] = 64
+      i += 1
+    end
+    @inv_block[0] = Block::LOG
+    @inv_count[0] = 1
+    craft_recipe(0)
+    check("a recipe click counts the slot that it empties as room", @inv_block[0] == Block::PLANKS && @inv_count[0] == 4)
   end
 
   # Chest contents survive a save and come back when the chest breaks.
@@ -337,17 +364,18 @@ class Game
     # Wool is not a light source.
     set_block(cx, 90, cz, Block::WOOL)
     @mesher.build(cx / CHUNK, cz / CHUNK)
+    faces = 0
     glow = false
     k = 0
     while k < @mesher.opaque.size
       w0 = @mesher.opaque[k]
-      w1 = @mesher.opaque[k + 1]
-      if (w0 & 511) == cx && ((w0 >> 9) & 255) == 90 && ((w0 >> 17) & 511) == cz
-        glow = true if ((w1 >> 19) & 15) == 14
+      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == 90 && Mesher.face_z(w0) == (cz & LMASK)
+        faces += 1
+        glow = true if Mesher.face_light(@mesher.opaque[k + 1]) == 14
       end
       k += 2
     end
-    check("wool does not glow", !glow)
+    check("wool does not glow", faces > 0 && !glow)
     set_block(cx, 90, cz, Block::AIR)
     lx = @spawn_x.floor - 6
     lz = @spawn_z.floor - 6

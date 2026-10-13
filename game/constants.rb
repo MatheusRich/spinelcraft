@@ -17,6 +17,8 @@ class Game
   # LOD_REACH << L blocks, so each level has about the same number of tiles.
   LEVELS = 4
   LOD_REACH = 640
+  # Floats that render passes to the shaders: 28, then one square for each level.
+  UNIFORMS = 28 + 4 * LEVELS
   DAY_SECONDS = 600.0
   MAX_HEALTH = 20
   MAX_HUNGER = 20
@@ -51,4 +53,6 @@ class Game
   INV_COLS = 8
 
   SAVE_PATH = "world.sav"
+  # Where a save that does not load goes, so that the next save does not replace it.
+  BAD_SAVE_PATH = "world-bad.sav"
 end

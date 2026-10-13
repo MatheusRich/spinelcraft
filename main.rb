@@ -39,7 +39,7 @@ class Game
     @camera = Camera.new
     @ui = Ui.new
     @dyn = Mesh3.new
-    @uniforms = Array.new(44, 0.0)
+    @uniforms = Array.new(UNIFORMS, 0.0)
     @visible = []
     @water_visible = []
     @water_order = []
@@ -164,14 +164,25 @@ class Game
     end
   end
 
+  # The C layer in gfx.rb has fixed sizes. Stop at start if one no longer
+  # matches the Ruby constants, not later with a wrong picture.
+  def check_gfx_limits
+    abort "gfx.rb LEVELS is not #{LEVELS}" if Gfx.gfx_limit(0) != LEVELS
+    abort "gfx.rb COLUMNS is not #{Mesher::COLUMNS}" if Gfx.gfx_limit(1) != Mesher::COLUMNS
+    abort "the world ring is not Mesher::COLUMNS wide" if WX != Mesher::COLUMNS || Lod::TRING * Lod::CELLS != Mesher::COLUMNS
+    abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + LEVELS * TILE_SLOTS
+  end
+
   def setup
     vsync = ENV["NOVSYNC"] ? 0 : 1
     abort "graphics init failed" if Gfx.gfx_init(1280, 720, vsync) != 0
+    check_gfx_limits
     abort "texture upload failed" if Gfx.gfx_textures(Tex.build, Tex::LAYERS) != 0
     @sound = ENV["MUTE"].nil? && Sfx.init
     puts "audio #{@sound ? "on" : "off"}"
     t0 = Gfx.gfx_ns
     loaded = ENV["NEW"].nil? && load
+    keep_bad_save if !loaded && ENV["NEW"].nil?
     if loaded
       @player = Player.new(0.5, 80.0, 0.5)
       apply_loaded
