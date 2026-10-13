@@ -42,10 +42,12 @@ class Game
     @uniforms = Array.new(UNIFORMS, 0.0)
     @visible = []
     @water_visible = []
-    @water_order = []
-    @water_dist = []
+    # Sort keys of the visible chunks with water: distance * LOD_SLOT0 + slot.
+    @water_keys = Array.new(0, 0)
     # 1 when a slot's chunk has a current mesh on the GPU.
     @meshed = Array.new(CX * CZ, 0)
+    # 1 when the chunk's mesh has water faces.
+    @has_water = Array.new(CX * CZ, 0)
     @stream_cx = World::NONE
     @stream_cz = World::NONE
     @load_at = 0

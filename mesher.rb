@@ -153,10 +153,14 @@ class Mesher
         while ymax > 0 && World.byte(blocks, base + ymax) == Block::AIR
           ymax -= 1
         end
+        # Going up the column, the block above becomes the next block, and
+        # the block becomes the one below.
+        id = World.byte(blocks, base)
+        below = World.byte(blocks, base - 1)
         y = 0
         while y <= ymax
           i = base + y
-          id = World.byte(blocks, i)
+          above = World.byte(blocks, i + 1)
           if plant[id] == 1
             sky = y >= height[lx * WZ + lz] ? 1 : 0
             w1 = top_tex[id] | (255 << 8) | (sky << 17)
@@ -168,7 +172,7 @@ class Mesher
               plants << w1
               f += 1
             end
-          elsif id != Block::AIR && (opaque[World.byte(blocks, i + 1)] + opaque[World.byte(blocks, i - 1)] + opaque[World.byte(blocks, i + py)] + opaque[World.byte(blocks, i - py)] + opaque[World.byte(blocks, i + dx)] + opaque[World.byte(blocks, i - dx)] < 6 || water_level[id] > 0)
+          elsif id != Block::AIR && (opaque[above] + opaque[below] + opaque[World.byte(blocks, i + py)] + opaque[World.byte(blocks, i - py)] + opaque[World.byte(blocks, i + dx)] + opaque[World.byte(blocks, i - dx)] < 6 || water_level[id] > 0)
             water = water_level[id] > 0
             f = 0
             while f < 6
@@ -187,7 +191,7 @@ class Mesher
                 sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
                 w0 = Mesher.pack(lx, y, lz, f)
                 if water
-                  low = water_level[World.byte(blocks, i + 1)] > 0 ? 0 : 1
+                  low = water_level[above] > 0 ? 0 : 1
                   # A sunk surface keeps 8 - level in the bits that hold AO for solid faces.
                   w1 = tex | (low == 1 ? (8 - water_level[id]) << 8 : 255 << 8) | (sky << 17) | (low << 18) | (Tex.scroll(tex) << 23)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
@@ -211,6 +215,8 @@ class Mesher
               f += 1
             end
           end
+          below = id
+          id = above
           y += 1
         end
         z += 1

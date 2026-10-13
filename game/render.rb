@@ -23,7 +23,6 @@ class Game
     Gfx.gfx_ui(@ui.v, @ui.v.size)
     build_sky(w, h, ui_scale(h))
     Gfx.gfx_sky(@sky.v, @sky.v.size)
-    @cpu_end = Gfx.gfx_ns
     if Gfx.gfx_begin(@uniforms) == 0
       @faces_drawn = Gfx.gfx_chunks(@visible, @visible.size / 2, 0)
       @faces_drawn += Gfx.gfx_chunks(@lod_visible, @lod_visible.size / 2, 2)
@@ -31,6 +30,8 @@ class Game
       @faces_drawn += Gfx.gfx_chunks(@water_visible, @water_visible.size / 2, 1)
     end
     Gfx.gfx_end
+    # The frame's CPU time includes the draw calls, but not the waits.
+    @cpu_end = Gfx.gfx_ns - Gfx.gfx_wait_ns
   end
 
   # Uniforms 16 to 27: the eye, the animation clock, the sky and fog colors,
@@ -70,7 +71,7 @@ class Game
   def cull_chunks(ex, ez, reach)
     @visible.clear
     @water_visible.clear
-    @water_order.clear
+    @water_keys.clear
     # With far terrain on, full detail stops at the last complete ring, and
     # the far terrain shader skips the square those rings cover.
     rings = far_terrain? ? detail_rings : LOAD_R
@@ -97,16 +98,18 @@ class Game
           mask |= 16 if ez > z0
           mask |= 32 if ez < z0 + 16.0
           @visible << slot << mask
-          @water_order << slot + 1
-          @water_dist << -d2
+          @water_keys << d2.to_i * LOD_SLOT0 + slot + 1 if @has_water[s] == 1
         end
       end
       s += 1
     end
     # Water blends, so draw the far chunks first.
-    order = (0...@water_order.size).sort_by { |i| @water_dist[i] }
-    order.each { |i| @water_visible << @water_order[i] << 127 }
-    @water_dist.clear
+    @water_keys.sort!
+    k = @water_keys.size - 1
+    while k >= 0
+      @water_visible << @water_keys[k] % LOD_SLOT0 << 127
+      k -= 1
+    end
   end
 
   # Fills @lod_visible with the far terrain tiles in the view.

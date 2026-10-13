@@ -163,6 +163,7 @@ class Game
     s = World.slot(cx, cz)
     upload_mesh(s * 2, @mesher.opaque, @mesher.offsets)
     upload_mesh(s * 2 + 1, @mesher.water, @mesher.water_offsets)
+    @has_water[s] = @mesher.water.empty? ? 0 : 1
     @meshed[s] = 1
   end
 

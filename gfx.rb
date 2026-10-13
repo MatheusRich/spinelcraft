@@ -30,6 +30,8 @@ module Gfx
     static float uni[UNIFORMS];
     static char shot_path[1024];
     static Uint64 gpu_wait_ns, gpu_frames;
+    /* Time that this frame waited for the swapchain or the GPU, not CPU work. */
+    static Uint64 frame_wait_ns;
     static SDL_GPUTexture *shot_tex;
     static SDL_GPUTextureFormat swap_fmt;
 
@@ -407,6 +409,7 @@ module Gfx
        Returns 0 when there is a frame to draw. */
     long gfx_begin(const double *u) {
       for (int i = 0; i < UNIFORMS; i++) uni[i] = (float)u[i];
+      frame_wait_ns = 0;
       cmd = SDL_AcquireGPUCommandBuffer(dev);
       if (!cmd) return fail("SDL_AcquireGPUCommandBuffer");
       SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(cmd);
@@ -435,7 +438,9 @@ module Gfx
       SDL_EndGPUCopyPass(cp);
 
       swap_tex = NULL;
+      Uint64 w0 = SDL_GetTicksNS();
       if (!SDL_WaitAndAcquireGPUSwapchainTexture(cmd, win, &swap_tex, &swap_w, &swap_h)) return fail("acquire");
+      frame_wait_ns += SDL_GetTicksNS() - w0;
       if (!swap_tex) { SDL_SubmitGPUCommandBuffer(cmd); cmd = NULL; return 1; }
       if (!depth_tex || depth_w != swap_w || depth_h != swap_h) {
         if (depth_tex) SDL_ReleaseGPUTexture(dev, depth_tex);
@@ -567,6 +572,7 @@ module Gfx
         SDL_WaitForGPUFences(dev, true, &fence, 1);
         SDL_ReleaseGPUFence(dev, fence);
         gpu_wait_ns += SDL_GetTicksNS() - t0;
+        frame_wait_ns += SDL_GetTicksNS() - t0;
         gpu_frames++;
       } else {
         SDL_SubmitGPUCommandBuffer(cmd);
@@ -575,6 +581,7 @@ module Gfx
       return 0;
     }
 
+    long gfx_wait_ns(void) { return (long)frame_wait_ns; }
     double gfx_gpu_ms(void) { return gpu_frames ? gpu_wait_ns / 1e6 / gpu_frames : 0.0; }
 
     void gfx_screenshot(const char *path) { SDL_strlcpy(shot_path, path, sizeof shot_path); }
@@ -675,6 +682,7 @@ module Gfx
   ffi_func :gfx_end, [], :long
   ffi_func :gfx_screenshot, [:str], :void
   ffi_func :gfx_gpu_ms, [], :double
+  ffi_func :gfx_wait_ns, [], :long
   ffi_func :au_init, [], :long
   ffi_func :au_load, [:long, :float_array, :long], :long
   ffi_func :au_play, [:long, :double], :void

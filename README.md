@@ -139,7 +139,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 
 | Measurement | Value |
 | --- | --- |
-| Generating and meshing the nearest 289 chunks at start | about 170 ms (the rest stream in) |
+| Generating and meshing the nearest 289 chunks at start | about 115 ms (the rest stream in) |
 | Streaming while you move | up to 2.5 ms per frame, about 0.55 ms per chunk |
 | Remeshing after a block edit | about 1 ms; torch light and water spread over the next frames within a 1 ms budget |
 | CPU time per frame (Ruby) | about 1.4 ms on average while flying, with chunks streaming in |

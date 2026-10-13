@@ -239,6 +239,10 @@ class World
   # Cave noise grid of one chunk: a point every 4 blocks.
   GX = CHUNK / 4 + 1
   GY = WY / 4 + 1
+  # A cave is where both cave noise fields are this close to zero (squared sum).
+  CAVE_WIDTH = 0.006
+  # Caves at this height and below fill with lava.
+  LAVA_LEVEL = 9
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :edited, :store, :seed
 
@@ -380,7 +384,8 @@ class World
       end
       x += 1
     end
-    find_torches(cx, cz)
+    # A generated chunk has no torches and no lava above LAVA_LEVEL.
+    find_torches(cx, cz, data.nil? ? LAVA_LEVEL + 1 : WY)
   end
 
   def unload(s)
@@ -492,7 +497,8 @@ class World
     end
   end
 
-  def find_torches(cx, cz)
+  # Lists the torches and the exposed lava below height top.
+  def find_torches(cx, cz, top)
     @chunk_torches[World.slot(cx, cz)].clear
     x = cx * CHUNK
     while x < cx * CHUNK + CHUNK
@@ -500,7 +506,7 @@ class World
       while z < cz * CHUNK + CHUNK
         base = World.index(x, 0, z)
         y = 0
-        while y < WY
+        while y < top
           b = block(base + y)
           add_torch(x, y, z) if b == Block::TORCH || (b == Block::LAVA && exposed?(base + y))
           y += 1
@@ -553,7 +559,9 @@ class World
   end
 
   # Caves: two noise fields near zero at once trace long tunnels.
-  def cave?(a, c) = a * a + c * c < 0.006
+  def cave?(a, c) = a * a + c * c < CAVE_WIDTH
+  # False when the first field alone rules out a cave, so the second needs no sample.
+  def cave_possible?(a) = a * a < CAVE_WIDTH
 
   # The two cave noise fields at a point of the cave grid, which has one point
   # every 4 blocks. generate_chunk and carved? both sample it here.
@@ -676,9 +684,10 @@ class World
             iz = fz.to_i
             n = (ix * GY + iy) * GX + iz
             a = trilinear(@cave_a, n, GY, GX, fx - ix, fy - iy, fz - iz)
-            c = trilinear(@cave_b, n, GY, GX, fx - ix, fy - iy, fz - iz)
-            # Deep caves fill with lava.
-            b = (y <= 9 ? Block::LAVA : Block::AIR) if cave?(a, c)
+            if cave_possible?(a)
+              c = trilinear(@cave_b, n, GY, GX, fx - ix, fy - iy, fz - iz)
+              b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c)
+            end
           end
           put_block(base + y, b)
           y += 1
