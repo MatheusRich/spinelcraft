@@ -86,27 +86,47 @@ class Mesh3
       @cz[i] = oz + lx * syw + rz * cyw
       i += 1
     end
-    l = layer.to_f
-    f = 0
-    while f < 6
-      face = FACES[f]
-      s = SHADE[f]
-      a0 = face[0]
-      a1 = face[1]
-      a2 = face[2]
-      a3 = face[3]
-      vert(@cx[a0], @cy[a0], @cz[a0], 0.0, 1.0, l, r * s, g * s, b * s, a)
-      vert(@cx[a1], @cy[a1], @cz[a1], 1.0, 1.0, l, r * s, g * s, b * s, a)
-      vert(@cx[a2], @cy[a2], @cz[a2], 1.0, 0.0, l, r * s, g * s, b * s, a)
-      vert(@cx[a0], @cy[a0], @cz[a0], 0.0, 1.0, l, r * s, g * s, b * s, a)
-      vert(@cx[a2], @cy[a2], @cz[a2], 1.0, 0.0, l, r * s, g * s, b * s, a)
-      vert(@cx[a3], @cy[a3], @cz[a3], 0.0, 0.0, l, r * s, g * s, b * s, a)
-      f += 1
-    end
+    corner_faces(63, layer, r, g, b, a)
   end
 
   def aabb(x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
     box(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
+  end
+
+  # An axis-aligned box that draws only the faces in mask: bit f draws face f
+  # (0..5 for +x -x +y -y +z -z).
+  def aabb_faces(x0, y0, z0, x1, y1, z1, mask, layer, r, g, b, a)
+    i = 0
+    while i < 8
+      @cx[i] = (i & 1) == 0 ? x0 : x1
+      @cy[i] = (i & 2) == 0 ? y0 : y1
+      @cz[i] = (i & 4) == 0 ? z0 : z1
+      i += 1
+    end
+    corner_faces(mask, layer, r, g, b, a)
+  end
+
+  # The faces in mask of the box with the corners in @cx, @cy and @cz.
+  def corner_faces(mask, layer, r, g, b, a)
+    l = layer.to_f
+    f = 0
+    while f < 6
+      if ((mask >> f) & 1) == 1
+        face = FACES[f]
+        s = SHADE[f]
+        a0 = face[0]
+        a1 = face[1]
+        a2 = face[2]
+        a3 = face[3]
+        vert(@cx[a0], @cy[a0], @cz[a0], 0.0, 1.0, l, r * s, g * s, b * s, a)
+        vert(@cx[a1], @cy[a1], @cz[a1], 1.0, 1.0, l, r * s, g * s, b * s, a)
+        vert(@cx[a2], @cy[a2], @cz[a2], 1.0, 0.0, l, r * s, g * s, b * s, a)
+        vert(@cx[a0], @cy[a0], @cz[a0], 0.0, 1.0, l, r * s, g * s, b * s, a)
+        vert(@cx[a2], @cy[a2], @cz[a2], 1.0, 0.0, l, r * s, g * s, b * s, a)
+        vert(@cx[a3], @cy[a3], @cz[a3], 0.0, 0.0, l, r * s, g * s, b * s, a)
+      end
+      f += 1
+    end
   end
 
   # Dark edges around a block cell.

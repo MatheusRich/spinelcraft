@@ -11,9 +11,9 @@ module Gfx
 
     static SDL_Window *win;
     static SDL_GPUDevice *dev;
-    static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui;
-    static SDL_GPUTexture *atlas, *depth_tex;
-    static SDL_GPUSampler *sampler;
+    static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth;
+    static SDL_GPUTexture *atlas, *depth_tex, *cloud_tex;
+    static SDL_GPUSampler *sampler, *cloud_sampler;
     static SDL_GPUTextureFormat depth_fmt;
     static Uint32 depth_w, depth_h;
     static SDL_GPUCommandBuffer *cmd;
@@ -24,7 +24,7 @@ module Gfx
        Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS and
        the GPU slots that the game uses. */
     #define LEVELS 4
-    #define UNIFORMS (28 + 4 * LEVELS)
+    #define UNIFORMS (36 + 4 * LEVELS)
     #define COLUMNS 1024
     #define STR2(x) #x
     #define STR(x) STR2(x)
@@ -68,6 +68,12 @@ module Gfx
     static SDL_GPUTransferBuffer *dyn_tb, *ui_tb, *sky_tb;
     static Uint32 dyn_count, ui_count, sky_count;
     #define SKY_CAP 8192
+    /* The cloud boxes change only when the player's cloud cell changes. */
+    #define CLOUD_CAP (1 << 17)
+    static SDL_GPUBuffer *cloud_buf;
+    static SDL_GPUTransferBuffer *cloud_tb;
+    static Uint32 cloud_count;
+    static int cloud_changed;
 
     static char keys_now[SDL_SCANCODE_COUNT], keys_prev[SDL_SCANCODE_COUNT];
     static float mouse_dx, mouse_dy, wheel;
@@ -77,7 +83,7 @@ module Gfx
     static const char *MSL =
       "#include <metal_stdlib>\n"
       "using namespace metal;\n"
-      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; };\n"
+      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; float4 cloud; float4 cloud_near; };\n"
       "struct VOut { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; };\n"
       "struct VChunk { uint2 d [[attribute(0)]]; };\n"
       "constant float3 CORNER[10][4] = {\n"
@@ -167,14 +173,48 @@ module Gfx
       "  return float4(mix(c.rgb, u.fog.rgb, in.fog), 1.0);\n"
       "}\n"
       "struct VDyn { float3 pos [[attribute(0)]]; float2 uv [[attribute(1)]]; float layer [[attribute(2)]]; float4 color [[attribute(3)]]; };\n"
-      "vertex VOut vdyn(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
+      "VOut dyn_out(VDyn in, float3 p, constant U &u) {\n"
       "  VOut o;\n"
-      "  o.pos = u.vp * float4(in.pos, 1.0);\n"
+      "  o.pos = u.vp * float4(p, 1.0);\n"
       "  o.uv = in.uv; o.layer = in.layer;\n"
       "  float l = 0.2 + 0.8 * u.misc.x;\n"
       "  o.color = float4(in.color.rgb * l, in.color.a);\n"
-      "  o.fog = fog_of(in.pos, u);\n"
+      "  o.fog = fog_of(p, u);\n"
       "  return o;\n"
+      "}\n"
+      "vertex VOut vdyn(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
+      "  return dyn_out(in, in.pos, u);\n"
+      "}\n"
+      "// Cloud boxes: Clouds#build makes them without the drift, u.cloud.x.\n"
+      "vertex VOut vcloud_box(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
+      "  return dyn_out(in, in.pos + float3(u.cloud.x, 0.0, 0.0), u);\n"
+      "}\n"
+      "// The far cloud layer: one square around the camera, out to the far plane.\n"
+      "// u.cloud is (drift, y of the layer, cell size, grid size), and u.cloud_near\n"
+      "// the cells (i0, j0, i1, j1) that have boxes.\n"
+      "struct VOutC { float4 pos [[position]]; float3 wp; float shade [[flat]]; };\n"
+      "constant float2 SQUARE[6] = {{-1,-1},{1,-1},{1,1},{-1,-1},{1,1},{-1,1}};\n"
+      "vertex VOutC vcloud(uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
+      "  float r = u.fog.w + 40.0;\n"
+      "  float3 p = float3(u.cam.x + SQUARE[vid].x * r, u.cloud.y, u.cam.z + SQUARE[vid].y * r);\n"
+      "  VOutC o;\n"
+      "  o.pos = u.vp * float4(p, 1.0);\n"
+      "  o.wp = p;\n"
+      "  // The light of a box top from above, of a box bottom from below.\n"
+      "  o.shade = SHADE[u.cam.y > u.cloud.y ? 2 : 3] * (0.2 + 0.8 * u.misc.x);\n"
+      "  return o;\n"
+      "}\n"
+      "fragment float4 fcloud(VOutC in [[stage_in]], constant U &u [[buffer(0)]],\n"
+      "                       texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {\n"
+      "  float2 cell = float2(in.wp.x - u.cloud.x, in.wp.z) / u.cloud.z;\n"
+      "  float2 c = floor(cell);\n"
+      "  float4 n = u.cloud_near;\n"
+      "  if (c.x >= n.x && c.x <= n.z && c.y >= n.y && c.y <= n.w) discard_fragment();\n"
+      "  // Fog lowers the alpha: over the sky this gives the same color as a mix\n"
+      "  // with the fog color, and the sun and the stars still show.\n"
+      "  float a = tex.sample(smp, cell / u.cloud.w).a * (1.0 - fog_of(in.wp, u));\n"
+      "  if (a < 0.02) discard_fragment();\n"
+      "  return float4(float3(in.shade), a);\n"
       "}\n"
       "struct VUi { float2 pos [[attribute(0)]]; float2 uv [[attribute(1)]]; float layer [[attribute(2)]]; float4 color [[attribute(3)]]; };\n"
       "vertex VOut vui(VUi in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
@@ -212,12 +252,17 @@ module Gfx
       return SDL_CreateGPUShader(dev, &info);
     }
 
+    /* blend 0 writes the color, 1 blends it by alpha, and 2 writes no color
+       (a pass for depth only). */
     static SDL_GPUGraphicsPipeline *pipeline(SDL_GPUShader *vs, SDL_GPUShader *fs,
         SDL_GPUVertexBufferDescription *vb, SDL_GPUVertexAttribute *attrs, int nattrs,
         int depth_test, int depth_write, int blend, int cull) {
       SDL_GPUColorTargetDescription ct = {0};
       ct.format = SDL_GetGPUSwapchainTextureFormat(dev, win);
-      if (blend) {
+      if (blend == 2) {
+        ct.blend_state.enable_color_write_mask = true;
+        ct.blend_state.color_write_mask = 0;
+      } else if (blend) {
         ct.blend_state.enable_blend = true;
         ct.blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
         ct.blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
@@ -230,7 +275,7 @@ module Gfx
       pi.vertex_shader = vs;
       pi.fragment_shader = fs;
       pi.vertex_input_state.vertex_buffer_descriptions = vb;
-      pi.vertex_input_state.num_vertex_buffers = 1;
+      pi.vertex_input_state.num_vertex_buffers = vb ? 1 : 0;
       pi.vertex_input_state.vertex_attributes = attrs;
       pi.vertex_input_state.num_vertex_attributes = nattrs;
       pi.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
@@ -339,10 +384,13 @@ module Gfx
 
       SDL_GPUShader *vchunk = shader("vchunk", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vdyn = shader("vdyn", SDL_GPU_SHADERSTAGE_VERTEX, 0);
+      SDL_GPUShader *vcloud_box = shader("vcloud_box", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vui = shader("vui", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *fworld = shader("fworld", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
       SDL_GPUShader *vlod = shader("vlod", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *flod = shader("flod", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
+      SDL_GPUShader *vcloud = shader("vcloud", SDL_GPU_SHADERSTAGE_VERTEX, 0);
+      SDL_GPUShader *fcloud = shader("fcloud", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
       SDL_GPUShaderCreateInfo fui_info = {0};
       fui_info.code = (const Uint8 *)MSL;
       fui_info.code_size = SDL_strlen(MSL);
@@ -351,7 +399,7 @@ module Gfx
       fui_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
       fui_info.num_samplers = 1;
       SDL_GPUShader *fui = SDL_CreateGPUShader(dev, &fui_info);
-      if (!vchunk || !vdyn || !vui || !fworld || !fui || !vlod || !flod) return fail("SDL_CreateGPUShader");
+      if (!vchunk || !vdyn || !vui || !fworld || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box) return fail("SDL_CreateGPUShader");
 
       SDL_GPUVertexBufferDescription chunk_vb = {.slot = 0, .pitch = 8, .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE};
       SDL_GPUVertexAttribute chunk_attr = {.location = 0, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_UINT2};
@@ -367,6 +415,12 @@ module Gfx
         {.location = 3, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 24},
       };
       p_dyn = pipeline(vdyn, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 1, 0);
+      /* Cloud boxes: depth first, then the color of the nearest face only, so
+         each pixel blends one cloud face. */
+      p_cloud_depth = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 2, 0);
+      p_cloud_box = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 4, 1, 0, 1, 0);
+      /* The cloud layer makes its corners from the vertex index: no vertex buffer. */
+      p_cloud = pipeline(vcloud, fcloud, NULL, NULL, 0, 1, 1, 1, 0);
 
       SDL_GPUVertexBufferDescription ui_vb = {.slot = 0, .pitch = 36, .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX};
       SDL_GPUVertexAttribute ui_attr[4] = {
@@ -376,7 +430,7 @@ module Gfx
         {.location = 3, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 20},
       };
       p_ui = pipeline(vui, fui, &ui_vb, ui_attr, 4, 0, 0, 1, 0);
-      if (!p_chunk || !p_water || !p_lod || !p_dyn || !p_ui) return fail("SDL_CreateGPUGraphicsPipeline");
+      if (!p_chunk || !p_water || !p_lod || !p_dyn || !p_ui || !p_cloud || !p_cloud_box || !p_cloud_depth) return fail("SDL_CreateGPUGraphicsPipeline");
       SDL_ReleaseGPUShader(dev, vchunk);
       SDL_ReleaseGPUShader(dev, vdyn);
       SDL_ReleaseGPUShader(dev, vui);
@@ -384,6 +438,9 @@ module Gfx
       SDL_ReleaseGPUShader(dev, vlod);
       SDL_ReleaseGPUShader(dev, flod);
       SDL_ReleaseGPUShader(dev, fui);
+      SDL_ReleaseGPUShader(dev, vcloud);
+      SDL_ReleaseGPUShader(dev, fcloud);
+      SDL_ReleaseGPUShader(dev, vcloud_box);
 
       SDL_GPUSamplerCreateInfo si = {0};
       si.min_filter = SDL_GPU_FILTER_NEAREST;
@@ -394,6 +451,12 @@ module Gfx
       si.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
       si.max_lod = 4.0f;
       sampler = SDL_CreateGPUSampler(dev, &si);
+      /* Clouds: sharp cell edges near the camera, and averaged mipmaps far
+         away, so that small far cells do not flicker. */
+      si.min_filter = SDL_GPU_FILTER_LINEAR;
+      si.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+      si.max_lod = 16.0f;
+      cloud_sampler = SDL_CreateGPUSampler(dev, &si);
 
       SDL_GPUBufferCreateInfo ibi = {.usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = 12};
       quad_index = SDL_CreateGPUBuffer(dev, &ibi);
@@ -419,7 +482,9 @@ module Gfx
       sky_tb = make_transfer(SKY_CAP * 36);
       dyn_tb = make_transfer(DYN_CAP * 40);
       ui_tb = make_transfer(UI_CAP * 36);
-      if (!sampler || !dyn_buf || !ui_buf || !dyn_tb || !ui_tb) return fail("SDL_CreateGPUBuffer");
+      cloud_buf = make_buffer(CLOUD_CAP * 40);
+      cloud_tb = make_transfer(CLOUD_CAP * 40);
+      if (!sampler || !cloud_sampler || !dyn_buf || !ui_buf || !dyn_tb || !ui_tb || !cloud_buf || !cloud_tb) return fail("SDL_CreateGPUBuffer");
       return 0;
     }
 
@@ -452,6 +517,40 @@ module Gfx
       SDL_GenerateMipmapsForGPUTexture(c, atlas);
       SDL_SubmitGPUCommandBuffer(c);
       SDL_ReleaseGPUTransferBuffer(dev, tb);
+      return 0;
+    }
+
+    /* The cloud grid: size x size RGBA pixels, one Integer per pixel (0xAABBGGRR).
+       A new grid replaces the old one. */
+    long gfx_clouds(const int64_t *px, long size) {
+      int levels = 1;
+      while ((1L << levels) <= size) levels++;
+      SDL_GPUTextureCreateInfo ti = {0};
+      ti.type = SDL_GPU_TEXTURETYPE_2D;
+      ti.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+      ti.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+      ti.width = (Uint32)size; ti.height = (Uint32)size;
+      ti.layer_count_or_depth = 1;
+      ti.num_levels = (Uint32)levels;
+      SDL_GPUTexture *t = SDL_CreateGPUTexture(dev, &ti);
+      if (!t) return fail("SDL_CreateGPUTexture");
+      Uint32 bytes = (Uint32)(size * size * 4);
+      SDL_GPUTransferBuffer *tb = make_transfer(bytes);
+      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, false);
+      for (long i = 0; i < size * size; i++) dst[i] = (Uint32)px[i];
+      SDL_UnmapGPUTransferBuffer(dev, tb);
+      SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
+      SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
+      SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb};
+      SDL_GPUTextureRegion region = {.texture = t, .w = (Uint32)size, .h = (Uint32)size, .d = 1};
+      SDL_UploadToGPUTexture(cp, &src, &region, false);
+      SDL_EndGPUCopyPass(cp);
+      SDL_GenerateMipmapsForGPUTexture(c, t);
+      SDL_SubmitGPUCommandBuffer(c);
+      SDL_ReleaseGPUTransferBuffer(dev, tb);
+      /* SDL frees the old texture when no frame on the GPU uses it. */
+      if (cloud_tex) SDL_ReleaseGPUTexture(dev, cloud_tex);
+      cloud_tex = t;
       return 0;
     }
 
@@ -498,6 +597,11 @@ module Gfx
     long gfx_dyn(const double *v, long nfloats) { dyn_count = stage_floats(dyn_tb, v, nfloats, DYN_CAP * 10) / 10; return 0; }
     long gfx_ui(const double *v, long nfloats) { ui_count = stage_floats(ui_tb, v, nfloats, UI_CAP * 9) / 9; return 0; }
     long gfx_sky(const double *v, long nfloats) { sky_count = stage_floats(sky_tb, v, nfloats, SKY_CAP * 9) / 9; return 0; }
+    long gfx_cloud_boxes(const double *v, long nfloats) {
+      cloud_count = stage_floats(cloud_tb, v, nfloats, CLOUD_CAP * 10) / 10;
+      cloud_changed = 1;
+      return 0;
+    }
 
     /* uniforms: 16 view-projection (column-major), cam xyz + time, fog rgb + end,
        daylight, fog start, screen w, screen h, and for each far terrain level the
@@ -551,6 +655,12 @@ module Gfx
         SDL_GPUBufferRegion dst = {.buffer = ui_buf, .size = ui_count * 36};
         SDL_UploadToGPUBuffer(cp, &src, &dst, true);
       }
+      if (cloud_changed && cloud_count) {
+        SDL_GPUTransferBufferLocation src = {.transfer_buffer = cloud_tb};
+        SDL_GPUBufferRegion dst = {.buffer = cloud_buf, .size = cloud_count * 40};
+        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
+      }
+      cloud_changed = 0;
       if (sky_count) {
         SDL_GPUTransferBufferLocation src = {.transfer_buffer = sky_tb};
         SDL_GPUBufferRegion dst = {.buffer = sky_buf, .size = sky_count * 36};
@@ -636,6 +746,27 @@ module Gfx
       SDL_GPUBufferBinding b = {.buffer = dyn_buf};
       SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
       SDL_DrawGPUPrimitives(pass, dyn_count, 1, 0, 0);
+      return 0;
+    }
+
+    /* The cloud boxes, then the flat cloud layer around them. */
+    long gfx_draw_clouds(void) {
+      if (!pass) return 0;
+      if (cloud_count) {
+        SDL_GPUBufferBinding b = {.buffer = cloud_buf};
+        SDL_BindGPUGraphicsPipeline(pass, p_cloud_depth);
+        SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
+        SDL_DrawGPUPrimitives(pass, cloud_count, 1, 0, 0);
+        SDL_BindGPUGraphicsPipeline(pass, p_cloud_box);
+        SDL_DrawGPUPrimitives(pass, cloud_count, 1, 0, 0);
+      }
+      if (!cloud_tex) return 0;
+      SDL_BindGPUGraphicsPipeline(pass, p_cloud);
+      SDL_GPUTextureSamplerBinding cb = {.texture = cloud_tex, .sampler = cloud_sampler};
+      SDL_BindGPUFragmentSamplers(pass, 0, &cb, 1);
+      SDL_DrawGPUPrimitives(pass, 6, 1, 0, 0);
+      SDL_GPUTextureSamplerBinding tsb = {.texture = atlas, .sampler = sampler};
+      SDL_BindGPUFragmentSamplers(pass, 0, &tsb, 1);
       return 0;
     }
 
@@ -788,18 +919,21 @@ module Gfx
     double in_mouse_y(void) { float x, y; SDL_GetMouseState(&x, &y); return y * SDL_GetWindowPixelDensity(win); }
     void in_capture(long on) { SDL_SetWindowRelativeMouseMode(win, on != 0); }
     void gfx_fullscreen(long on) { SDL_SetWindowFullscreen(win, on != 0); }
-    /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots. */
-    long gfx_limit(long which) { return which == 0 ? LEVELS : (which == 1 ? COLUMNS : MAX_SLOTS); }
+    /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms. */
+    long gfx_limit(long which) { return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : UNIFORMS)); }
   C
   ffi_func :gfx_init, [:long, :long, :long], :long
   ffi_func :gfx_textures, [:int_array, :long], :long
+  ffi_func :gfx_clouds, [:int_array, :long], :long
   ffi_func :gfx_mesh, [:long, :int_array, :long, :int_array], :long
   ffi_func :gfx_dyn, [:float_array, :long], :long
   ffi_func :gfx_ui, [:float_array, :long], :long
   ffi_func :gfx_sky, [:float_array, :long], :long
+  ffi_func :gfx_cloud_boxes, [:float_array, :long], :long
   ffi_func :gfx_begin, [:float_array], :long
   ffi_func :gfx_chunks, [:int_array, :long, :long], :long
   ffi_func :gfx_draw_dyn, [], :long
+  ffi_func :gfx_draw_clouds, [], :long
   ffi_func :gfx_end, [], :long
   ffi_func :gfx_screenshot, [:str], :void
   ffi_func :gfx_gpu_ms, [], :double

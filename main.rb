@@ -173,6 +173,7 @@ class Game
     abort "gfx.rb COLUMNS is not #{Mesher::COLUMNS}" if Gfx.gfx_limit(1) != Mesher::COLUMNS
     abort "the world ring is not Mesher::COLUMNS wide" if WX != Mesher::COLUMNS || Lod::TRING * Lod::CELLS != Mesher::COLUMNS
     abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + LEVELS * TILE_SLOTS
+    abort "gfx.rb UNIFORMS is not #{UNIFORMS}" if Gfx.gfx_limit(3) != UNIFORMS
   end
 
   def setup
@@ -180,6 +181,7 @@ class Game
     abort "graphics init failed" if Gfx.gfx_init(1280, 720, vsync) != 0
     check_gfx_limits
     abort "texture upload failed" if Gfx.gfx_textures(Tex.build, Tex::LAYERS) != 0
+    upload_clouds
     @sound = ENV["MUTE"].nil? && Sfx.init
     puts "audio #{@sound ? "on" : "off"}"
     t0 = Gfx.gfx_ns
@@ -212,6 +214,7 @@ class Game
     @mobs.clear
     clear_arrows
     @clouds = Clouds.new(@seed)
+    upload_clouds
     spawn
     respawn
     spawn_animals
@@ -381,7 +384,7 @@ class Game
     play(Sfx::SPLASH, 0.6) if @player.in_water && !@was_in_water && !@player.flying
     @was_in_water = @player.in_water
     update_particles(dt)
-    @cloud_drift += dt * 1.2
+    @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
     @bob += speed * dt * 2.6

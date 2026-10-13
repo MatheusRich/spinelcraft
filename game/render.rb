@@ -13,6 +13,7 @@ class Game
     ey += Math.sin(@bob) * 0.05 * (speed / 4.3).clamp(0.0, 1.0) if walking
     @camera.update(ex, ey, ez, @player.yaw, @player.pitch, w / h, @fog_end + 40.0, @fov)
     @camera.write_column_major(@uniforms)
+    Gfx.gfx_cloud_boxes(@clouds.mesh.v, @clouds.mesh.count) if @clouds.build(ex, ez, @cloud_drift)
     set_uniforms(ex, ey, ez, w, h)
     reach = @fog_end + 4.0
     cull_chunks(ex, ez, reach)
@@ -27,6 +28,7 @@ class Game
       @faces_drawn = Gfx.gfx_chunks(@visible, @visible.size / 2, 0)
       @faces_drawn += Gfx.gfx_chunks(@lod_visible, @lod_visible.size / 2, 2)
       Gfx.gfx_draw_dyn
+      Gfx.gfx_draw_clouds
       @faces_drawn += Gfx.gfx_chunks(@water_visible, @water_visible.size / 2, 1)
     end
     Gfx.gfx_end
@@ -35,7 +37,7 @@ class Game
   end
 
   # Uniforms 16 to 27: the eye, the animation clock, the sky and fog colors,
-  # daylight, the fog range, and the frame size.
+  # daylight, the fog range, and the frame size. Then the far cloud layer.
   def set_uniforms(ex, ey, ez, w, h)
     day = daylight
     under = Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
@@ -64,6 +66,7 @@ class Game
     @uniforms[25] = under ? 2.0 : @fog_end - (@fog_end * 0.25 > 65.0 ? @fog_end * 0.25 : 65.0)
     @uniforms[26] = w
     @uniforms[27] = h
+    @clouds.write_uniforms(@uniforms, CLOUD_UNIFORMS, ey, @cloud_drift)
   end
 
   # Fills @visible with the meshed chunks in the view and @water_visible with
@@ -150,7 +153,7 @@ class Game
     end
   end
 
-  # Fills @dyn with the parts that change every frame: mobs, clouds, arrows,
+  # Fills @dyn with the parts that change every frame: mobs, arrows,
   # particles, the block outline, and the cracks.
   def build_dyn(ex, ez, reach)
     @dyn.clear
@@ -161,7 +164,6 @@ class Game
       next unless @camera.box_visible?(m.x - 1.0, m.y, m.z - 1.0, m.x + 1.0, m.y + 2.0, m.z + 1.0)
       m.draw(@dyn)
     end
-    @clouds.draw(@dyn, ex, ez, @cloud_drift)
     draw_arrows
     i = 0
     while i < @pt_life.size
@@ -183,6 +185,10 @@ class Game
         @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, 1.0, 1.0, 1.0, 1.0)
       end
     end
+  end
+
+  def upload_clouds
+    abort "cloud upload failed" if Gfx.gfx_clouds(@clouds.pixels, Clouds::GRID) != 0
   end
 
   # Star directions on the upper sphere, fixed for the world.

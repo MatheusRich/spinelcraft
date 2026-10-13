@@ -17,8 +17,10 @@ class Game
   # LOD_REACH << L blocks, so each level has about the same number of tiles.
   LEVELS = 4
   LOD_REACH = 640
-  # Floats that render passes to the shaders: 28, then one square for each level.
-  UNIFORMS = 28 + 4 * LEVELS
+  # Floats that render passes to the shaders: 28, one square for each level,
+  # then 8 for the far cloud layer.
+  CLOUD_UNIFORMS = 28 + 4 * LEVELS
+  UNIFORMS = CLOUD_UNIFORMS + 8
   DAY_SECONDS = 600.0
   MAX_HEALTH = 20
   MAX_HUNGER = 20
