@@ -115,6 +115,8 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 
 The mesher writes one record of two 32-bit words for each visible face. The record holds the position, the face direction, the texture layer, ambient occlusion for each corner, sky light and torch light. The vertex shader turns each record into a quad with an indexed draw. Each chunk sorts its faces by direction, so the renderer skips the directions that cannot face the camera. That removes about a third of the faces. The renderer also skips chunks outside the view frustum or past the fog. Water draws after the opaque blocks, from back to front.
 
+The records of all chunks and far tiles share one GPU buffer, so each pass binds one vertex buffer and each draw selects its range. A changed mesh goes to a new range, and its old range becomes free 3 frames later, when no frame on the GPU can still read it. The buffer starts at 32 MB and doubles when it is full.
+
 Distance haze mixes each pixel toward the sky color by `1 - e^(-d / 1800)`, where `d` is the distance in blocks. That is about 10% at 200 blocks, 60% at 1600 and 94% at 5000, so far land gets paler and the horizon has no hard edge.
 
 ## Streaming
@@ -135,17 +137,17 @@ Each level keeps its tiles in its own ring, and a separate vertex shader scales 
 
 ## Performance
 
-These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block view. To measure them yourself, run `FRAMES=2400 AUTOPILOT=far GPUTIME=1 ./spinelcraft`.
+These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block view, with a video call and other apps open. To measure them yourself, run `FRAMES=2400 AUTOPILOT=far GPUTIME=1 ./spinelcraft`. The CPU time of a frame includes the draw calls, but not the time that the frame waits for the display or the GPU.
 
 | Measurement | Value |
 | --- | --- |
 | Generating and meshing the nearest 289 chunks at start | about 115 ms (the rest stream in) |
 | Streaming while you move | up to 2.5 ms per frame, about 0.55 ms per chunk |
 | Remeshing after a block edit | about 1 ms; torch light and water spread over the next frames within a 1 ms budget |
-| CPU time per frame (Ruby) | about 1.4 ms on average while flying, with chunks streaming in |
-| Worst CPU frame | about 4 ms while chunks and far tiles stream in |
-| GPU time per frame | about 4 ms, flying or standing |
-| Frame rate | 120 fps (the display rate) |
+| CPU time per frame | about 2.1 ms while flying in a circle; about 4 ms while flying straight, with chunks streaming in |
+| Worst CPU frame | about 5.5 ms while chunks and far tiles stream in |
+| GPU time per frame | about 5 to 7 ms |
+| Frame rate | the display rate (120 fps on the built-in display) |
 
 ## Test switches
 

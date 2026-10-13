@@ -7,6 +7,7 @@ module Gfx
     #include <SDL3/SDL.h>
     #include <stdio.h>
     #include <stdlib.h>
+    #include <string.h>
 
     static SDL_Window *win;
     static SDL_GPUDevice *dev;
@@ -36,12 +37,28 @@ module Gfx
     static SDL_GPUTextureFormat swap_fmt;
 
     #define MAX_SLOTS 32768
-    static SDL_GPUBuffer *slot_buf[MAX_SLOTS];
-    static Uint32 slot_cap[MAX_SLOTS], slot_count[MAX_SLOTS];
+    /* The faces of every chunk and far tile live in one GPU buffer, the arena,
+       so a pass binds one vertex buffer. Sizes and positions in the arena
+       count faces of 8 bytes. A slot owns the range slot_at, slot_len. A new
+       mesh gets a new range, and the old range stays reserved for
+       RETIRE_FRAMES frames, because a frame on the GPU can still read it. */
+    #define ARENA_START (1u << 22)
+    #define RETIRE_FRAMES 3
+    #define MAX_RETIRE (MAX_SLOTS * 2)
+    #define MAX_FREE (MAX_SLOTS + MAX_RETIRE + 1)
+    static SDL_GPUBuffer *arena, *arena_old;
+    static Uint32 arena_cap, arena_copy;
+    static Uint32 free_at[MAX_FREE], free_len[MAX_FREE];
+    static int nfree;
+    static Uint32 retire_at[MAX_RETIRE], retire_len[MAX_RETIRE];
+    static Uint64 retire_frame[MAX_RETIRE];
+    static int nretire;
+    static Uint64 frame_no;
+    static Uint32 slot_at[MAX_SLOTS], slot_len[MAX_SLOTS], slot_count[MAX_SLOTS];
     static Uint32 slot_off[MAX_SLOTS][8];
     static SDL_GPUBuffer *quad_index;
 
-    typedef struct { SDL_GPUTransferBuffer *tb; SDL_GPUBuffer *buf; Uint32 size; } Pending;
+    typedef struct { SDL_GPUTransferBuffer *tb; Uint32 at, size; } Pending;
     static Pending pending[MAX_SLOTS];
     static int npending;
 
@@ -239,6 +256,72 @@ module Gfx
       return SDL_CreateGPUTransferBuffer(dev, &tbi);
     }
 
+    /* Returns a range to the sorted free list and joins it with the free
+       ranges next to it. */
+    static void free_range(Uint32 at, Uint32 len) {
+      int lo = 0, hi = nfree;
+      while (lo < hi) { int mid = (lo + hi) / 2; if (free_at[mid] < at) lo = mid + 1; else hi = mid; }
+      int i = lo;
+      int join_prev = i > 0 && free_at[i - 1] + free_len[i - 1] == at;
+      int join_next = i < nfree && at + len == free_at[i];
+      if (join_prev && join_next) {
+        free_len[i - 1] += len + free_len[i];
+        memmove(&free_at[i], &free_at[i + 1], (nfree - i - 1) * sizeof(Uint32));
+        memmove(&free_len[i], &free_len[i + 1], (nfree - i - 1) * sizeof(Uint32));
+        nfree--;
+      } else if (join_prev) {
+        free_len[i - 1] += len;
+      } else if (join_next) {
+        free_at[i] = at;
+        free_len[i] += len;
+      } else {
+        memmove(&free_at[i + 1], &free_at[i], (nfree - i) * sizeof(Uint32));
+        memmove(&free_len[i + 1], &free_len[i], (nfree - i) * sizeof(Uint32));
+        free_at[i] = at;
+        free_len[i] = len;
+        nfree++;
+      }
+    }
+
+    /* Doubles the arena until len more faces fit. The next copy pass copies
+       the old contents, so every range keeps its position. */
+    static int grow_arena(Uint32 len) {
+      Uint32 cap = arena_cap * 2;
+      while (cap - arena_cap < len) cap *= 2;
+      SDL_GPUBuffer *b = make_buffer(cap * 8);
+      if (!b) return 0;
+      if (arena_old) {
+        /* A second growth before the copy: the middle buffer was never used. */
+        SDL_ReleaseGPUBuffer(dev, arena);
+      } else {
+        arena_old = arena;
+        arena_copy = arena_cap;
+      }
+      arena = b;
+      free_range(arena_cap, cap - arena_cap);
+      arena_cap = cap;
+      return 1;
+    }
+
+    /* First fit. Returns UINT32_MAX when the arena cannot grow. */
+    static Uint32 alloc_range(Uint32 len) {
+      for (;;) {
+        for (int i = 0; i < nfree; i++) {
+          if (free_len[i] < len) continue;
+          Uint32 at = free_at[i];
+          free_at[i] += len;
+          free_len[i] -= len;
+          if (free_len[i] == 0) {
+            memmove(&free_at[i], &free_at[i + 1], (nfree - i - 1) * sizeof(Uint32));
+            memmove(&free_len[i], &free_len[i + 1], (nfree - i - 1) * sizeof(Uint32));
+            nfree--;
+          }
+          return at;
+        }
+        if (!grow_arena(len)) return UINT32_MAX;
+      }
+    }
+
     long gfx_init(long w, long h, long vsync) {
       if (!SDL_Init(SDL_INIT_VIDEO)) return fail("SDL_Init");
       win = SDL_CreateWindow("Spinelcraft", (int)w, (int)h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
@@ -326,6 +409,10 @@ module Gfx
       SDL_EndGPUCopyPass(icp);
       SDL_SubmitGPUCommandBuffer(ic);
       SDL_ReleaseGPUTransferBuffer(dev, itb);
+      arena_cap = ARENA_START;
+      arena = make_buffer(arena_cap * 8);
+      if (!arena) return fail("arena");
+      free_range(0, arena_cap);
       dyn_buf = make_buffer(DYN_CAP * 40);
       ui_buf = make_buffer(UI_CAP * 36);
       sky_buf = make_buffer(SKY_CAP * 36);
@@ -372,21 +459,30 @@ module Gfx
     long gfx_mesh(long slot, const int64_t *data, long faces, const int64_t *offsets) {
       if (slot < 0 || slot >= MAX_SLOTS) return -1;
       for (int i = 0; i < 8; i++) slot_off[slot][i] = (Uint32)offsets[i];
-      slot_count[slot] = (Uint32)faces;
-      if (faces == 0) return 0;
-      Uint32 size = (Uint32)(faces * 8);
-      if (!slot_buf[slot] || slot_cap[slot] < size) {
-        if (slot_buf[slot]) SDL_ReleaseGPUBuffer(dev, slot_buf[slot]);
-        Uint32 cap = size + size / 2 + 1024;
-        slot_buf[slot] = make_buffer(cap);
-        slot_cap[slot] = cap;
+      if (slot_len[slot]) {
+        if (nretire == MAX_RETIRE) return -1;
+        retire_at[nretire] = slot_at[slot];
+        retire_len[nretire] = slot_len[slot];
+        retire_frame[nretire] = frame_no;
+        nretire++;
+        slot_len[slot] = 0;
       }
+      slot_count[slot] = 0;
+      if (faces == 0) return 0;
+      if (npending == MAX_SLOTS) return -1;
+      /* Whole blocks of 16 faces keep small gaps out of the free list. */
+      Uint32 len = ((Uint32)faces + 15) & ~15u;
+      Uint32 at = alloc_range(len);
+      if (at == UINT32_MAX) return -1;
+      slot_at[slot] = at;
+      slot_len[slot] = len;
+      slot_count[slot] = (Uint32)faces;
+      Uint32 size = (Uint32)(faces * 8);
       SDL_GPUTransferBuffer *tb = make_transfer(size);
       Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, false);
       for (long i = 0; i < faces * 2; i++) dst[i] = (Uint32)data[i];
       SDL_UnmapGPUTransferBuffer(dev, tb);
-      if (npending == MAX_SLOTS) { SDL_ReleaseGPUTransferBuffer(dev, tb); return -1; }
-      pending[npending++] = (Pending){tb, slot_buf[slot], size};
+      pending[npending++] = (Pending){tb, at, size};
       return 0;
     }
 
@@ -412,11 +508,36 @@ module Gfx
       frame_wait_ns = 0;
       cmd = SDL_AcquireGPUCommandBuffer(dev);
       if (!cmd) return fail("SDL_AcquireGPUCommandBuffer");
+      frame_no++;
+      int kept = 0;
+      for (int i = 0; i < nretire; i++) {
+        if (frame_no - retire_frame[i] >= RETIRE_FRAMES) {
+          free_range(retire_at[i], retire_len[i]);
+        } else {
+          retire_at[kept] = retire_at[i];
+          retire_len[kept] = retire_len[i];
+          retire_frame[kept] = retire_frame[i];
+          kept++;
+        }
+      }
+      nretire = kept;
+      if (arena_old) {
+        /* Its own pass, so the copy ends before the uploads write the new arena. */
+        SDL_GPUCopyPass *gp = SDL_BeginGPUCopyPass(cmd);
+        SDL_GPUBufferLocation from = {.buffer = arena_old};
+        SDL_GPUBufferLocation to = {.buffer = arena};
+        SDL_CopyGPUBufferToBuffer(gp, &from, &to, arena_copy * 8, false);
+        SDL_EndGPUCopyPass(gp);
+        SDL_ReleaseGPUBuffer(dev, arena_old);
+        arena_old = NULL;
+      }
       SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(cmd);
       for (int i = 0; i < npending; i++) {
         SDL_GPUTransferBufferLocation src = {.transfer_buffer = pending[i].tb};
-        SDL_GPUBufferRegion dst = {.buffer = pending[i].buf, .size = pending[i].size};
-        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
+        SDL_GPUBufferRegion dst = {.buffer = arena, .offset = pending[i].at * 8, .size = pending[i].size};
+        /* No cycling: that would drop the rest of the arena. No frame on the
+           GPU reads this range (see RETIRE_FRAMES). */
+        SDL_UploadToGPUBuffer(cp, &src, &dst, false);
         SDL_ReleaseGPUTransferBuffer(dev, pending[i].tb);
       }
       npending = 0;
@@ -486,13 +607,13 @@ module Gfx
       SDL_BindGPUGraphicsPipeline(pass, kind == 2 ? p_lod : (kind ? p_water : p_chunk));
       SDL_GPUBufferBinding ib = {.buffer = quad_index};
       SDL_BindGPUIndexBuffer(pass, &ib, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+      SDL_GPUBufferBinding b = {.buffer = arena};
+      SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
       long faces = 0;
       for (long i = 0; i < n; i++) {
         long s = pairs[i * 2];
         long mask = pairs[i * 2 + 1];
-        if (s < 0 || s >= MAX_SLOTS || !slot_buf[s] || !slot_count[s]) continue;
-        SDL_GPUBufferBinding b = {.buffer = slot_buf[s]};
-        SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
+        if (s < 0 || s >= MAX_SLOTS || !slot_count[s]) continue;
         int f = 0;
         while (f < 7) {
           if (!((mask >> f) & 1)) { f++; continue; }
@@ -500,7 +621,7 @@ module Gfx
           while (g + 1 < 7 && ((mask >> (g + 1)) & 1)) g++;
           Uint32 first = slot_off[s][f], last = slot_off[s][g + 1];
           if (last > first) {
-            SDL_DrawGPUIndexedPrimitives(pass, 6, last - first, 0, 0, first);
+            SDL_DrawGPUIndexedPrimitives(pass, 6, last - first, 0, 0, slot_at[s] + first);
             faces += last - first;
           }
           f = g + 1;
