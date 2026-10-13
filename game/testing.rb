@@ -109,6 +109,7 @@ class Game
     test_rain
     test_save(x, z, ground)
     test_crafting_limits
+    test_inventory_layout
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
     test_chests(cx, cz)
@@ -460,6 +461,26 @@ class Game
     keep_bad_save
     check("a save that does not load moves aside", !ok && !File.exist?(SAVE_PATH) && File.exist?(BAD_SAVE_PATH))
     File.delete(BAD_SAVE_PATH) if File.exist?(BAD_SAVE_PATH)
+  end
+
+  # The inventory screen fits the frame and leaves the hotbar and the health
+  # bars free, for common frame sizes.
+  def test_inventory_layout
+    sizes = [1280.0, 720.0, 2560.0, 1440.0, 1920.0, 1080.0, 2880.0, 1800.0, 3840.0, 2160.0]
+    fits = true
+    i = 0
+    while i < sizes.size
+      w = sizes[i]
+      h = sizes[i + 1]
+      s = inventory_scale(w, h)
+      first = pack_cell(HOTBAR, w, h, s)
+      last = recipe_cell(RECIPE_ROWS * 2 - 1, w, h, s)
+      pad = 18.0 * s
+      fits = false if first[0] - pad < 0.0 || first[1] - pad - 40.0 * s < 0.0
+      fits = false if last[0] + last[2] + pad > w || last[1] + last[3] + pad > h - 82.0 * ui_scale(h)
+      i += 2
+    end
+    check("the inventory screen fits the frame above the hotbar", fits)
   end
 
   # Crafting needs room for the result, and it takes from several stacks.

@@ -22,7 +22,7 @@ class Game
     if @dead
       draw_death_screen(w, h, s)
     elsif @inventory_open && @survival
-      draw_backpack(w, h, s)
+      draw_backpack(w, h, inventory_scale(w, h))
     elsif @inventory_open
       draw_block_picker(w, h, s)
     elsif !@captured

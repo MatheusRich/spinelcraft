@@ -184,14 +184,30 @@ class Game
   end
 
 
+  # The scale of the survival inventory screen: the HUD scale, or less when
+  # the screen does not fit in the frame above the health bars.
+  def inventory_scale(w, h)
+    bars = h - 82.0 * ui_scale(h)
+    s = ui_scale(h)
+    while s > 1.0
+      first = pack_cell(HOTBAR, w, h, s)
+      last = recipe_cell(RECIPE_ROWS * 2 - 1, w, h, s)
+      break if first[0] >= 18.0 * s && last[0] + last[2] + 18.0 * s <= w && last[1] + last[3] + 18.0 * s <= bars
+      s -= 1.0
+    end
+    s
+  end
+
   # Survival inventory cell i: backpack rows on top, the hotbar row below.
+  # The grid and the recipe list start at one height, and the recipe list is
+  # in the middle of the frame.
   def pack_cell(i, w, h, s)
     size = 52.0 * s
     gap = 6.0 * s
     row = i < HOTBAR ? 3 : (i - HOTBAR) / HOTBAR
     col = i < HOTBAR ? i : (i - HOTBAR) % HOTBAR
     x0 = (w - (HOTBAR * size + (HOTBAR - 1) * gap) - (RECIPE_W * 2.0 + 8.0) * s - 60.0 * s) / 2.0
-    y0 = (h - (4 * size + 3 * gap + 14.0 * s)) / 2.0
+    y0 = (h - (RECIPE_ROWS * 30.0 - 4.0) * s) / 2.0 + 20.0 * s
     [x0 + col * (size + gap), y0 + row * (size + gap) + (row == 3 ? 14.0 * s : 0.0), size]
   end
 
@@ -365,13 +381,14 @@ class Game
     if @survival && Gfx.in_button_pressed(1)
       w = Gfx.gfx_width.to_f
       h = Gfx.gfx_height.to_f
-      hover = pack_hover(w, h, ui_scale(h))
+      s = inventory_scale(w, h)
+      hover = pack_hover(w, h, s)
       click_slot(hover) if hover >= 0
       if @chest_key >= 0
-        cell = chest_hover(w, h, ui_scale(h))
+        cell = chest_hover(w, h, s)
         click_cell(@chest_block, @chest_count, cell) if cell >= 0
       else
-        recipe = recipe_hover(w, h, ui_scale(h))
+        recipe = recipe_hover(w, h, s)
         craft_recipe(recipe) if recipe >= 0 && @held_count == 0
       end
     elsif Gfx.in_button_pressed(1)
