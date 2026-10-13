@@ -2,7 +2,7 @@
 require_relative "../game/textures"
 require_relative "../game/world"
 
-# The 24 x 24 chunks from x = z = 0, the area of the old fixed-size world.
+# The 24 x 24 chunks from x = z = 0.
 w = World.new((ENV["SEED"] || "1337").to_i)
 counts = Array.new(Block::COUNT, 0)
 cx = 0

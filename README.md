@@ -24,9 +24,9 @@ You need macOS, SDL3 (`brew install sdl3`) and a built Spinel compiler.
 ./spinelcraft
 ```
 
-`build.sh` uses `$SPINEL` if you set it. Otherwise it uses `spinel` from `PATH`, and then `~/Documents/dev/oss/spinel/spinel`. Use a recent Spinel. A binary built with Spinel master from 2026-10-12 starts about 40% faster than one built with an older compiler.
+`build.sh` uses `$SPINEL` if you set it. Otherwise it uses `spinel` from `PATH`, and then `~/Documents/dev/oss/spinel/spinel`. Use a recent Spinel.
 
-The game saves to `world.sav` in the current directory when you quit, when you press F5, and when it pauses after the world changed. It pauses when you press Esc or when the window loses focus. It loads `world.sav` at start. To get a new world, delete the file or start with `NEW=1`. If `world.sav` exists but does not load, the game renames it to `world-bad.sav` and starts a new world, so the next save does not replace the old one. The save keeps only the chunks that you changed, because the generator makes the same blocks again for every other chunk. The game also reads saves from the old fixed-size world (format 3). The old 384 × 384 area becomes changed chunks, and new terrain continues past its edges.
+The game saves to `world.sav` in the current directory when you quit, when you press F5, and when it pauses after the world changed. It pauses when you press Esc or when the window loses focus. It loads `world.sav` at start. To get a new world, delete the file or start with `NEW=1`. If `world.sav` exists but does not load, the game renames it to `world-bad.sav` and starts a new world, so the next save does not replace the old one. The save keeps only the chunks that you changed, because the generator makes the same blocks again for every other chunk.
 
 ## Controls
 

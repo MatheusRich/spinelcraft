@@ -1,9 +1,5 @@
-# Save and load: the world.sav format and the importer for format 3 saves.
+# Save and load: the world.sav format.
 class Game
-  # Layout of a format 3 save: 384 columns and one padding column on each side.
-  OLD_P = 386
-  OLD_PY = 98
-
   # Field positions in the first line of a save. Field 0 is the format and
   # fields 1-3 are the world size. save writes the fields in this order.
   F_SEED = 4
@@ -43,35 +39,27 @@ class Game
   end
 
   # Returns true when a saved world was loaded. A save keeps only the chunks
-  # that differ from the generator. A format 3 save (the old 384 x 384 world)
-  # becomes edited chunks 0..23 on both axes.
+  # that differ from the generator.
   def load
     return false unless File.exist?(SAVE_PATH)
     data = File.binread(SAVE_PATH)
     nl = data.index("\n")
     return false if nl.nil?
     f = data[0, nl].split(" ")
-    return false if f.size < F_CHESTS
-    v3 = f[0] == "SPINELCRAFT3" && f[1] == "384" && f[2] == "96" && f[3] == "384"
-    return false unless f[0] == "SPINELCRAFT4" || v3
+    return false if f.size <= F_CHESTS
+    return false unless f[0] == "SPINELCRAFT4"
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
-    n = v3 ? 0 : f[at].to_i
-    return false if !v3 && data.bytesize - nl - 1 != n * CHUNK_BYTES
-    return false if v3 && data.bytesize - nl - 1 != OLD_P * OLD_PY * OLD_P
+    n = f[at].to_i
+    return false if data.bytesize - nl - 1 != n * CHUNK_BYTES
     @seed = f[F_SEED].to_i
     reset_world
     store = @world.store
-    if v3
-      import_v3(data, nl + 1)
-    else
-      k = 0
-      while k < n
-        store[f[at + 1 + k].to_i] = data.byteslice(nl + 1 + k * CHUNK_BYTES, CHUNK_BYTES)
-        k += 1
-      end
+    k = 0
+    while k < n
+      store[f[at + 1 + k].to_i] = data.byteslice(nl + 1 + k * CHUNK_BYTES, CHUNK_BYTES)
+      k += 1
     end
-    @old_keys = v3
     @loaded = f
     true
   end
@@ -97,34 +85,6 @@ class Game
     @later_list.each { |i| @later[i] = false }
     @later_list.clear
     @flow_queue.clear
-  end
-
-  def import_v3(data, off)
-    cx = 0
-    while cx < 24
-      cz = 0
-      while cz < 24
-        parts = []
-        x = cx * CHUNK
-        while x < cx * CHUNK + CHUNK
-          z = cz * CHUNK
-          while z < cz * CHUNK + CHUNK
-            parts << data.byteslice(off + ((x + 1) * OLD_P + z + 1) * OLD_PY + 1, WY)
-            z += 1
-          end
-          x += 1
-        end
-        @world.store[World.chunk_key(cx, cz)] = parts.join
-        cz += 1
-      end
-      cx += 1
-    end
-  end
-
-  # A format 3 chest key was a block index; this gives the world key.
-  def old_chest_key(i)
-    t = i / OLD_PY
-    World.key(t / OLD_P - 1, i % OLD_PY - 1, t % OLD_P - 1)
   end
 
   def apply_loaded
@@ -154,12 +114,11 @@ class Game
     @hunger = f[F_HUNGER].to_i
     @chests = {}
     at = F_CHESTS
-    chests = at < f.size ? f[at].to_i : 0
+    chests = f[at].to_i
     at += 1
     c = 0
     while c < chests
       key = f[at].to_i
-      key = old_chest_key(key) if @old_keys
       stored = Array.new(CHEST_SLOTS * 2, 0)
       k = 0
       while k < CHEST_SLOTS * 2

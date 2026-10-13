@@ -13,7 +13,7 @@ class Mob
   # Passive mobs wander, never attack, and do not count as monsters.
   PASSIVE = [1, 0, 0, 1, 0]
 
-  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :attack_wait, :shoot, :explode, :by_player
+  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :shoot, :explode, :by_player
   attr_reader :fuse
   attr_reader :kind, :half, :tall
 

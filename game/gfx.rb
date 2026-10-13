@@ -881,7 +881,6 @@ module Gfx
     long gfx_width(void) { return swap_w; }
     long gfx_height(void) { return swap_h; }
     long gfx_ns(void) { return (long)SDL_GetTicksNS(); }
-    void gfx_title(const char *t) { SDL_SetWindowTitle(win, t); }
     void gfx_quit(void) { SDL_WaitForGPUIdle(dev); SDL_Quit(); }
 
     /* Input. Edges (pressed this frame) compare against the previous poll. */
@@ -944,7 +943,6 @@ module Gfx
   ffi_func :gfx_width, [], :long
   ffi_func :gfx_height, [], :long
   ffi_func :gfx_ns, [], :long
-  ffi_func :gfx_title, [:str], :void
   ffi_func :gfx_quit, [], :void
   ffi_func :in_poll, [], :long
   ffi_func :in_key, [:long], :long

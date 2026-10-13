@@ -53,7 +53,6 @@ class Game
     @stream_cz = World::NONE
     @load_at = 0
     @mesh_at = 0
-    @old_keys = false
     make_ring
     @dirty = Array.new(CX * CZ, false)
     @dirty_list = []
