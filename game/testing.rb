@@ -106,6 +106,7 @@ class Game
     test_mob_drops
     test_items(cx, cz)
     test_light_sources(cx, cz)
+    test_dark
     bx = @spawn_x.floor
     bz = @spawn_z.floor
     test_bow(bx, bz)
@@ -696,6 +697,24 @@ class Game
       out = true if @player.on_ground && @player.y >= 91.0 && @player.x > wx + 2.0
     end
     check("a jump against the shore lifts the player out of the water", out)
+  end
+
+  # Monsters spawn only in the dark: under the sky at night, or under a
+  # block, and never near a torch.
+  def test_dark
+    x = @spawn_x.floor + 40
+    z = @spawn_z.floor + 40
+    h = @world.height_at(x, z)
+    open_day = dark?(x, h, z, 1.0)
+    open_night = dark?(x, h, z, 0.0)
+    set_block(x, h + 3, z, Block::STONE)
+    covered_day = dark?(x, h, z, 1.0)
+    # The torch stands on the roof, 4 blocks above the cell.
+    set_block(x, h + 4, z, Block::TORCH)
+    near_torch = dark?(x, h, z, 0.0)
+    set_block(x, h + 4, z, Block::AIR)
+    set_block(x, h + 3, z, Block::AIR)
+    check("monsters spawn under the night sky or a roof, and not near a torch", !open_day && open_night && covered_day && !near_torch)
   end
 
   # Water spreads 7 blocks over a floor and drains without its source.

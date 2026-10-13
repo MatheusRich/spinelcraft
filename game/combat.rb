@@ -15,7 +15,63 @@ class Game
     @ar_damage.clear
   end
 
-  # Puts a mob on a surface block at a random distance from the player in [near, far).
+  # Monsters spawn only where no torch or lava is this near (in steps along
+  # x, y and z; walls do not count). The light of a torch drops by 1 for
+  # each step from 14, so the edge of this area has light 6.
+  SAFE_REACH = 8
+  # Daylight under this value is night: monsters spawn under the open sky.
+  NIGHT = 0.35
+
+  # True when a monster can spawn in the cell x, y, z: the sky above it is
+  # dark or a block covers it, and no torch or lava is near.
+  def dark?(x, y, z, day)
+    return false if day >= NIGHT && @world.height_at(x, z) <= y
+    cx = (x - SAFE_REACH) >> 4
+    while cx <= (x + SAFE_REACH) >> 4
+      cz = (z - SAFE_REACH) >> 4
+      while cz <= (z + SAFE_REACH) >> 4
+        list = @world.torches_of(cx, cz)
+        k = 0
+        while k < list.size
+          return false if (list[k] - x).abs + (list[k + 1] - y).abs + (list[k + 2] - z).abs <= SAFE_REACH
+          k += 3
+        end
+        cz += 1
+      end
+      cx += 1
+    end
+    true
+  end
+
+  # Puts a monster in a dark cell with a solid floor and room for its body,
+  # 16 to 40 blocks from the player on x and z. Half the tries look on the
+  # surface, and half look in caves up to 16 blocks above or below the player.
+  def spawn_monster(kind, day)
+    tries = 0
+    while tries < 20
+      tries += 1
+      ang = rand01 * 6.283
+      dist = 16.0 + rand01 * 24.0
+      x = (@player.x + Math.cos(ang) * dist).floor
+      z = (@player.z + Math.sin(ang) * dist).floor
+      next unless @world.loaded?(x, z)
+      h = @world.height_at(x, z)
+      y = rand01 < 0.5 ? h : (@player.y + rand01 * 32.0 - 16.0).floor
+      y = h if y > h
+      # Down to the first floor in the cave.
+      floor = y - 16
+      floor = 1 if floor < 1
+      y -= 1 while y > floor && !Block.solid?(@world.get(x, y - 1, z))
+      ground = @world.get(x, y - 1, z)
+      next unless Block.solid?(ground) && ground != Block::LEAVES
+      next if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
+      next unless dark?(x, y, z, day)
+      @mobs << Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (rand01 * 100000.0).to_i)
+      return
+    end
+  end
+
+  # Puts a pig or a sheep on grass at a random distance from the player in [near, far).
   def spawn_mob(kind, near, far)
     tries = 0
     while tries < 20
@@ -27,7 +83,7 @@ class Game
       next unless @world.loaded?(x, z)
       h = @world.height_at(x, z)
       ground = @world.get(x, h - 1, z)
-      next unless ground == Block::GRASS || ground == Block::SNOW_GRASS || (kind == Mob::ZOMBIE && ground == Block::SAND)
+      next unless ground == Block::GRASS || ground == Block::SNOW_GRASS
       next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
       @mobs << Mob.new(kind, x + 0.5, h + 0.01, z + 0.5, (rand01 * 100000.0).to_i)
       return
@@ -59,7 +115,7 @@ class Game
       pigs = 0
       @mobs.each { |m| m.passive? ? pigs += 1 : zombies += 1 }
       roll = rand01
-      spawn_mob(roll < 0.3 ? Mob::SKELETON : (roll < 0.55 ? Mob::CREEPER : Mob::ZOMBIE), 18.0, 40.0) if day < 0.35 && zombies < MAX_ZOMBIES
+      spawn_monster(roll < 0.3 ? Mob::SKELETON : (roll < 0.55 ? Mob::CREEPER : Mob::ZOMBIE), day) if zombies < MAX_ZOMBIES
       spawn_mob(rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
     end
     @mobs.each do |m|
