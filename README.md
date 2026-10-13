@@ -26,7 +26,7 @@ You need macOS, SDL3 (`brew install sdl3`) and a built Spinel compiler.
 
 `build.sh` uses `$SPINEL` if you set it. Otherwise it uses `spinel` from `PATH`, and then `~/Documents/dev/oss/spinel/spinel`. Use a recent Spinel.
 
-The game saves to `world.sav` in the current directory when you quit, when you press F5, and when it pauses after the world changed. It pauses when you press Esc or when the window loses focus. It loads `world.sav` at start. To get a new world, delete the file or start with `NEW=1`. If `world.sav` exists but does not load, the game renames it to `world-bad.sav` and starts a new world, so the next save does not replace the old one. The save keeps only the chunks that you changed, because the generator makes the same blocks again for every other chunk.
+The game saves to `world.sav` in the current directory when you quit, when you press F5, and when it pauses after the world changed. It pauses when you press Esc or when the window loses focus. It loads `world.sav` at start. To get a new world, delete the file or start with `NEW=1`. If `world.sav` exists but does not load, the game renames it to `world-bad.sav` and starts a new world, so the next save does not replace the old one. The save keeps only the chunks that you changed, because the generator makes the same blocks again for every other chunk. It also keeps the items on the ground and the weather.
 
 ## Controls
 
@@ -198,7 +198,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 70 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 71 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

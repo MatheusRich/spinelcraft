@@ -422,18 +422,33 @@ class Game
     -1.0
   end
 
-  # The save keeps blocks, the inventory and health, and a dead player respawns on load.
+  # The save keeps blocks, the inventory, health, the items on the ground and
+  # the weather, and a dead player respawns on load.
   def test_save(x, z, ground)
     old = @world.get(x, ground + 1, z)
     kept_block = @inv_block[1]
     kept_count = @inv_count[1]
+    clear_items
+    drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
+    set_raining(true)
+    @weather_timer = 77.5
     save
     @world.set(x, ground + 1, z, Block::GLASS)
     @health = 3
     @inv_count[1] = 0
+    clear_items
+    set_raining(false)
+    @rain = 0.0
     ok = load
     apply_loaded if ok
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @health == MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
+    check("the save keeps the items on the ground and the weather",
+          @it_count.size == 1 && @it_block[0] == Block::STONE_SWORD && @it_count[0] == 17 &&
+          @it_x[0] == x + 0.25 && @it_y[0] == ground + 1.0 && @it_z[0] == z + 0.75 &&
+          @raining && @rain == 1.0 && @weather_timer == 77.5)
+    clear_items
+    set_raining(false)
+    @rain = 0.0
     @health = 0
     @dead = true
     save

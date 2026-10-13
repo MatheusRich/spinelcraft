@@ -11,8 +11,11 @@ class Game
   F_INV = 15 # INV blocks, then INV counts
   F_HOTBAR = F_INV + INV * 2
   F_HUNGER = F_HOTBAR + HOTBAR
-  # The chest count, then the key and the contents of each chest.
-  F_CHESTS = F_HUNGER + 1
+  F_WEATHER = F_HUNGER + 1 # raining (1 or 0), seconds to the next change
+  # The chest count, then the key and the contents of each chest. Then the
+  # item count and ITEM_FIELDS for each item on the ground.
+  F_CHESTS = F_WEATHER + 2
+  ITEM_FIELDS = 6 # block, count, x, y, z, age
 
   def save
     header = [WX, WY, WZ, @seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
@@ -24,13 +27,20 @@ class Game
       chest_fields << key
       chest_fields.concat(stored)
     end
+    item_fields = [@it_count.size]
+    i = 0
+    while i < @it_count.size
+      item_fields.concat([@it_block[i], @it_count[i], @it_x[i], @it_y[i], @it_z[i], @it_age[i]])
+      i += 1
+    end
     t0 = Gfx.gfx_ns
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv_block + @inv_count + @hotbar + [@hunger] + chest_fields + chunk_fields).map(&:to_s).join(" ")
+    inv = (@inv_block + @inv_count + @hotbar + [@hunger, @raining ? 1 : 0, @weather_timer] + chest_fields +
+           item_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
-      f.write("SPINELCRAFT4 #{header} #{inv}\n")
+      f.write("SPINELCRAFT5 #{header} #{inv}\n")
       keys.each { |k| f.write(chunks[k]) }
     end
     @changed = false
@@ -47,9 +57,10 @@ class Game
     return false if nl.nil?
     f = data[0, nl].split(" ")
     return false if f.size <= F_CHESTS
-    return false unless f[0] == "SPINELCRAFT4"
+    return false unless f[0] == "SPINELCRAFT5"
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
+    at += 1 + f[at].to_i * ITEM_FIELDS
     n = f[at].to_i
     return false if data.bytesize - nl - 1 != n * CHUNK_BYTES
     @seed = f[F_SEED].to_i
@@ -112,6 +123,9 @@ class Game
       i += 1
     end
     @hunger = f[F_HUNGER].to_i
+    @raining = f[F_WEATHER] == "1"
+    @weather_timer = f[F_WEATHER + 1].to_f
+    @rain = @raining ? 1.0 : 0.0
     @chests = {}
     at = F_CHESTS
     chests = f[at].to_i
@@ -127,6 +141,16 @@ class Game
       end
       @chests[key] = stored
       at += 1 + CHEST_SLOTS * 2
+      c += 1
+    end
+    clear_items
+    items = f[at].to_i
+    at += 1
+    c = 0
+    while c < items
+      drop_item(f[at].to_i, f[at + 1].to_i, f[at + 2].to_f, f[at + 3].to_f, f[at + 4].to_f, 0.0, 0.0, 0.0, PICKUP_WAIT)
+      @it_age[@it_age.size - 1] = f[at + 5].to_f
+      at += ITEM_FIELDS
       c += 1
     end
     stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
