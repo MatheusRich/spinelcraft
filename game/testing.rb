@@ -48,7 +48,7 @@ class Game
       dx += 1
     end
     shown = [Block::GRASS, Block::CHEST, Block::DOOR, Block::FURNACE, Block::SAPLING, Block::APPLE,
-             Block::COOKED_PORKCHOP, Block::IRON_INGOT, Block::IRON_SWORD, Block::DIAMOND_PICK, Block::BOW, Block::ARROW]
+             Block::BREAD, Block::WHEAT, Block::IRON_SWORD, Block::IRON_AXE, Block::STONE_SHOVEL, Block::ARROW]
     shown.each_with_index do |b, i|
       drop_item(b, i == 11 ? 3 : 1, bx - 3.6 + i * 0.65, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
     end
@@ -58,6 +58,9 @@ class Game
     set_block(bx, y + 2, bz - 2, Block::DOOR_OPEN)
     set_block(bx + 2, y + 1, bz - 2, Block::FURNACE)
     set_block(bx + 3, y + 1, bz - 2, Block::SAPLING)
+    [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |b, i|
+      set_block(bx - 4 + i, y + 1, bz - 1, b)
+    end
     @survival = true
     @inv_block[0] = (ENV["HAND"] || Block::LOG.to_s).to_i
     @inv_count[0] = @inv_block[0] == Block::AIR ? 0 : 5
@@ -798,8 +801,14 @@ class Game
     set_block(x + 2, y, z + 3, Block::AIR)
     check("smelting needs a furnace nearby", far && @inv_block[0] == Block::IRON_INGOT)
     set_block(x, y, z, Block::SAPLING)
-    grow_saplings(600.0)
+    # The crop stands out of reach of the tree's leaves, on top of its column.
+    cy = @world.height_at(x + 4, z)
+    set_block(x + 4, cy - 1, z, Block::DIRT)
+    set_block(x + 4, cy, z, Block::SEEDS)
+    grow_plants(1200.0)
     check("a sapling grows into a tree", @world.get(x, y, z) == Block::LOG && @world.get(x, y + 3, z) == Block::LOG)
+    check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)
+    set_block(x + 4, cy, z, Block::AIR)
   end
 
   # Water spreads 7 blocks over a floor and drains without its source.

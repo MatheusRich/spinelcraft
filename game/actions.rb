@@ -194,7 +194,7 @@ class Game
       play(Sfx::BREAK, 0.7)
       set_block(x, y, z, Block::AIR)
       drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
-      drop_from_leaves(x, y, z) if b == Block::LEAVES
+      drop_extra(b, x, y, z)
       wear_tool if hardness > 0.0
       @mining = false
     end
@@ -224,13 +224,21 @@ class Game
     say("GOOD MORNING")
   end
 
-  # Leaves drop a sapling now and then, and an apple more rarely.
-  def drop_from_leaves(x, y, z)
+  # What a broken block drops besides Block::DROPS: leaves now and then a
+  # sapling and more rarely an apple, tall grass now and then seeds, and
+  # ripe wheat 1 or 2 seeds.
+  def drop_extra(b, x, y, z)
     r = rand01
-    if r < 0.1
-      drop_from_block(Block::SAPLING, 1, x, y, z)
-    elsif r < 0.15
-      drop_from_block(Block::APPLE, 1, x, y, z)
+    if b == Block::LEAVES
+      if r < 0.1
+        drop_from_block(Block::SAPLING, 1, x, y, z)
+      elsif r < 0.15
+        drop_from_block(Block::APPLE, 1, x, y, z)
+      end
+    elsif b == Block::TALL_GRASS
+      drop_from_block(Block::SEEDS, 1, x, y, z) if r < 0.125
+    elsif b == Block::WHEAT_RIPE
+      drop_from_block(Block::SEEDS, r < 0.5 ? 1 : 2, x, y, z)
     end
   end
 

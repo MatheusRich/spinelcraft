@@ -69,7 +69,13 @@ module Tex
   STONE_SHOVEL = 70
   IRON_SHOVEL = 71
   DIAMOND_SHOVEL = 72
-  FONT = 73
+  SEEDS = 73
+  WHEAT_1 = 74
+  WHEAT_2 = 75
+  WHEAT_RIPE = 76
+  WHEAT = 77
+  BREAD = 78
+  FONT = 79
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -267,6 +273,12 @@ module Tex
     shovel(px, IRON_SHOVEL, 225, 220, 210)
     shovel(px, DIAMOND_SHOVEL, 90, 230, 225)
     ingot(px)
+    crop(px, SEEDS, 4, 80, 170, 60)
+    crop(px, WHEAT_1, 8, 90, 160, 50)
+    crop(px, WHEAT_2, 12, 140, 160, 50)
+    crop(px, WHEAT_RIPE, 15, 215, 180, 70)
+    wheat(px)
+    bread(px)
     furnace(px)
     lava(px)
     noisy(px, WOOL, 232, 232, 228, 14, 71)
@@ -291,6 +303,10 @@ module Tex
     bleed(px, PUFF)
     bleed(px, RAIN)
     bleed(px, SAPLING)
+    bleed(px, SEEDS)
+    bleed(px, WHEAT_1)
+    bleed(px, WHEAT_2)
+    bleed(px, WHEAT_RIPE)
     px
   end
 
@@ -655,6 +671,60 @@ module Tex
       set(px, layer, i, 15 - i, 110, 80, 45, 255)
       set(px, layer, i + 1, 15 - i, 85, 60, 35, 255)
       i += 1
+    end
+  end
+
+  # Rows of stalks of height tall (in pixels) in color r, g, b.
+  def self.crop(px, layer, tall, r, g, b)
+    x = 1
+    while x < 16
+      h = tall - rnd(x, 0, layer) % 3
+      h = 2 if h < 2
+      y = 16 - h
+      while y < 16
+        v = rnd(x, y, layer + 1) / 10
+        set(px, layer, x, y, r + v, g + v, b + v / 2, 255)
+        y += 1
+      end
+      x += 3
+    end
+  end
+
+  # A bundle of golden stalks, tied in the middle.
+  def self.wheat(px)
+    x = 3
+    while x < 13
+      y = 1 + (x - 8).abs / 2
+      while y < 15
+        v = rnd(x, y, 151) / 8
+        set(px, WHEAT, x, y, 210 + v, 175 + v, 70, 255) if (x + y) % 3 != 0
+        y += 1
+      end
+      x += 1
+    end
+    x = 4
+    while x < 12
+      set(px, WHEAT, x, 9, 130, 95, 45, 255)
+      x += 1
+    end
+  end
+
+  # A loaf: a brown oval, lighter on top.
+  def self.bread(px)
+    y = 0
+    while y < 16
+      x = 0
+      while x < 16
+        dx = (x - 7.5) / 7.0
+        dy = (y - 9.0) / 4.5
+        if dx * dx + dy * dy < 1.0
+          v = rnd(x, y, 161) / 12
+          top = y < 8 ? 30 : 0
+          set(px, BREAD, x, y, 170 + v + top, 110 + v + top, 50 + v, 255)
+        end
+        x += 1
+      end
+      y += 1
     end
   end
 

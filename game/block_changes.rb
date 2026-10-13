@@ -20,22 +20,27 @@ class Game
     wake_water(x, y, z)
   end
 
-  # Each second, the game looks at this many columns near the player for a
-  # sapling on top. Each sapling that it finds grows into a tree with
-  # chance SAPLING_CHANCE, so a sapling grows in about a minute.
-  SAPLING_SAMPLES = 400.0
-  SAPLING_REACH = 40
-  SAPLING_CHANCE = 0.1
+  # Each second, the game looks at this many of the 81 x 81 columns near the
+  # player for a sapling or a crop on top. Only a plant under the open sky
+  # grows. Each one that it finds grows (a sapling into a tree, a crop to
+  # its next stage) with chance GROW_CHANCE. That is a step in about
+  # 81 * 81 / (1100 * 0.1) = 60 seconds.
+  GROW_SAMPLES = 1100.0
+  GROW_REACH = 40
+  GROW_CHANCE = 0.1
 
-  def grow_saplings(dt)
-    n = (dt * SAPLING_SAMPLES + rand01).to_i
-    span = SAPLING_REACH * 2 + 1
+  def grow_plants(dt)
+    n = (dt * GROW_SAMPLES + rand01).to_i
+    span = GROW_REACH * 2 + 1
     while n > 0
-      x = @player.x.floor - SAPLING_REACH + (rand01 * span).to_i
-      z = @player.z.floor - SAPLING_REACH + (rand01 * span).to_i
+      x = @player.x.floor - GROW_REACH + (rand01 * span).to_i
+      z = @player.z.floor - GROW_REACH + (rand01 * span).to_i
       if @world.loaded?(x, z)
         y = @world.height_at(x, z)
-        grow_tree(x, y, z) if @world.get(x, y, z) == Block::SAPLING && rand01 < SAPLING_CHANCE
+        b = @world.get(x, y, z)
+        if (b == Block::SAPLING || Block.growing?(b)) && rand01 < GROW_CHANCE
+          b == Block::SAPLING ? grow_tree(x, y, z) : set_block(x, y, z, b + 1)
+        end
       end
       n -= 1
     end
