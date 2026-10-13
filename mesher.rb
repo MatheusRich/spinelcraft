@@ -14,6 +14,13 @@ class Mesher
   COLUMNS = 1024
   COLUMN_MASK = COLUMNS - 1
 
+  # Torch light is LIGHT_MAX at a torch and one less for each step, so it
+  # reaches LIGHT_MAX blocks at most. The chunk shader divides by the same value.
+  LIGHT_MAX = 14
+  # The light flood covers the chunk and a margin that a light can cross.
+  MARGIN = LIGHT_MAX + 1
+  LW = CHUNK + MARGIN * 2
+
   # The first word of a face record: x and z (10 bits each), y (7 bits), and the face.
   def self.pack(x, y, z, f) = x | (y << 10) | (z << 17) | (f << 27)
   def self.face_x(w0) = w0 & COLUMN_MASK
@@ -117,7 +124,7 @@ class Mesher
         while k < torches.size
           tx = torches[k]
           tz = torches[k + 2]
-          if tx > x0 - 15 && tx < x0 + CHUNK + 14 && tz > z0 - 15 && tz < z0 + CHUNK + 14
+          if tx > x0 - MARGIN && tx < x0 + CHUNK + LIGHT_MAX && tz > z0 - MARGIN && tz < z0 + CHUNK + LIGHT_MAX
             @tx << tx
             @ty << torches[k + 1]
             @tz << tz
@@ -195,7 +202,7 @@ class Mesher
                   flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
                   w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | (Tex.scroll(tex) << 23)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
-                  w1 = (w1 & ~(15 << 19)) | (14 << 19) if Block.lava?(id)
+                  w1 = (w1 & ~(15 << 19)) | (LIGHT_MAX << 19) if Block.lava?(id)
                   list = @lists[f]
                   list << w0
                   list << w1
@@ -232,10 +239,7 @@ class Mesher
 
   def water_offsets = @water_offsets
 
-  MARGIN = 15
-  LW = CHUNK + MARGIN * 2
-
-  # Spreads torch light through cells that are not opaque: 14 at a torch,
+  # Spreads torch light through cells that are not opaque: LIGHT_MAX at a torch,
   # one less per step, so walls stop it. Covers the chunk plus a margin.
   def flood(x0, z0)
     # Only the cells in the last queue have light, so clear just those.
@@ -253,7 +257,7 @@ class Mesher
       lz = @tz[k] - bz
       if lx >= 0 && lz >= 0 && lx < LW && lz < LW
         n = (lx * LW + lz) * WY + @ty[k]
-        @light[n] = 14
+        @light[n] = LIGHT_MAX
         @queue << n
       end
       k += 1

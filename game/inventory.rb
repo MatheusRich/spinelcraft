@@ -146,18 +146,14 @@ class Game
     -1
   end
 
-  def ui_scale(h)
-    s = (h / 720.0).round.to_f
-    s < 1.0 ? 1.0 : s
-  end
 
   # Survival inventory cell i: backpack rows on top, the hotbar row below.
   def pack_cell(i, w, h, s)
     size = 52.0 * s
     gap = 6.0 * s
-    row = i < 9 ? 3 : (i - 9) / 9
-    col = i < 9 ? i : (i - 9) % 9
-    x0 = (w - (9 * size + 8 * gap) - RECIPE_W * s - 60.0 * s) / 2.0
+    row = i < HOTBAR ? 3 : (i - HOTBAR) / HOTBAR
+    col = i < HOTBAR ? i : (i - HOTBAR) % HOTBAR
+    x0 = (w - (HOTBAR * size + (HOTBAR - 1) * gap) - RECIPE_W * s - 60.0 * s) / 2.0
     y0 = (h - (4 * size + 3 * gap + 14.0 * s)) / 2.0
     [x0 + col * (size + gap), y0 + row * (size + gap) + (row == 3 ? 14.0 * s : 0.0), size]
   end
@@ -165,7 +161,7 @@ class Game
   # Recipe row k beside the grid: x, y, width, height.
   def recipe_cell(k, w, h, s)
     last = pack_cell(INV - 1, w, h, s)
-    top = pack_cell(9, w, h, s)
+    top = pack_cell(HOTBAR, w, h, s)
     [last[0] + last[2] + 60.0 * s, top[1] + k * 30.0 * s, RECIPE_W * s, 26.0 * s]
   end
 
@@ -320,11 +316,7 @@ class Game
       toggle_inventory
       return
     end
-    i = 0
-    while i < 9
-      @slot = i if Gfx.in_key_pressed(Key::N1 + i) != 0
-      i += 1
-    end
+    select_slot
     craft if @survival && Gfx.in_key_pressed(Key::C) != 0
     if @survival && Gfx.in_button_pressed(1) != 0
       w = Gfx.gfx_width.to_f

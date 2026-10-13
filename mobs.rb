@@ -5,6 +5,13 @@ class Mob
   SHEEP = 3
   CREEPER = 4
   FUSE = 1.5
+  # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper.
+  # MOB_SOUND in game/combat.rb has the sounds.
+  HP = [10, 20, 16, 10, 20]
+  HALF = [0.45, 0.3, 0.3, 0.45, 0.3]
+  TALL = [0.95, 1.9, 1.9, 1.2, 1.7]
+  # Passive mobs wander, never attack, and do not count as monsters.
+  PASSIVE = [1, 0, 0, 1, 0]
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :attack_wait, :shoot, :explode, :by_player
   attr_reader :fuse
@@ -19,7 +26,7 @@ class Mob
     @vy = 0.0
     @vz = 0.0
     @yaw = (seed % 628) / 100.0
-    @hp = kind == PIG || kind == SHEEP ? 10 : (kind == SKELETON ? 16 : 20)
+    @hp = HP[kind]
     @shoot = false
     @explode = false
     @by_player = false
@@ -27,8 +34,8 @@ class Mob
     @hurt = 0.0
     @alive = true
     @phase = 0.0
-    @half = kind == PIG || kind == SHEEP ? 0.45 : 0.3
-    @tall = kind == PIG ? 0.95 : (kind == SHEEP ? 1.2 : (kind == CREEPER ? 1.7 : 1.9))
+    @half = HALF[kind]
+    @tall = TALL[kind]
     @think = 0.0
     @walking = false
     @rng = seed & 0x7fffffff
@@ -36,6 +43,8 @@ class Mob
     @on_ground = false
     @burn = 0.0
   end
+
+  def passive? = PASSIVE[@kind] == 1
 
   def rand01
     @rng = (@rng * 1103515245 + 12345) & 0x7fffffff
@@ -105,7 +114,7 @@ class Mob
     @attack_wait -= dt
     speed = 0.0
     damage = 0
-    if @kind == PIG || @kind == SHEEP
+    if passive?
       @think -= dt
       if @think <= 0.0
         @think = 2.0 + rand01 * 4.0

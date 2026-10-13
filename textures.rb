@@ -47,7 +47,7 @@ module Tex
   CHEST_SIDE = 50
   FONT = 51
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
-  LAYERS = FONT + 54
+  LAYERS = FONT + CHARS.size
 
   # How a layer's texture scrolls: 0 not at all, 1 like water, 2 like lava.
   # The mesher puts it in bits 23-24 of a face record for the shader.
@@ -349,7 +349,7 @@ module Tex
     end
   end
 
-  # Bed: a red blanket with a white pillow on top, a wooden frame on the sides.
+  # Chest: wood with a dark rim, and a band and a metal latch on the sides.
   def self.chest(px)
     y = 0
     while y < 16
@@ -372,6 +372,7 @@ module Tex
     set(px, CHEST_SIDE, 8, 7, 160, 160, 170, 255)
   end
 
+  # Bed: a red blanket with a white pillow on top, a wooden frame on the sides.
   def self.bed(px)
     y = 0
     while y < 16
@@ -510,7 +511,7 @@ module Tex
     end
   end
 
-  # Each glyph is 3x5; it fills a 12x15 corner of its layer at 4x3 scale... drawn 3px per cell.
+  # Each glyph is 3 x 5 cells of 3 x 3 pixels, so it fills a 9 x 15 corner of its layer.
   def self.font(px)
     g = 0
     while g < GLYPHS.size

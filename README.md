@@ -162,6 +162,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `TIME=0.75` | Start at that time of day (0.75 is midnight) |
 | `SEED=n` | World seed |
 | `NEW=1` | Ignore `world.sav` |
+| `SAVE=1` | Save on quit also when `FRAMES` is set |
 | `MUTE=1` | No sound |
 | `SHOWMOBS=1` | Put one mob of each kind on a stone floor in front of the player |
 | `INVENTORY=1` | Start with the inventory open |

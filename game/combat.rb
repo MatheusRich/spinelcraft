@@ -1,5 +1,8 @@
 # Mobs and combat: spawning, mob turns, damage, explosions, the bow, and arrows.
 class Game
+  # The sound that each mob kind makes now and then, indexed by kind.
+  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::STEP, Sfx::OINK, Sfx::SPLASH]
+
   def clear_arrows
     @ar_x.clear
     @ar_y.clear
@@ -52,14 +55,14 @@ class Game
       @spawn_timer = 2.0
       zombies = 0
       pigs = 0
-      @mobs.each { |m| m.kind == Mob::PIG || m.kind == Mob::SHEEP ? pigs += 1 : zombies += 1 }
+      @mobs.each { |m| m.passive? ? pigs += 1 : zombies += 1 }
       roll = rand01
       spawn_mob(roll < 0.3 ? Mob::SKELETON : (roll < 0.55 ? Mob::CREEPER : Mob::ZOMBIE), 18.0, 40.0) if day < 0.35 && zombies < MAX_ZOMBIES
       spawn_mob(rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
     end
     @mobs.each do |m|
       if rand01 < dt * 0.08
-        play(m.kind == Mob::PIG ? Sfx::OINK : (m.kind == Mob::ZOMBIE ? Sfx::GROAN : (m.kind == Mob::SHEEP ? Sfx::OINK : (m.kind == Mob::CREEPER ? Sfx::SPLASH : Sfx::STEP))), near_volume(m.x, m.z, 0.8))
+        play(MOB_SOUND[m.kind], near_volume(m.x, m.z, 0.8))
       end
       if m.shoot
         m.shoot = false
@@ -91,23 +94,7 @@ class Game
       end
     end
     if @survival
-      @mobs.each do |m|
-        next unless !m.alive && m.kind == Mob::SKELETON && m.hp <= 0 && m.by_player
-        n = 1 + (rand01 * 3.0).to_i
-        n.times { give(Block::ARROW) }
-        give(Block::BOW) if rand01 < 0.3
-        say("+#{n} ARROWS")
-      end
-    end
-    sheared = @mobs.count { |m| !m.alive && m.kind == Mob::SHEEP && m.hp <= 0 && m.by_player }
-    if sheared > 0 && @survival
-      (sheared * 2).times { give(Block::WOOL) }
-      say("+#{sheared * 2} WOOL")
-    end
-    killed = @mobs.count { |m| !m.alive && m.kind == Mob::PIG && m.hp <= 0 && m.by_player }
-    if killed > 0 && @survival
-      killed.times { give(Block::PORKCHOP) }
-      say("+#{killed} PORKCHOP  RIGHT CLICK TO EAT")
+      @mobs.each { |m| drop_loot(m) if !m.alive && m.hp <= 0 && m.by_player }
     end
     steps = (dt * 180.0).ceil
     steps = 1 if steps < 1
@@ -115,7 +102,32 @@ class Game
     @mobs.reject! do |m|
       d2 = (m.x - @player.x) ** 2 + (m.z - @player.z) ** 2
       !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || d2 > 160.0 * 160.0 ||
-        (m.kind != Mob::PIG && m.kind != Mob::SHEEP && d2 > 64.0 * 64.0)
+        (!m.passive? && d2 > 64.0 * 64.0)
+    end
+  end
+
+  # What a mob that the player killed puts in the inventory.
+  def drop_loot(m)
+    if m.kind == Mob::SKELETON
+      n = 1 + (rand01 * 3.0).to_i
+      n.times { give(Block::ARROW) }
+      give(Block::BOW) if rand01 < 0.3
+      say("+#{n} ARROWS")
+    elsif m.kind == Mob::SHEEP
+      2.times { give(Block::WOOL) }
+      say("+2 WOOL")
+    elsif m.kind == Mob::PIG
+      give(Block::PORKCHOP)
+      say("+1 PORKCHOP  RIGHT CLICK TO EAT")
+    end
+  end
+
+  # PIGS pigs and sheep around the player.
+  def spawn_animals
+    i = 0
+    while i < PIGS
+      spawn_mob(i % 2 == 0 ? Mob::PIG : Mob::SHEEP, 10.0, 120.0)
+      i += 1
     end
   end
 

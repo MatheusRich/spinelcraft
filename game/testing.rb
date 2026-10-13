@@ -113,7 +113,7 @@ class Game
     @mesher.build(x / CHUNK, z / CHUNK)
     inside = @mesher.torch_light(x, ground + 2, z)
     outside = @mesher.torch_light(x + 2, ground + 2, z)
-    check("walls stop torch light", inside == 14 && outside == 0)
+    check("walls stop torch light", inside == Mesher::LIGHT_MAX && outside == 0)
     set_block(x + 1, ground + 2, z, Block::AIR)
     @mesher.build(x / CHUNK, z / CHUNK)
     check("an opening lets torch light out", @mesher.torch_light(x + 2, ground + 2, z) == 12)

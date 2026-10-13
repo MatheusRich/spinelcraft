@@ -4,6 +4,20 @@ class Game
   OLD_P = 386
   OLD_PY = 98
 
+  # Field positions in the first line of a save. Field 0 is the format and
+  # fields 1-3 are the world size. save writes the fields in this order.
+  F_SEED = 4
+  F_PLAYER = 5 # x, y, z, yaw, pitch
+  F_TIME = 10
+  F_SURVIVAL = 11
+  F_HEALTH = 12
+  F_SPAWN = 13 # x, z
+  F_INV = 15 # INV blocks, then INV counts
+  F_HOTBAR = F_INV + INV * 2
+  F_HUNGER = F_HOTBAR + HOTBAR
+  # The chest count, then the key and the contents of each chest.
+  F_CHESTS = F_HUNGER + 1
+
   def save
     header = [WX, WY, WZ, @seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
               @time_of_day, @survival ? 1 : 0, @health, @spawn_x, @spawn_z].map(&:to_s).join(" ")
@@ -37,15 +51,15 @@ class Game
     nl = data.index("\n")
     return false if nl.nil?
     f = data[0, nl].split(" ")
-    return false if f.size < 15 + INV * 2 + 10
+    return false if f.size < F_CHESTS
     v3 = f[0] == "SPINELCRAFT3" && f[1] == "384" && f[2] == "96" && f[3] == "384"
     return false unless f[0] == "SPINELCRAFT4" || v3
-    at = 15 + INV * 2 + 10
+    at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
     n = v3 ? 0 : f[at].to_i
     return false if !v3 && data.bytesize - nl - 1 != n * CHUNK_BYTES
     return false if v3 && data.bytesize - nl - 1 != OLD_P * OLD_PY * OLD_P
-    @seed = f[4].to_i
+    @seed = f[F_SEED].to_i
     reset_world
     store = @world.store
     if v3
@@ -115,31 +129,31 @@ class Game
 
   def apply_loaded
     f = @loaded
-    @player.x = f[5].to_f
-    @player.y = f[6].to_f
-    @player.z = f[7].to_f
-    @player.yaw = f[8].to_f
-    @player.pitch = f[9].to_f
+    @player.x = f[F_PLAYER].to_f
+    @player.y = f[F_PLAYER + 1].to_f
+    @player.z = f[F_PLAYER + 2].to_f
+    @player.yaw = f[F_PLAYER + 3].to_f
+    @player.pitch = f[F_PLAYER + 4].to_f
     @player.fall_start = @player.y
-    @time_of_day = f[10].to_f
-    @survival = f[11] == "1"
-    @health = f[12].to_i
-    @spawn_x = f[13].to_f
-    @spawn_z = f[14].to_f
+    @time_of_day = f[F_TIME].to_f
+    @survival = f[F_SURVIVAL] == "1"
+    @health = f[F_HEALTH].to_i
+    @spawn_x = f[F_SPAWN].to_f
+    @spawn_z = f[F_SPAWN + 1].to_f
     i = 0
     while i < INV
-      @inv_block[i] = f[15 + i].to_i
-      @inv_count[i] = f[15 + INV + i].to_i
+      @inv_block[i] = f[F_INV + i].to_i
+      @inv_count[i] = f[F_INV + INV + i].to_i
       i += 1
     end
     i = 0
-    while i < 9
-      @hotbar[i] = f[15 + INV * 2 + i].to_i
+    while i < HOTBAR
+      @hotbar[i] = f[F_HOTBAR + i].to_i
       i += 1
     end
-    @hunger = f[15 + INV * 2 + 9].to_i
+    @hunger = f[F_HUNGER].to_i
     @chests = {}
-    at = 15 + INV * 2 + 10
+    at = F_CHESTS
     chests = at < f.size ? f[at].to_i : 0
     at += 1
     c = 0

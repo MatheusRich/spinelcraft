@@ -127,7 +127,7 @@ class Game
     @health = MAX_HEALTH
     @hunger = MAX_HUNGER
     @hunger_timer = 0.0
-    @air = 10.0
+    @air = MAX_AIR
     @regen = 0.0
     @since_damage = 0.0
     @damage_flash = 0.0
@@ -186,7 +186,6 @@ class Game
     if loaded
       @player = Player.new(0.5, 80.0, 0.5)
       apply_loaded
-      stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     else
       spawn
     end
@@ -197,11 +196,7 @@ class Game
     GC.start
     puts "world: #{loaded ? "load" : "generate"} and mesh the nearest #{(SYNC_R * 2 + 1) * (SYNC_R * 2 + 1)} chunks in #{((t1 - t0) / 1.0e6).round} ms"
     show_mobs if ENV["SHOWMOBS"]
-    i = 0
-    while i < PIGS
-      spawn_mob(i % 2 == 0 ? Mob::PIG : Mob::SHEEP, 10.0, 120.0)
-      i += 1
-    end
+    spawn_animals
     Gfx.in_capture(1)
     @captured = true
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
@@ -217,11 +212,7 @@ class Game
     @clouds = Clouds.new(@seed)
     spawn
     respawn
-    i = 0
-    while i < PIGS
-      spawn_mob(i % 2 == 0 ? Mob::PIG : Mob::SHEEP, 10.0, 120.0)
-      i += 1
-    end
+    spawn_animals
     @changed = true
     say("NEW WORLD  SEED #{@seed}")
   end
@@ -271,7 +262,7 @@ class Game
     @player.fall_start = @player.y
     @health = MAX_HEALTH
     @hunger = MAX_HUNGER
-    @air = 10.0
+    @air = MAX_AIR
     @dead = false
     @alive_time = 0.0
   end
@@ -427,7 +418,7 @@ class Game
         hurt(2)
       end
     else
-      @air = 10.0
+      @air = MAX_AIR
     end
     @since_damage += dt
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)

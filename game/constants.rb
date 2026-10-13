@@ -27,6 +27,9 @@ class Game
   STACK = 64
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36
+  HOTBAR = 9
+  # Seconds of air under water.
+  MAX_AIR = 10.0
   CHEST_SLOTS = 27
 
   # Chunks within LOAD_R of the player's chunk are loaded, and those within

@@ -39,8 +39,6 @@ module Block
   BED = 43
   CHEST = 44
   COUNT = 45
-  # Ids from here up are items: they go in the inventory but are never placed.
-  FIRST_ITEM = PORKCHOP
 
   NAMES = ["AIR", "GRASS", "DIRT", "STONE", "SAND", "WATER", "LOG", "LEAVES", "PLANKS", "COBBLESTONE",
            "GLASS", "SNOWY GRASS", "BEDROCK", "BRICKS", "COAL ORE", "IRON ORE", "GRAVEL", "DIAMOND ORE",
@@ -537,21 +535,30 @@ class World
 
   def temperature(x, z) = @noise3.fbm2(x / 110.0 + 300.0, z / 110.0, 2) * 1.8
 
+  # Climate and height bands. t is the temperature, top the y of the column's top block.
+  def desert?(t) = t > 0.28
+  def beach?(top) = top <= SEA + 1
+  # High peaks are bare stone at the top and below it.
+  def bare_rock?(top) = top > SEA + 40
+
   # The block at the top of a column before caves and plants.
   def top_block(x, z, h, t)
     top = h - 1
-    desert = t > 0.28
     snowy = t < -0.3 || top > SEA + 34
-    beach = top <= SEA + 1
-    b = beach || desert ? Block::SAND : (snowy ? Block::SNOW_GRASS : Block::GRASS)
+    b = beach?(top) || desert?(t) ? Block::SAND : (snowy ? Block::SNOW_GRASS : Block::GRASS)
     b = Block::GRAVEL if top < SEA - 2 && hash3(x / 3, 0, z / 3, 5) < 20000
-    b = Block::STONE if top > SEA + 40
+    b = Block::STONE if bare_rock?(top)
     b = Block::SNOW if top > SEA + 44
     b
   end
 
   # Caves: two noise fields near zero at once trace long tunnels.
   def cave?(a, c) = a * a + c * c < 0.006
+
+  # The two cave noise fields at a point of the cave grid, which has one point
+  # every 4 blocks. generate_chunk and carved? both sample it here.
+  def cave_a(gx, gy, gz) = @noise2.noise3(gx * 4 / 40.0, gy * 4 / 22.0, gz * 4 / 40.0)
+  def cave_b(gx, gy, gz) = @noise3.noise3(gx * 4 / 40.0 + 50.0, gy * 4 / 22.0, gz * 4 / 40.0)
 
   # The cave test for one block, from the 8 grid points around it. It gives
   # the same numbers as the chunk grid in generate_chunk.
@@ -566,8 +573,8 @@ class World
       while j < 2
         k = 0
         while k < 2
-          @corner_a[n] = @noise2.noise3((gx + i) * 4 / 40.0, (gy + j) * 4 / 22.0, (gz + k) * 4 / 40.0)
-          @corner_b[n] = @noise3.noise3((gx + i) * 4 / 40.0 + 50.0, (gy + j) * 4 / 22.0, (gz + k) * 4 / 40.0)
+          @corner_a[n] = cave_a(gx + i, gy + j, gz + k)
+          @corner_b[n] = cave_b(gx + i, gy + j, gz + k)
           n += 1
           k += 1
         end
@@ -588,7 +595,7 @@ class World
     h = surface_height(x, z)
     ground = top_block(x, z, h, temperature(x, z))
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS
-    return -1 if h - 1 > SEA + 1 && carved?(x, h - 1, z)
+    return -1 if !beach?(h - 1) && carved?(x, h - 1, z)
     h - 1
   end
 
@@ -619,8 +626,8 @@ class World
         k = 0
         while k < GX
           n = (i * GY + j) * GX + k
-          @cave_a[n] = @noise2.noise3((gx0 + i) * 4 / 40.0, j * 4 / 22.0, (gz0 + k) * 4 / 40.0)
-          @cave_b[n] = @noise3.noise3((gx0 + i) * 4 / 40.0 + 50.0, j * 4 / 22.0, (gz0 + k) * 4 / 40.0)
+          @cave_a[n] = cave_a(gx0 + i, j, gz0 + k)
+          @cave_b[n] = cave_b(gx0 + i, j, gz0 + k)
           k += 1
         end
         j += 1
@@ -637,8 +644,7 @@ class World
         h = @col_h[lx * CHUNK + lz]
         t = @col_t[lx * CHUNK + lz]
         top = h - 1
-        desert = t > 0.28
-        beach = top <= SEA + 1
+        sandy = beach?(top) || desert?(t)
         surface = top_block(x, z, h, t)
         base = World.index(x, 0, z)
         y = 0
@@ -649,8 +655,8 @@ class World
           elsif y == top
             b = surface
           elsif y > top - 4
-            b = beach || desert ? Block::SAND : Block::DIRT
-            b = Block::STONE if top > SEA + 40
+            b = sandy ? Block::SAND : Block::DIRT
+            b = Block::STONE if bare_rock?(top)
           end
           if b == Block::STONE
             if hash3(x >> 1, y >> 1, z >> 1, 11) < 1100 && hash3(x, y, z, 12) < 40000
@@ -661,7 +667,7 @@ class World
               b = Block::DIAMOND
             end
           end
-          if y > 1 && (y < top - 2 || (top > SEA + 1 && y <= top))
+          if y > 1 && (y < top - 2 || (!beach?(top) && y <= top))
             fx = lx / 4.0
             fy = y / 4.0
             fz = lz / 4.0
@@ -730,7 +736,7 @@ class World
           elsif p > 63800 && meadow > -0.05
             put(x, top + 1, z, (x + z) % 3 == 0 ? Block::ROSE : Block::DANDELION, x0, z0)
           end
-        elsif ground == Block::SAND && @col_t[lx * CHUNK + lz] > 0.28 && top > SEA + 1 && r < 350
+        elsif ground == Block::SAND && desert?(@col_t[lx * CHUNK + lz]) && !beach?(top) && r < 350
           tall = 1 + hash3(x, 1, z, 22) % 3
           i = 0
           while i < tall

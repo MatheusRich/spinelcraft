@@ -92,6 +92,7 @@ module Gfx
       "  float ao = sunk ? 1.0 : 0.5 + float((w1 >> (8 + 2 * c)) & 3u) * 0.5 / 3.0;\n"
       "  float day = u.misc.x;\n"
       "  float light = ((w1 >> 17) & 1u) != 0u ? (0.12 + 0.88 * day) : (0.08 + 0.37 * day);\n"
+      "  // 14 is Mesher::LIGHT_MAX, the light at a torch.\n"
       "  float torch = pow(float((w1 >> 19) & 15u) / 14.0, 1.6);\n"
       "  float warm = clamp((torch - light) * 3.0, 0.0, 1.0);\n"
       "  light = max(light, torch);\n"

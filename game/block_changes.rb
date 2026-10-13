@@ -14,15 +14,16 @@ class Game
     wake_water(x, y, z)
   end
 
-  # A light that changes at column x, z reaches 14 blocks, so every chunk in
-  # that square remeshes. These remeshes may wait for later frames.
+  # A light that changes at column x, z reaches Mesher::LIGHT_MAX blocks, so
+  # every chunk in that square remeshes. These remeshes may wait for later frames.
   def mark_light_area(x, z)
     deferred = @defer
     @defer = true
-    cx = (x - 14) / CHUNK
-    while cx <= (x + 14) / CHUNK
-      cz = (z - 14) / CHUNK
-      while cz <= (z + 14) / CHUNK
+    r = Mesher::LIGHT_MAX
+    cx = (x - r) / CHUNK
+    while cx <= (x + r) / CHUNK
+      cz = (z - r) / CHUNK
+      while cz <= (z + r) / CHUNK
         mark_chunk(cx, cz)
         cz += 1
       end

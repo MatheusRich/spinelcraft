@@ -1,12 +1,18 @@
 # The 2D overlay: crosshair, hotbar, health and hunger, messages, and menus.
 class Game
+  # The HUD scale: 1 for each 720 pixels of frame height, and at least 1.
+  def ui_scale(h)
+    s = (h / 720.0).round.to_f
+    s < 1.0 ? 1.0 : s
+  end
+
   def build_ui(w, h)
     @ui.clear
     s = ui_scale(h)
     draw_view_overlays(w, h, s)
     size = 44.0 * s
     gap = 4.0 * s
-    total = size * 9.0 + gap * 8.0
+    total = size * HOTBAR + gap * (HOTBAR - 1)
     x0 = (w - total) / 2.0
     y0 = h - size - 12.0 * s
     draw_hotbar(x0, y0, size, gap, s)
@@ -54,10 +60,10 @@ class Game
   end
 
   def draw_hotbar(x0, y0, size, gap, s)
-    total = size * 9.0 + gap * 8.0
+    total = size * HOTBAR + gap * (HOTBAR - 1)
     @ui.rect(x0 - gap, y0 - gap, total + gap * 2.0, size + gap * 2.0, 0.0, 0.0, 0.0, 0.45)
     i = 0
-    while i < 9
+    while i < HOTBAR
       x = x0 + i * (size + gap)
       if i == @slot
         @ui.rect(x - 3.0 * s, y0 - 3.0 * s, size + 6.0 * s, size + 6.0 * s, 1.0, 1.0, 1.0, 0.95)
@@ -98,7 +104,7 @@ class Game
       @ui.icon(fx, hy, 18.0 * s, Tex::PORKCHOP, full ? 1.0 : 0.22)
       i += 1
     end
-    if @air < 10.0
+    if @air < MAX_AIR
       bubbles = @air.ceil
       i = 0
       while i < bubbles
@@ -146,7 +152,7 @@ class Game
   # the side, and the stack that the mouse holds.
   def draw_backpack(w, h, s)
     @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.55)
-    top = pack_cell(9, w, h, s)
+    top = pack_cell(HOTBAR, w, h, s)
     bottom = pack_cell(8, w, h, s)
     pad = 18.0 * s
     @ui.rect(top[0] - pad, top[1] - pad - 40.0 * s, bottom[0] + bottom[2] - top[0] + pad * 2.0, bottom[1] + bottom[2] - top[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)

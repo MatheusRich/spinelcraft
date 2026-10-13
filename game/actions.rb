@@ -51,13 +51,13 @@ class Game
   # Number keys and the wheel.
   def select_slot
     i = 0
-    while i < 9
+    while i < HOTBAR
       @slot = i if Gfx.in_key_pressed(Key::N1 + i) != 0
       i += 1
     end
     wheel = Gfx.in_wheel
-    @slot = (@slot + 1) % 9 if wheel < 0.0
-    @slot = (@slot + 8) % 9 if wheel > 0.0
+    @slot = (@slot + 1) % HOTBAR if wheel < 0.0
+    @slot = (@slot + HOTBAR - 1) % HOTBAR if wheel > 0.0
   end
 
   # Keys that switch a mode or a setting, save, craft, or skip time.
@@ -212,7 +212,7 @@ class Game
       say("SPAWN SET  YOU CAN ONLY SLEEP AT NIGHT")
       return
     end
-    near = @mobs.count { |m| m.kind != Mob::PIG && m.kind != Mob::SHEEP && (m.x - x) ** 2 + (m.z - z) ** 2 < 100.0 }
+    near = @mobs.count { |m| !m.passive? && (m.x - x) ** 2 + (m.z - z) ** 2 < 100.0 }
     if near > 0
       say("YOU CANNOT SLEEP NOW  MONSTERS ARE NEARBY")
       return
