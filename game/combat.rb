@@ -49,7 +49,8 @@ class Game
   end
 
   def update_mobs(dt)
-    day = daylight
+    # Rain dims the day, so monsters do not burn in it.
+    day = daylight * (1.0 - 0.5 * @rain)
     @spawn_timer -= dt
     if @spawn_timer <= 0.0
       @spawn_timer = 2.0
@@ -73,6 +74,7 @@ class Game
         m.alive = false
         explode(m.x, m.y + 0.8, m.z)
       end
+      m.douse if m.fire > 0.0 && @rain > 0.5 && under_sky?(m.x, m.y + m.tall, m.z)
       emit_fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps

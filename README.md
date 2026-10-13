@@ -46,6 +46,7 @@ The game saves to `world.sav` in the current directory when you quit, when you p
 | F | Fly on or off (creative) |
 | G | Switch between creative and survival |
 | T | Skip six hours |
+| R | Start or stop the rain (creative) |
 | F3 | Debug text |
 | F4 | View distance: 200 (full detail only, the fastest), 800, 1600 (the default) or 5000 blocks |
 | F5 | Save |
@@ -74,6 +75,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 - Ambient occlusion at each face corner, sky light from a height map, and warm torch light. Torch light spreads by flood fill, so walls stop it.
 - Sand and gravel fall when nothing holds them up.
 - Lava fills the bottom of deep caves. It glows, flows up to 3 blocks, burns players and mobs, throws embers, and turns into cobblestone where water touches it.
+- Rain. Spells of rain come between dry spells. Rain grays the sky, hides the sun, the moon and the stars, dims the light, brings the fog nearer, and splashes on the ground. It stops at roofs, monsters do not burn in it, and it puts out fires under the open sky.
 - Fire. A mob that burns in daylight or lava gives off flames and smoke, and it burns on for a while after it leaves the sun or the lava. Lava sets you on fire for 4 seconds after you leave it, and flames show at the bottom of the view. Water puts out the fire. Torches flicker with small flames and smoke.
 - Water flows. A source spreads up to 7 blocks over solid ground, pours down slopes and drains when you remove the source. Place a water block in creative mode to start a stream.
 - A 10-minute day and night cycle with orange sunrises and sunsets, a sun, a moon, turning stars, drifting clouds, distance haze and fog.
@@ -102,7 +104,8 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/inventory.rb` | Hotbar, backpack, chests, crafting, and the inventory screen |
 | `game/items.rb` | Items on the ground: drops, pickup, and their models |
 | `game/hand.rb` | The held item in first person |
-| `game/particles.rb` | Block chips, flames, smoke and embers |
+| `game/particles.rb` | Block chips, flames, smoke, embers and drops of rain |
+| `game/weather.rb` | Rain: the weather cycle, the rain quads, and splashes |
 | `game/actions.rb` | Keys, the mouse, mining, placing, beds, and food |
 | `game/combat.rb` | Mob spawning and turns, damage, explosions, the bow, and arrows |
 | `game/render.rb` | The 3D frame and the sky |
@@ -178,7 +181,8 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWMOBS=1` | Put one mob of each kind on a stone floor in front of the player |
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
-| `SELFTEST=1` | Check 54 game rules and print PASS or FAIL for each |
+| `RAIN=1` | Start in the rain |
+| `SELFTEST=1` | Check 56 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

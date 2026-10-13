@@ -97,6 +97,7 @@ class Game
     test_survival(x, z, ground)
     test_monsters
     test_fire
+    test_rain
     test_save(x, z, ground)
     test_crafting_limits
     cx = @spawn_x.floor + 4
@@ -327,6 +328,49 @@ class Game
     check("the player burns on after lava, and water puts the fire out", burned && @fire_time == 0.0)
     @time_of_day = 0.3
     @health = MAX_HEALTH
+  end
+
+  # On the sky platform from test_monsters: rain stops the sun from burning a
+  # zombie, and the rain in a column stops at the highest block.
+  def test_rain
+    px = @spawn_x.floor
+    pz = @spawn_z.floor
+    @mobs.clear
+    @time_of_day = 0.25
+    @raining = true
+    @rain = 1.0
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, 89.0, pz + 0.5, 9)
+    @mobs << zombie
+    @player.x = px + 0.5
+    @player.y = 89.0
+    @player.z = pz + 0.5
+    60.times { update_mobs(1.0 / 60.0) }
+    check("a zombie does not burn in the rain", zombie.fire == 0.0 && zombie.hp == Mob::HP[Mob::ZOMBIE])
+    @mobs.clear
+    @rain_age = 1.0
+    build_rain(0.0)
+    open = rain_bottom(px + 3, pz)
+    @world.set(px + 3, 95, pz, Block::STONE)
+    @rain_age = 1.0
+    build_rain(0.0)
+    roofed = rain_bottom(px + 3, pz)
+    @world.set(px + 3, 95, pz, Block::AIR)
+    check("the rain in a column stops at the highest block", open < 96.0 && roofed == 96.0)
+    set_raining(false)
+    @rain = 0.0
+    @time_of_day = 0.3
+  end
+
+  # The bottom of the rain in column x, z: the third vertex of the quad from
+  # corner (x, z) to (x + 1, z + 1). A quad has 6 vertices of 11 floats.
+  def rain_bottom(x, z)
+    v = @rain_mesh.v
+    i = 0
+    while i < v.size
+      return v[i + 23] if v[i] == x.to_f && v[i + 2] == z.to_f && v[i + 11] == x + 1.0 && v[i + 13] == z + 1.0
+      i += 66
+    end
+    -1.0
   end
 
   # The save keeps blocks, the inventory and health, and a dead player respawns on load.

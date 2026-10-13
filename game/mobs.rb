@@ -49,6 +49,11 @@ class Mob
 
   def passive? = PASSIVE[@kind] == 1
 
+  # Rain or water puts out the fire.
+  def douse
+    @fire = 0.0
+  end
+
   def rand01
     @rng = (@rng * 1103515245 + 12345) & 0x7fffffff
     (@rng >> 8) / 8388608.0

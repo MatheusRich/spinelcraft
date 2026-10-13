@@ -11,7 +11,7 @@ module Gfx
 
     static SDL_Window *win;
     static SDL_GPUDevice *dev;
-    static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth, *p_hand;
+    static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth, *p_hand, *p_rain;
     static SDL_GPUTexture *atlas, *depth_tex, *cloud_tex;
     static SDL_GPUSampler *sampler, *cloud_sampler;
     static SDL_GPUTextureFormat depth_fmt;
@@ -24,7 +24,7 @@ module Gfx
        Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS and
        the GPU slots that the game uses. */
     #define LEVELS 4
-    #define UNIFORMS (36 + 4 * LEVELS)
+    #define UNIFORMS (40 + 4 * LEVELS)
     #define COLUMNS 1024
     #define STR2(x) #x
     #define STR(x) STR2(x)
@@ -78,6 +78,12 @@ module Gfx
     static SDL_GPUTransferBuffer *cloud_tb;
     static Uint32 cloud_count;
     static int cloud_changed;
+    /* The rain quads change only when the player moves to another block. */
+    #define RAIN_CAP (1 << 15)
+    static SDL_GPUBuffer *rain_buf;
+    static SDL_GPUTransferBuffer *rain_tb;
+    static Uint32 rain_count;
+    static int rain_changed;
 
     static char keys_now[SDL_SCANCODE_COUNT], keys_prev[SDL_SCANCODE_COUNT];
     static float mouse_dx, mouse_dy, wheel;
@@ -87,7 +93,7 @@ module Gfx
     static const char *MSL =
       "#include <metal_stdlib>\n"
       "using namespace metal;\n"
-      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; float4 cloud; float4 cloud_near; };\n"
+      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; float4 cloud; float4 cloud_near; float4 rain; };\n"
       "struct VOut { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; };\n"
       "struct VChunk { uint2 d [[attribute(0)]]; };\n"
       "constant float3 CORNER[10][4] = {\n"
@@ -196,6 +202,16 @@ module Gfx
       "  VOut o = dyn_out(in, in.pos, u);\n"
       "  o.pos.z *= 0.01;\n"
       "  o.fog = 0.0;\n"
+      "  return o;\n"
+      "}\n"
+      "// Rain: the streaks move down, and they fade with the strength of the\n"
+      "// rain, u.rain.x, toward the edge of its circle, u.rain.y, and in the\n"
+      "// columns next to the camera, where a streak would look wide.\n"
+      "vertex VOut vrain(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
+      "  VOut o = dyn_out(in, in.pos, u);\n"
+      "  o.uv.y -= u.cam.w * 3.0;\n"
+      "  float d = length(in.pos.xz - u.cam.xz);\n"
+      "  o.color.a *= u.rain.x * clamp(1.0 - d / u.rain.y, 0.0, 1.0) * clamp((d - 1.0) / 2.0, 0.0, 1.0);\n"
       "  return o;\n"
       "}\n"
       "// Cloud boxes: Clouds#build makes them without the drift, u.cloud.x.\n"
@@ -399,6 +415,7 @@ module Gfx
       SDL_GPUShader *vdyn = shader("vdyn", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vcloud_box = shader("vcloud_box", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vhand = shader("vhand", SDL_GPU_SHADERSTAGE_VERTEX, 0);
+      SDL_GPUShader *vrain = shader("vrain", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vui = shader("vui", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *fworld = shader("fworld", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
       SDL_GPUShader *vlod = shader("vlod", SDL_GPU_SHADERSTAGE_VERTEX, 0);
@@ -413,7 +430,7 @@ module Gfx
       fui_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
       fui_info.num_samplers = 1;
       SDL_GPUShader *fui = SDL_CreateGPUShader(dev, &fui_info);
-      if (!vchunk || !vdyn || !vui || !fworld || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box || !vhand) return fail("SDL_CreateGPUShader");
+      if (!vchunk || !vdyn || !vui || !fworld || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box || !vhand || !vrain) return fail("SDL_CreateGPUShader");
 
       SDL_GPUVertexBufferDescription chunk_vb = {.slot = 0, .pitch = 8, .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE};
       SDL_GPUVertexAttribute chunk_attr = {.location = 0, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_UINT2};
@@ -431,6 +448,7 @@ module Gfx
       };
       p_dyn = pipeline(vdyn, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
       p_hand = pipeline(vhand, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
+      p_rain = pipeline(vrain, fworld, &dyn_vb, dyn_attr, 5, 1, 0, 1, 0);
       /* Cloud boxes: depth first, then the color of the nearest face only, so
          each pixel blends one cloud face. */
       p_cloud_depth = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 2, 0);
@@ -446,7 +464,7 @@ module Gfx
         {.location = 3, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 20},
       };
       p_ui = pipeline(vui, fui, &ui_vb, ui_attr, 4, 0, 0, 1, 0);
-      if (!p_chunk || !p_water || !p_lod || !p_dyn || !p_ui || !p_cloud || !p_cloud_box || !p_cloud_depth || !p_hand) return fail("SDL_CreateGPUGraphicsPipeline");
+      if (!p_chunk || !p_water || !p_lod || !p_dyn || !p_ui || !p_cloud || !p_cloud_box || !p_cloud_depth || !p_hand || !p_rain) return fail("SDL_CreateGPUGraphicsPipeline");
       SDL_ReleaseGPUShader(dev, vchunk);
       SDL_ReleaseGPUShader(dev, vdyn);
       SDL_ReleaseGPUShader(dev, vui);
@@ -458,6 +476,7 @@ module Gfx
       SDL_ReleaseGPUShader(dev, fcloud);
       SDL_ReleaseGPUShader(dev, vcloud_box);
       SDL_ReleaseGPUShader(dev, vhand);
+      SDL_ReleaseGPUShader(dev, vrain);
 
       SDL_GPUSamplerCreateInfo si = {0};
       si.min_filter = SDL_GPU_FILTER_NEAREST;
@@ -501,7 +520,9 @@ module Gfx
       ui_tb = make_transfer(UI_CAP * 36);
       cloud_buf = make_buffer(CLOUD_CAP * DYN_FLOATS * 4);
       cloud_tb = make_transfer(CLOUD_CAP * DYN_FLOATS * 4);
-      if (!sampler || !cloud_sampler || !dyn_buf || !ui_buf || !dyn_tb || !ui_tb || !cloud_buf || !cloud_tb) return fail("SDL_CreateGPUBuffer");
+      rain_buf = make_buffer(RAIN_CAP * DYN_FLOATS * 4);
+      rain_tb = make_transfer(RAIN_CAP * DYN_FLOATS * 4);
+      if (!sampler || !cloud_sampler || !dyn_buf || !ui_buf || !dyn_tb || !ui_tb || !cloud_buf || !cloud_tb || !rain_buf || !rain_tb) return fail("SDL_CreateGPUBuffer");
       return true;
     }
 
@@ -624,6 +645,11 @@ module Gfx
       cloud_changed = 1;
       return 0;
     }
+    long gfx_rain(const double *v, long nfloats) {
+      rain_count = stage_floats(rain_tb, v, nfloats, RAIN_CAP * DYN_FLOATS) / DYN_FLOATS;
+      rain_changed = 1;
+      return 0;
+    }
 
     /* uniforms: 16 view-projection (column-major), cam xyz + time, fog rgb + end,
        daylight, fog start, screen w, screen h, and for each far terrain level the
@@ -683,6 +709,12 @@ module Gfx
         SDL_UploadToGPUBuffer(cp, &src, &dst, true);
       }
       cloud_changed = 0;
+      if (rain_changed && rain_count) {
+        SDL_GPUTransferBufferLocation src = {.transfer_buffer = rain_tb};
+        SDL_GPUBufferRegion dst = {.buffer = rain_buf, .size = rain_count * DYN_FLOATS * 4};
+        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
+      }
+      rain_changed = 0;
       if (sky_count) {
         SDL_GPUTransferBufferLocation src = {.transfer_buffer = sky_tb};
         SDL_GPUBufferRegion dst = {.buffer = sky_buf, .size = sky_count * 36};
@@ -768,6 +800,16 @@ module Gfx
       SDL_GPUBufferBinding b = {.buffer = dyn_buf};
       SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
       SDL_DrawGPUPrimitives(pass, hand_first, 1, 0, 0);
+      return 0;
+    }
+
+    /* The rain, after the water. uni[40 + 4 * LEVELS - 4] is its strength. */
+    long gfx_draw_rain(void) {
+      if (!pass || !rain_count || uni[UNIFORMS - 4] <= 0.0f) return 0;
+      SDL_BindGPUGraphicsPipeline(pass, p_rain);
+      SDL_GPUBufferBinding b = {.buffer = rain_buf};
+      SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
+      SDL_DrawGPUPrimitives(pass, rain_count, 1, 0, 0);
       return 0;
     }
 
@@ -961,10 +1003,12 @@ module Gfx
   ffi_func :gfx_ui, [:float_array, :long], :long
   ffi_func :gfx_sky, [:float_array, :long], :long
   ffi_func :gfx_cloud_boxes, [:float_array, :long], :long
+  ffi_func :gfx_rain, [:float_array, :long], :long
   ffi_func :gfx_begin, [:float_array], :bool
   ffi_func :gfx_chunks, [:int_array, :long, :long], :long
   ffi_func :gfx_draw_dyn, [], :long
   ffi_func :gfx_draw_hand, [], :long
+  ffi_func :gfx_draw_rain, [], :long
   ffi_func :gfx_draw_clouds, [], :long
   ffi_func :gfx_end, [], :long
   ffi_func :gfx_screenshot, [:str], :void

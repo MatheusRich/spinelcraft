@@ -18,9 +18,10 @@ class Game
   LEVELS = 4
   LOD_REACH = 640
   # Floats that render passes to the shaders: 28, one square for each level,
-  # then 8 for the far cloud layer.
+  # 8 for the far cloud layer, then 4 for the rain.
   CLOUD_UNIFORMS = 28 + 4 * LEVELS
-  UNIFORMS = CLOUD_UNIFORMS + 8
+  RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
+  UNIFORMS = RAIN_UNIFORMS + 4
   DAY_SECONDS = 600.0
   MAX_HEALTH = 20
   MAX_HUNGER = 20

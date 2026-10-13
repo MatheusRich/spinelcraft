@@ -17,6 +17,7 @@ require_relative "game/inventory"
 require_relative "game/items"
 require_relative "game/hand"
 require_relative "game/particles"
+require_relative "game/weather"
 require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
@@ -103,6 +104,20 @@ class Game
     @demo = !ENV["DEMO"].nil?
     @clouds = Clouds.new(@seed)
     @cloud_drift = 0.0
+    # Weather (game/weather.rb): the strength of the rain (0 to 1), whether
+    # it rains or stops, the seconds until that changes, the seconds until
+    # the next rain sound, and the rain quads with the block they are for.
+    @rain = 0.0
+    @raining = false
+    @weather_timer = 0.0
+    @rain_sound = 0.0
+    @rain_mesh = Mesh3.new
+    @rain_x = World::NONE
+    @rain_y = 0
+    @rain_z = World::NONE
+    @rain_age = 0.0
+    set_raining(!ENV["RAIN"].nil?)
+    @rain = 1.0 if @raining
     @bob = 0.0
     @fov = 0.6
     @inventory_open = !ENV["INVENTORY"].nil?
@@ -369,6 +384,8 @@ class Game
     update_particles(dt)
     sample_fire_blocks(dt)
     update_items(dt)
+    update_weather(dt)
+    Gfx.gfx_rain(@rain_mesh.v, @rain_mesh.count) if build_rain(dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
@@ -405,7 +422,7 @@ class Game
       @fire_time = 4.0
       @fire_tick = 1.0
     elsif @fire_time > 0.0
-      if head || Block.water?(feet)
+      if head || Block.water?(feet) || (@rain > 0.5 && under_sky?(@player.x, @player.eye_y, @player.z))
         @fire_time = 0.0
         play(Sfx::FIZZ, 0.6)
       else

@@ -30,6 +30,7 @@ class Game
       Gfx.gfx_draw_dyn
       Gfx.gfx_draw_clouds
       @faces_drawn += Gfx.gfx_chunks(@water_visible, @water_visible.size / 2, 1)
+      Gfx.gfx_draw_rain
       Gfx.gfx_draw_hand
     end
     Gfx.gfx_end
@@ -38,7 +39,8 @@ class Game
   end
 
   # Uniforms 16 to 27: the eye, the animation clock, the sky and fog colors,
-  # daylight, the fog range, and the frame size. Then the far cloud layer.
+  # daylight, the fog range, and the frame size. Then the far cloud layer and
+  # the rain.
   def set_uniforms(ex, ey, ez, w, h)
     day = daylight
     under = Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
@@ -52,6 +54,12 @@ class Game
       sky_g += (0.55 - sky_g) * dusk
       sky_b += (0.25 - sky_b) * dusk
     end
+    # Rain grays the sky, dims the light, and brings the fog nearer.
+    gray = 0.06 + 0.4 * day
+    sky_r += (gray - sky_r) * @rain * 0.85
+    sky_g += (gray - sky_g) * @rain * 0.85
+    sky_b += (gray * 1.08 - sky_b) * @rain * 0.85
+    fog = @fog_end * (1.0 - 0.6 * @rain)
     @uniforms[16] = ex
     @uniforms[17] = ey
     @uniforms[18] = ez
@@ -60,14 +68,16 @@ class Game
     @uniforms[20] = under ? 0.05 : sky_r
     @uniforms[21] = under ? 0.15 : sky_g
     @uniforms[22] = under ? 0.35 : sky_b
-    @uniforms[23] = under ? 24.0 : @fog_end
-    @uniforms[24] = day
+    @uniforms[23] = under ? 24.0 : fog
+    @uniforms[24] = day * (1.0 - 0.35 * @rain)
     # Fog at the view's end starts 65 blocks before it, or a quarter of the
     # view before it for long views, so it blends with the haze.
-    @uniforms[25] = under ? 2.0 : @fog_end - (@fog_end * 0.25 > 65.0 ? @fog_end * 0.25 : 65.0)
+    @uniforms[25] = under ? 2.0 : fog - (fog * 0.25 > 65.0 ? fog * 0.25 : 65.0)
     @uniforms[26] = w
     @uniforms[27] = h
     @clouds.write_uniforms(@uniforms, CLOUD_UNIFORMS, ey, @cloud_drift)
+    @uniforms[RAIN_UNIFORMS] = @rain
+    @uniforms[RAIN_UNIFORMS + 1] = RAIN_R.to_f
   end
 
   # Fills @visible with the meshed chunks in the view and @water_visible with
@@ -219,7 +229,8 @@ class Game
     @sky.clear
     draw_sky_body(w, h, s, 1.0, 1.0, 0.95, 0.75, 70.0)
     draw_sky_body(w, h, s, -1.0, 0.85, 0.88, 0.95, 46.0)
-    night = (0.55 - daylight) * 2.5
+    # Rain hides the stars.
+    night = (0.55 - daylight) * 2.5 * (1.0 - @rain)
     return if night <= 0.0
     night = 1.0 if night > 1.0
     a = @time_of_day * Math::PI * 2.0
@@ -260,7 +271,10 @@ class Game
     half = size * s / 2.0
     sx = @camera.sx
     sy = @camera.sy
-    @sky.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18)
-    @sky.rect(sx - half, sy - half, half * 2.0, half * 2.0, r, g, b, 1.0)
+    # Rain hides the sun and the moon.
+    clear = 1.0 - @rain
+    return if clear <= 0.0
+    @sky.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18 * clear)
+    @sky.rect(sx - half, sy - half, half * 2.0, half * 2.0, r, g, b, clear)
   end
 end

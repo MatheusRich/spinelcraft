@@ -70,6 +70,18 @@ class Mesh3
     @v << x << y << z << u << w << layer << r << g << b << a << @glow
   end
 
+  # A vertical quad from (x0, z0) to (x1, z1), between y0 and y1. The texture
+  # runs from u 0 to u1 across, and from v0 at the top to v1 at the bottom.
+  def wall(x0, z0, x1, z1, y0, y1, u1, v0, v1, layer, r, g, b, a)
+    l = layer.to_f
+    vert(x0, y1, z0, 0.0, v0, l, r, g, b, a)
+    vert(x1, y1, z1, u1, v0, l, r, g, b, a)
+    vert(x1, y0, z1, u1, v1, l, r, g, b, a)
+    vert(x0, y1, z0, 0.0, v0, l, r, g, b, a)
+    vert(x1, y0, z1, u1, v1, l, r, g, b, a)
+    vert(x0, y0, z0, 0.0, v1, l, r, g, b, a)
+  end
+
   # A square of half size h around x, y, z that faces the camera, whose
   # right and up axes are (rx, 0, rz) and (ux, uy, uz).
   def billboard(x, y, z, h, rx, rz, ux, uy, uz, layer, r, g, b, a)

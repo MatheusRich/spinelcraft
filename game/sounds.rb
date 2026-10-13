@@ -14,6 +14,7 @@ module Sfx
   DIG_SOFT = 11
   POP = 12
   FIZZ = 13
+  RAIN = 14
   RATE = 22050.0
 
   def self.noise(state)
@@ -66,6 +67,20 @@ module Sfx
     out
   end
 
+  # Fades the first and the last `seconds` of samples in and out, so that
+  # sounds played one after another join without a click.
+  def self.fade(samples, seconds)
+    n = (seconds * RATE).to_i
+    i = 0
+    while i < n
+      k = i.to_f / n
+      samples[i] *= k
+      samples[samples.size - 1 - i] *= k
+      i += 1
+    end
+    samples
+  end
+
   def self.load(id, samples)
     Gfx.au_load(id, samples, samples.size)
   end
@@ -88,6 +103,7 @@ module Sfx
     load(DIG_SOFT, burst(0.07, 55.0, 0.12, 0.9, 19))
     load(POP, tone(0.07, 600.0, 1150.0, 35.0, 0, 0.35))
     load(FIZZ, burst(0.45, 6.0, 0.9, 0.35, 20))
+    load(RAIN, fade(burst(1.5, 0.0, 0.7, 0.35, 21), 0.2))
     true
   end
 end

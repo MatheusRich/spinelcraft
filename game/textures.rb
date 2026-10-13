@@ -48,7 +48,9 @@ module Tex
   # Flame tongues, and a round puff for smoke.
   FIRE = 51
   PUFF = 52
-  FONT = 53
+  # Streaks of rain on a clear background.
+  RAIN = 53
+  FONT = 54
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -239,6 +241,7 @@ module Tex
     ore(px, DIAMOND, 90, 220, 220, 50)
     fire(px)
     puff(px)
+    rain(px)
     heart(px, HEART, 220, 30, 40)
     heart(px, HEART_EMPTY, 50, 20, 20)
     font(px)
@@ -250,6 +253,7 @@ module Tex
     bleed(px, DANDELION)
     bleed(px, FIRE)
     bleed(px, PUFF)
+    bleed(px, RAIN)
     px
   end
 
@@ -275,6 +279,21 @@ module Tex
         y += 1
       end
       x += 1
+    end
+  end
+
+  # A few streaks in each column of pixels that has rain.
+  def self.rain(px)
+    x = 1
+    while x < 16
+      start = rnd(x, 0, 85) % 16
+      len = 3 + rnd(x, 1, 86) % 4
+      k = 0
+      while k < len
+        set(px, RAIN, x, (start + k) % 16, 255, 255, 255, 200)
+        k += 1
+      end
+      x += 3 + rnd(x, 2, 87) % 2
     end
   end
 

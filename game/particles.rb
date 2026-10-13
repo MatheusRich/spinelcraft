@@ -2,11 +2,12 @@
 # square that faces the camera. Burning mobs, torches, lava and explosions
 # make the flames and the smoke.
 class Game
-  # Particle kinds. Chips and embers fall; flames and smoke rise.
+  # Particle kinds. Chips, embers and drops of rain fall; flames and smoke rise.
   CHIP = 0
   FLAME = 1
   SMOKE = 2
   EMBER = 3
+  DROP = 4
   MAX_PARTICLES = 3000
   # Each second, the game looks at this many random blocks near the player
   # for torches and lava.
@@ -94,8 +95,8 @@ class Game
     while i < @pt_life.size
       @pt_life[i] -= dt
       kind = @pt_kind[i]
-      if kind == CHIP || kind == EMBER
-        @pt_vy[i] -= (kind == CHIP ? 18.0 : 10.0) * dt
+      if kind == CHIP || kind == EMBER || kind == DROP
+        @pt_vy[i] -= (kind == EMBER ? 10.0 : 18.0) * dt
         nx = @pt_x[i] + @pt_vx[i] * dt
         ny = @pt_y[i] + @pt_vy[i] * dt
         nz = @pt_z[i] + @pt_vz[i] * dt
@@ -179,6 +180,8 @@ class Game
       elsif kind == SMOKE
         c = 0.25 + 0.25 * t
         @dyn.billboard(x, y, z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, Tex::PUFF, c, c, c, 1.0)
+      elsif kind == DROP
+        @dyn.billboard(x, y, z, 0.035, rx, rz, ux, uy, uz, Tex::PUFF, 0.7, 0.78, 0.95, 1.0)
       else
         @dyn.glow = 1.0
         @dyn.billboard(x, y, z, 0.04, rx, rz, ux, uy, uz, Tex::WHITE, 1.0, 0.45 + 0.3 * t, 0.1, 1.0)

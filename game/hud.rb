@@ -138,7 +138,7 @@ class Game
     @ui.text(8.0 * s, 36.0 * s, "CHUNKS #{@visible.size / 2}  REMESH #{@mesh_ms.round(2)}MS  MOBS #{@mobs.size}", ts, 1.0, 1.0, 1.0, 1.0)
     clock = ((@time_of_day * 24.0 + 6.0) % 24.0).floor
     mode = @survival ? "SURVIVAL  DAY #{(@alive_time / DAY_SECONDS).floor + 1}" : "CREATIVE"
-    @ui.text(8.0 * s, 50.0 * s, "TIME #{clock}:00  #{mode}", ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(8.0 * s, 50.0 * s, "TIME #{clock}:00  #{mode}#{@raining ? "  RAIN" : ""}", ts, 1.0, 1.0, 1.0, 1.0)
   end
 
   def draw_death_screen(w, h, s)
@@ -265,7 +265,7 @@ class Game
     @ui.text((w - @ui.text_width(msg, 4.0 * s)) / 2.0, h / 2.0 - 60.0 * s, msg, 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     lines = ["WASD MOVE  SPACE JUMP  CTRL SPRINT  SHIFT DOWN",
              "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
-             "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  F FLY  G GAME MODE  T TIME  F3 DEBUG  F4 VIEW  F5 SAVE  F11 FULLSCREEN",
+             "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  F FLY  G GAME MODE  T TIME  R RAIN  F3 DEBUG  F4 VIEW  F5 SAVE  F11 FULLSCREEN",
              "SURVIVAL: C CRAFTS THE SELECTED STACK  LOG>PLANKS  COAL>TORCHES  SAND>GLASS",
              "3 PLANKS/COBBLE/IRON/DIAMOND > PICKAXE  STONE NEEDS A PICKAXE TO DROP"]
     i = 0

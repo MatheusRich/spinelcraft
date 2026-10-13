@@ -93,6 +93,10 @@ class Game
     end
     craft if @survival && Gfx.in_key_pressed(Key::C)
     @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T)
+    if !@survival && Gfx.in_key_pressed(Key::R)
+      set_raining(!@raining)
+      say(@raining ? "RAIN" : "CLEAR SKY")
+    end
   end
 
   # The left button hits the mob in the crosshair, or else breaks the block:
