@@ -1039,7 +1039,6 @@ end
 
 module Key
   A = 4
-  C = 6
   D = 7
   E = 8
   F = 9

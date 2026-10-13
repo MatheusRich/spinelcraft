@@ -42,7 +42,6 @@ The game saves to `world.sav` in the current directory when you quit, when you p
 | 1–9, wheel | Select a hotbar slot |
 | E | Inventory: all blocks in creative; the 36-slot backpack in survival (click to move stacks) |
 | Q | Next block in the slot (creative); throw one item of the selected stack (survival) |
-| C | Craft from the selected stack (survival); the inventory screen also lists every recipe to click |
 | F | Fly on or off (creative) |
 | G | Switch between creative and survival |
 | T | Skip six hours |
@@ -54,10 +53,14 @@ The game saves to `world.sav` in the current directory when you quit, when you p
 | Esc | Pause and release the mouse |
 | N (while paused) | New world from a random seed |
 
-To craft in survival, open the inventory (E) and click a recipe, or press C to craft from the selected stack. The recipes are:
+To craft in survival, open the inventory (E) and click a recipe. A right-click on a crafting table or a furnace also opens it. By hand you can make only these:
 
 - 1 log gives 4 planks.
 - 1 coal gives 4 torches.
+- 4 planks give a crafting table.
+
+These recipes need a crafting table within 4 blocks:
+
 - 1 gravel gives 4 arrows.
 - 2 stone give 1 brick.
 - 3 wool give a bed.
@@ -71,19 +74,21 @@ To craft in survival, open the inventory (E) and click a recipe, or press C to c
 - 4 planks, cobblestone, iron ingots or diamond ore give a wooden, stone, iron or diamond axe.
 - 1 plank, cobblestone, iron ingot or diamond ore gives a wooden, stone, iron or diamond shovel.
 
-These recipes need a furnace within 4 blocks:
+These recipes need a furnace within 4 blocks and fuel:
 
 - 1 iron ore gives 1 iron ingot.
 - 1 porkchop gives 1 cooked porkchop.
 - 1 sand gives 1 glass.
 - 1 cobblestone gives 1 stone.
 
+A click on one of these recipes burns one fuel item, and it smelts as many items as that fuel can. A plank smelts 1 item, a log 2 and coal 8. The game burns the weakest fuel that smelts all the items you have, or else the strongest fuel.
+
 Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the right tier. Iron ore needs a stone pickaxe or better, and diamond ore needs an iron one. A better pickaxe also mines faster. An axe chops wood, planks, chests, beds and doors faster, and a shovel digs grass, dirt, sand, gravel and snow faster. A better tier is faster. Tools wear out: a wooden, stone, iron or diamond tool breaks after 60, 130, 250 or 1560 uses, and a bow after 380 shots. A bar under the icon shows the uses that are left. Logs, dirt, sand and gravel need no tool, so start by punching a tree.
 
 ## What is in it
 
 - An endless world, 96 blocks tall. Chunks of 16 × 16 columns generate as you move and unload behind you. Perlin noise makes continents, hills, ridged mountains, beaches, oceans, deserts with cactus, and snowy peaks. Caves are long tunnels. The world also has coal, iron and diamond ore, trees, tall grass and flowers.
-- 31 block types and 24 items with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
+- 32 block types and 24 items with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
 - Ambient occlusion at each face corner, sky light from a height map, and warm torch light. Torch light spreads by flood fill, so walls stop it.
 - Sand and gravel fall when nothing holds them up.
 - Lava fills the bottom of deep caves. It glows, flows up to 3 blocks, burns players and mobs, throws embers, and turns into cobblestone where water touches it.
@@ -198,7 +203,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 72 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 73 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

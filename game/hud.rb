@@ -119,7 +119,7 @@ class Game
   # The first-steps hint for an empty survival inventory, and the last message.
   def draw_messages(w, y0, s)
     if @survival && !@dead && !@inventory_open && room_for(Block::DIRT) == INV * STACK
-      hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS C TO CRAFT PLANKS"
+      hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
       @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, 1.0, 1.0, 0.7, 0.9)
     end
     if @message_time > 0.0
@@ -228,20 +228,21 @@ class Game
     first = recipe_cell(0, w, h, s)
     last_r = recipe_cell(RECIPE_ROWS * 2 - 1, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, last_r[0] + last_r[2] - first[0] + pad * 2.0, last_r[1] + last_r[3] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    furnace = furnace_near?
+    table = station_near?(AT_TABLE)
+    furnace = station_near?(AT_FURNACE)
     @ui.text(first[0], first[1] - 36.0 * s, "CRAFTING", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     rhover = recipe_hover(w, h, s)
     k = 0
     while k < RECIPES.size
       r = RECIPES[k]
       c = recipe_cell(k, w, h, s)
-      can = count_items(r[0]) >= r[1] && (r[4] == 0 || furnace)
+      can = count_items(r[0]) >= r[1] && (r[4] == BY_HAND || (r[4] == AT_TABLE ? table : furnace))
       shade = k == rhover ? 0.5 : 0.28
       @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 1.0)
       @ui.icon(c[0] + 2.0 * s, c[1] + 2.0 * s, 22.0 * s, Block::SIDE[r[2]], can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
       @ui.text(c[0] + 30.0 * s, c[1] + 4.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.0 * s, bright, bright, bright, 1.0)
-      need = "#{r[1]} #{Block::NAMES[r[0]]}#{r[4] == 1 ? " + FURNACE" : ""}"
+      need = "#{r[1]} #{Block::NAMES[r[0]]}#{r[4] == AT_FURNACE ? " + FURNACE" : (r[4] == AT_TABLE ? " + TABLE" : "")}"
       @ui.text(c[0] + c[2] - @ui.text_width(need, 1.5 * s) - 4.0 * s, c[1] + 15.0 * s, need, 1.5 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
       k += 1
     end
@@ -276,8 +277,8 @@ class Game
     lines = ["WASD MOVE  SPACE JUMP  CTRL SPRINT  SHIFT DOWN",
              "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
              "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  F FLY  G GAME MODE  T TIME  R RAIN  F3 DEBUG  F4 VIEW  F5 SAVE  F11 FULLSCREEN",
-             "SURVIVAL: C CRAFTS THE SELECTED STACK  LOG>PLANKS  COAL>TORCHES  GRAVEL>ARROWS",
-             "E LISTS ALL RECIPES  SMELTING NEEDS A FURNACE NEARBY  STONE NEEDS A PICKAXE TO DROP"]
+             "SURVIVAL: E TO CRAFT  BY HAND ONLY PLANKS, TORCHES AND A CRAFTING TABLE",
+             "TOOLS NEED A CRAFTING TABLE NEARBY  SMELTING NEEDS A FURNACE AND FUEL  STONE NEEDS A PICKAXE TO DROP"]
     i = 0
     while i < lines.size
       line = lines[i]

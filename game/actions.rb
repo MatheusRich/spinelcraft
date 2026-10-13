@@ -91,7 +91,6 @@ class Game
       @fullscreen = !@fullscreen
       Gfx.gfx_fullscreen(@fullscreen ? 1 : 0)
     end
-    craft if @survival && Gfx.in_key_pressed(Key::C)
     @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T)
     if !@survival && Gfx.in_key_pressed(Key::R)
       set_raining(!@raining)
@@ -146,6 +145,9 @@ class Game
     if held && @action_cooldown <= 0.0
       if @survival && @player.hit && @world.get(@player.hx, @player.hy, @player.hz) == Block::CHEST
         open_chest(@player.hx, @player.hy, @player.hz)
+        return
+      elsif @survival && (target == Block::CRAFTING_TABLE || target == Block::FURNACE)
+        toggle_inventory
         return
       elsif @player.hit && @world.get(@player.hx, @player.hy, @player.hz) == Block::BED
         use_bed(@player.hx, @player.hy, @player.hz)
@@ -203,7 +205,7 @@ class Game
   def dig_sound(b)
     return Sfx::DIG_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::GLASS || b == Block::BEDROCK
     return Sfx::DIG_STONE if b == Block::FURNACE
-    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || Block.door?(b)
+    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || Block.door?(b) || b == Block::CRAFTING_TABLE
     Sfx::DIG_SOFT
   end
 

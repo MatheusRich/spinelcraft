@@ -75,7 +75,9 @@ module Tex
   WHEAT_RIPE = 76
   WHEAT = 77
   BREAD = 78
-  FONT = 79
+  CRAFT_TOP = 79
+  CRAFT_SIDE = 80
+  FONT = 81
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -280,6 +282,7 @@ module Tex
     wheat(px)
     bread(px)
     furnace(px)
+    crafting_table(px)
     lava(px)
     noisy(px, WOOL, 232, 232, 228, 14, 71)
     bed(px)
@@ -738,6 +741,33 @@ module Tex
         set(px, IRON_INGOT, x, y, c + v - 10, c + v - 12, c + v - 18, 255)
         x += 1
       end
+      y += 1
+    end
+  end
+
+  # Crafting table: planks with a dark grid on top, and a hammer and a saw
+  # on the sides.
+  def self.crafting_table(px)
+    y = 0
+    while y < 16
+      x = 0
+      while x < 16
+        v = rnd(x / 4, y, 93) / 12 + (rnd(x, y, 94) - 128) / 20
+        edge = x == 0 || y == 0 || x == 15 || y == 15
+        top = edge || x == 5 || x == 10 || y == 5 || y == 10 ? 85 : 150 + v
+        set(px, CRAFT_TOP, x, y, top, (top * 0.68).to_i, (top * 0.38).to_i, 255)
+        side = edge || y == 3 ? 85 : 150 + v
+        set(px, CRAFT_SIDE, x, y, side, (side * 0.68).to_i, (side * 0.38).to_i, 255)
+        x += 1
+      end
+      y += 1
+    end
+    y = 6
+    while y < 14
+      set(px, CRAFT_SIDE, 4, y, 70, 45, 25, 255)
+      set(px, CRAFT_SIDE, y - 4, 6, 180, 180, 190, 255) if y < 9
+      set(px, CRAFT_SIDE, 10, y, 190, 190, 200, 255)
+      set(px, CRAFT_SIDE, 11, y, 150, 150, 160, 255) if y > 6
       y += 1
     end
   end

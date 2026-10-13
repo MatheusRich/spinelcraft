@@ -58,6 +58,7 @@ class Game
     set_block(bx, y + 2, bz - 2, Block::DOOR_OPEN)
     set_block(bx + 2, y + 1, bz - 2, Block::FURNACE)
     set_block(bx + 3, y + 1, bz - 2, Block::SAPLING)
+    set_block(bx + 4, y + 1, bz - 2, Block::CRAFTING_TABLE)
     [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |b, i|
       set_block(bx - 4 + i, y + 1, bz - 1, b)
     end
@@ -207,7 +208,7 @@ class Game
     @inv_count.fill(0)
     3.times { give(Block::LOG) }
     @slot = 0
-    craft
+    craft_recipe(recipe_for(Block::PLANKS))
     check("craft log into planks", @inv_block[0] == Block::LOG && @inv_count[0] == 2 && @inv_block[1] == Block::PLANKS && @inv_count[1] == 4)
     70.times { give(Block::DIRT) }
     check("stacks split at 64", @inv_count[2] == 64 && @inv_block[3] == Block::DIRT && @inv_count[3] == 6)
@@ -251,9 +252,16 @@ class Game
       n += 1
     end
     check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && @it_count.empty?)
-    3.times { give(Block::PLANKS) }
-    craft
-    check("3 planks craft a wooden pickaxe", @inv_block[0] == Block::WOOD_PICK)
+    7.times { give(Block::PLANKS) }
+    craft_recipe(recipe_for(Block::WOOD_PICK))
+    by_hand = count_items(Block::WOOD_PICK)
+    craft_recipe(recipe_for(Block::CRAFTING_TABLE))
+    table = count_items(Block::CRAFTING_TABLE) == 1
+    craft_at_table(recipe_for(Block::WOOD_PICK))
+    check("a crafting table comes from 4 planks, and a pickaxe needs one nearby", by_hand == 0 && table && count_items(Block::WOOD_PICK) > 0)
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    give(Block::WOOD_PICK)
     set_block(x, ground + 1, z, Block::STONE)
     mining_frames = 0
     while mining_frames < 200 && @world.get(x, ground + 1, z) == Block::STONE
@@ -483,6 +491,20 @@ class Game
     check("the inventory screen fits the frame above the hotbar", fits)
   end
 
+  # The index of the recipe that makes b.
+  def recipe_for(b) = RECIPES.index { |r| r[2] == b }
+
+  # Crafts recipe k with a crafting table next to the player.
+  def craft_at_table(k)
+    x = @player.x.floor + 2
+    y = @player.y.floor
+    z = @player.z.floor
+    old = @world.get(x, y, z)
+    set_block(x, y, z, Block::CRAFTING_TABLE)
+    craft_recipe(k)
+    set_block(x, y, z, old)
+  end
+
   # Crafting needs room for the result, and it takes from several stacks.
   def test_crafting_limits
     i = 0
@@ -495,7 +517,7 @@ class Game
     @inv_count[0] = 5
     @inv_count[1] = 62
     @slot = 0
-    craft
+    craft_recipe(recipe_for(Block::PLANKS))
     check("crafting refuses when the result does not fit", @inv_count[0] == 5 && @inv_count[1] == 62)
     @inv_block.fill(0)
     @inv_count.fill(0)
@@ -503,7 +525,7 @@ class Game
     @inv_count[3] = 2
     @inv_block[20] = Block::PLANKS
     @inv_count[20] = 4
-    craft_recipe(RECIPES.index { |r| r[2] == Block::BOW })
+    craft_at_table(recipe_for(Block::BOW))
     check("a recipe takes ingredients from several stacks", count_items(Block::PLANKS) == 1 && count_items(Block::BOW) == Block.uses(Block::BOW))
     # A tool wears out, and a thrown tool keeps the uses that it has left.
     @inv_block.fill(0)
@@ -866,14 +888,25 @@ class Game
     @player.z = z + 3.5
     @inv_block.fill(0)
     @inv_count.fill(0)
-    give(Block::IRON)
-    smelt = RECIPES.index { |r| r[2] == Block::IRON_INGOT }
+    9.times { give(Block::IRON) }
+    give(Block::COAL)
+    2.times { give(Block::PLANKS) }
+    smelt = recipe_for(Block::IRON_INGOT)
     craft_recipe(smelt)
-    far = @inv_block[0] == Block::IRON
+    far = count_items(Block::IRON) == 9
+    check("smelting needs a furnace nearby", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
     craft_recipe(smelt)
+    # No fuel covers 9 smelts, so the coal burns for 8.
+    coal = count_items(Block::IRON) == 1 && count_items(Block::IRON_INGOT) == 8 && count_items(Block::COAL) == 0 && count_items(Block::PLANKS) == 2
+    craft_recipe(smelt)
+    plank = count_items(Block::IRON) == 0 && count_items(Block::IRON_INGOT) == 9 && count_items(Block::PLANKS) == 1
+    give(Block::SAND)
+    remove_items(Block::PLANKS, 1)
+    craft_recipe(recipe_for(Block::GLASS))
+    no_fuel = count_items(Block::SAND) == 1 && count_items(Block::GLASS) == 0
     set_block(x + 2, y, z + 3, Block::AIR)
-    check("smelting needs a furnace nearby", far && @inv_block[0] == Block::IRON_INGOT)
+    check("a smelt burns the smallest fuel that covers it, and needs fuel", coal && plank && no_fuel)
     set_block(x, y, z, Block::SAPLING)
     # The crop stands out of reach of the tree's leaves, on top of its column.
     cy = @world.height_at(x + 4, z)

@@ -2,9 +2,14 @@
 class Game
   RECIPE_W = 300.0
   # The recipe list has two columns of this many rows.
-  RECIPE_ROWS = 15
-  # A recipe that needs a furnace works when one is this near the player.
-  FURNACE_REACH = 4
+  RECIPE_ROWS = 16
+  # A recipe that needs a crafting table or a furnace works when one is this
+  # near the player.
+  STATION_REACH = 4
+  # What a furnace burns, and how many items one of each smelts. The list
+  # goes from the weakest fuel to the strongest.
+  FUEL_BLOCKS = [Block::PLANKS, Block::LOG, Block::COAL]
+  FUEL_SMELTS = [1, 2, 8]
 
   def current_block
     @survival ? @inv_block[@slot] : @hotbar[@slot]
@@ -100,43 +105,77 @@ class Game
   end
 
   # Crafts recipe k from items anywhere in the inventory.
+  # A smelt burns one fuel item and makes the recipe as many times as that
+  # fuel smelts.
   def craft_recipe(k)
     r = RECIPES[k]
-    if count_items(r[0]) < r[1]
+    have = count_items(r[0]) / r[1]
+    if have == 0
       say("NEED #{r[1]} #{Block::NAMES[r[0]]}")
       return
     end
-    if r[4] == 1 && !furnace_near?
-      say("NEED A FURNACE NEARBY")
+    unless station_near?(r[4])
+      say(r[4] == AT_TABLE ? "NEED A CRAFTING TABLE NEARBY" : "NEED A FURNACE NEARBY")
       return
+    end
+    times = 1
+    fuel = -1
+    if r[4] == AT_FURNACE
+      fuel = pick_fuel(have)
+      if fuel < 0
+        say("NEED FUEL: PLANKS, LOGS OR COAL ORE")
+        return
+      end
+      times = FUEL_SMELTS[fuel] < have ? FUEL_SMELTS[fuel] : have
     end
     # Take the ingredients first: a slot that they empty is room for the result.
     blocks = @inv_block.dup
     counts = @inv_count.dup
-    remove_items(r[0], r[1])
-    if room_for(r[2]) < r[3]
+    remove_items(FUEL_BLOCKS[fuel], 1) if fuel >= 0
+    remove_items(r[0], r[1] * times)
+    n = r[3] * times
+    if room_for(r[2]) < n
       @inv_block = blocks
       @inv_count = counts
       say("INVENTORY FULL")
       return
     end
-    r[3].times { give(r[2]) }
-    say("CRAFTED #{r[3]} #{Block::NAMES[r[2]]}")
+    n.times { give(r[2]) }
+    say("#{fuel >= 0 ? "SMELTED" : "CRAFTED"} #{n} #{Block::NAMES[r[2]]}")
     play(Sfx::PLACE, 0.6)
   end
 
-  # True when a furnace is within FURNACE_REACH blocks of the player on each axis.
-  def furnace_near?
+  # The fuel to burn for want smelts: the weakest fuel in the inventory that
+  # covers them all, or else the strongest one. -1 when there is no fuel.
+  def pick_fuel(want)
+    best = -1
+    i = 0
+    while i < FUEL_BLOCKS.size
+      if count_items(FUEL_BLOCKS[i]) > 0
+        return i if FUEL_SMELTS[i] >= want
+        best = i
+      end
+      i += 1
+    end
+    best
+  end
+
+  # True when the recipes for where (BY_HAND, AT_TABLE or AT_FURNACE) work.
+  # A crafting table or a furnace must be within STATION_REACH blocks of the
+  # player on each axis.
+  def station_near?(where)
+    return true if where == BY_HAND
+    b = where == AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
     px = @player.x.floor
     py = @player.y.floor
     pz = @player.z.floor
-    x = px - FURNACE_REACH
-    while x <= px + FURNACE_REACH
-      y = py - FURNACE_REACH
-      while y <= py + FURNACE_REACH
-        z = pz - FURNACE_REACH
-        while z <= pz + FURNACE_REACH
-          return true if @world.get(x, y, z) == Block::FURNACE
+    x = px - STATION_REACH
+    while x <= px + STATION_REACH
+      y = py - STATION_REACH
+      while y <= py + STATION_REACH
+        z = pz - STATION_REACH
+        while z <= pz + STATION_REACH
+          return true if @world.get(x, y, z) == b
           z += 1
         end
         y += 1
@@ -144,20 +183,6 @@ class Game
       x += 1
     end
     false
-  end
-
-  # The C key: crafts the first recipe that the selected stack can make.
-  def craft
-    b = @inv_block[@slot]
-    k = 0
-    while k < RECIPES.size
-      if RECIPES[k][0] == b && @inv_count[@slot] >= RECIPES[k][1]
-        craft_recipe(k)
-        return
-      end
-      k += 1
-    end
-    say("NOTHING TO CRAFT FROM #{Block::NAMES[b]}") if b != Block::AIR
   end
 
   # Pixel rectangle of inventory cell i: x, y, size.
@@ -377,7 +402,6 @@ class Game
       return
     end
     select_slot
-    craft if @survival && Gfx.in_key_pressed(Key::C)
     if @survival && Gfx.in_button_pressed(1)
       w = Gfx.gfx_width.to_f
       h = Gfx.gfx_height.to_f
