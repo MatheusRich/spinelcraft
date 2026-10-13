@@ -182,10 +182,12 @@ class Game
     end
     # A held button swings again when the last swing ends.
     @swing = SWING if @swing <= 0.0
-    tier = Block::PICK_TIER[current_block]
+    tool = current_block.to_i
+    # The tier of the tool when it is the kind that digs b fast, else 0.
+    tier = Block::DIG_KIND[b] != 0 && Block.tool_kind(tool) == Block::DIG_KIND[b] ? Block.tool_tier(tool) : 0
     need = Block::NEEDS_PICK[b]
-    # A good enough pickaxe speeds up stone; without one, stone is slow.
-    speed = need == 0 ? 1.0 : (tier >= need ? 1.0 + tier * 1.2 : 0.3)
+    # The right tool speeds up digging. Without a good enough pickaxe, stone is slow.
+    speed = need > 0 && tier < need ? 0.3 : 1.0 + tier * 1.2
     @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / hardness
     if @mine_progress >= 1.0
       burst_particles(x, y, z, b)

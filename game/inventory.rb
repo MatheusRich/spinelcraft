@@ -2,7 +2,7 @@
 class Game
   RECIPE_W = 300.0
   # The recipe list has two columns of this many rows.
-  RECIPE_ROWS = 11
+  RECIPE_ROWS = 15
   # A recipe that needs a furnace works when one is this near the player.
   FURNACE_REACH = 4
 

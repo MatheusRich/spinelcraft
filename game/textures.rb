@@ -61,7 +61,15 @@ module Tex
   IRON_INGOT = 62
   FURNACE = 63
   COOKED_PORKCHOP = 64
-  FONT = 65
+  WOOD_AXE = 65
+  STONE_AXE = 66
+  IRON_AXE = 67
+  DIAMOND_AXE = 68
+  WOOD_SHOVEL = 69
+  STONE_SHOVEL = 70
+  IRON_SHOVEL = 71
+  DIAMOND_SHOVEL = 72
+  FONT = 73
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -250,6 +258,14 @@ module Tex
     sword(px, STONE_SWORD, 135, 135, 135)
     sword(px, IRON_SWORD, 225, 220, 210)
     sword(px, DIAMOND_SWORD, 90, 230, 225)
+    axe(px, WOOD_AXE, 160, 120, 70)
+    axe(px, STONE_AXE, 135, 135, 135)
+    axe(px, IRON_AXE, 225, 220, 210)
+    axe(px, DIAMOND_AXE, 90, 230, 225)
+    shovel(px, WOOD_SHOVEL, 160, 120, 70)
+    shovel(px, STONE_SHOVEL, 135, 135, 135)
+    shovel(px, IRON_SHOVEL, 225, 220, 210)
+    shovel(px, DIAMOND_SHOVEL, 90, 230, 225)
     ingot(px)
     furnace(px)
     lava(px)
@@ -612,6 +628,34 @@ module Tex
     [[3, 9], [4, 10], [5, 11], [6, 12], [7, 13]].each { |c| set(px, layer, c[0], c[1], 90, 70, 50, 255) }
     [[4, 12], [3, 13], [2, 14]].each { |c| set(px, layer, c[0], c[1], 110, 80, 45, 255) }
     set(px, layer, 1, 15, 90, 65, 40, 255)
+  end
+
+  # A diagonal handle with a wide blade at the top right.
+  def self.axe(px, layer, r, g, b)
+    handle(px, layer)
+    [[8, 1], [9, 1], [10, 1], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2], [7, 3], [8, 3], [9, 3], [11, 3],
+     [12, 3], [7, 4], [8, 4], [12, 4], [8, 5], [12, 5], [13, 5], [12, 6], [13, 6]].each do |c|
+      set(px, layer, c[0], c[1], r, g, b, 255)
+    end
+  end
+
+  # A diagonal handle with a rounded blade at the top right.
+  def self.shovel(px, layer, r, g, b)
+    handle(px, layer)
+    [[11, 1], [12, 1], [13, 1], [10, 2], [11, 2], [12, 2], [13, 2], [14, 2], [10, 3], [11, 3], [12, 3],
+     [13, 3], [14, 3], [11, 4], [12, 4], [13, 4]].each do |c|
+      set(px, layer, c[0], c[1], r, g, b, 255)
+    end
+  end
+
+  # The handle of an axe or a shovel: from the lower left to the middle.
+  def self.handle(px, layer)
+    i = 2
+    while i < 12
+      set(px, layer, i, 15 - i, 110, 80, 45, 255)
+      set(px, layer, i + 1, 15 - i, 85, 60, 35, 255)
+      i += 1
+    end
   end
 
   def self.ingot(px)

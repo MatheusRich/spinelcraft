@@ -257,12 +257,36 @@ class Game
     dropped = ground_count(Block::COBBLE) == 1 && @inv_count[1] == 0
     collect_items
     check("a pickaxe mines stone faster, and the cobblestone drops to the ground", mining_frames < n && dropped && @inv_block[1] == Block::COBBLE)
+    by_hand = frames_to_mine(x, ground + 1, z, Block::LOG, Block::AIR)
+    by_axe = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_AXE)
+    by_pick = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_PICK)
+    check("an axe chops a log faster than a hand or a pickaxe", by_axe < by_hand && by_pick == by_hand)
+    clear_items
     @inv_block[5] = Block::COOKED_PORKCHOP
     @inv_count[5] = 2
     @slot = 5
     @hunger = 5
     eat
     check("eating restores hunger", @hunger == 15 && @inv_count[5] == 1)
+  end
+
+  # Frames of 0.05 seconds that it takes to break block b at x, y, z (which
+  # the player looks at) with tool in hotbar slot 8.
+  def frames_to_mine(x, y, z, b, tool)
+    @inv_block[8] = tool
+    @inv_count[8] = tool == Block::AIR ? 0 : Block.uses(tool)
+    @slot = 8
+    set_block(x, y, z, b)
+    @mining = false
+    n = 0
+    while n < 400 && @world.get(x, y, z) == b
+      @player.raycast(@world)
+      mine(0.05)
+      n += 1
+    end
+    @inv_block[8] = Block::AIR
+    @inv_count[8] = 0
+    n
   end
 
   # Monsters on a sky platform at night: a skeleton's arrow, a zombie's hit,
