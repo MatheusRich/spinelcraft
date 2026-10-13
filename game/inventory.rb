@@ -40,30 +40,6 @@ class Game
     false
   end
 
-  # True when every stack of a chest's contents would fit in the inventory.
-  def chest_fits?(stored)
-    blocks = @inv_block.dup
-    counts = @inv_count.dup
-    k = 0
-    while k < CHEST_SLOTS
-      b = stored[k]
-      n = stored[CHEST_SLOTS + k]
-      i = 0
-      while n > 0 && i < INV
-        if counts[i] == 0 || blocks[i] == b
-          take = STACK - counts[i] < n ? STACK - counts[i] : n
-          blocks[i] = b
-          counts[i] += take
-          n -= take
-        end
-        i += 1
-      end
-      return false if n > 0
-      k += 1
-    end
-    true
-  end
-
   def count_items(b)
     n = 0
     i = 0
@@ -256,7 +232,7 @@ class Game
     @chest_key = -1
   end
 
-  # Breaking a chest gives back what it held (in survival).
+  # A broken chest drops what it held (in survival).
   def drop_chest(x, y, z)
     key = World.key(x, y, z)
     if key == @chest_key
@@ -271,7 +247,9 @@ class Game
     if @survival
       k = 0
       while k < CHEST_SLOTS
-        stored[CHEST_SLOTS + k].times { give(stored[k]) }
+        # Spinel types the values of @chests as untyped. to_i keeps the item
+        # arrays, and Block.plant? in the mesher, on plain Integers.
+        drop_from_block(stored[k].to_i, stored[CHEST_SLOTS + k].to_i, x, y, z)
         k += 1
       end
     end
@@ -300,9 +278,11 @@ class Game
   def toggle_inventory
     if @inventory_open
       return_held
+      # What does not fit falls to the ground.
       if @held_count > 0
-        say("NO ROOM FOR THE HELD STACK")
-        return
+        throw_stack(@held_block, @held_count)
+        @held_count = 0
+        @held_block = Block::AIR
       end
     end
     close_chest if @inventory_open

@@ -153,7 +153,7 @@ class Game
     end
   end
 
-  # Fills @dyn with the parts that change every frame: mobs, arrows,
+  # Fills @dyn with the parts that change every frame: mobs, arrows, items,
   # particles, the block outline, and the cracks.
   def build_dyn(ex, ez, reach)
     @dyn.clear
@@ -165,6 +165,7 @@ class Game
       m.draw(@dyn)
     end
     draw_arrows
+    draw_items(ex, ez, reach)
     i = 0
     while i < @pt_life.size
       x = @pt_x[i]

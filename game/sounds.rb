@@ -12,6 +12,8 @@ module Sfx
   DIG_STONE = 9
   DIG_WOOD = 10
   DIG_SOFT = 11
+  POP = 12
+  FIZZ = 13
   RATE = 22050.0
 
   def self.noise(state)
@@ -84,6 +86,8 @@ module Sfx
     load(DIG_STONE, mix(burst(0.05, 90.0, 0.8, 0.45, 17), tone(0.05, 700.0, 520.0, 70.0, 0, 0.35)))
     load(DIG_WOOD, mix(burst(0.06, 70.0, 0.3, 0.35, 18), tone(0.08, 230.0, 170.0, 45.0, 0, 0.6)))
     load(DIG_SOFT, burst(0.07, 55.0, 0.12, 0.9, 19))
+    load(POP, tone(0.07, 600.0, 1150.0, 35.0, 0, 0.35))
+    load(FIZZ, burst(0.45, 6.0, 0.9, 0.35, 20))
     true
   end
 end

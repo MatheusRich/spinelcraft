@@ -1,4 +1,4 @@
-# Test switches: SELFTEST, SHOWMOBS, and DEMO.
+# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, and DEMO.
 class Game
   # SHOWMOBS=1 lines up one mob of each kind on a stone floor in front of the player.
   def show_mobs
@@ -27,6 +27,39 @@ class Game
     @player.z = bz + 6.5
     @player.yaw = 0.0
     @player.pitch = -0.15
+    @player.flying = true
+    @time_of_day = 0.3
+  end
+
+  # SHOWITEMS=1 lays a row of dropped items on a stone floor in front of the
+  # player, in survival with a block in the hand.
+  def show_items
+    bx = @player.x.floor
+    bz = @player.z.floor - 4
+    y = 80
+    dx = -4
+    while dx <= 4
+      dz = -3
+      while dz <= 3
+        set_block(bx + dx, y, bz + dz, Block::STONE)
+        dz += 1
+      end
+      dx += 1
+    end
+    shown = [Block::GRASS, Block::LOG, Block::GLASS, Block::CHEST, Block::TORCH, Block::ROSE,
+             Block::PORKCHOP, Block::DIAMOND_PICK, Block::BOW, Block::ARROW]
+    shown.each_with_index do |b, i|
+      drop_item(b, i == 9 ? 3 : 1, bx - 3.5 + i * 0.8, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
+    end
+    @survival = true
+    @inv_block[0] = Block::LOG
+    @inv_count[0] = 5
+    @slot = 0
+    @player.x = bx + 0.5
+    @player.y = y + 1.0
+    @player.z = bz + 3.5
+    @player.yaw = 0.0
+    @player.pitch = -0.35
     @player.flying = true
     @time_of_day = 0.3
   end
@@ -68,6 +101,7 @@ class Game
     cz = @spawn_z.floor + 4
     test_chests(cx, cz)
     test_mob_drops
+    test_items(cx, cz)
     test_light_sources(cx, cz)
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -190,7 +224,7 @@ class Game
       mine(0.05)
       n += 1
     end
-    check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && room_for(Block::COBBLE) == INV * STACK)
+    check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && @it_count.empty?)
     3.times { give(Block::PLANKS) }
     craft
     check("3 planks craft a wooden pickaxe", @inv_block[0] == Block::WOOD_PICK)
@@ -201,7 +235,9 @@ class Game
       mine(0.05)
       mining_frames += 1
     end
-    check("a pickaxe mines stone faster and it drops cobblestone", mining_frames < n && @inv_block[1] == Block::COBBLE)
+    dropped = ground_count(Block::COBBLE) == 1 && @inv_count[1] == 0
+    collect_items
+    check("a pickaxe mines stone faster, and the cobblestone drops to the ground", mining_frames < n && dropped && @inv_block[1] == Block::COBBLE)
     @inv_block[5] = Block::PORKCHOP
     @inv_count[5] = 2
     @slot = 5
@@ -334,16 +370,20 @@ class Game
     stored = @chests[World.key(cx, 90, cz)]
     check("chest contents survive a save", ok && !stored.nil? && stored[5] == Block::DIAMOND && stored[CHEST_SLOTS + 5] == 7)
     set_block(cx, 90, cz, Block::AIR)
-    check("breaking a chest gives its contents back", count_items(Block::DIAMOND) == 7 && @chests.empty?)
+    dropped = ground_count(Block::DIAMOND) == 7 && count_items(Block::DIAMOND) == 0
+    collect_items
+    check("a broken chest drops its contents", dropped && count_items(Block::DIAMOND) == 7 && @chests.empty?)
     # An open chest destroyed by a blast never duplicates its contents.
     @inv_block.fill(0)
     @inv_count.fill(0)
+    clear_items
     set_block(cx, 90, cz, Block::CHEST)
     open_chest(cx, 90, cz)
     @chest_block[0] = Block::DIAMOND
     @chest_count[0] = 7
     set_block(cx, 90, cz, Block::AIR)
-    check("a chest destroyed while open does not duplicate items", count_items(Block::DIAMOND) == 7 && !@inventory_open && @chest_count[0] == 7 && @chests.empty?)
+    check("a chest destroyed while open does not duplicate items", count_items(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.empty?)
+    clear_items
   end
 
   # Mobs that die without the player's help drop nothing.
@@ -356,7 +396,85 @@ class Game
     @mobs.clear
     @mobs << far
     update_mobs(1.0 / 60.0)
-    check("a pig that dies on its own drops nothing", count_items(Block::PORKCHOP) == 0)
+    check("a pig that dies on its own drops nothing", @it_count.empty?)
+    killed = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    killed.hp = 0
+    killed.alive = false
+    killed.by_player = true
+    @mobs << killed
+    update_mobs(1.0 / 60.0)
+    dropped = ground_count(Block::PORKCHOP) == 1
+    collect_items
+    check("a pig that the player kills drops a porkchop", dropped && count_items(Block::PORKCHOP) == 1)
+  end
+
+  # Stands the player on the first item until the ground is empty or the
+  # frames run out.
+  def collect_items
+    frames = 0
+    while frames < 300 && !@it_count.empty?
+      @player.x = @it_x[0]
+      @player.y = @it_y[0]
+      @player.z = @it_z[0]
+      update_items(1.0 / 60.0)
+      frames += 1
+    end
+  end
+
+  def run_items(seconds)
+    (seconds * 60.0).to_i.times { update_items(1.0 / 60.0) }
+  end
+
+  # Items fall and wait before pickup, a full inventory leaves them on the
+  # ground, items of one kind join, and lava burns them.
+  def test_items(cx, cz)
+    y = 92
+    dx = -1
+    while dx <= 3
+      dz = -1
+      while dz <= 1
+        set_block(cx + dx, y, cz + dz, Block::STONE)
+        dz += 1
+      end
+      dx += 1
+    end
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    clear_items
+    @player.x = cx + 0.5
+    @player.y = y + 1.0
+    @player.z = cz + 0.5
+    throw_stack(Block::DIRT, 1)
+    run_items(0.5)
+    waited = count_items(Block::DIRT) == 0 && ground_count(Block::DIRT) == 1
+    @player.x = @it_x[0]
+    @player.z = @it_z[0]
+    run_items(1.5)
+    check("a thrown item waits before the player picks it up", waited && count_items(Block::DIRT) == 1 && @it_count.empty?)
+    drop_item(Block::SAND, 1, cx + 2.5, y + 3.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
+    @player.x = cx + 0.5
+    run_items(1.5)
+    check("an item falls to the ground and stays out of reach", @it_count.size == 1 && (@it_y[0] - (y + 1.0)).abs < 0.01)
+    clear_items
+    i = 0
+    while i < INV
+      @inv_block[i] = Block::STONE
+      @inv_count[i] = STACK
+      i += 1
+    end
+    drop_item(Block::SAND, 1, cx + 0.5, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
+    drop_item(Block::SAND, 1, cx + 0.6, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
+    run_items(0.5)
+    check("a full inventory leaves items on the ground, and items of one kind join", @it_count.size == 1 && @it_count[0] == 2 && count_items(Block::SAND) == 0)
+    clear_items
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    set_block(cx + 2, y + 1, cz, Block::LAVA)
+    drop_item(Block::SAND, 1, cx + 2.5, y + 1.2, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
+    run_items(0.2)
+    check("lava burns an item", @it_count.empty?)
+    set_block(cx + 2, y + 1, cz, Block::AIR)
+    flush_dirty while !@later_list.empty? || !@dirty_list.empty?
   end
 
   # Wool does not glow, lava gives light, and water turns lava into cobblestone.

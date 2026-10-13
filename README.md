@@ -41,7 +41,7 @@ The game saves to `world.sav` in the current directory when you quit, when you p
 | Middle click | Pick the block you look at (creative) |
 | 1–9, wheel | Select a hotbar slot |
 | E | Inventory: all blocks in creative; the 36-slot backpack in survival (click to move stacks) |
-| Q | Next block in the slot (creative) |
+| Q | Next block in the slot (creative); throw one item of the selected stack (survival) |
 | C | Craft from the selected stack (survival); the inventory screen also lists every recipe to click |
 | F | Fly on or off (creative) |
 | G | Switch between creative and survival |
@@ -79,8 +79,9 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 - A bow. A full one-second draw shoots far and hits hard. Skeletons drop arrows and sometimes a bow.
 - Pigs and sheep that wander. A sheep drops 2 wool, a white building block.
 - Monsters at night. Zombies chase you and hit you. Skeletons keep their distance and shoot arrows when they can see you. Creepers walk up to you, flash and explode, which removes blocks and hurts everything near them. Zombies and skeletons burn in daylight, and creepers do not.
-- A survival mode with 10 hearts, a hunger bar, fall damage, drowning, regeneration, timed block breaking with growing cracks and a knock sound, item drops, stacks of 64, crafting, death and respawn.
-- Chests that hold 27 stacks. Click to move stacks between the chest and your inventory. A broken chest gives back what it held, and the save keeps chest contents.
+- A survival mode with 10 hearts, a hunger bar, fall damage, drowning, regeneration, timed block breaking with growing cracks and a knock sound, stacks of 64, crafting, death and respawn.
+- Items drop. A broken block, the loot of a mob and a thrown item fall to the ground, turn there, and go to your inventory when you walk over them. Items of one kind join into one stack. An item that does not fit stays on the ground. Lava burns items, and the game removes an item after 5 minutes.
+- Chests that hold 27 stacks. Click to move stacks between the chest and your inventory. A broken chest drops what it held, and the save keeps chest contents.
 - Beds. Right-click a bed to set your spawn point there. At night, if no monster is within 10 blocks, the bed also skips to morning.
 - Food. A pig drops a porkchop, and right-click eats the selected porkchop. Hunger drains over time, and faster when you sprint. Health regenerates only while hunger is 15 or more, and an empty hunger bar hurts you down to half a heart.
 - Generated sound effects, block-break particles, view bobbing, and a wider field of view when you sprint.
@@ -97,6 +98,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/streaming.rb` | Chunk and far terrain streaming, and remeshing |
 | `game/block_changes.rb` | Block edits, flowing water and lava, falling sand and gravel |
 | `game/inventory.rb` | Hotbar, backpack, chests, crafting, and the inventory screen |
+| `game/items.rb` | Items on the ground: drops, pickup, and their models |
 | `game/actions.rb` | Keys, the mouse, mining, placing, beds, and food |
 | `game/combat.rb` | Mob spawning and turns, damage, explosions, the bow, and arrows |
 | `game/render.rb` | The 3D frame and the sky |
@@ -170,8 +172,9 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SAVE=1` | Save on quit also when `FRAMES` is set |
 | `MUTE=1` | No sound |
 | `SHOWMOBS=1` | Put one mob of each kind on a stone floor in front of the player |
+| `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player |
 | `INVENTORY=1` | Start with the inventory open |
-| `SELFTEST=1` | Check 47 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 52 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

@@ -106,20 +106,20 @@ class Game
     end
   end
 
-  # What a mob that the player killed puts in the inventory.
+  # What a mob that the player killed drops.
   def drop_loot(m)
     if m.kind == Mob::SKELETON
-      n = 1 + (rand01 * 3.0).to_i
-      n.times { give(Block::ARROW) }
-      give(Block::BOW) if rand01 < 0.3
-      say("+#{n} ARROWS")
+      loot(m, Block::ARROW, 1 + (rand01 * 3.0).to_i)
+      loot(m, Block::BOW, 1) if rand01 < 0.3
     elsif m.kind == Mob::SHEEP
-      2.times { give(Block::WOOL) }
-      say("+2 WOOL")
+      loot(m, Block::WOOL, 2)
     elsif m.kind == Mob::PIG
-      give(Block::PORKCHOP)
-      say("+1 PORKCHOP  RIGHT CLICK TO EAT")
+      loot(m, Block::PORKCHOP, 1)
     end
+  end
+
+  def loot(m, b, n)
+    drop_item(b, n, m.x, m.y + 0.5, m.z, (rand01 - 0.5) * 2.0, 3.0, (rand01 - 0.5) * 2.0, PICKUP_WAIT)
   end
 
   # PIGS pigs and sheep around the player.

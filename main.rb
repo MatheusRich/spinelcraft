@@ -14,6 +14,7 @@ require_relative "game/save"
 require_relative "game/streaming"
 require_relative "game/block_changes"
 require_relative "game/inventory"
+require_relative "game/items"
 require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
@@ -125,6 +126,18 @@ class Game
     @ar_stuck = []
     # 0 for a skeleton's arrow; otherwise the damage of the player's arrow.
     @ar_damage = []
+    # Items on the ground (game/items.rb): the block, the count, the position,
+    # the velocity, the age, and the seconds until the player can pick it up.
+    @it_block = []
+    @it_count = []
+    @it_x = []
+    @it_y = []
+    @it_z = []
+    @it_vx = []
+    @it_vy = []
+    @it_vz = []
+    @it_age = []
+    @it_wait = []
     @draw_time = -1.0
     @health = MAX_HEALTH
     @hunger = MAX_HUNGER
@@ -200,6 +213,7 @@ class Game
     GC.start
     puts "world: #{loaded ? "load" : "generate"} and mesh the nearest #{(SYNC_R * 2 + 1) * (SYNC_R * 2 + 1)} chunks in #{((t1 - t0) / 1.0e6).round} ms"
     show_mobs if ENV["SHOWMOBS"]
+    show_items if ENV["SHOWITEMS"]
     spawn_animals
     Gfx.in_capture(1)
     @captured = true
@@ -213,6 +227,7 @@ class Game
     @chests = {}
     @mobs.clear
     clear_arrows
+    clear_items
     @clouds = Clouds.new(@seed)
     upload_clouds
     spawn
@@ -384,6 +399,7 @@ class Game
     play(Sfx::SPLASH, 0.6) if @player.in_water && !@was_in_water && !@player.flying
     @was_in_water = @player.in_water
     update_particles(dt)
+    update_items(dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)

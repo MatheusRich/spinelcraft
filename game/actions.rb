@@ -62,10 +62,14 @@ class Game
 
   # Keys that switch a mode or a setting, save, craft, or skip time.
   def handle_keys
-    if !@survival && Gfx.in_key_pressed(Key::Q)
-      at = PLACEABLE.index(@hotbar[@slot]) || 0
-      @hotbar[@slot] = PLACEABLE[(at + 1) % PLACEABLE.size]
-      say(Block::NAMES[@hotbar[@slot]])
+    if Gfx.in_key_pressed(Key::Q)
+      if @survival
+        throw_selected
+      else
+        at = PLACEABLE.index(@hotbar[@slot]) || 0
+        @hotbar[@slot] = PLACEABLE[(at + 1) % PLACEABLE.size]
+        say(Block::NAMES[@hotbar[@slot]])
+      end
     end
     if Gfx.in_key_pressed(Key::G)
       @survival = !@survival
@@ -175,25 +179,11 @@ class Game
     # A good enough pickaxe speeds up stone; without one, stone is slow.
     speed = need == 0 ? 1.0 : (tier >= need ? 1.0 + tier * 1.2 : 0.3)
     @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / hardness
-    if @mine_progress >= 1.0 && b == Block::CHEST
-      stored = @chests[World.key(x, y, z)]
-      unless stored.nil? || chest_fits?(stored)
-        say("EMPTY THE CHEST FIRST  INVENTORY FULL")
-        @mine_progress = 0.0
-        return
-      end
-    end
     if @mine_progress >= 1.0
-      drop = tier >= need ? Block::DROPS[b] : Block::AIR
-      if drop != Block::AIR && room_for(drop) == 0
-        say("INVENTORY FULL")
-        @mine_progress = 0.0
-        return
-      end
       burst_particles(x, y, z, b)
       play(Sfx::BREAK, 0.7)
       set_block(x, y, z, Block::AIR)
-      give(drop)
+      drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
       @mining = false
     end
   end

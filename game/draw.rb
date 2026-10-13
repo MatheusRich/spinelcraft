@@ -56,6 +56,8 @@ class Mesh3
     @cx = Array.new(8, 0.0)
     @cy = Array.new(8, 0.0)
     @cz = Array.new(8, 0.0)
+    # The origin and the x, y and z axes of the frame for frame_box.
+    @frame = Array.new(12, 0.0)
   end
 
   def clear = @v.clear
@@ -86,7 +88,7 @@ class Mesh3
       @cz[i] = oz + lx * syw + rz * cyw
       i += 1
     end
-    corner_faces(63, layer, r, g, b, a)
+    corner_faces(63, layer, layer, layer, r, g, b, a)
   end
 
   def aabb(x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
@@ -103,15 +105,51 @@ class Mesh3
       @cz[i] = (i & 4) == 0 ? z0 : z1
       i += 1
     end
-    corner_faces(mask, layer, r, g, b, a)
+    corner_faces(mask, layer, layer, layer, r, g, b, a)
+  end
+
+  # Sets the frame for frame_box: the origin o and the axes a, b and c. The
+  # length of an axis scales the box along it.
+  def set_frame(ox, oy, oz, ax, ay, az, bx, by, bz, cx, cy, cz)
+    f = @frame
+    f[0] = ox
+    f[1] = oy
+    f[2] = oz
+    f[3] = ax
+    f[4] = ay
+    f[5] = az
+    f[6] = bx
+    f[7] = by
+    f[8] = bz
+    f[9] = cx
+    f[10] = cy
+    f[11] = cz
+  end
+
+  # A box from (x0, y0, z0) to (x1, y1, z1) in the frame of set_frame. It
+  # draws the faces in mask (see aabb_faces), with the top layer on the +y
+  # face, the bottom layer on the -y face, and the side layer on the others.
+  def frame_box(x0, y0, z0, x1, y1, z1, mask, top, side, bottom, r, g, b, a)
+    f = @frame
+    i = 0
+    while i < 8
+      lx = (i & 1) == 0 ? x0 : x1
+      ly = (i & 2) == 0 ? y0 : y1
+      lz = (i & 4) == 0 ? z0 : z1
+      @cx[i] = f[0] + lx * f[3] + ly * f[6] + lz * f[9]
+      @cy[i] = f[1] + lx * f[4] + ly * f[7] + lz * f[10]
+      @cz[i] = f[2] + lx * f[5] + ly * f[8] + lz * f[11]
+      i += 1
+    end
+    corner_faces(mask, top, side, bottom, r, g, b, a)
   end
 
   # The faces in mask of the box with the corners in @cx, @cy and @cz.
-  def corner_faces(mask, layer, r, g, b, a)
-    l = layer.to_f
+  def corner_faces(mask, top, side, bottom, r, g, b, a)
     f = 0
     while f < 6
       if ((mask >> f) & 1) == 1
+        l = (f == 2 ? top : (f == 3 ? bottom : side)).to_f
         face = FACES[f]
         s = SHADE[f]
         a0 = face[0]
