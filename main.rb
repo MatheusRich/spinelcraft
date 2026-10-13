@@ -178,9 +178,9 @@ class Game
 
   def setup
     vsync = ENV["NOVSYNC"] ? 0 : 1
-    abort "graphics init failed" if Gfx.gfx_init(1280, 720, vsync) != 0
+    abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync)
     check_gfx_limits
-    abort "texture upload failed" if Gfx.gfx_textures(Tex.build, Tex::LAYERS) != 0
+    abort "texture upload failed" unless Gfx.gfx_textures(Tex.build, Tex::LAYERS)
     upload_clouds
     @sound = ENV["MUTE"].nil? && Sfx.init
     puts "audio #{@sound ? "on" : "off"}"
@@ -308,7 +308,7 @@ class Game
       nx = @pt_x[i] + @pt_vx[i] * dt
       ny = @pt_y[i] + @pt_vy[i] * dt
       nz = @pt_z[i] + @pt_vz[i] * dt
-      if Block::SOLID[@world.get(nx.floor, ny.floor, nz.floor)] == 1
+      if Block.solid?(@world.get(nx.floor, ny.floor, nz.floor))
         @pt_vx[i] *= 0.3
         @pt_vz[i] *= 0.3
         @pt_vy[i] = 0.0
@@ -344,19 +344,19 @@ class Game
     down = false
     sprint = false
     if @captured && !@dead
-      fwd += 1.0 if Gfx.in_key(Key::W) != 0
-      fwd -= 1.0 if Gfx.in_key(Key::S) != 0
-      strafe += 1.0 if Gfx.in_key(Key::D) != 0
-      strafe -= 1.0 if Gfx.in_key(Key::A) != 0
-      jump = Gfx.in_key(Key::SPACE) != 0
-      down = Gfx.in_key(Key::LSHIFT) != 0
+      fwd += 1.0 if Gfx.in_key(Key::W)
+      fwd -= 1.0 if Gfx.in_key(Key::S)
+      strafe += 1.0 if Gfx.in_key(Key::D)
+      strafe -= 1.0 if Gfx.in_key(Key::A)
+      jump = Gfx.in_key(Key::SPACE)
+      down = Gfx.in_key(Key::LSHIFT)
       # Double-tap W to sprint until W is released.
-      if Gfx.in_key_pressed(Key::W) != 0
+      if Gfx.in_key_pressed(Key::W)
         @w_sprint = @anim_time - @last_w < 0.3 && @anim_time > @last_w
         @last_w = @anim_time
       end
-      @w_sprint = false if Gfx.in_key(Key::W) == 0
-      sprint = Gfx.in_key(Key::LCTRL) != 0 || @w_sprint
+      @w_sprint = false unless Gfx.in_key(Key::W)
+      sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
     end
     if @autopilot
       @player.flying = true
@@ -465,7 +465,7 @@ class Game
     max_frame = 0.0
     slow_frames = 0
     started = last
-    while Gfx.in_poll == 0
+    until Gfx.in_poll
       now = Gfx.gfx_ns
       dt = (now - last) / 1.0e9
       dt = 0.05 if dt > 0.05

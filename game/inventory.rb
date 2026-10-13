@@ -312,13 +312,13 @@ class Game
   end
 
   def handle_inventory
-    if Gfx.in_key_pressed(Key::E) != 0 || Gfx.in_key_pressed(Key::ESCAPE) != 0
+    if Gfx.in_key_pressed(Key::E) || Gfx.in_key_pressed(Key::ESCAPE)
       toggle_inventory
       return
     end
     select_slot
-    craft if @survival && Gfx.in_key_pressed(Key::C) != 0
-    if @survival && Gfx.in_button_pressed(1) != 0
+    craft if @survival && Gfx.in_key_pressed(Key::C)
+    if @survival && Gfx.in_button_pressed(1)
       w = Gfx.gfx_width.to_f
       h = Gfx.gfx_height.to_f
       hover = pack_hover(w, h, ui_scale(h))
@@ -330,7 +330,7 @@ class Game
         recipe = recipe_hover(w, h, ui_scale(h))
         craft_recipe(recipe) if recipe >= 0 && @held_count == 0
       end
-    elsif Gfx.in_button_pressed(1) != 0
+    elsif Gfx.in_button_pressed(1)
       w = Gfx.gfx_width.to_f
       h = Gfx.gfx_height.to_f
       hover = inventory_hover(w, h, ui_scale(h))

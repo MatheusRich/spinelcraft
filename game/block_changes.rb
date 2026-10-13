@@ -9,7 +9,7 @@ class Game
     end
     @world.set(x, y, z, b)
     mark_dirty(x, z)
-    set_block(x, y + 1, z, Block::AIR) if b == Block::AIR && Block::PLANT[@world.get(x, y + 1, z)] == 1
+    set_block(x, y + 1, z, Block::AIR) if b == Block::AIR && Block.plant?(@world.get(x, y + 1, z))
     settle_column(x, z)
     wake_water(x, y, z)
   end
@@ -58,7 +58,7 @@ class Game
       nx = x + (d == 0 ? 1 : (d == 1 ? -1 : 0))
       nz = z + (d == 2 ? 1 : (d == 3 ? -1 : 0))
       level = Block::WATER_LEVEL[@world.get(nx, y, nz)]
-      if level > 0 && (level == 8 || Block::SOLID[@world.get(nx, y - 1, nz)] == 1)
+      if level > 0 && (level == 8 || Block.solid?(@world.get(nx, y - 1, nz)))
         best = level - 1 if level - 1 > best
       end
       d += 1
@@ -75,7 +75,7 @@ class Game
       nx = x + (d == 0 ? 1 : (d == 1 ? -1 : 0))
       nz = z + (d == 2 ? 1 : (d == 3 ? -1 : 0))
       level = Block.lava_level(@world.get(nx, y, nz))
-      if level > 0 && (level == 4 || Block::SOLID[@world.get(nx, y - 1, nz)] == 1)
+      if level > 0 && (level == 4 || Block.solid?(@world.get(nx, y - 1, nz)))
         best = level - 1 if level - 1 > best
       end
       d += 1
@@ -108,7 +108,7 @@ class Game
       level = Block::WATER_LEVEL[b]
       lava = Block.lava_level(b)
       next if level == 8 || lava == 4
-      next unless b == Block::AIR || level > 0 || lava > 0 || Block::PLANT[b] == 1
+      next unless b == Block::AIR || level > 0 || lava > 0 || Block.plant?(b)
       target = flow_target(x, y, z)
       lava_to = lava_target(x, y, z)
       want = if lava_to > 0
@@ -136,11 +136,11 @@ class Game
       b = @world.get(x, y, z)
       if falls?(b)
         below = @world.get(x, y - 1, z)
-        if below == Block::AIR || Block.water?(below) || Block::PLANT[below] == 1
+        if below == Block::AIR || Block.water?(below) || Block.plant?(below)
           ty = y - 1
           while ty > 0
             under = @world.get(x, ty - 1, z)
-            break unless under == Block::AIR || Block.water?(under) || Block::PLANT[under] == 1
+            break unless under == Block::AIR || Block.water?(under) || Block.plant?(under)
             ty -= 1
           end
           # The block lands in the place of a plant or a torch: a buried torch's light goes out.

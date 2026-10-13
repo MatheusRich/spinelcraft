@@ -103,14 +103,13 @@ class Player
     y1 = (@y + TALL).floor
     z0 = (@z - HALF).floor
     z1 = (@z + HALF).floor
-    solid = Block::SOLID
     x = x0
     while x <= x1
       y = y0
       while y <= y1
         z = z0
         while z <= z1
-          return true if solid[world.get(x, y, z)] == 1
+          return true if Block.solid?(world.get(x, y, z))
           z += 1
         end
         y += 1
@@ -169,7 +168,7 @@ class Player
     while x <= (@x + HALF).floor
       z = (@z - HALF).floor
       while z <= (@z + HALF).floor
-        return true if Block::SOLID[world.get(x, y, z)] == 1
+        return true if Block.solid?(world.get(x, y, z))
         z += 1
       end
       x += 1

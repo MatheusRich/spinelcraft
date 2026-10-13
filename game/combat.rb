@@ -240,7 +240,7 @@ class Game
         nx = @ar_x[i] + @ar_vx[i] * dt
         ny = @ar_y[i] + @ar_vy[i] * dt
         nz = @ar_z[i] + @ar_vz[i] * dt
-        if Block::SOLID[@world.get(nx.floor, ny.floor, nz.floor)] == 1
+        if Block.solid?(@world.get(nx.floor, ny.floor, nz.floor))
           @ar_stuck[i] = true
           @ar_life[i] = 3.0 if @ar_life[i] > 3.0
         else

@@ -58,14 +58,13 @@ class Mob
     y1 = (@y + @tall).floor
     z0 = (@z - @half).floor
     z1 = (@z + @half).floor
-    solid = Block::SOLID
     x = x0
     while x <= x1
       y = y0
       while y <= y1
         z = z0
         while z <= z1
-          return true if solid[world.get(x, y, z)] == 1
+          return true if Block.solid?(world.get(x, y, z))
           z += 1
         end
         y += 1
@@ -216,7 +215,7 @@ class Mob
     i = 1
     while i < steps
       t = i / (len * 2.0)
-      return false if Block::SOLID[world.get((ox + dx * t).floor, (oy + dy * t).floor, (oz + dz * t).floor)] == 1
+      return false if Block.solid?(world.get((ox + dx * t).floor, (oy + dy * t).floor, (oz + dz * t).floor))
       i += 1
     end
     true

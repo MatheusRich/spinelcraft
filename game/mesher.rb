@@ -102,7 +102,6 @@ class Mesher
     height = @world.height
     opaque = Block::OPAQUE
     occludes = Block::OCCLUDES
-    plant = Block::PLANT
     water_level = Block::WATER_LEVEL
     py = PY
     dx = PZ * PY
@@ -161,7 +160,7 @@ class Mesher
         while y <= ymax
           i = base + y
           above = World.byte(blocks, i + 1)
-          if plant[id] == 1
+          if Block.plant?(id)
             sky = y >= height[lx * WZ + lz] ? 1 : 0
             w1 = top_tex[id] | (255 << 8) | (sky << 17)
             w1 |= torch_light(x, y, z) << 19 if lit

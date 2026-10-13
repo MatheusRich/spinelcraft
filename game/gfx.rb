@@ -235,9 +235,9 @@ module Gfx
       "  return c;\n"
       "}\n";
 
-    static int fail(const char *what) {
+    static bool fail(const char *what) {
       fprintf(stderr, "%s: %s\n", what, SDL_GetError());
-      return -1;
+      return false;
     }
 
     static SDL_GPUShader *shader(const char *entry, SDL_GPUShaderStage stage, int samplers) {
@@ -367,7 +367,7 @@ module Gfx
       }
     }
 
-    long gfx_init(long w, long h, long vsync) {
+    bool gfx_init(long w, long h, long vsync) {
       if (!SDL_Init(SDL_INIT_VIDEO)) return fail("SDL_Init");
       win = SDL_CreateWindow("Spinelcraft", (int)w, (int)h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
       if (!win) return fail("SDL_CreateWindow");
@@ -485,11 +485,11 @@ module Gfx
       cloud_buf = make_buffer(CLOUD_CAP * 40);
       cloud_tb = make_transfer(CLOUD_CAP * 40);
       if (!sampler || !cloud_sampler || !dyn_buf || !ui_buf || !dyn_tb || !ui_tb || !cloud_buf || !cloud_tb) return fail("SDL_CreateGPUBuffer");
-      return 0;
+      return true;
     }
 
     /* layers of 16x16 RGBA pixels, one Integer per pixel (0xAABBGGRR). */
-    long gfx_textures(const int64_t *px, long layers) {
+    bool gfx_textures(const int64_t *px, long layers) {
       SDL_GPUTextureCreateInfo ti = {0};
       ti.type = SDL_GPU_TEXTURETYPE_2D_ARRAY;
       ti.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -517,12 +517,12 @@ module Gfx
       SDL_GenerateMipmapsForGPUTexture(c, atlas);
       SDL_SubmitGPUCommandBuffer(c);
       SDL_ReleaseGPUTransferBuffer(dev, tb);
-      return 0;
+      return true;
     }
 
     /* The cloud grid: size x size RGBA pixels, one Integer per pixel (0xAABBGGRR).
        A new grid replaces the old one. */
-    long gfx_clouds(const int64_t *px, long size) {
+    bool gfx_clouds(const int64_t *px, long size) {
       int levels = 1;
       while ((1L << levels) <= size) levels++;
       SDL_GPUTextureCreateInfo ti = {0};
@@ -551,7 +551,7 @@ module Gfx
       /* SDL frees the old texture when no frame on the GPU uses it. */
       if (cloud_tex) SDL_ReleaseGPUTexture(dev, cloud_tex);
       cloud_tex = t;
-      return 0;
+      return true;
     }
 
     /* Two Integers per face; stored on the GPU as two uint32 words. */
@@ -606,8 +606,8 @@ module Gfx
     /* uniforms: 16 view-projection (column-major), cam xyz + time, fog rgb + end,
        daylight, fog start, screen w, screen h, and for each far terrain level the
        square x0 z0 x1 z1 that the next finer level covers.
-       Returns 0 when there is a frame to draw. */
-    long gfx_begin(const double *u) {
+       Returns true when there is a frame to draw. */
+    bool gfx_begin(const double *u) {
       for (int i = 0; i < UNIFORMS; i++) uni[i] = (float)u[i];
       frame_wait_ns = 0;
       cmd = SDL_AcquireGPUCommandBuffer(dev);
@@ -672,7 +672,7 @@ module Gfx
       Uint64 w0 = SDL_GetTicksNS();
       if (!SDL_WaitAndAcquireGPUSwapchainTexture(cmd, win, &swap_tex, &swap_w, &swap_h)) return fail("acquire");
       frame_wait_ns += SDL_GetTicksNS() - w0;
-      if (!swap_tex) { SDL_SubmitGPUCommandBuffer(cmd); cmd = NULL; return 1; }
+      if (!swap_tex) { SDL_SubmitGPUCommandBuffer(cmd); cmd = NULL; return false; }
       if (!depth_tex || depth_w != swap_w || depth_h != swap_h) {
         if (depth_tex) SDL_ReleaseGPUTexture(dev, depth_tex);
         SDL_GPUTextureCreateInfo ti = {.type = SDL_GPU_TEXTURETYPE_2D, .format = depth_fmt,
@@ -707,7 +707,7 @@ module Gfx
         SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
         SDL_DrawGPUPrimitives(pass, sky_count, 1, 0, 0);
       }
-      return 0;
+      return true;
     }
 
     /* Pairs of (slot, direction mask). Bit f draws the faces of direction f
@@ -847,7 +847,7 @@ module Gfx
     static int sound_len[SOUNDS];
     static int next_voice;
 
-    long au_init(void) {
+    bool au_init(void) {
       if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) return fail("SDL_InitSubSystem(audio)");
       SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, 22050};
       audio_dev = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
@@ -856,7 +856,7 @@ module Gfx
         voice[i] = SDL_CreateAudioStream(&spec, NULL);
         if (!voice[i] || !SDL_BindAudioStream(audio_dev, voice[i])) return fail("SDL_BindAudioStream");
       }
-      return 0;
+      return true;
     }
 
     long au_load(long id, const double *samples, long n) {
@@ -884,7 +884,7 @@ module Gfx
     void gfx_quit(void) { SDL_WaitForGPUIdle(dev); SDL_Quit(); }
 
     /* Input. Edges (pressed this frame) compare against the previous poll. */
-    long in_poll(void) {
+    bool in_poll(void) {
       memcpy(keys_prev, keys_now, sizeof keys_now);
       buttons_prev = buttons_now;
       mouse_dx = mouse_dy = wheel = 0;
@@ -905,14 +905,14 @@ module Gfx
       buttons_now = SDL_GetMouseState(NULL, NULL);
       return quit_requested;
     }
-    long in_key(long sc) { return keys_now[sc]; }
-    long in_key_pressed(long sc) { return keys_now[sc] && !keys_prev[sc]; }
-    long in_button(long b) { return (buttons_now >> (b - 1)) & 1; }
-    long in_button_pressed(long b) { return ((buttons_now & ~buttons_prev) >> (b - 1)) & 1; }
+    bool in_key(long sc) { return keys_now[sc]; }
+    bool in_key_pressed(long sc) { return keys_now[sc] && !keys_prev[sc]; }
+    bool in_button(long b) { return (buttons_now >> (b - 1)) & 1; }
+    bool in_button_pressed(long b) { return ((buttons_now & ~buttons_prev) >> (b - 1)) & 1; }
     double in_mouse_dx(void) { return mouse_dx; }
     double in_mouse_dy(void) { return mouse_dy; }
     double in_wheel(void) { return wheel; }
-    long in_focus_lost(void) { return focus_lost; }
+    bool in_focus_lost(void) { return focus_lost; }
     /* Cursor position in swapchain pixels. */
     double in_mouse_x(void) { float x, y; SDL_GetMouseState(&x, &y); return x * SDL_GetWindowPixelDensity(win); }
     double in_mouse_y(void) { float x, y; SDL_GetMouseState(&x, &y); return y * SDL_GetWindowPixelDensity(win); }
@@ -921,15 +921,15 @@ module Gfx
     /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms. */
     long gfx_limit(long which) { return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : UNIFORMS)); }
   C
-  ffi_func :gfx_init, [:long, :long, :long], :long
-  ffi_func :gfx_textures, [:int_array, :long], :long
-  ffi_func :gfx_clouds, [:int_array, :long], :long
+  ffi_func :gfx_init, [:long, :long, :long], :bool
+  ffi_func :gfx_textures, [:int_array, :long], :bool
+  ffi_func :gfx_clouds, [:int_array, :long], :bool
   ffi_func :gfx_mesh, [:long, :int_array, :long, :int_array], :long
   ffi_func :gfx_dyn, [:float_array, :long], :long
   ffi_func :gfx_ui, [:float_array, :long], :long
   ffi_func :gfx_sky, [:float_array, :long], :long
   ffi_func :gfx_cloud_boxes, [:float_array, :long], :long
-  ffi_func :gfx_begin, [:float_array], :long
+  ffi_func :gfx_begin, [:float_array], :bool
   ffi_func :gfx_chunks, [:int_array, :long, :long], :long
   ffi_func :gfx_draw_dyn, [], :long
   ffi_func :gfx_draw_clouds, [], :long
@@ -937,22 +937,22 @@ module Gfx
   ffi_func :gfx_screenshot, [:str], :void
   ffi_func :gfx_gpu_ms, [], :double
   ffi_func :gfx_wait_ns, [], :long
-  ffi_func :au_init, [], :long
+  ffi_func :au_init, [], :bool
   ffi_func :au_load, [:long, :float_array, :long], :long
   ffi_func :au_play, [:long, :double], :void
   ffi_func :gfx_width, [], :long
   ffi_func :gfx_height, [], :long
   ffi_func :gfx_ns, [], :long
   ffi_func :gfx_quit, [], :void
-  ffi_func :in_poll, [], :long
-  ffi_func :in_key, [:long], :long
-  ffi_func :in_key_pressed, [:long], :long
-  ffi_func :in_button, [:long], :long
-  ffi_func :in_button_pressed, [:long], :long
+  ffi_func :in_poll, [], :bool
+  ffi_func :in_key, [:long], :bool
+  ffi_func :in_key_pressed, [:long], :bool
+  ffi_func :in_button, [:long], :bool
+  ffi_func :in_button_pressed, [:long], :bool
   ffi_func :in_mouse_dx, [], :double
   ffi_func :in_mouse_dy, [], :double
   ffi_func :in_wheel, [], :double
-  ffi_func :in_focus_lost, [], :long
+  ffi_func :in_focus_lost, [], :bool
   ffi_func :in_mouse_x, [], :double
   ffi_func :in_mouse_y, [], :double
   ffi_func :in_capture, [:long], :void

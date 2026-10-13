@@ -69,7 +69,7 @@ module Sfx
   end
 
   def self.init
-    return false if Gfx.au_init != 0
+    return false unless Gfx.au_init
     load(BREAK, burst(0.18, 22.0, 0.35, 0.9, 11))
     load(PLACE, mix(burst(0.07, 60.0, 0.25, 0.7, 12), tone(0.08, 150.0, 90.0, 40.0, 0, 0.5)))
     load(HURT, tone(0.22, 420.0, 180.0, 10.0, 1, 0.35))

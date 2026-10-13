@@ -5,14 +5,14 @@ class Game
       handle_inventory
       return
     end
-    if Gfx.in_key_pressed(Key::ESCAPE) != 0 || Gfx.in_focus_lost != 0
+    if Gfx.in_key_pressed(Key::ESCAPE) || Gfx.in_focus_lost
       # Saving takes tens of milliseconds, so it happens when the game pauses, not mid-play.
       save if @captured && @changed && @save_on_quit
       @captured = false
       Gfx.in_capture(0)
     end
     if @dead
-      if Gfx.in_button_pressed(1) != 0 || Gfx.in_key_pressed(Key::R) != 0
+      if Gfx.in_button_pressed(1) || Gfx.in_key_pressed(Key::R)
         respawn
         @captured = true
         Gfx.in_capture(1)
@@ -20,8 +20,8 @@ class Game
       return
     end
     if !@captured
-      new_world if Gfx.in_key_pressed(Key::N) != 0
-      if Gfx.in_button_pressed(1) != 0
+      new_world if Gfx.in_key_pressed(Key::N)
+      if Gfx.in_button_pressed(1)
         @captured = true
         Gfx.in_capture(1)
       end
@@ -29,17 +29,17 @@ class Game
     end
     @player.look(Gfx.in_mouse_dx, Gfx.in_mouse_dy)
     select_slot
-    if Gfx.in_key_pressed(Key::E) != 0
+    if Gfx.in_key_pressed(Key::E)
       toggle_inventory
       return
     end
     handle_keys
     @action_cooldown -= dt
-    left = Gfx.in_button(1) != 0
-    right = Gfx.in_button(3) != 0
-    left_pressed = Gfx.in_button_pressed(1) != 0
-    @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3) != 0
-    if Gfx.in_button_pressed(2) != 0 && @player.hit && !@survival
+    left = Gfx.in_button(1)
+    right = Gfx.in_button(3)
+    left_pressed = Gfx.in_button_pressed(1)
+    @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3)
+    if Gfx.in_button_pressed(2) && @player.hit && !@survival
       picked = @world.get(@player.hx, @player.hy, @player.hz)
       @hotbar[@slot] = picked if picked != Block::BEDROCK
       say(Block::NAMES[@hotbar[@slot]])
@@ -52,7 +52,7 @@ class Game
   def select_slot
     i = 0
     while i < HOTBAR
-      @slot = i if Gfx.in_key_pressed(Key::N1 + i) != 0
+      @slot = i if Gfx.in_key_pressed(Key::N1 + i)
       i += 1
     end
     wheel = Gfx.in_wheel
@@ -62,33 +62,33 @@ class Game
 
   # Keys that switch a mode or a setting, save, craft, or skip time.
   def handle_keys
-    if !@survival && Gfx.in_key_pressed(Key::Q) != 0
+    if !@survival && Gfx.in_key_pressed(Key::Q)
       at = PLACEABLE.index(@hotbar[@slot]) || 0
       @hotbar[@slot] = PLACEABLE[(at + 1) % PLACEABLE.size]
       say(Block::NAMES[@hotbar[@slot]])
     end
-    if Gfx.in_key_pressed(Key::G) != 0
+    if Gfx.in_key_pressed(Key::G)
       @survival = !@survival
       @player.flying = false if @survival
       say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
     end
-    if Gfx.in_key_pressed(Key::F) != 0 && !@survival
+    if Gfx.in_key_pressed(Key::F) && !@survival
       @player.flying = !@player.flying
       say(@player.flying ? "FLYING" : "WALKING")
     end
-    @show_debug = !@show_debug if Gfx.in_key_pressed(Key::F3) != 0
-    save if Gfx.in_key_pressed(Key::F5) != 0
-    if Gfx.in_key_pressed(Key::F4) != 0
+    @show_debug = !@show_debug if Gfx.in_key_pressed(Key::F3)
+    save if Gfx.in_key_pressed(Key::F5)
+    if Gfx.in_key_pressed(Key::F4)
       i = VIEWS.index { |v| v > @fog_end }
       @fog_end = i.nil? ? VIEWS[0] : VIEWS[i]
       say("VIEW DISTANCE #{@fog_end.to_i}")
     end
-    if Gfx.in_key_pressed(Key::F11) != 0
+    if Gfx.in_key_pressed(Key::F11)
       @fullscreen = !@fullscreen
       Gfx.gfx_fullscreen(@fullscreen ? 1 : 0)
     end
-    craft if @survival && Gfx.in_key_pressed(Key::C) != 0
-    @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T) != 0
+    craft if @survival && Gfx.in_key_pressed(Key::C)
+    @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T)
   end
 
   # The left button hits the mob in the crosshair, or else breaks the block:
@@ -231,22 +231,24 @@ class Game
   end
 
   def place
-    b = current_block
+    # Spinel types an Array read as Integer or nil. A plain Integer here keeps
+    # the parameters of Block.solid?, plant? and emits? unboxed.
+    b = current_block.to_i
     return if b == Block::AIR || Block.item?(b)
     return if @survival && @inv_count[@slot] <= 0
     x = @player.px
     y = @player.py
     z = @player.pz
     return unless @world.inside?(x, y, z)
-    return if Block::SOLID[b] == 1 && @player.overlaps?(x, y, z)
-    return if Block::PLANT[b] == 1 && (Block::SOLID[@world.get(x, y - 1, z)] == 0 || Block.water?(@world.get(x, y, z)))
-    if Block::SOLID[b] == 1
+    return if Block.solid?(b) && @player.overlaps?(x, y, z)
+    return if Block.plant?(b) && (!Block.solid?(@world.get(x, y - 1, z)) || Block.water?(@world.get(x, y, z)))
+    if Block.solid?(b)
       @mobs.each do |m|
         return if x + 1 > m.x - m.half && x < m.x + m.half && y + 1 > m.y && y < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
       end
     end
     current = @world.get(x, y, z)
-    return unless current == Block::AIR || Block.water?(current) || Block::PLANT[current] == 1
+    return unless current == Block::AIR || Block.water?(current) || Block.plant?(current)
     set_block(x, y, z, b)
     play(Sfx::PLACE, 0.7)
     @swing = 0.25
