@@ -11,7 +11,7 @@ module Gfx
 
     static SDL_Window *win;
     static SDL_GPUDevice *dev;
-    static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth;
+    static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth, *p_hand;
     static SDL_GPUTexture *atlas, *depth_tex, *cloud_tex;
     static SDL_GPUSampler *sampler, *cloud_sampler;
     static SDL_GPUTextureFormat depth_fmt;
@@ -67,6 +67,8 @@ module Gfx
     static SDL_GPUBuffer *dyn_buf, *ui_buf, *sky_buf;
     static SDL_GPUTransferBuffer *dyn_tb, *ui_tb, *sky_tb;
     static Uint32 dyn_count, ui_count, sky_count;
+    /* The dynamic vertices from hand_first on are the held item. */
+    static Uint32 hand_first;
     #define SKY_CAP 8192
     /* The cloud boxes change only when the player's cloud cell changes. */
     #define CLOUD_CAP (1 << 17)
@@ -184,6 +186,14 @@ module Gfx
       "}\n"
       "vertex VOut vdyn(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
       "  return dyn_out(in, in.pos, u);\n"
+      "}\n"
+      "// The held item: its depth goes to the first 1% of the range, so it is\n"
+      "// in front of every wall that the camera touches.\n"
+      "vertex VOut vhand(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
+      "  VOut o = dyn_out(in, in.pos, u);\n"
+      "  o.pos.z *= 0.01;\n"
+      "  o.fog = 0.0;\n"
+      "  return o;\n"
       "}\n"
       "// Cloud boxes: Clouds#build makes them without the drift, u.cloud.x.\n"
       "vertex VOut vcloud_box(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
@@ -385,6 +395,7 @@ module Gfx
       SDL_GPUShader *vchunk = shader("vchunk", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vdyn = shader("vdyn", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vcloud_box = shader("vcloud_box", SDL_GPU_SHADERSTAGE_VERTEX, 0);
+      SDL_GPUShader *vhand = shader("vhand", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vui = shader("vui", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *fworld = shader("fworld", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
       SDL_GPUShader *vlod = shader("vlod", SDL_GPU_SHADERSTAGE_VERTEX, 0);
@@ -399,7 +410,7 @@ module Gfx
       fui_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
       fui_info.num_samplers = 1;
       SDL_GPUShader *fui = SDL_CreateGPUShader(dev, &fui_info);
-      if (!vchunk || !vdyn || !vui || !fworld || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box) return fail("SDL_CreateGPUShader");
+      if (!vchunk || !vdyn || !vui || !fworld || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box || !vhand) return fail("SDL_CreateGPUShader");
 
       SDL_GPUVertexBufferDescription chunk_vb = {.slot = 0, .pitch = 8, .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE};
       SDL_GPUVertexAttribute chunk_attr = {.location = 0, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_UINT2};
@@ -415,6 +426,7 @@ module Gfx
         {.location = 3, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 24},
       };
       p_dyn = pipeline(vdyn, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 1, 0);
+      p_hand = pipeline(vhand, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 1, 0);
       /* Cloud boxes: depth first, then the color of the nearest face only, so
          each pixel blends one cloud face. */
       p_cloud_depth = pipeline(vcloud_box, fworld, &dyn_vb, dyn_attr, 4, 1, 1, 2, 0);
@@ -430,7 +442,7 @@ module Gfx
         {.location = 3, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 20},
       };
       p_ui = pipeline(vui, fui, &ui_vb, ui_attr, 4, 0, 0, 1, 0);
-      if (!p_chunk || !p_water || !p_lod || !p_dyn || !p_ui || !p_cloud || !p_cloud_box || !p_cloud_depth) return fail("SDL_CreateGPUGraphicsPipeline");
+      if (!p_chunk || !p_water || !p_lod || !p_dyn || !p_ui || !p_cloud || !p_cloud_box || !p_cloud_depth || !p_hand) return fail("SDL_CreateGPUGraphicsPipeline");
       SDL_ReleaseGPUShader(dev, vchunk);
       SDL_ReleaseGPUShader(dev, vdyn);
       SDL_ReleaseGPUShader(dev, vui);
@@ -441,6 +453,7 @@ module Gfx
       SDL_ReleaseGPUShader(dev, vcloud);
       SDL_ReleaseGPUShader(dev, fcloud);
       SDL_ReleaseGPUShader(dev, vcloud_box);
+      SDL_ReleaseGPUShader(dev, vhand);
 
       SDL_GPUSamplerCreateInfo si = {0};
       si.min_filter = SDL_GPU_FILTER_NEAREST;
@@ -594,7 +607,12 @@ module Gfx
       return (Uint32)n;
     }
 
-    long gfx_dyn(const double *v, long nfloats) { dyn_count = stage_floats(dyn_tb, v, nfloats, DYN_CAP * 10) / 10; return 0; }
+    /* The floats from hand_floats on are the held item (see gfx_draw_hand). */
+    long gfx_dyn(const double *v, long nfloats, long hand_floats) {
+      dyn_count = stage_floats(dyn_tb, v, nfloats, DYN_CAP * 10) / 10;
+      hand_first = hand_floats / 10 < dyn_count ? (Uint32)(hand_floats / 10) : dyn_count;
+      return 0;
+    }
     long gfx_ui(const double *v, long nfloats) { ui_count = stage_floats(ui_tb, v, nfloats, UI_CAP * 9) / 9; return 0; }
     long gfx_sky(const double *v, long nfloats) { sky_count = stage_floats(sky_tb, v, nfloats, SKY_CAP * 9) / 9; return 0; }
     long gfx_cloud_boxes(const double *v, long nfloats) {
@@ -741,11 +759,21 @@ module Gfx
     }
 
     long gfx_draw_dyn(void) {
-      if (!pass || !dyn_count) return 0;
+      if (!pass || !hand_first) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_dyn);
       SDL_GPUBufferBinding b = {.buffer = dyn_buf};
       SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
-      SDL_DrawGPUPrimitives(pass, dyn_count, 1, 0, 0);
+      SDL_DrawGPUPrimitives(pass, hand_first, 1, 0, 0);
+      return 0;
+    }
+
+    /* The held item, after everything else in the world. */
+    long gfx_draw_hand(void) {
+      if (!pass || dyn_count <= hand_first) return 0;
+      SDL_BindGPUGraphicsPipeline(pass, p_hand);
+      SDL_GPUBufferBinding b = {.buffer = dyn_buf};
+      SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
+      SDL_DrawGPUPrimitives(pass, dyn_count - hand_first, 1, hand_first, 0);
       return 0;
     }
 
@@ -925,13 +953,14 @@ module Gfx
   ffi_func :gfx_textures, [:int_array, :long], :bool
   ffi_func :gfx_clouds, [:int_array, :long], :bool
   ffi_func :gfx_mesh, [:long, :int_array, :long, :int_array], :long
-  ffi_func :gfx_dyn, [:float_array, :long], :long
+  ffi_func :gfx_dyn, [:float_array, :long, :long], :long
   ffi_func :gfx_ui, [:float_array, :long], :long
   ffi_func :gfx_sky, [:float_array, :long], :long
   ffi_func :gfx_cloud_boxes, [:float_array, :long], :long
   ffi_func :gfx_begin, [:float_array], :bool
   ffi_func :gfx_chunks, [:int_array, :long, :long], :long
   ffi_func :gfx_draw_dyn, [], :long
+  ffi_func :gfx_draw_hand, [], :long
   ffi_func :gfx_draw_clouds, [], :long
   ffi_func :gfx_end, [], :long
   ffi_func :gfx_screenshot, [:str], :void

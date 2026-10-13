@@ -32,7 +32,8 @@ class Game
   end
 
   # SHOWITEMS=1 lays a row of dropped items on a stone floor in front of the
-  # player, in survival with a block in the hand.
+  # player, in survival with a block in the hand. HAND=id holds block id
+  # instead (0 for the empty hand).
   def show_items
     bx = @player.x.floor
     bz = @player.z.floor - 4
@@ -52,8 +53,8 @@ class Game
       drop_item(b, i == 9 ? 3 : 1, bx - 3.5 + i * 0.8, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
     end
     @survival = true
-    @inv_block[0] = Block::LOG
-    @inv_count[0] = 5
+    @inv_block[0] = (ENV["HAND"] || Block::LOG.to_s).to_i
+    @inv_count[0] = @inv_block[0] == Block::AIR ? 0 : 5
     @slot = 0
     @player.x = bx + 0.5
     @player.y = y + 1.0

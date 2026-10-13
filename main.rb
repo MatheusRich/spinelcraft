@@ -15,6 +15,7 @@ require_relative "game/streaming"
 require_relative "game/block_changes"
 require_relative "game/inventory"
 require_relative "game/items"
+require_relative "game/hand"
 require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
@@ -158,6 +159,12 @@ class Game
     @rng = @seed * 7 + 1
     @target_mob = -1
     @swing = 0.0
+    # The block in the hand model, and how far down the model still is after
+    # the selection changed (1 to 0).
+    @hand_block = 0
+    @equip = 0.0
+    # Where the held model starts in @dyn (see gfx_dyn).
+    @hand_at = 0
   end
 
   def rand01
@@ -410,6 +417,7 @@ class Game
     @message_time -= dt
     @damage_flash -= dt
     @swing -= dt
+    update_hand(dt)
     update_survival(dt)
     update_mobs(dt)
     @flow_timer -= dt

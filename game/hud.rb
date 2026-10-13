@@ -30,8 +30,7 @@ class Game
     end
   end
 
-  # Tints for water, lava and damage, the crosshair, the bow pull, and the
-  # held block.
+  # Tints for water, lava and damage, the crosshair, and the bow pull.
   def draw_view_overlays(w, h, s)
     eye_block = @world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor)
     if Block.water?(eye_block)
@@ -49,13 +48,6 @@ class Game
       pull = @draw_time > 1.0 ? 1.0 : @draw_time
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s, 4.0 * s, 0.0, 0.0, 0.0, 0.5)
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s * pull, 4.0 * s, 1.0, pull, 0.2, 0.9)
-    end
-    # hand: the selected block, bobbing when used
-    b = current_block
-    if b != Block::AIR && @captured
-      bob = @swing > 0.0 ? @swing * 120.0 * s : 0.0
-      hs = 150.0 * s
-      @ui.icon(w - hs - 90.0 * s - bob * 0.5, h - hs + 30.0 * s + bob, hs, Block::SIDE[b], 0.85)
     end
   end
 

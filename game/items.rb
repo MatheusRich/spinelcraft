@@ -237,7 +237,7 @@ class Game
   def item_model(b)
     if flat_item?(b)
       layer = Block::SIDE[b]
-      @dyn.frame_box(-0.5, -0.5, -0.03, 0.5, 0.5, 0.03, 48, layer, layer, layer, 1.0, 1.0, 1.0, 1.0)
+      @dyn.frame_box(-0.5, -0.5, 0.0, 0.5, 0.5, 0.0, 16, layer, layer, layer, 1.0, 1.0, 1.0, 1.0)
     else
       @dyn.frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
     end

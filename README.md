@@ -85,6 +85,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 - Beds. Right-click a bed to set your spawn point there. At night, if no monster is within 10 blocks, the bed also skips to morning.
 - Food. A pig drops a porkchop, and right-click eats the selected porkchop. Hunger drains over time, and faster when you sprint. Health regenerates only while hunger is 15 or more, and an empty hunger bar hurts you down to half a heart.
 - Generated sound effects, block-break particles, view bobbing, and a wider field of view when you sprint.
+- The held block or item is a 3D model at the lower right of the view. It swings when you use it, and an empty hand shows the arm.
 
 ## Layout
 
@@ -99,6 +100,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/block_changes.rb` | Block edits, flowing water and lava, falling sand and gravel |
 | `game/inventory.rb` | Hotbar, backpack, chests, crafting, and the inventory screen |
 | `game/items.rb` | Items on the ground: drops, pickup, and their models |
+| `game/hand.rb` | The held item in first person |
 | `game/actions.rb` | Keys, the mouse, mining, placing, beds, and food |
 | `game/combat.rb` | Mob spawning and turns, damage, explosions, the bow, and arrows |
 | `game/render.rb` | The 3D frame and the sky |
@@ -172,7 +174,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SAVE=1` | Save on quit also when `FRAMES` is set |
 | `MUTE=1` | No sound |
 | `SHOWMOBS=1` | Put one mob of each kind on a stone floor in front of the player |
-| `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player |
+| `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `SELFTEST=1` | Check 52 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |

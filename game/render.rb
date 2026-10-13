@@ -18,8 +18,8 @@ class Game
     reach = @fog_end + 4.0
     cull_chunks(ex, ez, reach)
     cull_far_tiles(ex, ez, reach)
-    build_dyn(ex, ez, reach)
-    Gfx.gfx_dyn(@dyn.v, @dyn.count)
+    build_dyn(ex, ey, ez, reach)
+    Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_at)
     build_ui(w, h)
     Gfx.gfx_ui(@ui.v, @ui.v.size)
     build_sky(w, h, ui_scale(h))
@@ -30,6 +30,7 @@ class Game
       Gfx.gfx_draw_dyn
       Gfx.gfx_draw_clouds
       @faces_drawn += Gfx.gfx_chunks(@water_visible, @water_visible.size / 2, 1)
+      Gfx.gfx_draw_hand
     end
     Gfx.gfx_end
     # The frame's CPU time includes the draw calls, but not the waits.
@@ -154,8 +155,8 @@ class Game
   end
 
   # Fills @dyn with the parts that change every frame: mobs, arrows, items,
-  # particles, the block outline, and the cracks.
-  def build_dyn(ex, ez, reach)
+  # particles, the block outline, the cracks, and last the held model.
+  def build_dyn(ex, ey, ez, reach)
     @dyn.clear
     @mobs.each do |m|
       ddx = m.x - ex
@@ -186,6 +187,8 @@ class Game
         @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, 1.0, 1.0, 1.0, 1.0)
       end
     end
+    @hand_at = @dyn.count
+    draw_hand(ex, ey, ez)
   end
 
   def upload_clouds
