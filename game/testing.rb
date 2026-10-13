@@ -302,12 +302,15 @@ class Game
     @mobs.clear
     @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
     @health = MAX_HEALTH
+    clear_items
     frames = 0
     while frames < 300 && @world.get(px + 2, 88, pz) == Block::STONE
       update_mobs(1.0 / 60.0)
       frames += 1
     end
     check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @health < MAX_HEALTH && frames > 60)
+    check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
+    clear_items
     @mobs.clear
     @time_of_day = 0.3
     @health = MAX_HEALTH

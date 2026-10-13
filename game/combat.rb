@@ -225,6 +225,9 @@ class Game
   end
 
   # Removes blocks within the radius and hurts what is near, less with distance.
+  # In survival, each block that an explosion breaks drops with this chance.
+  BLAST_DROP = 0.3
+
   def explode(cx, cy, cz)
     r = 3
     x = cx.floor - r
@@ -240,6 +243,7 @@ class Game
           if dx * dx + dy * dy + dz * dz < 9.5 - rand01 * 2.5 && b != Block::AIR && b != Block::BEDROCK && !Block.water?(b) && !Block.lava?(b)
             burst_particles(x, y, z, b) if rand01 < 0.15
             set_block(x, y, z, Block::AIR)
+            drop_from_block(Block::DROPS[b], 1, x, y, z) if @survival && rand01 < BLAST_DROP
           end
           z += 1
         end

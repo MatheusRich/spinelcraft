@@ -90,7 +90,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 - A 10-minute day and night cycle with orange sunrises and sunsets, a sun, a moon, turning stars, drifting clouds, distance haze and fog.
 - A bow. A full one-second draw shoots far and hits hard. Skeletons drop arrows and sometimes a bow.
 - Pigs and sheep that wander. A sheep drops 2 wool, a white building block.
-- Monsters in the dark: at night under the open sky, and at any time in caves and under roofs. A torch or lava within 8 blocks stops them from spawning. Zombies chase you and hit you. Skeletons keep their distance and shoot arrows when they can see you. Creepers walk up to you, flash and explode, which removes blocks and hurts everything near them. Zombies and skeletons burn in daylight, and creepers do not.
+- Monsters in the dark: at night under the open sky, and at any time in caves and under roofs. A torch or lava within 8 blocks stops them from spawning. Zombies chase you and hit you. Skeletons keep their distance and shoot arrows when they can see you. Creepers walk up to you, flash and explode, which removes blocks and hurts everything near them. In survival, about a third of the blocks that a blast removes drop as items. Zombies and skeletons burn in daylight, and creepers do not.
 - A survival mode with 10 hearts, a hunger bar, fall damage, drowning, regeneration, timed block breaking with growing cracks and a knock sound, stacks of 64, crafting, death and respawn. At death you drop your inventory where you died.
 - Items drop. A broken block, the loot of a mob and a thrown item fall to the ground, turn there, and go to your inventory when you walk over them. Items of one kind join into one stack. An item that does not fit stays on the ground. Lava burns items, and the game removes an item after 5 minutes.
 - Swords. A hand hits for 2 hearts, and a wooden, stone, iron or diamond sword hits for 3, 3.5, 4.5 or 5.5.
@@ -194,7 +194,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 63 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 64 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 
