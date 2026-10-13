@@ -75,7 +75,7 @@ These recipes need a furnace within 4 blocks:
 - 1 sand gives 1 glass.
 - 1 cobblestone gives 1 stone.
 
-Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the right tier. Iron ore needs a stone pickaxe or better, and diamond ore needs an iron one. A better pickaxe also mines faster. Logs, dirt, sand and gravel need no tool, so start by punching a tree.
+Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the right tier. Iron ore needs a stone pickaxe or better, and diamond ore needs an iron one. A better pickaxe also mines faster. Tools wear out: a wooden, stone, iron or diamond tool breaks after 60, 130, 250 or 1560 uses, and a bow after 380 shots. A bar under the icon shows the uses that are left. Logs, dirt, sand and gravel need no tool, so start by punching a tree.
 
 ## What is in it
 
@@ -194,7 +194,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 62 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 63 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

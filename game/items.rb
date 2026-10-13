@@ -50,9 +50,11 @@ class Game
   def throw_selected
     b = @inv_block[@slot]
     return if @inv_count[@slot] <= 0
-    @inv_count[@slot] -= 1
+    # A tool goes with the uses that it has left.
+    n = Block.tool?(b) ? @inv_count[@slot] : 1
+    @inv_count[@slot] -= n
     @inv_block[@slot] = Block::AIR if @inv_count[@slot] == 0
-    throw_stack(b, 1)
+    throw_stack(b, n)
   end
 
   def throw_stack(b, n)
@@ -167,6 +169,13 @@ class Game
   def pick_up(i)
     b = @it_block[i]
     n = @it_count[i]
+    if Block.tool?(b)
+      return unless give_tool(b, n)
+      @it_count[i] = 0
+      play(Sfx::POP, 0.5)
+      say("+1 #{Block::NAMES[b]}")
+      return
+    end
     room = room_for(b)
     n = room if room < n
     return if n <= 0
@@ -188,7 +197,7 @@ class Game
     n = @it_count.size
     i = 0
     while i < n
-      if @it_count[i] > 0 && @it_count[i] < STACK
+      if @it_count[i] > 0 && @it_count[i] < STACK && !Block.tool?(@it_block[i])
         j = i + 1
         while j < n
           if @it_block[j] == @it_block[i] && @it_count[j] > 0 && @it_count[i] + @it_count[j] <= STACK
@@ -240,7 +249,7 @@ class Game
         s = Math.sin(yaw) * size
         @dyn.set_frame(x, y, z, c, 0.0, s, 0.0, size, 0.0, -s, 0.0, c)
         item_model(b)
-        if @it_count[i] > 1
+        if @it_count[i] > 1 && !Block.tool?(b)
           @dyn.set_frame(x + 0.08, y + 0.06, z + 0.05, c, 0.0, s, 0.0, size, 0.0, -s, 0.0, c)
           item_model(b)
         end

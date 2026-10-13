@@ -76,10 +76,7 @@ class Game
       slot_block = @survival ? @inv_block[i] : @hotbar[i]
       if slot_block != Block::AIR
         @ui.icon(x + 5.0 * s, y0 + 5.0 * s, size - 10.0 * s, Block::SIDE[slot_block], 1.0)
-        if @survival
-          n = @inv_count[i].to_s
-          @ui.text(x + size - @ui.text_width(n, 2.0 * s) - 1.0 * s, y0 + size - 12.0 * s, n, 2.0 * s, 1.0, 1.0, 1.0, 1.0)
-        end
+        draw_count(slot_block, @inv_count[i], x, y0, size, 2.0 * s, s) if @survival
       end
       i += 1
     end
@@ -172,8 +169,7 @@ class Game
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
       if @inv_count[i] > 0
         @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::SIDE[@inv_block[i]], 1.0)
-        n = @inv_count[i].to_s
-        @ui.text(c[0] + c[2] - @ui.text_width(n, 2.0 * s) - 1.0 * s, c[1] + c[2] - 12.0 * s, n, 2.0 * s, 1.0, 1.0, 1.0, 1.0)
+        draw_count(@inv_block[i], @inv_count[i], c[0], c[1], c[2], 2.0 * s, s)
       end
       i += 1
     end
@@ -190,8 +186,7 @@ class Game
       mx = Gfx.in_mouse_x
       my = Gfx.in_mouse_y
       @ui.icon(mx - 20.0 * s, my - 20.0 * s, 40.0 * s, Block::SIDE[@held_block], 1.0)
-      n = @held_count.to_s
-      @ui.text(mx + 20.0 * s - @ui.text_width(n, 2.0 * s), my + 8.0 * s, n, 2.0 * s, 1.0, 1.0, 1.0, 1.0)
+      draw_count(@held_block, @held_count, mx - 20.0 * s, my - 20.0 * s, 40.0 * s, 2.0 * s, s)
     end
   end
 
@@ -208,11 +203,25 @@ class Game
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
       if @chest_count[k] > 0
         @ui.icon(c[0] + 3.0 * s, c[1] + 3.0 * s, c[2] - 6.0 * s, Block::SIDE[@chest_block[k]], 1.0)
-        n = @chest_count[k].to_s
-        @ui.text(c[0] + c[2] - @ui.text_width(n, 1.5 * s), c[1] + c[2] - 8.0 * s, n, 1.5 * s, 1.0, 1.0, 1.0, 1.0)
+        draw_count(@chest_block[k], @chest_count[k], c[0], c[1], c[2], 1.5 * s, s)
       end
       k += 1
     end
+  end
+
+  # The count of a stack of b at the lower right of the cell at x, y, in
+  # text of size ts. A tool has no count: a bar shows the uses that it has
+  # left, from green to red, once it has been used.
+  def draw_count(b, n, x, y, size, ts, s)
+    if Block.tool?(b)
+      left = n.to_f / Block.uses(b)
+      return if left >= 1.0
+      @ui.rect(x + 4.0 * s, y + size - 6.0 * s, size - 8.0 * s, 3.0 * s, 0.0, 0.0, 0.0, 1.0)
+      @ui.rect(x + 4.0 * s, y + size - 6.0 * s, (size - 8.0 * s) * left, 3.0 * s, 1.0 - left, left, 0.1, 1.0)
+      return
+    end
+    t = n.to_s
+    @ui.text(x + size - @ui.text_width(t, ts) - 1.0 * s, y + size - 6.0 * ts, t, ts, 1.0, 1.0, 1.0, 1.0)
   end
 
   def draw_recipe_panel(w, h, s, pad)

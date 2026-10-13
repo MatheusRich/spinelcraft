@@ -10,20 +10,52 @@ class Game
     @survival ? @inv_block[@slot] : @hotbar[@slot]
   end
 
-  # How many of b still fit in the inventory.
+  # How many of b still fit in the inventory. Each empty slot fits one tool.
   def room_for(b)
+    tool = Block.tool?(b)
     room = 0
     i = 0
     while i < INV
-      room += STACK - @inv_count[i] if @inv_block[i] == b || @inv_count[i] == 0
+      if @inv_count[i] == 0
+        room += tool ? 1 : STACK
+      elsif @inv_block[i] == b && !tool
+        room += STACK - @inv_count[i]
+      end
       i += 1
     end
     room
   end
 
-  # Adds one b; false when it does not fit.
+  # Puts tool b with uses left into an empty slot; false when none is empty.
+  def give_tool(b, uses)
+    i = 0
+    while i < INV
+      if @inv_count[i] == 0
+        @inv_block[i] = b
+        @inv_count[i] = uses
+        return true
+      end
+      i += 1
+    end
+    false
+  end
+
+  # Uses up one use of the selected tool. A tool with no uses left breaks.
+  def wear_tool
+    return unless @survival
+    b = @inv_block[@slot]
+    return unless Block.tool?(b) && @inv_count[@slot] > 0
+    @inv_count[@slot] -= 1
+    return if @inv_count[@slot] > 0
+    @inv_block[@slot] = Block::AIR
+    play(Sfx::BREAK, 0.8)
+    say("#{Block::NAMES[b]} BROKE")
+  end
+
+  # Adds one b (a new tool, if b is a tool); false when it does not fit.
   def give(b)
     return true if b == Block::AIR
+    return give_tool(b, Block.uses(b)) if Block.tool?(b)
     i = 0
     while i < INV
       if @inv_block[i] == b && @inv_count[i] < STACK
@@ -212,7 +244,7 @@ class Game
       counts[i] = @held_count
       @held_count = 0
       @held_block = Block::AIR
-    elsif b == @held_block
+    elsif b == @held_block && !Block.tool?(b)
       moved = [STACK - n, @held_count].min
       counts[i] += moved
       @held_count -= moved
@@ -287,14 +319,16 @@ class Game
   end
 
   def return_held
-    while @held_count > 0 && give(@held_block)
+    tool = Block.tool?(@held_block)
+    @held_count = 0 if tool && @held_count > 0 && give_tool(@held_block, @held_count)
+    while @held_count > 0 && !tool && give(@held_block)
       @held_count -= 1
     end
     if @held_count > 0 && @chest_key >= 0
       k = 0
       while k < CHEST_SLOTS && @held_count > 0
-        if @chest_count[k] == 0 || @chest_block[k] == @held_block
-          take = STACK - @chest_count[k] < @held_count ? STACK - @chest_count[k] : @held_count
+        if @chest_count[k] == 0 || (@chest_block[k] == @held_block && !tool)
+          take = tool || STACK - @chest_count[k] >= @held_count ? @held_count : STACK - @chest_count[k]
           @chest_block[k] = @held_block
           @chest_count[k] += take
           @held_count -= take

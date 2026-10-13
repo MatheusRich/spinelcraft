@@ -99,6 +99,16 @@ module Block
   # The damage of a hit with b: a sword hits harder than a hand.
   def self.damage(b) = b >= WOOD_SWORD && b <= DIAMOND_SWORD ? SWORD_DAMAGE[b - WOOD_SWORD] : 4
   SWORD_DAMAGE = [6, 7, 9, 11]
+  # Uses before a wooden, stone, iron or diamond tool breaks.
+  TOOL_USES = [60, 130, 250, 1560]
+  # The uses of a new tool b; 0 for what is not a tool. A tool never
+  # stacks: the count of its stack is the uses that it has left.
+  def self.uses(b)
+    return TOOL_USES[PICK_TIER[b] - 1] if PICK_TIER[b] > 0
+    return TOOL_USES[b - WOOD_SWORD] if b >= WOOD_SWORD && b <= DIAMOND_SWORD
+    b == BOW ? 380 : 0
+  end
+  def self.tool?(b) = uses(b) > 0
   def self.lava?(b) = b >= LAVA && b < LAVA_FLOW + 3
   def self.lava_level(b) = b == LAVA ? 4 : (lava?(b) ? b - LAVA_FLOW + 1 : 0)
   # Torches and lava sources light their surroundings.

@@ -106,6 +106,7 @@ class Game
       if pressed
         mob = @mobs[@target_mob]
         mob.hit(@survival ? Block.damage(current_block.to_i) : 10, @player.x, @player.z)
+        wear_tool
         mob.by_player = true
         play(Sfx::HIT, 0.8)
         @swing = 0.25
@@ -192,6 +193,7 @@ class Game
       set_block(x, y, z, Block::AIR)
       drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
       drop_from_leaves(x, y, z) if b == Block::LEAVES
+      wear_tool if hardness > 0.0
       @mining = false
     end
   end

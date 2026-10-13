@@ -435,7 +435,25 @@ class Game
     @inv_block[20] = Block::PLANKS
     @inv_count[20] = 4
     craft_recipe(RECIPES.index { |r| r[2] == Block::BOW })
-    check("a recipe takes ingredients from several stacks", count_items(Block::PLANKS) == 1 && count_items(Block::BOW) == 1)
+    check("a recipe takes ingredients from several stacks", count_items(Block::PLANKS) == 1 && count_items(Block::BOW) == Block.uses(Block::BOW))
+    # A tool wears out, and a thrown tool keeps the uses that it has left.
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    give(Block::WOOD_PICK)
+    give(Block::WOOD_PICK)
+    @slot = 0
+    @inv_count[0] = 1
+    survival = @survival
+    @survival = true
+    wear_tool
+    broke = @inv_count[0] == 0 && @inv_block[1] == Block::WOOD_PICK
+    @inv_count[1] = 7
+    @slot = 1
+    clear_items
+    throw_selected
+    collect_items
+    @survival = survival
+    check("a tool breaks after its last use, and a thrown tool keeps its uses", broke && @inv_count[0] == 7 && @inv_block[0] == Block::WOOD_PICK)
     # The only free slot is the one that the recipe empties.
     i = 0
     while i < INV

@@ -221,6 +221,7 @@ class Game
     @ar_damage << 2 + (pull * 7.0).to_i
     @swing = 0.25
     play(Sfx::SHOOT, 0.8)
+    wear_tool
   end
 
   # Removes blocks within the radius and hurts what is near, less with distance.
