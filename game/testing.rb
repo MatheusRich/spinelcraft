@@ -112,6 +112,7 @@ class Game
     test_sneak_and_bed(bx, bz)
     test_water
     test_inventory_clicks
+    test_swim_out
     test_streaming
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
     puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
@@ -644,6 +645,50 @@ class Game
     check("sneaking stops at an edge", @player.y > 88.9 && @player.z < bz + 1.4)
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, false, false) }
     check("walking without sneaking falls off", @player.y < 88.0)
+  end
+
+  # A jump against the shore of a pool 2 deep lifts the player out of the
+  # water onto the shore.
+  def test_swim_out
+    wx = @spawn_x.floor + 20
+    wz = @spawn_z.floor + 20
+    i = -1
+    while i <= 3
+      k = -2
+      while k <= 2
+        set_block(wx + i, 88, wz + k, Block::STONE)
+        y = 89
+        while y <= 94
+          set_block(wx + i, y, wz + k, Block::AIR)
+          y += 1
+        end
+        k += 1
+      end
+      i += 1
+    end
+    set_block(wx, 89, wz, Block::WATER)
+    set_block(wx, 90, wz, Block::WATER)
+    set_block(wx + 1, 89, wz, Block::WATER)
+    set_block(wx + 1, 90, wz, Block::WATER)
+    set_block(wx + 2, 89, wz, Block::STONE)
+    set_block(wx + 2, 90, wz, Block::STONE)
+    @flow_queue.clear
+    @player.x = wx + 0.5
+    @player.y = 89.0
+    @player.z = wz + 0.5
+    @player.vx = 0.0
+    @player.vy = 0.0
+    @player.vz = 0.0
+    @player.yaw = 1.5708
+    @player.flying = false
+    @player.on_ground = true
+    # The shore is one block wide, so the player stands on it only for a while.
+    out = false
+    240.times do
+      @player.update(@world, 1.0 / 60.0, 1.0, 0.0, true, false, false)
+      out = true if @player.on_ground && @player.y >= 91.0 && @player.x > wx + 2.0
+    end
+    check("a jump against the shore lifts the player out of the water", out)
   end
 
   # Water spreads 7 blocks over a floor and drains without its source.

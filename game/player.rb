@@ -20,6 +20,8 @@ class Player
     @sneaking = false
     @on_ground = false
     @in_water = false
+    # True when the last step ran into a wall in x or z.
+    @against_wall = false
     @fall_start = y
     @hit = false
     @hit_t = 0.0
@@ -70,6 +72,8 @@ class Player
       @vy -= 10.0 * dt
       @vy = 3.2 if jump
       @vy = @vy.clamp(-4.0, 4.0)
+      # Against a wall, a jump lifts the player over an edge as high as the water.
+      @vy = 6.0 if jump && @against_wall
     else
       @vy -= 28.0 * dt
       @vy = 8.6 if jump && @on_ground
@@ -126,11 +130,13 @@ class Player
       @vy = 0.0
       return
     end
+    @against_wall = false
     if dx != 0.0
       @x += dx
       if blocked?(world)
         @x = dx > 0.0 ? (@x + HALF).floor - HALF - 0.001 : (@x - HALF).floor + 1.0 + HALF + 0.001
         @vx = 0.0
+        @against_wall = true
       elsif @sneaking && !ground_below?(world)
         # Sneaking never steps off an edge.
         @x -= dx
@@ -142,6 +148,7 @@ class Player
       if blocked?(world)
         @z = dz > 0.0 ? (@z + HALF).floor - HALF - 0.001 : (@z - HALF).floor + 1.0 + HALF + 0.001
         @vz = 0.0
+        @against_wall = true
       elsif @sneaking && !ground_below?(world)
         @z -= dz
         @vz = 0.0
