@@ -116,8 +116,6 @@ class Game
     @rain_y = 0
     @rain_z = World::NONE
     @rain_age = 0.0
-    set_raining(!ENV["RAIN"].nil?)
-    @rain = 1.0 if @raining
     @bob = 0.0
     @fov = 0.6
     @inventory_open = !ENV["INVENTORY"].nil?
@@ -180,6 +178,9 @@ class Game
     @mobs = []
     @spawn_timer = 0.0
     @rng = @seed * 7 + 1
+    # set_raining uses rand01, so it comes after @rng.
+    set_raining(!ENV["RAIN"].nil?)
+    @rain = 1.0 if @raining
     @target_mob = -1
     @swing = 0.0
     # The block in the hand model, and how far down the model still is after
