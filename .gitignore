@@ -1,0 +1,10 @@
+# The compiled game (./build.sh)
+/spinelcraft
+
+# Saved worlds
+*.sav
+
+# Raw screenshots (tools/shot.sh converts them to PNG)
+*.ppm
+
+.DS_Store
