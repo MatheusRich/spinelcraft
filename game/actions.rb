@@ -28,6 +28,28 @@ class Game
       return
     end
     @player.look(Gfx.in_mouse_dx, Gfx.in_mouse_dy)
+    select_slot
+    if Gfx.in_key_pressed(Key::E) != 0
+      toggle_inventory
+      return
+    end
+    handle_keys
+    @action_cooldown -= dt
+    left = Gfx.in_button(1) != 0
+    right = Gfx.in_button(3) != 0
+    left_pressed = Gfx.in_button_pressed(1) != 0
+    @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3) != 0
+    if Gfx.in_button_pressed(2) != 0 && @player.hit && !@survival
+      picked = @world.get(@player.hx, @player.hy, @player.hz)
+      @hotbar[@slot] = picked if picked != Block::BEDROCK
+      say(Block::NAMES[@hotbar[@slot]])
+    end
+    left_button(dt, left, left_pressed)
+    right_button(dt, right)
+  end
+
+  # Number keys and the wheel.
+  def select_slot
     i = 0
     while i < 9
       @slot = i if Gfx.in_key_pressed(Key::N1 + i) != 0
@@ -36,10 +58,10 @@ class Game
     wheel = Gfx.in_wheel
     @slot = (@slot + 1) % 9 if wheel < 0.0
     @slot = (@slot + 8) % 9 if wheel > 0.0
-    if Gfx.in_key_pressed(Key::E) != 0
-      toggle_inventory
-      return
-    end
+  end
+
+  # Keys that switch a mode or a setting, save, craft, or skip time.
+  def handle_keys
     if !@survival && Gfx.in_key_pressed(Key::Q) != 0
       at = PLACEABLE.index(@hotbar[@slot]) || 0
       @hotbar[@slot] = PLACEABLE[(at + 1) % PLACEABLE.size]
@@ -67,29 +89,21 @@ class Game
     end
     craft if @survival && Gfx.in_key_pressed(Key::C) != 0
     @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T) != 0
+  end
 
-    @action_cooldown -= dt
-    left = Gfx.in_button(1) != 0
-    right = Gfx.in_button(3) != 0
-    left_pressed = Gfx.in_button_pressed(1) != 0
-    @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3) != 0
-    if Gfx.in_button_pressed(2) != 0 && @player.hit && !@survival
-      picked = @world.get(@player.hx, @player.hy, @player.hz)
-      @hotbar[@slot] = picked if picked != Block::BEDROCK
-      say(Block::NAMES[@hotbar[@slot]])
-    end
-
-    if left && @target_mob >= 0
-      if left_pressed
+  # The left button hits the mob in the crosshair, or else breaks the block:
+  # at once in creative, over time in survival.
+  def left_button(dt, held, pressed)
+    if held && @target_mob >= 0
+      if pressed
         mob = @mobs[@target_mob]
         mob.hit(@survival ? 4 : 10, @player.x, @player.z)
         mob.by_player = true
         play(Sfx::HIT, 0.8)
         @swing = 0.25
       end
-      left = false
-    end
-    if left && @player.hit
+      @mining = false
+    elsif held && @player.hit
       if @survival
         mine(dt)
       elsif @action_cooldown <= 0.0
@@ -103,9 +117,14 @@ class Game
     else
       @mining = false
     end
+  end
+
+  # The right button draws the bow, opens a chest, uses a bed, eats, or
+  # places a block.
+  def right_button(dt, held)
     target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
     if current_block == Block::BOW && target != Block::CHEST && target != Block::BED
-      if right
+      if held
         @draw_time = 0.0 if @draw_time < 0.0
         @draw_time += dt
       elsif @draw_time >= 0.0
@@ -115,7 +134,7 @@ class Game
       return
     end
     @draw_time = -1.0
-    if right && @action_cooldown <= 0.0
+    if held && @action_cooldown <= 0.0
       if @survival && @player.hit && @world.get(@player.hx, @player.hy, @player.hz) == Block::CHEST
         open_chest(@player.hx, @player.hy, @player.hz)
         return

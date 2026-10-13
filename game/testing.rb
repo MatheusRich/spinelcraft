@@ -59,6 +59,29 @@ class Game
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
     ground = h - 1
+    test_falling_and_torches(x, z, ground)
+    test_survival(x, z, ground)
+    test_monsters
+    test_save(x, z, ground)
+    test_crafting_limits
+    cx = @spawn_x.floor + 4
+    cz = @spawn_z.floor + 4
+    test_chests(cx, cz)
+    test_mob_drops
+    test_light_sources(cx, cz)
+    bx = @spawn_x.floor
+    bz = @spawn_z.floor
+    test_bow(bx, bz)
+    test_sneak_and_bed(bx, bz)
+    test_water
+    test_inventory_clicks
+    test_streaming
+    File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
+    puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
+  end
+
+  # Falling sand, the torch list, and how far torch light goes.
+  def test_falling_and_torches(x, z, ground)
     set_block(x, ground + 6, z, Block::SAND)
     check("sand falls to the ground", @world.get(x, ground + 1, z) == Block::SAND && @world.get(x, ground + 6, z) == Block::AIR)
     set_block(x, ground + 1, z, Block::AIR)
@@ -112,6 +135,10 @@ class Game
     puts "torch edit remesh: #{@mesh_ms.round(2)} ms"
     set_block(x, ground + 1, z, Block::AIR)
     flush_dirty
+  end
+
+  # Survival basics: crafting, stacks, health, placing, mining, and food.
+  def test_survival(x, z, ground)
     @survival = true
     @inv_block.fill(0)
     @inv_count.fill(0)
@@ -170,7 +197,11 @@ class Game
     @hunger = 5
     eat
     check("eating restores hunger", @hunger == 13 && @inv_count[5] == 1)
-    # A skeleton on a sky platform at night shoots the player.
+  end
+
+  # Monsters on a sky platform at night: a skeleton's arrow, a zombie's hit,
+  # and a creeper's blast hurt the player.
+  def test_monsters
     px = @spawn_x.floor
     pz = @spawn_z.floor
     i = -2
@@ -214,6 +245,10 @@ class Game
     @mobs.clear
     @time_of_day = 0.3
     @health = MAX_HEALTH
+  end
+
+  # The save keeps blocks, the inventory and health, and a dead player respawns on load.
+  def test_save(x, z, ground)
     old = @world.get(x, ground + 1, z)
     kept_block = @inv_block[1]
     kept_count = @inv_count[1]
@@ -230,6 +265,10 @@ class Game
     ok = load
     apply_loaded if ok
     check("loading a save made while dead respawns", ok && @health == MAX_HEALTH && !@dead)
+  end
+
+  # Crafting needs room for the result, and it takes from several stacks.
+  def test_crafting_limits
     i = 0
     while i < INV
       @inv_block[i] = Block::PLANKS
@@ -250,8 +289,10 @@ class Game
     @inv_count[20] = 4
     craft_recipe(RECIPES.index { |r| r[2] == Block::BOW })
     check("a recipe takes ingredients from several stacks", count_items(Block::PLANKS) == 1 && count_items(Block::BOW) == 1)
-    cx = @spawn_x.floor + 4
-    cz = @spawn_z.floor + 4
+  end
+
+  # Chest contents survive a save and come back when the chest breaks.
+  def test_chests(cx, cz)
     set_block(cx, 90, cz, Block::CHEST)
     @inv_block.fill(0)
     @inv_count.fill(0)
@@ -276,7 +317,10 @@ class Game
     @chest_count[0] = 7
     set_block(cx, 90, cz, Block::AIR)
     check("a chest destroyed while open does not duplicate items", count_items(Block::DIAMOND) == 7 && !@inventory_open && @chest_count[0] == 7 && @chests.empty?)
-    # Mobs that die without the player's help drop nothing.
+  end
+
+  # Mobs that die without the player's help drop nothing.
+  def test_mob_drops
     @inv_block.fill(0)
     @inv_count.fill(0)
     far = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
@@ -286,6 +330,10 @@ class Game
     @mobs << far
     update_mobs(1.0 / 60.0)
     check("a pig that dies on its own drops nothing", count_items(Block::PORKCHOP) == 0)
+  end
+
+  # Wool does not glow, lava gives light, and water turns lava into cobblestone.
+  def test_light_sources(cx, cz)
     # Wool is not a light source.
     set_block(cx, 90, cz, Block::WOOL)
     @mesher.build(cx / CHUNK, cz / CHUNK)
@@ -318,9 +366,11 @@ class Game
     set_block(lx + 1, 86, lz, Block::AIR)
     set_block(lx, 86, lz, Block::AIR)
     20.times { update_water }
+  end
+
+  # Builds a stone platform and shoots a pig on it with a full bow draw.
+  def test_bow(bx, bz)
     @mobs.clear
-    bx = @spawn_x.floor
-    bz = @spawn_z.floor
     i = -2
     while i <= 12
       set_block(bx + i, 88, bz, Block::STONE)
@@ -344,6 +394,10 @@ class Game
     end
     check("a full bow draw hits a pig and uses an arrow", pig.hp < 10 && room_for(Block::ARROW) == INV * STACK)
     @mobs.clear
+  end
+
+  # Sneaking, walking off an edge, and the bed, on the platform from test_bow.
+  def test_sneak_and_bed(bx, bz)
     # The platform is one block wide in z: sneaking toward its edge stays on it.
     @player.x = bx + 4.5
     @player.y = 89.0
@@ -365,6 +419,10 @@ class Game
     check("sneaking stops at an edge", @player.y > 88.9 && @player.z < bz + 1.4)
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, false, false) }
     check("walking without sneaking falls off", @player.y < 88.0)
+  end
+
+  # Water spreads 7 blocks over a floor and drains without its source.
+  def test_water
     wx = @spawn_x.floor
     wz = @spawn_z.floor + 3
     i = -10
@@ -380,6 +438,10 @@ class Game
     set_block(wx, 86, wz, Block::AIR)
     40.times { update_water }
     check("water drains when its source is gone", @world.get(wx + 3, 86, wz) == Block::AIR && @world.get(wx - 6, 86, wz) == Block::AIR)
+  end
+
+  # Stacks spill into the backpack, and clicks move and merge them.
+  def test_inventory_clicks
     @inv_block.fill(0)
     @inv_count.fill(0)
     (9 * STACK + 3).times { give(Block::DIRT) }
@@ -391,6 +453,10 @@ class Game
     click_slot(0)
     check("clicks merge into a full stack and keep the rest", @inv_count[0] == 64 && @held_count == 3)
     return_held
+  end
+
+  # Chunk streaming, far terrain tiles, and a new world.
+  def test_streaming
     # A chunk that unloads keeps its edits, and the generator gives the same chunk again.
     ex = @player.x.floor
     ez = @player.z.floor
@@ -411,7 +477,5 @@ class Game
     new_world
     h = @world.height_at(@player.x.floor, @player.z.floor)
     check("a new world has a new seed and the player stands on it", @seed != old_seed && h > 0 && (@player.y - h).abs < 1.5 && @mobs.size > 0)
-    File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
-    puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
   end
 end

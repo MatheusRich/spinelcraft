@@ -13,6 +13,29 @@ class Game
     ey += Math.sin(@bob) * 0.05 * (speed / 4.3).clamp(0.0, 1.0) if walking
     @camera.update(ex, ey, ez, @player.yaw, @player.pitch, w / h, @fog_end + 40.0, @fov)
     @camera.write_column_major(@uniforms)
+    set_uniforms(ex, ey, ez, w, h)
+    reach = @fog_end + 4.0
+    cull_chunks(ex, ez, reach)
+    cull_far_tiles(ex, ez, reach)
+    build_dyn(ex, ez, reach)
+    Gfx.gfx_dyn(@dyn.v, @dyn.count)
+    build_ui(w, h)
+    Gfx.gfx_ui(@ui.v, @ui.v.size)
+    build_sky(w, h, ui_scale(h))
+    Gfx.gfx_sky(@sky.v, @sky.v.size)
+    @cpu_end = Gfx.gfx_ns
+    if Gfx.gfx_begin(@uniforms) == 0
+      @faces_drawn = Gfx.gfx_chunks(@visible, @visible.size / 2, 0)
+      @faces_drawn += Gfx.gfx_chunks(@lod_visible, @lod_visible.size / 2, 2)
+      Gfx.gfx_draw_dyn
+      @faces_drawn += Gfx.gfx_chunks(@water_visible, @water_visible.size / 2, 1)
+    end
+    Gfx.gfx_end
+  end
+
+  # Uniforms 16 to 27: the eye, the animation clock, the sky and fog colors,
+  # daylight, the fog range, and the frame size.
+  def set_uniforms(ex, ey, ez, w, h)
     day = daylight
     under = Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
     sky_r = 0.03 + 0.50 * day
@@ -40,11 +63,14 @@ class Game
     @uniforms[25] = under ? 2.0 : @fog_end - (@fog_end * 0.25 > 65.0 ? @fog_end * 0.25 : 65.0)
     @uniforms[26] = w
     @uniforms[27] = h
+  end
 
+  # Fills @visible with the meshed chunks in the view and @water_visible with
+  # their water, far chunks first.
+  def cull_chunks(ex, ez, reach)
     @visible.clear
     @water_visible.clear
     @water_order.clear
-    reach = @fog_end + 4.0
     # With far terrain on, full detail stops at the last complete ring, and
     # the far terrain shader skips the square those rings cover.
     rings = far_terrain? ? detail_rings : LOAD_R
@@ -77,6 +103,14 @@ class Game
       end
       s += 1
     end
+    # Water blends, so draw the far chunks first.
+    order = (0...@water_order.size).sort_by { |i| @water_dist[i] }
+    order.each { |i| @water_visible << @water_order[i] << 127 }
+    @water_dist.clear
+  end
+
+  # Fills @lod_visible with the far terrain tiles in the view.
+  def cull_far_tiles(ex, ez, reach)
     @lod_visible.clear
     level = 0
     while level < LEVELS && @fog_end > lod_start(level)
@@ -111,11 +145,11 @@ class Game
       end
       level += 1
     end
-    # Water blends, so draw the far chunks first.
-    order = (0...@water_order.size).sort_by { |i| @water_dist[i] }
-    order.each { |i| @water_visible << @water_order[i] << 127 }
-    @water_dist.clear
+  end
 
+  # Fills @dyn with the parts that change every frame: mobs, clouds, arrows,
+  # particles, the block outline, and the cracks.
+  def build_dyn(ex, ez, reach)
     @dyn.clear
     @mobs.each do |m|
       ddx = m.x - ex
@@ -146,19 +180,6 @@ class Game
         @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, 1.0, 1.0, 1.0, 1.0)
       end
     end
-    Gfx.gfx_dyn(@dyn.v, @dyn.count)
-    build_ui(w, h)
-    Gfx.gfx_ui(@ui.v, @ui.v.size)
-    build_sky(w, h, ui_scale(h))
-    Gfx.gfx_sky(@sky.v, @sky.v.size)
-    @cpu_end = Gfx.gfx_ns
-    if Gfx.gfx_begin(@uniforms) == 0
-      @faces_drawn = Gfx.gfx_chunks(@visible, @visible.size / 2, 0)
-      @faces_drawn += Gfx.gfx_chunks(@lod_visible, @lod_visible.size / 2, 2)
-      Gfx.gfx_draw_dyn
-      @faces_drawn += Gfx.gfx_chunks(@water_visible, @water_visible.size / 2, 1)
-    end
-    Gfx.gfx_end
   end
 
   # Star directions on the upper sphere, fixed for the world.
