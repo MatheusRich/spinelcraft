@@ -200,8 +200,15 @@ class Game
     @health = MAX_HEALTH
     hurt(5)
     check("hurt lowers health", @health == 15 && !@dead)
+    kept_blocks = @inv_block.dup
+    kept_counts = @inv_count.dup
+    clear_items
     hurt(30)
     check("death at zero health", @health == 0 && @dead)
+    check("death drops the inventory on the ground", room_for(Block::DIRT) == INV * STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
+    clear_items
+    @inv_block = kept_blocks
+    @inv_count = kept_counts
     respawn
     check("respawn restores health", @health == MAX_HEALTH && !@dead)
     @player.x = x + 0.5

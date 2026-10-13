@@ -61,6 +61,24 @@ class Game
     @swing = 0.25
   end
 
+  # At death the player drops each stack of the inventory, and the stack in
+  # the mouse, where they died.
+  def drop_inventory
+    p = @player
+    i = 0
+    while i < INV
+      if @inv_count[i] > 0
+        drop_item(@inv_block[i], @inv_count[i], p.x, p.y + 0.5, p.z, (rand01 - 0.5) * 4.0, 3.0, (rand01 - 0.5) * 4.0, PICKUP_WAIT)
+        @inv_block[i] = Block::AIR
+        @inv_count[i] = 0
+      end
+      i += 1
+    end
+    drop_item(@held_block, @held_count, p.x, p.y + 0.5, p.z, 0.0, 3.0, 0.0, PICKUP_WAIT)
+    @held_block = Block::AIR
+    @held_count = 0
+  end
+
   # The number of b on the ground.
   def ground_count(b)
     n = 0

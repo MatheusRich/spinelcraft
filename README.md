@@ -82,7 +82,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 - A bow. A full one-second draw shoots far and hits hard. Skeletons drop arrows and sometimes a bow.
 - Pigs and sheep that wander. A sheep drops 2 wool, a white building block.
 - Monsters at night. Zombies chase you and hit you. Skeletons keep their distance and shoot arrows when they can see you. Creepers walk up to you, flash and explode, which removes blocks and hurts everything near them. Zombies and skeletons burn in daylight, and creepers do not.
-- A survival mode with 10 hearts, a hunger bar, fall damage, drowning, regeneration, timed block breaking with growing cracks and a knock sound, stacks of 64, crafting, death and respawn.
+- A survival mode with 10 hearts, a hunger bar, fall damage, drowning, regeneration, timed block breaking with growing cracks and a knock sound, stacks of 64, crafting, death and respawn. At death you drop your inventory where you died.
 - Items drop. A broken block, the loot of a mob and a thrown item fall to the ground, turn there, and go to your inventory when you walk over them. Items of one kind join into one stack. An item that does not fit stays on the ground. Lava burns items, and the game removes an item after 5 minutes.
 - Chests that hold 27 stacks. Click to move stacks between the chest and your inventory. A broken chest drops what it held, and the save keeps chest contents.
 - Beds. Right-click a bed to set your spawn point there. At night, if no monster is within 10 blocks, the bed also skips to morning.
@@ -182,7 +182,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 57 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 58 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

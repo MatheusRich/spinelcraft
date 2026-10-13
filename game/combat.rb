@@ -43,6 +43,7 @@ class Game
     if @health <= 0
       @health = 0
       @dead = true
+      drop_inventory
       @captured = false
       Gfx.in_capture(0)
     end
