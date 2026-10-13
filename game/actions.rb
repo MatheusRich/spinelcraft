@@ -249,16 +249,21 @@ class Game
     # A closed door must not close on the player or a mob.
     if b == Block::DOOR
       return if @player.overlaps?(x, y, z) || @player.overlaps?(x, other, z)
-      low = y < other ? y : other
-      @mobs.each do |m|
-        return if x + 1 > m.x - m.half && x < m.x + m.half && low + 2 > m.y && low < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
-      end
+      return if mob_in?(x, y < other ? y : other, z, 2)
     end
     @world.set(x, y, z, b)
     @world.set(x, other, z, b) if Block.door?(@world.get(x, other, z))
     mark_dirty(x, z)
     play(b == Block::DOOR ? Sfx::DIG_WOOD : Sfx::PLACE, 0.6)
     @swing = SWING
+  end
+
+  # True when a mob overlaps the column of tall cells from x, y, z up.
+  def mob_in?(x, y, z, tall)
+    @mobs.each do |m|
+      return true if x + 1 > m.x - m.half && x < m.x + m.half && y + tall > m.y && y < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
+    end
+    false
   end
 
   # A door is two blocks tall. It stands on a solid block that is not a
@@ -293,11 +298,7 @@ class Game
     return unless @world.inside?(x, y, z)
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
     return if Block.plant?(b) && (!Block.solid?(@world.get(x, y - 1, z)) || Block.water?(@world.get(x, y, z)))
-    if Block.solid?(b)
-      @mobs.each do |m|
-        return if x + 1 > m.x - m.half && x < m.x + m.half && y + 1 > m.y && y < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
-      end
-    end
+    return if Block.solid?(b) && mob_in?(x, y, z, b == Block::DOOR ? 2 : 1)
     current = @world.get(x, y, z)
     return unless current == Block::AIR || Block.water?(current) || Block.plant?(current)
     if b == Block::DOOR

@@ -216,8 +216,9 @@ class Game
     kept_blocks = @inv_block.dup
     kept_counts = @inv_count.dup
     clear_items
+    toggle_inventory
     hurt(30)
-    check("death at zero health", @health == 0 && @dead)
+    check("death at zero health, and it closes the inventory", @health == 0 && @dead && !@inventory_open)
     check("death drops the inventory on the ground", room_for(Block::DIRT) == INV * STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
     clear_items
     @inv_block = kept_blocks
@@ -551,6 +552,10 @@ class Game
     dropped = ground_count(Block::PORKCHOP) == 1
     collect_items
     check("a pig that the player kills drops a porkchop", dropped && count_items(Block::PORKCHOP) == 1)
+    clear_items
+    loot(killed, Block::BOW, 1)
+    check("a bow that a mob drops is new", @it_count.size == 1 && @it_count[0] == Block.uses(Block::BOW))
+    clear_items
   end
 
   # Stands the player on the first item until the ground is empty or the
@@ -764,6 +769,8 @@ class Game
     h = @world.height_at(x, z)
     open_day = dark?(x, h, z, 1.0)
     open_night = dark?(x, h, z, 0.0)
+    set_block(x, h + 3, z, Block::LEAVES)
+    under_leaves = dark?(x, h, z, 1.0)
     set_block(x, h + 3, z, Block::STONE)
     covered_day = dark?(x, h, z, 1.0)
     # The torch stands on the roof, 4 blocks above the cell.
@@ -772,6 +779,7 @@ class Game
     set_block(x, h + 4, z, Block::AIR)
     set_block(x, h + 3, z, Block::AIR)
     check("monsters spawn under the night sky or a roof, and not near a torch", !open_day && open_night && covered_day && !near_torch)
+    check("leaves let the daylight through", !under_leaves)
   end
 
   # A door does not stand on a door, and it does not close on a mob.

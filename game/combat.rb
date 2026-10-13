@@ -23,9 +23,15 @@ class Game
   NIGHT = 0.35
 
   # True when a monster can spawn in the cell x, y, z: the sky above it is
-  # dark or a block covers it, and no torch or lava is near.
+  # dark or an opaque block covers it, and no torch or lava is near. Leaves
+  # and glass let the daylight through.
   def dark?(x, y, z, day)
-    return false if day >= NIGHT && @world.height_at(x, z) <= y
+    if day >= NIGHT
+      top = @world.height_at(x, z)
+      cover = y + 1
+      cover += 1 while cover < top && Block::OPAQUE[@world.get(x, cover, z)] == 0
+      return false if cover >= top
+    end
     cx = (x - SAFE_REACH) >> 4
     while cx <= (x + SAFE_REACH) >> 4
       cz = (z - SAFE_REACH) >> 4
@@ -99,6 +105,7 @@ class Game
     if @health <= 0
       @health = 0
       @dead = true
+      toggle_inventory if @inventory_open
       drop_inventory
       @captured = false
       Gfx.in_capture(0)
@@ -178,7 +185,9 @@ class Game
     end
   end
 
+  # A tool drops new: its count is its uses.
   def loot(m, b, n)
+    n = Block.uses(b) if Block.tool?(b)
     drop_item(b, n, m.x, m.y + 0.5, m.z, (rand01 - 0.5) * 2.0, 3.0, (rand01 - 0.5) * 2.0, PICKUP_WAIT)
   end
 

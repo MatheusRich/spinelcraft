@@ -104,7 +104,7 @@ module Block
   # Water level: 8 for a source, 1..7 for flowing water, 0 for anything else.
   WATER_LEVEL = [0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-  def self.blocks_light(b) = b != AIR && b != GLASS && !plant?(b)
+  def self.blocks_light(b) = b != AIR && b != GLASS && b != DOOR_OPEN && !plant?(b)
   def self.solid?(b) = SOLID[b] == 1
   def self.plant?(b) = PLANT[b] == 1
   def self.water?(b) = WATER_LEVEL[b] > 0
