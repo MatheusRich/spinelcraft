@@ -177,7 +177,8 @@ class Game
       play(dig_sound(b), 0.55)
       @dig_wait = 0.25
     end
-    @swing = 0.25
+    # A held button swings again when the last swing ends.
+    @swing = SWING if @swing <= 0.0
     tier = Block::PICK_TIER[current_block]
     need = Block::NEEDS_PICK[b]
     # A good enough pickaxe speeds up stone; without one, stone is slow.
