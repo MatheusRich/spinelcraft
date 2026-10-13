@@ -1,6 +1,6 @@
 # Counts generated blocks by type. Runs under CRuby or Spinel.
-require_relative "../textures"
-require_relative "../world"
+require_relative "../game/textures"
+require_relative "../game/world"
 
 # The 24 x 24 chunks from x = z = 0, the area of the old fixed-size world.
 w = World.new((ENV["SEED"] || "1337").to_i)

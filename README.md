@@ -1,6 +1,6 @@
 # Spinelcraft
 
-A small Minecraft-like game written in Ruby. The Spinel compiler turns the Ruby into a native executable, and SDL3 GPU (Metal on macOS) draws it. All game logic is Ruby. The only C is a thin layer in `gfx.rb` that passes data to SDL.
+A small Minecraft-like game written in Ruby. The Spinel compiler turns the Ruby into a native executable, and SDL3 GPU (Metal on macOS) draws it. All game logic is Ruby. The only C is a thin layer in `game/gfx.rb` that passes data to SDL.
 
 ![Hills, forests and a lake at the default 1600-block view](screenshots/landscape.png)
 
@@ -87,6 +87,8 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 
 ## Layout
 
+`build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module.
+
 | File | Contents |
 | --- | --- |
 | `main.rb` | Game setup, spawn and respawn, the update step, particles, and the game loop |
@@ -100,16 +102,17 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/render.rb` | The 3D frame and the sky |
 | `game/hud.rb` | The 2D overlay: crosshair, hotbar, bars, messages, and menus |
 | `game/testing.rb` | The `SELFTEST`, `SHOWMOBS` and `DEMO` switches |
-| `world.rb` | Block tables, noise, chunk generation, block storage, and the store of changed chunks |
-| `mesher.rb` | Chunk meshing: one packed record for each visible face |
-| `lod.rb` | Far terrain: coarse tiles past the full-detail chunks |
-| `player.rb` | Player physics, block raycast, camera matrix and frustum |
-| `mobs.rb` | Pig, sheep, zombie, skeleton and creeper behavior, physics and box models |
-| `draw.rb` | Vertex builders for the HUD and for 3D boxes |
-| `textures.rb` | Generated textures and the bitmap font |
-| `sounds.rb` | Sound synthesis |
-| `clouds.rb` | Cloud layer |
-| `gfx.rb` | The C layer (`ffi_source`): the SDL3 window, input, audio and GPU calls, and the Metal shaders |
+| `game/world.rb` | Block tables, noise, chunk generation, block storage, and the store of changed chunks |
+| `game/mesher.rb` | Chunk meshing: one packed record for each visible face |
+| `game/lod.rb` | Far terrain: coarse tiles past the full-detail chunks |
+| `game/player.rb` | Player physics and the block raycast |
+| `game/camera.rb` | The camera matrix, the frustum, and screen projection |
+| `game/mobs.rb` | Pig, sheep, zombie, skeleton and creeper behavior, physics and box models |
+| `game/draw.rb` | Vertex builders for the HUD and for 3D boxes |
+| `game/textures.rb` | Generated textures and the bitmap font |
+| `game/sounds.rb` | Sound synthesis |
+| `game/clouds.rb` | Cloud layer |
+| `game/gfx.rb` | The C layer (`ffi_source`): the SDL3 window, input, audio and GPU calls, and the Metal shaders |
 
 ## Rendering
 
