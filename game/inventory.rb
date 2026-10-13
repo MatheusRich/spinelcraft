@@ -1,6 +1,10 @@
 # Items: the hotbar, the backpack, chests, crafting, and the inventory screen.
 class Game
   RECIPE_W = 300.0
+  # The recipe list has two columns of this many rows.
+  RECIPE_ROWS = 11
+  # A recipe that needs a furnace works when one is this near the player.
+  FURNACE_REACH = 4
 
   def current_block
     @survival ? @inv_block[@slot] : @hotbar[@slot]
@@ -70,6 +74,10 @@ class Game
       say("NEED #{r[1]} #{Block::NAMES[r[0]]}")
       return
     end
+    if r[4] == 1 && !furnace_near?
+      say("NEED A FURNACE NEARBY")
+      return
+    end
     # Take the ingredients first: a slot that they empty is room for the result.
     blocks = @inv_block.dup
     counts = @inv_count.dup
@@ -83,6 +91,27 @@ class Game
     r[3].times { give(r[2]) }
     say("CRAFTED #{r[3]} #{Block::NAMES[r[2]]}")
     play(Sfx::PLACE, 0.6)
+  end
+
+  # True when a furnace is within FURNACE_REACH blocks of the player on each axis.
+  def furnace_near?
+    px = @player.x.floor
+    py = @player.y.floor
+    pz = @player.z.floor
+    x = px - FURNACE_REACH
+    while x <= px + FURNACE_REACH
+      y = py - FURNACE_REACH
+      while y <= py + FURNACE_REACH
+        z = pz - FURNACE_REACH
+        while z <= pz + FURNACE_REACH
+          return true if @world.get(x, y, z) == Block::FURNACE
+          z += 1
+        end
+        y += 1
+      end
+      x += 1
+    end
+    false
   end
 
   # The C key: crafts the first recipe that the selected stack can make.
@@ -129,16 +158,17 @@ class Game
     gap = 6.0 * s
     row = i < HOTBAR ? 3 : (i - HOTBAR) / HOTBAR
     col = i < HOTBAR ? i : (i - HOTBAR) % HOTBAR
-    x0 = (w - (HOTBAR * size + (HOTBAR - 1) * gap) - RECIPE_W * s - 60.0 * s) / 2.0
+    x0 = (w - (HOTBAR * size + (HOTBAR - 1) * gap) - (RECIPE_W * 2.0 + 8.0) * s - 60.0 * s) / 2.0
     y0 = (h - (4 * size + 3 * gap + 14.0 * s)) / 2.0
     [x0 + col * (size + gap), y0 + row * (size + gap) + (row == 3 ? 14.0 * s : 0.0), size]
   end
 
-  # Recipe row k beside the grid: x, y, width, height.
+  # Recipe k beside the grid, in two columns: x, y, width, height.
   def recipe_cell(k, w, h, s)
     last = pack_cell(INV - 1, w, h, s)
     top = pack_cell(HOTBAR, w, h, s)
-    [last[0] + last[2] + 60.0 * s, top[1] + k * 30.0 * s, RECIPE_W * s, 26.0 * s]
+    col = k / RECIPE_ROWS
+    [last[0] + last[2] + 60.0 * s + col * (RECIPE_W + 8.0) * s, top[1] + (k % RECIPE_ROWS) * 30.0 * s, RECIPE_W * s, 26.0 * s]
   end
 
   def recipe_hover(w, h, s)

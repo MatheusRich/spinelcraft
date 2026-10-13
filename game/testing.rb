@@ -47,11 +47,17 @@ class Game
       end
       dx += 1
     end
-    shown = [Block::GRASS, Block::LOG, Block::GLASS, Block::CHEST, Block::TORCH, Block::ROSE,
-             Block::PORKCHOP, Block::DIAMOND_PICK, Block::BOW, Block::ARROW]
+    shown = [Block::GRASS, Block::CHEST, Block::DOOR, Block::FURNACE, Block::SAPLING, Block::APPLE,
+             Block::COOKED_PORKCHOP, Block::IRON_INGOT, Block::IRON_SWORD, Block::DIAMOND_PICK, Block::BOW, Block::ARROW]
     shown.each_with_index do |b, i|
-      drop_item(b, i == 9 ? 3 : 1, bx - 3.5 + i * 0.8, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
+      drop_item(b, i == 11 ? 3 : 1, bx - 3.6 + i * 0.65, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
     end
+    set_block(bx - 2, y + 1, bz - 2, Block::DOOR)
+    set_block(bx - 2, y + 2, bz - 2, Block::DOOR)
+    set_block(bx, y + 1, bz - 2, Block::DOOR_OPEN)
+    set_block(bx, y + 2, bz - 2, Block::DOOR_OPEN)
+    set_block(bx + 2, y + 1, bz - 2, Block::FURNACE)
+    set_block(bx + 3, y + 1, bz - 2, Block::SAPLING)
     @survival = true
     @inv_block[0] = (ENV["HAND"] || Block::LOG.to_s).to_i
     @inv_count[0] = @inv_block[0] == Block::AIR ? 0 : 5
@@ -107,6 +113,7 @@ class Game
     test_items(cx, cz)
     test_light_sources(cx, cz)
     test_dark
+    test_door_furnace_sapling
     bx = @spawn_x.floor
     bz = @spawn_z.floor
     test_bow(bx, bz)
@@ -250,12 +257,12 @@ class Game
     dropped = ground_count(Block::COBBLE) == 1 && @inv_count[1] == 0
     collect_items
     check("a pickaxe mines stone faster, and the cobblestone drops to the ground", mining_frames < n && dropped && @inv_block[1] == Block::COBBLE)
-    @inv_block[5] = Block::PORKCHOP
+    @inv_block[5] = Block::COOKED_PORKCHOP
     @inv_count[5] = 2
     @slot = 5
     @hunger = 5
     eat
-    check("eating restores hunger", @hunger == 13 && @inv_count[5] == 1)
+    check("eating restores hunger", @hunger == 15 && @inv_count[5] == 1)
   end
 
   # Monsters on a sky platform at night: a skeleton's arrow, a zombie's hit,
@@ -715,6 +722,39 @@ class Game
     set_block(x, h + 4, z, Block::AIR)
     set_block(x, h + 3, z, Block::AIR)
     check("monsters spawn under the night sky or a roof, and not near a torch", !open_day && open_night && covered_day && !near_torch)
+  end
+
+  # A door opens and closes as a whole and goes as a whole. Smelting needs a
+  # furnace near the player. A sapling grows into a tree.
+  def test_door_furnace_sapling
+    x = @spawn_x.floor + 50
+    z = @spawn_z.floor + 50
+    y = @world.height_at(x, z)
+    set_block(x, y - 1, z, Block::GRASS)
+    set_block(x, y, z, Block::DOOR)
+    set_block(x, y + 1, z, Block::DOOR)
+    toggle_door(x, y + 1, z)
+    opened = @world.get(x, y, z) == Block::DOOR_OPEN && @world.get(x, y + 1, z) == Block::DOOR_OPEN
+    toggle_door(x, y, z)
+    closed = Block.solid?(@world.get(x, y, z)) && Block.solid?(@world.get(x, y + 1, z))
+    set_block(x, y, z, Block::AIR)
+    check("a door opens and closes as a whole, and breaks as a whole", opened && closed && @world.get(x, y + 1, z) == Block::AIR)
+    @player.x = x + 0.5
+    @player.y = y.to_f
+    @player.z = z + 3.5
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    give(Block::IRON)
+    smelt = RECIPES.index { |r| r[2] == Block::IRON_INGOT }
+    craft_recipe(smelt)
+    far = @inv_block[0] == Block::IRON
+    set_block(x + 2, y, z + 3, Block::FURNACE)
+    craft_recipe(smelt)
+    set_block(x + 2, y, z + 3, Block::AIR)
+    check("smelting needs a furnace nearby", far && @inv_block[0] == Block::IRON_INGOT)
+    set_block(x, y, z, Block::SAPLING)
+    grow_saplings(600.0)
+    check("a sapling grows into a tree", @world.get(x, y, z) == Block::LOG && @world.get(x, y + 3, z) == Block::LOG)
   end
 
   # Water spreads 7 blocks over a floor and drains without its source.

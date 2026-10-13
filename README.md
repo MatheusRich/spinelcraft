@@ -37,7 +37,7 @@ The game saves to `world.sav` in the current directory when you quit, when you p
 | Left Shift | Sneak (slow, never falls off an edge); fly down |
 | Left Ctrl, double-tap W | Sprint |
 | Left click | Break a block (hold in survival), attack a mob |
-| Right click | Place the selected block; use a bed; open a chest (survival); eat a porkchop (survival); hold to draw a bow, release to shoot |
+| Right click | Place the selected block; open or close a door; use a bed; open a chest (survival); eat food (survival); hold to draw a bow, release to shoot |
 | Middle click | Pick the block you look at (creative) |
 | 1–9, wheel | Select a hotbar slot |
 | E | Inventory: all blocks in creative; the 36-slot backpack in survival (click to move stacks) |
@@ -58,20 +58,29 @@ To craft in survival, open the inventory (E) and click a recipe, or press C to c
 
 - 1 log gives 4 planks.
 - 1 coal gives 4 torches.
-- 1 sand gives 1 glass.
 - 1 gravel gives 4 arrows.
 - 2 stone give 1 brick.
 - 3 wool give a bed.
 - 5 planks give a bow.
+- 6 planks give 3 doors.
 - 8 planks give a chest.
-- 3 planks, cobblestone, iron ore or diamond ore give a wooden, stone, iron or diamond pickaxe.
+- 8 cobblestone give a furnace.
+- 3 planks, cobblestone, iron ingots or diamond ore give a wooden, stone, iron or diamond pickaxe.
+- 2 planks, cobblestone, iron ingots or diamond ore give a wooden, stone, iron or diamond sword.
+
+These recipes need a furnace within 4 blocks:
+
+- 1 iron ore gives 1 iron ingot.
+- 1 porkchop gives 1 cooked porkchop.
+- 1 sand gives 1 glass.
+- 1 cobblestone gives 1 stone.
 
 Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the right tier. Iron ore needs a stone pickaxe or better, and diamond ore needs an iron one. A better pickaxe also mines faster. Logs, dirt, sand and gravel need no tool, so start by punching a tree.
 
 ## What is in it
 
 - An endless world, 96 blocks tall. Chunks of 16 × 16 columns generate as you move and unload behind you. Perlin noise makes continents, hills, ridged mountains, beaches, oceans, deserts with cactus, and snowy peaks. Caves are long tunnels. The world also has coal, iron and diamond ore, trees, tall grass and flowers.
-- 27 block types with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
+- 30 block types with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
 - Ambient occlusion at each face corner, sky light from a height map, and warm torch light. Torch light spreads by flood fill, so walls stop it.
 - Sand and gravel fall when nothing holds them up.
 - Lava fills the bottom of deep caves. It glows, flows up to 3 blocks, burns players and mobs, throws embers, and turns into cobblestone where water touches it.
@@ -84,9 +93,12 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 - Monsters in the dark: at night under the open sky, and at any time in caves and under roofs. A torch or lava within 8 blocks stops them from spawning. Zombies chase you and hit you. Skeletons keep their distance and shoot arrows when they can see you. Creepers walk up to you, flash and explode, which removes blocks and hurts everything near them. Zombies and skeletons burn in daylight, and creepers do not.
 - A survival mode with 10 hearts, a hunger bar, fall damage, drowning, regeneration, timed block breaking with growing cracks and a knock sound, stacks of 64, crafting, death and respawn. At death you drop your inventory where you died.
 - Items drop. A broken block, the loot of a mob and a thrown item fall to the ground, turn there, and go to your inventory when you walk over them. Items of one kind join into one stack. An item that does not fit stays on the ground. Lava burns items, and the game removes an item after 5 minutes.
+- Swords. A hand hits for 2 hearts, and a wooden, stone, iron or diamond sword hits for 3, 3.5, 4.5 or 5.5.
+- Doors, two blocks tall. Right-click opens or closes a door, and mobs cannot pass a closed door.
+- Saplings. Leaves sometimes drop a sapling. A sapling on the ground grows into a tree in about a minute.
 - Chests that hold 27 stacks. Click to move stacks between the chest and your inventory. A broken chest drops what it held, and the save keeps chest contents.
 - Beds. Right-click a bed to set your spawn point there. At night, if no monster is within 10 blocks, the bed also skips to morning.
-- Food. A pig drops a porkchop, and right-click eats the selected porkchop. Hunger drains over time, and faster when you sprint. Health regenerates only while hunger is 15 or more, and an empty hunger bar hurts you down to half a heart.
+- Food. A pig drops a porkchop, and leaves sometimes drop an apple. Right-click eats the selected food. A porkchop or an apple fills 2 of the 10 hunger icons, and a cooked porkchop fills 5. Hunger drains over time, and faster when you sprint. Health regenerates only while hunger is 15 or more, and an empty hunger bar hurts you down to half a heart.
 - Generated sound effects, block-break particles, view bobbing, and a wider field of view when you sprint.
 - The held block or item is a 3D model at the lower right of the view. It swings when you use it, and an empty hand shows the arm.
 
@@ -182,7 +194,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 59 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 62 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

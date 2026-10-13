@@ -105,7 +105,7 @@ class Game
     if held && @target_mob >= 0
       if pressed
         mob = @mobs[@target_mob]
-        mob.hit(@survival ? 4 : 10, @player.x, @player.z)
+        mob.hit(@survival ? Block.damage(current_block.to_i) : 10, @player.x, @player.z)
         mob.by_player = true
         play(Sfx::HIT, 0.8)
         @swing = 0.25
@@ -131,7 +131,7 @@ class Game
   # places a block.
   def right_button(dt, held)
     target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
-    if current_block == Block::BOW && target != Block::CHEST && target != Block::BED
+    if current_block == Block::BOW && target != Block::CHEST && target != Block::BED && !Block.door?(target)
       if held
         @draw_time = 0.0 if @draw_time < 0.0
         @draw_time += dt
@@ -148,7 +148,9 @@ class Game
         return
       elsif @player.hit && @world.get(@player.hx, @player.hy, @player.hz) == Block::BED
         use_bed(@player.hx, @player.hy, @player.hz)
-      elsif current_block == Block::PORKCHOP
+      elsif Block.door?(target)
+        toggle_door(@player.hx, @player.hy, @player.hz)
+      elsif Block.food(current_block.to_i) > 0
         eat
       elsif @player.hit
         place
@@ -189,13 +191,15 @@ class Game
       play(Sfx::BREAK, 0.7)
       set_block(x, y, z, Block::AIR)
       drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
+      drop_from_leaves(x, y, z) if b == Block::LEAVES
       @mining = false
     end
   end
 
   def dig_sound(b)
     return Sfx::DIG_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::GLASS || b == Block::BEDROCK
-    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED
+    return Sfx::DIG_STONE if b == Block::FURNACE
+    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || Block.door?(b)
     Sfx::DIG_SOFT
   end
 
@@ -216,9 +220,38 @@ class Game
     say("GOOD MORNING")
   end
 
+  # Leaves drop a sapling now and then, and an apple more rarely.
+  def drop_from_leaves(x, y, z)
+    r = rand01
+    if r < 0.1
+      drop_from_block(Block::SAPLING, 1, x, y, z)
+    elsif r < 0.15
+      drop_from_block(Block::APPLE, 1, x, y, z)
+    end
+  end
+
+  # Opens or closes the door at x, y, z and the other half above or below it.
+  def toggle_door(x, y, z)
+    b = @world.get(x, y, z) == Block::DOOR ? Block::DOOR_OPEN : Block::DOOR
+    # A closed door must not close on the player or a mob.
+    if b == Block::DOOR
+      return if @player.overlaps?(x, y, z) || @player.overlaps?(x, door_partner(x, y, z), z)
+    end
+    other = door_partner(x, y, z)
+    @world.set(x, y, z, b)
+    @world.set(x, other, z, b) if Block.door?(@world.get(x, other, z))
+    mark_dirty(x, z)
+    play(b == Block::DOOR ? Sfx::DIG_WOOD : Sfx::PLACE, 0.6)
+    @swing = SWING
+  end
+
+  # The y of the other half of the door at x, y, z.
+  def door_partner(x, y, z) = Block.door?(@world.get(x, y + 1, z)) ? y + 1 : y - 1
+
   def eat
-    return unless @survival && @inv_count[@slot] > 0 && @hunger < MAX_HUNGER
-    @hunger = [@hunger + 8, MAX_HUNGER].min
+    food = Block.food(current_block.to_i)
+    return unless @survival && @inv_count[@slot] > 0 && @hunger < MAX_HUNGER && food > 0
+    @hunger = [@hunger + food, MAX_HUNGER].min
     @inv_count[@slot] -= 1
     @inv_block[@slot] = Block::AIR if @inv_count[@slot] == 0
     play(Sfx::PLACE, 0.5)
@@ -244,6 +277,12 @@ class Game
     end
     current = @world.get(x, y, z)
     return unless current == Block::AIR || Block.water?(current) || Block.plant?(current)
+    if b == Block::DOOR
+      # A door is two blocks tall and stands on a solid block.
+      return unless Block.solid?(@world.get(x, y - 1, z)) && @world.get(x, y + 1, z) == Block::AIR
+      return if @player.overlaps?(x, y + 1, z)
+      set_block(x, y + 1, z, b)
+    end
     set_block(x, y, z, b)
     play(Sfx::PLACE, 0.7)
     @swing = 0.25

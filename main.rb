@@ -384,6 +384,7 @@ class Game
     @was_in_water = @player.in_water
     update_particles(dt)
     sample_fire_blocks(dt)
+    grow_saplings(dt)
     update_items(dt)
     update_weather(dt)
     Gfx.gfx_rain(@rain_mesh.v, @rain_mesh.count) if build_rain(dt)

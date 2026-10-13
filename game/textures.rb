@@ -50,7 +50,18 @@ module Tex
   PUFF = 52
   # Streaks of rain on a clear background.
   RAIN = 53
-  FONT = 54
+  DOOR = 54
+  DOOR_OPEN = 55
+  SAPLING = 56
+  APPLE = 57
+  WOOD_SWORD = 58
+  STONE_SWORD = 59
+  IRON_SWORD = 60
+  DIAMOND_SWORD = 61
+  IRON_INGOT = 62
+  FURNACE = 63
+  COOKED_PORKCHOP = 64
+  FONT = 65
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -232,6 +243,15 @@ module Tex
     pick(px, DIAMOND_PICK, 90, 230, 225)
     bow(px)
     arrow(px)
+    door(px)
+    sapling(px)
+    apple(px)
+    sword(px, WOOD_SWORD, 160, 120, 70)
+    sword(px, STONE_SWORD, 135, 135, 135)
+    sword(px, IRON_SWORD, 225, 220, 210)
+    sword(px, DIAMOND_SWORD, 90, 230, 225)
+    ingot(px)
+    furnace(px)
     lava(px)
     noisy(px, WOOL, 232, 232, 228, 14, 71)
     bed(px)
@@ -254,6 +274,7 @@ module Tex
     bleed(px, FIRE)
     bleed(px, PUFF)
     bleed(px, RAIN)
+    bleed(px, SAPLING)
     px
   end
 
@@ -516,7 +537,120 @@ module Tex
     head.each { |c| set(px, layer, c[0], c[1], r, g, b, 255) }
   end
 
+  # A door of boards with a dark frame and a knob. The open door shows only
+  # its edge at the hinge side; the rest is clear.
+  def self.door(px)
+    y = 0
+    while y < 16
+      x = 0
+      while x < 16
+        v = rnd(x / 4, y, 101) / 12 + (rnd(x, y, 102) - 128) / 20
+        edge = x == 0 || y == 0 || x == 15 || y == 15 || x % 5 == 0
+        c = edge ? 95 : 160 + v
+        set(px, DOOR, x, y, c, (c * 0.7).to_i, (c * 0.42).to_i, 255)
+        set(px, DOOR_OPEN, x, y, c, (c * 0.7).to_i, (c * 0.42).to_i, x < 3 ? 255 : 0)
+        x += 1
+      end
+      y += 1
+    end
+    set(px, DOOR, 12, 8, 210, 205, 190, 255)
+    set(px, DOOR, 12, 9, 170, 165, 150, 255)
+  end
+
+  # A thin stem with a few round leaves.
+  def self.sapling(px)
+    y = 9
+    while y < 16
+      set(px, SAPLING, 7, y, 110, 80, 45, 255)
+      y += 1
+    end
+    [[7, 3, 3.2], [4, 7, 2.6], [10, 6, 2.8], [7, 8, 2.2]].each do |c|
+      y = 0
+      while y < 16
+        x = 0
+        while x < 16
+          d = (x - c[0]) ** 2 + (y - c[1]) ** 2
+          v = rnd(x, y, 111) / 8
+          set(px, SAPLING, x, y, 50 + v, 120 + v, 40 + v, 255) if d < c[2] * c[2]
+          x += 1
+        end
+        y += 1
+      end
+    end
+  end
+
+  def self.apple(px)
+    y = 0
+    while y < 16
+      x = 0
+      while x < 16
+        dx = (x - 7.5) / 5.5
+        dy = (y - 9.0) / 5.5
+        if dx * dx + dy * dy < 1.0
+          v = rnd(x, y, 121) / 10
+          light = x < 7 && y < 8 ? 40 : 0
+          set(px, APPLE, x, y, 200 + v + light, 30 + v + light, 35 + v + light, 255)
+        end
+        x += 1
+      end
+      y += 1
+    end
+    set(px, APPLE, 8, 2, 100, 70, 40, 255)
+    set(px, APPLE, 8, 3, 100, 70, 40, 255)
+    set(px, APPLE, 9, 2, 60, 140, 50, 255)
+    set(px, APPLE, 10, 1, 60, 140, 50, 255)
+  end
+
+  # A sword: a diagonal blade in the tier's color, a cross guard, and a handle.
+  def self.sword(px, layer, r, g, b)
+    i = 0
+    while i < 9
+      set(px, layer, 5 + i, 10 - i, r, g, b, 255)
+      set(px, layer, 6 + i, 10 - i, r * 3 / 4, g * 3 / 4, b * 3 / 4, 255)
+      i += 1
+    end
+    [[3, 9], [4, 10], [5, 11], [6, 12], [7, 13]].each { |c| set(px, layer, c[0], c[1], 90, 70, 50, 255) }
+    [[4, 12], [3, 13], [2, 14]].each { |c| set(px, layer, c[0], c[1], 110, 80, 45, 255) }
+    set(px, layer, 1, 15, 90, 65, 40, 255)
+  end
+
+  def self.ingot(px)
+    y = 6
+    while y < 11
+      x = 2 + (10 - y) / 2
+      while x < 14 - (10 - y) / 2
+        v = rnd(x, y, 131) / 12
+        c = y == 6 ? 240 : 200
+        set(px, IRON_INGOT, x, y, c + v - 10, c + v - 12, c + v - 18, 255)
+        x += 1
+      end
+      y += 1
+    end
+  end
+
+  # Gray stone around a dark mouth with a glow at its bottom.
+  def self.furnace(px)
+    noisy(px, FURNACE, 120, 120, 120, 20, 141)
+    y = 0
+    while y < 16
+      x = 0
+      while x < 16
+        set(px, FURNACE, x, y, 75, 75, 75, 255) if x == 0 || y == 0 || x == 15 || y == 15
+        set(px, FURNACE, x, y, 25, 22, 20, 255) if x > 3 && x < 12 && y > 7 && y < 14
+        set(px, FURNACE, x, y, 230, 120, 30, 255) if x > 4 && x < 11 && y == 12
+        x += 1
+      end
+      y += 1
+    end
+  end
+
   def self.porkchop(px)
+    meat(px, PORKCHOP, 215, 95, 105, 245, 225, 215)
+    meat(px, COOKED_PORKCHOP, 150, 85, 45, 200, 160, 110)
+  end
+
+  # A round piece of meat with a rim of fat.
+  def self.meat(px, layer, r, g, b, fr, fg, fb)
     y = 0
     while y < 16
       x = 0
@@ -526,10 +660,10 @@ module Tex
         d = dx * dx + dy * dy
         if d < 1.0
           if d > 0.62
-            set(px, PORKCHOP, x, y, 245, 225, 215, 255)
+            set(px, layer, x, y, fr, fg, fb, 255)
           else
             v = rnd(x, y, 41) / 10
-            set(px, PORKCHOP, x, y, 215 + v, 95 + v, 105 + v, 255)
+            set(px, layer, x, y, r + v, g + v, b + v, 255)
           end
         end
         x += 1

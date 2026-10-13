@@ -4,6 +4,12 @@ class Game
     @changed = true
     drop_chest(x, y, z) if b != Block::CHEST && @world.get(x, y, z) == Block::CHEST
     old = @world.get(x, y, z)
+    # A door goes as a whole: removing one half removes the other.
+    if Block.door?(old) && !Block.door?(b)
+      @world.set(x, y, z, b)
+      other = door_partner(x, y, z)
+      set_block(x, other, z, Block::AIR) if Block.door?(@world.get(x, other, z))
+    end
     if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && near_lava?(x, y, z))
       mark_light_area(x, z)
     end
@@ -12,6 +18,62 @@ class Game
     set_block(x, y + 1, z, Block::AIR) if b == Block::AIR && Block.plant?(@world.get(x, y + 1, z))
     settle_column(x, z)
     wake_water(x, y, z)
+  end
+
+  # Each second, the game looks at this many columns near the player for a
+  # sapling on top. Each sapling that it finds grows into a tree with
+  # chance SAPLING_CHANCE, so a sapling grows in about a minute.
+  SAPLING_SAMPLES = 400.0
+  SAPLING_REACH = 40
+  SAPLING_CHANCE = 0.1
+
+  def grow_saplings(dt)
+    n = (dt * SAPLING_SAMPLES + rand01).to_i
+    span = SAPLING_REACH * 2 + 1
+    while n > 0
+      x = @player.x.floor - SAPLING_REACH + (rand01 * span).to_i
+      z = @player.z.floor - SAPLING_REACH + (rand01 * span).to_i
+      if @world.loaded?(x, z)
+        y = @world.height_at(x, z)
+        grow_tree(x, y, z) if @world.get(x, y, z) == Block::SAPLING && rand01 < SAPLING_CHANCE
+      end
+      n -= 1
+    end
+  end
+
+  # A tree like the generator's: a trunk of 4 to 6 logs under two wide
+  # layers and two small layers of leaves. It needs air above the sapling.
+  def grow_tree(x, y, z)
+    tall = 4 + (rand01 * 3.0).to_i
+    return if y + tall + 2 >= WY
+    i = 1
+    while i < tall + 2
+      return unless @world.get(x, y + i, z) == Block::AIR
+      i += 1
+    end
+    top = y + tall
+    ly = top - 2
+    while ly <= top + 1
+      radius = ly >= top ? 1 : 2
+      dx = -radius
+      while dx <= radius
+        dz = -radius
+        while dz <= radius
+          corner = dx.abs == radius && dz.abs == radius
+          skip = corner && (ly == top + 1 || rand01 < 0.5)
+          set_block(x + dx, ly, z + dz, Block::LEAVES) if !skip && @world.get(x + dx, ly, z + dz) == Block::AIR
+          dz += 1
+        end
+        dx += 1
+      end
+      ly += 1
+    end
+    i = 0
+    while i < tall
+      set_block(x, y + i, z, Block::LOG)
+      i += 1
+    end
+    set_block(x, y - 1, z, Block::DIRT) if @world.get(x, y - 1, z) == Block::GRASS
   end
 
   # A light that changes at column x, z reaches Mesher::LIGHT_MAX blocks, so
