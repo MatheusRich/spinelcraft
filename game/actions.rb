@@ -245,16 +245,27 @@ class Game
   # Opens or closes the door at x, y, z and the other half above or below it.
   def toggle_door(x, y, z)
     b = @world.get(x, y, z) == Block::DOOR ? Block::DOOR_OPEN : Block::DOOR
+    other = door_partner(x, y, z)
     # A closed door must not close on the player or a mob.
     if b == Block::DOOR
-      return if @player.overlaps?(x, y, z) || @player.overlaps?(x, door_partner(x, y, z), z)
+      return if @player.overlaps?(x, y, z) || @player.overlaps?(x, other, z)
+      low = y < other ? y : other
+      @mobs.each do |m|
+        return if x + 1 > m.x - m.half && x < m.x + m.half && low + 2 > m.y && low < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
+      end
     end
-    other = door_partner(x, y, z)
     @world.set(x, y, z, b)
     @world.set(x, other, z, b) if Block.door?(@world.get(x, other, z))
     mark_dirty(x, z)
     play(b == Block::DOOR ? Sfx::DIG_WOOD : Sfx::PLACE, 0.6)
     @swing = SWING
+  end
+
+  # A door is two blocks tall. It stands on a solid block that is not a
+  # door, and no door stands right above it, so each half has one partner.
+  def door_fits?(x, y, z)
+    below = @world.get(x, y - 1, z)
+    Block.solid?(below) && !Block.door?(below) && @world.get(x, y + 1, z) == Block::AIR && !Block.door?(@world.get(x, y + 2, z))
   end
 
   # The y of the other half of the door at x, y, z.
@@ -290,8 +301,7 @@ class Game
     current = @world.get(x, y, z)
     return unless current == Block::AIR || Block.water?(current) || Block.plant?(current)
     if b == Block::DOOR
-      # A door is two blocks tall and stands on a solid block.
-      return unless Block.solid?(@world.get(x, y - 1, z)) && @world.get(x, y + 1, z) == Block::AIR
+      return unless door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)
       set_block(x, y + 1, z, b)
     end

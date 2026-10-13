@@ -117,6 +117,8 @@ class Game
     test_light_sources(cx, cz)
     test_dark
     test_door_furnace_sapling
+    test_door_rules
+    test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
     test_bow(bx, bz)
@@ -770,6 +772,34 @@ class Game
     set_block(x, h + 4, z, Block::AIR)
     set_block(x, h + 3, z, Block::AIR)
     check("monsters spawn under the night sky or a roof, and not near a torch", !open_day && open_night && covered_day && !near_torch)
+  end
+
+  # A door does not stand on a door, and it does not close on a mob.
+  def test_door_rules
+    x = @spawn_x.floor + 50
+    z = @spawn_z.floor + 56
+    y = @world.height_at(x, z)
+    set_block(x, y - 1, z, Block::STONE)
+    set_block(x, y, z, Block::DOOR)
+    set_block(x, y + 1, z, Block::DOOR)
+    stacked = door_fits?(x, y + 2, z)
+    toggle_door(x, y, z)
+    @mobs.clear
+    @mobs << Mob.new(Mob::ZOMBIE, x + 0.5, y.to_f, z + 0.5, 3)
+    toggle_door(x, y, z)
+    open = @world.get(x, y, z) == Block::DOOR_OPEN
+    @mobs.clear
+    set_block(x, y, z, Block::AIR)
+    check("a door does not stand on a door or close on a mob", !stacked && open)
+  end
+
+  # An item in a chunk that is not loaded waits there.
+  def test_far_items
+    clear_items
+    drop_item(Block::DIRT, 1, @player.x + 3000.0, 60.0, @player.z, 0.0, 0.0, 0.0, 0.0)
+    run_items(6.0)
+    check("an item in a chunk that is not loaded waits there", @it_count.size == 1 && @it_y[0] == 60.0 && @it_age[0] == 0.0)
+    clear_items
   end
 
   # A door opens and closes as a whole and goes as a whole. Smelting needs a

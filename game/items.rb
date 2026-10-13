@@ -95,6 +95,12 @@ class Game
   def update_items(dt)
     i = 0
     while i < @it_count.size
+      # An item in a chunk that is not loaded waits there: it would fall
+      # through the missing blocks.
+      unless @world.loaded?(@it_x[i].floor, @it_z[i].floor)
+        i += 1
+        next
+      end
       @it_age[i] += dt
       @it_wait[i] -= dt
       move_item(i, dt)
