@@ -39,9 +39,9 @@ class World
   # Islands rise in open ocean where the island noise is above ISLE. ISLE_RISE
   # is the height of a dome for each step of the noise above ISLE, and
   # ISLE_SCALE is the size of the noise in blocks.
-  ISLE = 0.12
+  ISLE = 0.15
   ISLE_RISE = 100.0
-  ISLE_SCALE = 100.0
+  ISLE_SCALE = 220.0
   # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
   # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
@@ -59,6 +59,20 @@ class World
   # The size of the temperature and humidity noise in blocks. A climate
   # zone is a few hundred blocks or more across.
   CLIMATE_SCALE = 1600.0
+  # The landscape noise picks the kind of land inland, in regions of
+  # LANDSCAPE_SCALE blocks. Below MOUNTAINS it makes mountain ranges, from
+  # PLATEAU_LOW to PLATEAU_HIGH plateaus PLATEAU_RISE above the sea, and
+  # above FLATLAND flat lowland. Rolling hills fill the bands between.
+  # Each kind fades in over LANDSCAPE_EDGE of the noise, and a plateau over
+  # the shorter PLATEAU_EDGE, so its sides are steep.
+  LANDSCAPE_SCALE = 1500.0
+  MOUNTAINS = -0.1
+  PLATEAU_LOW = -0.06
+  PLATEAU_HIGH = 0.02
+  FLATLAND = 0.08
+  LANDSCAPE_EDGE = 0.02
+  PLATEAU_EDGE = 0.006
+  PLATEAU_RISE = 20.0
   # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
@@ -443,23 +457,30 @@ class World
 
   # The height of the column's top block plus one, after Minecraft 1.18.
   # The continent noise picks ocean, coast, lowland or highland, and a
-  # spline turns it into a base height. The erosion noise picks flat or
-  # rugged land, and only rugged land inland gets high hills and ridges.
-  # Rivers cut valleys down to the sea where the river noise is near zero.
+  # spline turns it into a base height. Inland, the landscape noise picks
+  # mountain ranges with ridges, plateaus with flat tops, rolling hills or
+  # flat lowland. Rivers cut valleys down to the sea where the river noise
+  # is near zero.
   def surface_height(x, z)
     nx = x + SHIFT
     nz = z + SHIFT
     wx = warp_x(nx, nz)
     wz = warp_z(nx, nz)
     continent = @noise.fbm2(wx / CONTINENT_SCALE, wz / CONTINENT_SCALE, 4)
-    erosion = @noise4.fbm2(wx / 340.0 + 30.0, wz / 340.0, 2)
-    rugged = World.smooth((0.06 - erosion) / 0.22)
+    land = @noise4.fbm2(wx / LANDSCAPE_SCALE + 30.0, wz / LANDSCAPE_SCALE, 3)
     inland = World.smooth((continent + 0.1) / 0.2)
+    mountains = World.smooth((MOUNTAINS - land) / LANDSCAPE_EDGE) * inland
+    plateau = World.smooth((land - PLATEAU_LOW) / PLATEAU_EDGE) *
+              World.smooth((PLATEAU_HIGH - land) / PLATEAU_EDGE) * inland
+    flat = World.smooth((land - FLATLAND) / LANDSCAPE_EDGE)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
     ridge = 1.0 - @noise2.noise2(wx / 90.0, wz / 90.0).abs * 1.6
     ridge = ridge < 0.0 ? 0.0 : ridge
-    h = World.spline(CONTINENT, BASE, continent) + hills * (5.0 + 14.0 * rugged) +
-        ridge * ridge * 46.0 * rugged * inland
+    h = World.spline(CONTINENT, BASE, continent) + hills * (6.0 + 13.0 * mountains - 4.0 * plateau - 3.0 * flat) +
+        ridge * ridge * 46.0 * mountains
+    # A plateau lifts the land to a flat top.
+    top = SEA + PLATEAU_RISE + hills * 2.0
+    h += (top - h) * plateau if top > h
     # Away from the coast, the island noise lifts domes out of the deep
     # ocean. Lower domes stay under the water as shoals.
     ocean = World.smooth((CONTINENT[2] - continent) / (CONTINENT[2] - CONTINENT[1]))
