@@ -959,6 +959,8 @@ class Game
     shown = shown_recipes
     rows = (shown.size + 1) / 2
     top = recipes_in_view == shown[0, RECIPE_ROWS * 2]
+    picks = [Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK].map { |b| shown.index(recipe_for(b)) }
+    check("a crafting table shows the pickaxes in one column, one to a row", picks == [0, 2, 4, 6])
     scroll_recipes(100)
     end_view = recipes_in_view
     bottom = @recipe_top == rows - RECIPE_ROWS && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_top * 2]
@@ -1056,7 +1058,7 @@ class Game
       i += 1
     end
     @inv.set(0, Block::LOG, 1)
-    craft_recipe(0)
+    craft_recipe(recipe_for(Block::PLANKS))
     check("a recipe click counts the slot that it empties as room", @inv.block(0) == Block::PLANKS && @inv.count(0) == 4)
   end
 
