@@ -1,3 +1,4 @@
+# The test of a ray against a box.
 module Ray
   # Distance along the ray from o along d to the box from x0, y0, z0 to x1,
   # y1, z1, or -1.0 when the ray misses it. This is the slab test.

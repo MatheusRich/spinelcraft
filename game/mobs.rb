@@ -1,3 +1,4 @@
+# Pigs, sheep, zombies, skeletons and creepers: behavior, physics and box models.
 class Mob
   PIG = 0
   ZOMBIE = 1

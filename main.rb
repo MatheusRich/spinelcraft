@@ -1,3 +1,4 @@
+# Game setup, spawn and respawn, the update step, and the game loop.
 require_relative "game/gfx"
 require_relative "game/rng"
 require_relative "game/textures"

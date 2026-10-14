@@ -119,45 +119,6 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 
 `build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module.
 
-| File | Contents |
-| --- | --- |
-| `main.rb` | Game setup, spawn and respawn, the update step, and the game loop |
-| `game/constants.rb` | Game constants that more than one file uses |
-| `game/save.rb` | Save and load |
-| `game/streaming.rb` | Chunk and far terrain streaming, and remeshing |
-| `game/block_changes.rb` | Block edits, flowing water and lava, falling sand and gravel |
-| `game/inventory.rb` | Hotbar, backpack, chests, crafting, and the inventory screen |
-| `game/items.rb` | Items on the ground: drops, throws, pickup, and lava |
-| `game/hand.rb` | The held item in first person |
-| `game/actions.rb` | Keys, the mouse, mining, placing, beds, and food |
-| `game/combat.rb` | Mob spawning and turns, damage, explosions, the bow, and arrows |
-| `game/render.rb` | The 3D frame and the sky |
-| `game/hud.rb` | The 2D overlay: crosshair, hotbar, bars, messages, and menus |
-| `game/testing.rb` | The `SELFTEST`, `SHOWMOBS` and `DEMO` switches |
-| `game/block.rb` | Block tables: the name, textures and behavior of each block and item type |
-| `game/world.rb` | Chunk generation, block storage, and the store of changed chunks |
-| `game/noise.rb` | Perlin noise, and the hash for random choices that a position decides |
-| `game/mesher.rb` | Chunk meshing: one packed record for each visible face |
-| `game/lod.rb` | Far terrain: coarse tiles past the full-detail chunks |
-| `game/player.rb` | Player physics and the block raycast |
-| `game/ray.rb` | The test of a ray against a box |
-| `game/vitals.rb` | Health, hunger, air and fire in survival |
-| `game/slots.rb` | A row of item slots: the inventory or a chest |
-| `game/camera.rb` | The camera matrix, the frustum, and screen projection |
-| `game/mobs.rb` | Pig, sheep, zombie, skeleton and creeper behavior, physics and box models |
-| `game/arrow.rb` | An arrow in flight: its fall, where it sticks, and its model |
-| `game/item.rb` | An item on the ground: its fall, its float in water, and its model |
-| `game/falling_block.rb` | Sand or gravel that falls down its column |
-| `game/particles.rb` | Block chips, flames, smoke, embers and drops of rain |
-| `game/weather.rb` | Rain: the weather cycle, the rain quads, the splashes, and the rain sound |
-| `game/ui.rb` | Vertex builder for the HUD |
-| `game/mesh3.rb` | Vertex builder for 3D boxes and for the model of a block or item |
-| `game/textures.rb` | Generated textures and the bitmap font |
-| `game/sounds.rb` | Sound synthesis |
-| `game/clouds.rb` | Cloud layer |
-| `game/rng.rb` | The seeded random number generator |
-| `game/gfx.rb` | The C layer (`ffi_source`): the SDL3 window, input, audio and GPU calls, and the Metal shaders |
-
 ## Rendering
 
 The mesher writes one record of two 32-bit words for each visible face. The record holds the position, the face direction, the texture layer, ambient occlusion for each corner, sky light and torch light. The vertex shader turns each record into a quad with an indexed draw. Each chunk sorts its faces by direction, so the renderer skips the directions that cannot face the camera. That removes about a third of the faces. The renderer also skips chunks outside the view frustum or past the fog. Water draws after the opaque blocks, from back to front.

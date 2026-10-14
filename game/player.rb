@@ -1,3 +1,4 @@
+# The physics of the player and the raycast that finds the block in view.
 class Player
   HALF = 0.3
   TALL = 1.8

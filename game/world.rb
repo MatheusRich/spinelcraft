@@ -1,3 +1,4 @@
+# Chunk generation, block storage, and the store of changed chunks.
 WY = 96
 PY = WY + 2
 SEA = 34
