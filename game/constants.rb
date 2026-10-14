@@ -37,10 +37,16 @@ class Game
   M_GRAVEL = 5
   M_GLASS = 6
   M_LEAVES = 7
-  MATERIAL_DIG = [Sfx::DIG_STONE, Sfx::DIG_WOOD, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_GRAVEL, Sfx::DIG_STONE, Sfx::DIG_LEAVES]
-  MATERIAL_BREAK = [Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::STEP_SAND, Sfx::BREAK_GRAVEL, Sfx::BREAK_GLASS, Sfx::STEP_GRASS]
-  MATERIAL_STEP = [Sfx::STEP_HARD, Sfx::STEP_WOOD, Sfx::STEP_DIRT, Sfx::STEP_GRASS, Sfx::STEP_SAND, Sfx::STEP_GRAVEL, Sfx::STEP_GLASS, Sfx::STEP_GRASS]
-  MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE]
+  M_CLOTH = 8
+  M_SNOW = 9
+  MATERIAL_DIG = [Sfx::DIG_STONE, Sfx::DIG_WOOD, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_GRAVEL, Sfx::DIG_STONE, Sfx::DIG_LEAVES,
+                  Sfx::CLOTH, Sfx::SNOW]
+  MATERIAL_BREAK = [Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::STEP_SAND, Sfx::BREAK_GRAVEL, Sfx::BREAK_GLASS, Sfx::STEP_GRASS,
+                    Sfx::CLOTH, Sfx::SNOW]
+  MATERIAL_STEP = [Sfx::STEP_HARD, Sfx::STEP_WOOD, Sfx::STEP_DIRT, Sfx::STEP_GRASS, Sfx::STEP_SAND, Sfx::STEP_GRAVEL, Sfx::STEP_GLASS, Sfx::STEP_GRASS,
+                   Sfx::CLOTH, Sfx::SNOW]
+  MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE,
+                    Sfx::CLOTH, Sfx::PLACE]
   # A sound from a point fades to silence at this distance, in blocks.
   # minecraft.wiki/w/Sound
   SOUND_RANGE = 16.0

@@ -302,7 +302,9 @@ class Game
     return M_GLASS if b == Block::GLASS
     return M_GRAVEL if b == Block::GRAVEL
     return M_SAND if b == Block::SAND
-    return M_GRASS if b == Block::GRASS || b == Block::SNOW_GRASS || b == Block::SNOW
+    return M_GRASS if b == Block::GRASS || b == Block::SNOW_GRASS
+    return M_SNOW if b == Block::SNOW
+    return M_CLOTH if b == Block::WOOL
     return M_WOOD if b == Block::TORCH || b == Block::CACTUS
     return M_LEAVES if b == Block::LEAVES || Block.plant?(b)
     return M_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::BEDROCK || b == Block::FURNACE

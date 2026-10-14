@@ -23,6 +23,8 @@ Each file keeps its license.
 | `default_gravel_footstep.1.ogg` | Mito551 | CC BY-SA 3.0 | Minetest Game |
 | `default_break_glass.1.ogg` | cmusounddesign | CC BY 3.0 | <http://www.freesound.org/people/cmusounddesign/sounds/71947/> |
 | `default_dig_snappy.ogg` | blukotek | CC0 1.0 | <https://www.freesound.org/people/blukotek/sounds/251660/> |
+| `mcl_sounds_cloth.1.ogg` | Alecia Shepherd | CC BY-SA 4.0 | <https://opengameart.org/content/snowsong-sound-and-music-pack> |
+| `pedology_snow_soft_footstep.1.ogg` | Unknown author | CC BY-SA 3.0 | VoxeLibre `mcl_sounds` |
 | `default_gravel_dig.1.ogg` | lolamadeus | CC0 1.0 | <https://freesound.org/people/lolamadeus/sounds/179341/> |
 | `default_gravel_dug.1.ogg` | lolamadeus | CC0 1.0 | <https://freesound.org/people/lolamadeus/sounds/179341/> |
 | `default_sand_footstep.1.ogg` | worthahep88 | CC0 1.0 | <https://freesound.org/people/worthahep88/sounds/319224/> |
@@ -81,4 +83,5 @@ Each file keeps its license.
 - CC0 1.0: <https://creativecommons.org/publicdomain/zero/1.0/>
 - CC BY 3.0: <https://creativecommons.org/licenses/by/3.0/>
 - CC BY-SA 3.0: <https://creativecommons.org/licenses/by-sa/3.0/>
+- CC BY-SA 4.0: <https://creativecommons.org/licenses/by-sa/4.0/>
 - MIT: <https://opensource.org/licenses/MIT>

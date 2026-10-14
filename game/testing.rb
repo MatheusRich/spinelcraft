@@ -254,7 +254,8 @@ class Game
           MATERIAL_STEP[material(Block::GRASS)] == Sfx::STEP_GRASS && MATERIAL_STEP[material(Block::STONE)] == Sfx::STEP_HARD &&
           MATERIAL_STEP[material(Block::PLANKS)] == Sfx::STEP_WOOD && MATERIAL_STEP[material(Block::SAND)] == Sfx::STEP_SAND &&
           MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::LEAVES)] == Sfx::DIG_LEAVES &&
-          MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD)
+          MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD &&
+          MATERIAL_STEP[material(Block::WOOL)] == Sfx::CLOTH && MATERIAL_STEP[material(Block::SNOW)] == Sfx::SNOW)
     creeper = Mob.new(Mob::CREEPER, @player.x + 1.5, @player.y, @player.z, 11)
     hisses = 0
     20.times do
