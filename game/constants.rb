@@ -26,7 +26,6 @@ class Game
   DAY_SECONDS = 600.0
   MAX_ZOMBIES = 12
   PIGS = 24
-  STACK = 64
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36
   HOTBAR = 9

@@ -26,9 +26,9 @@ class Game
     close_chest
     land_falling
     chest_fields = [@chests.size]
-    @chests.each do |key, stored|
+    @chests.each do |key, chest|
       chest_fields << key
-      chest_fields.concat(stored)
+      chest_fields.concat(chest.to_a)
     end
     seen = []
     b = 0
@@ -47,7 +47,7 @@ class Game
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv_block + @inv_count + @hotbar + [@vitals.hunger, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
+    inv = (@inv.to_a + @hotbar + [@vitals.hunger, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
       f.write("SPINELCRAFT7 #{header} #{inv}\n")
@@ -124,12 +124,7 @@ class Game
     @vitals.health = f[F_HEALTH].to_i
     @spawn_x = f[F_SPAWN].to_f
     @spawn_z = f[F_SPAWN + 1].to_f
-    i = 0
-    while i < INV
-      @inv_block[i] = f[F_INV + i].to_i
-      @inv_count[i] = f[F_INV + INV + i].to_i
-      i += 1
-    end
+    @inv.load(f, F_INV)
     i = 0
     while i < HOTBAR
       @hotbar[i] = f[F_HOTBAR + i].to_i
@@ -144,14 +139,9 @@ class Game
     at += 1
     c = 0
     while c < chests
-      key = f[at].to_i
-      stored = Array.new(CHEST_SLOTS * 2, 0)
-      k = 0
-      while k < CHEST_SLOTS * 2
-        stored[k] = f[at + 1 + k].to_i
-        k += 1
-      end
-      @chests[key] = stored
+      chest = Slots.new(CHEST_SLOTS)
+      chest.load(f, at + 1)
+      @chests[f[at].to_i] = chest
       at += 1 + CHEST_SLOTS * 2
       c += 1
     end

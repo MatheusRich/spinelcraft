@@ -66,8 +66,8 @@ class Game
       set_block(bx - 4 + i, y + 1, bz - 1, b)
     end
     @survival = true
-    @inv_block[0] = (ENV["HAND"] || Block::LOG.to_s).to_i
-    @inv_count[0] = @inv_block[0] == Block::AIR ? 0 : 5
+    hand = (ENV["HAND"] || Block::LOG.to_s).to_i
+    @inv.set(0, hand, hand == Block::AIR ? 0 : 5)
     @slot = 0
     @player.x = bx + 0.5
     @player.y = y + 1.0
@@ -259,27 +259,24 @@ class Game
   # Survival basics: crafting, stacks, health, placing, mining, and food.
   def test_survival(x, z, ground)
     @survival = true
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    3.times { give(Block::LOG) }
+    @inv.clear
+    3.times { @inv.add(Block::LOG) }
     @slot = 0
     craft_recipe(recipe_for(Block::PLANKS))
-    check("craft log into planks", @inv_block[0] == Block::LOG && @inv_count[0] == 2 && @inv_block[1] == Block::PLANKS && @inv_count[1] == 4)
-    70.times { give(Block::DIRT) }
-    check("stacks split at 64", @inv_count[2] == 64 && @inv_block[3] == Block::DIRT && @inv_count[3] == 6)
+    check("craft log into planks", @inv.block(0) == Block::LOG && @inv.count(0) == 2 && @inv.block(1) == Block::PLANKS && @inv.count(1) == 4)
+    70.times { @inv.add(Block::DIRT) }
+    check("stacks split at 64", @inv.count(2) == 64 && @inv.block(3) == Block::DIRT && @inv.count(3) == 6)
     @vitals.health = Vitals::MAX_HEALTH
     hurt(5)
     check("hurt lowers health", @vitals.health == 15 && !@vitals.dead?)
-    kept_blocks = @inv_block.dup
-    kept_counts = @inv_count.dup
+    kept = @inv.copy
     @items.clear
     toggle_inventory
     hurt(30)
     check("death at zero health, and it closes the inventory", @vitals.health == 0 && @vitals.dead? && !@inventory_open)
-    check("death drops the inventory on the ground", room_for(Block::DIRT) == INV * STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
+    check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
     @items.clear
-    @inv_block = kept_blocks
-    @inv_count = kept_counts
+    @inv = kept
     respawn
     check("respawn restores health", @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead?)
     @player.x = x + 0.5
@@ -289,18 +286,17 @@ class Game
     @player.raycast(@world)
     check("raycast hits the ground", @player.hit && @player.hy == ground)
     @slot = 1
-    before = @inv_count[1]
+    before = @inv.count(1)
     @player.y = ground + 3.0
     @player.raycast(@world)
     place
-    check("survival place uses one item", @inv_count[1] == before - 1 && @world.get(x, ground + 1, z) == Block::PLANKS)
+    check("survival place uses one item", @inv.count(1) == before - 1 && @world.get(x, ground + 1, z) == Block::PLANKS)
     set_block(x, ground + 1, z, Block::TALL_GRASS)
     @player.raycast(@world)
     place
     check("a block placed on tall grass takes its cell", @world.get(x, ground + 1, z) == Block::PLANKS && @world.get(x, ground + 2, z) == Block::AIR)
     # Stone drops cobblestone only to a pickaxe.
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     @slot = 0
     set_block(x, ground + 1, z, Block::STONE)
     @player.y = ground + 3.0
@@ -311,16 +307,15 @@ class Game
       n += 1
     end
     check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && @items.empty?)
-    7.times { give(Block::PLANKS) }
+    7.times { @inv.add(Block::PLANKS) }
     craft_recipe(recipe_for(Block::WOOD_PICK))
-    by_hand = count_items(Block::WOOD_PICK)
+    by_hand = @inv.total(Block::WOOD_PICK)
     craft_recipe(recipe_for(Block::CRAFTING_TABLE))
-    table = count_items(Block::CRAFTING_TABLE) == 1
+    table = @inv.total(Block::CRAFTING_TABLE) == 1
     craft_at_table(recipe_for(Block::WOOD_PICK))
-    check("a crafting table comes from 4 planks, and a pickaxe needs one nearby", by_hand == 0 && table && count_items(Block::WOOD_PICK) > 0)
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    give(Block::WOOD_PICK)
+    check("a crafting table comes from 4 planks, and a pickaxe needs one nearby", by_hand == 0 && table && @inv.total(Block::WOOD_PICK) > 0)
+    @inv.clear
+    @inv.add(Block::WOOD_PICK)
     set_block(x, ground + 1, z, Block::STONE)
     mining_frames = 0
     while mining_frames < 200 && @world.get(x, ground + 1, z) == Block::STONE
@@ -328,27 +323,25 @@ class Game
       mine(0.05)
       mining_frames += 1
     end
-    dropped = ground_count(Block::COBBLE) == 1 && @inv_count[1] == 0
+    dropped = ground_count(Block::COBBLE) == 1 && @inv.count(1) == 0
     collect_items
-    check("a pickaxe mines stone faster, and the cobblestone drops to the ground", mining_frames < n && dropped && @inv_block[1] == Block::COBBLE)
+    check("a pickaxe mines stone faster, and the cobblestone drops to the ground", mining_frames < n && dropped && @inv.block(1) == Block::COBBLE)
     by_hand = frames_to_mine(x, ground + 1, z, Block::LOG, Block::AIR)
     by_axe = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_AXE)
     by_pick = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_PICK)
     check("an axe chops a log faster than a hand or a pickaxe", by_axe < by_hand && by_pick == by_hand)
     @items.clear
-    @inv_block[5] = Block::COOKED_PORKCHOP
-    @inv_count[5] = 2
+    @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
     @vitals.hunger = 5
     eat
-    check("eating restores hunger", @vitals.hunger == 15 && @inv_count[5] == 1)
+    check("eating restores hunger", @vitals.hunger == 15 && @inv.count(5) == 1)
   end
 
   # Frames of 0.05 seconds that it takes to break block b at x, y, z (which
   # the player looks at) with tool in hotbar slot 8.
   def frames_to_mine(x, y, z, b, tool)
-    @inv_block[8] = tool
-    @inv_count[8] = tool == Block::AIR ? 0 : Block.uses(tool)
+    @inv.set(8, tool, tool == Block::AIR ? 0 : Block.uses(tool))
     @slot = 8
     set_block(x, y, z, b)
     @mining = false
@@ -358,8 +351,7 @@ class Game
       mine(0.05)
       n += 1
     end
-    @inv_block[8] = Block::AIR
-    @inv_count[8] = 0
+    @inv.set(8, Block::AIR, 0)
     n
   end
 
@@ -494,8 +486,8 @@ class Game
   # the weather, and a dead player respawns on load.
   def test_save(x, z, ground)
     old = @world.get(x, ground + 1, z)
-    kept_block = @inv_block[1]
-    kept_count = @inv_count[1]
+    kept_block = @inv.block(1)
+    kept_count = @inv.count(1)
     @items.clear
     drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
     @weather.set(true)
@@ -507,14 +499,14 @@ class Game
     save
     @world.set(x, ground + 1, z, Block::GLASS)
     @vitals.health = 3
-    @inv_count[1] = 0
+    @inv.set(1, Block::AIR, 0)
     @items.clear
     @weather.set_now(false)
     @seen.fill(0)
     @furnace_heat = {}
     ok = load
     apply_loaded if ok
-    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
+    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
@@ -539,59 +531,50 @@ class Game
   # moves a stack between the hotbar and the backpack, or between the
   # inventory and an open chest.
   def test_split_and_quick_move
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     @held_count = 0
     @held_block = Block::AIR
-    @inv_block[5] = Block::DIRT
-    @inv_count[5] = 7
-    split_cell(@inv_block, @inv_count, 5)
-    half = @held_count == 4 && @inv_count[5] == 3
-    split_cell(@inv_block, @inv_count, 6)
-    split_cell(@inv_block, @inv_count, 6)
-    split_cell(@inv_block, @inv_count, 5)
-    one = @inv_count[6] == 2 && @inv_count[5] == 4 && @held_count == 1
+    @inv.set(5, Block::DIRT, 7)
+    split_cell(@inv, 5)
+    half = @held_count == 4 && @inv.count(5) == 3
+    split_cell(@inv, 6)
+    split_cell(@inv, 6)
+    split_cell(@inv, 5)
+    one = @inv.count(6) == 2 && @inv.count(5) == 4 && @held_count == 1
     return_held
-    check("a right-click takes half a stack and puts down one item", half && one && @inv_count[5] == 5)
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    @inv_block[0] = Block::DIRT
-    @inv_count[0] = 10
-    @inv_block[HOTBAR] = Block::DIRT
-    @inv_count[HOTBAR] = 60
+    check("a right-click takes half a stack and puts down one item", half && one && @inv.count(5) == 5)
+    @inv.clear
+    @inv.set(0, Block::DIRT, 10)
+    @inv.set(HOTBAR, Block::DIRT, 60)
     quick_move_slot(0)
-    pack = @inv_count[0] == 0 && @inv_count[HOTBAR] == 64 && @inv_block[HOTBAR + 1] == Block::DIRT && @inv_count[HOTBAR + 1] == 6
+    pack = @inv.count(0) == 0 && @inv.count(HOTBAR) == 64 && @inv.block(HOTBAR + 1) == Block::DIRT && @inv.count(HOTBAR + 1) == 6
     @chest_key = 0
-    @chest_block.fill(0)
-    @chest_count.fill(0)
+    @chest.clear
     quick_move_slot(HOTBAR + 1)
-    into_chest = @inv_count[HOTBAR + 1] == 0 && @chest_block[0] == Block::DIRT && @chest_count[0] == 6
+    into_chest = @inv.count(HOTBAR + 1) == 0 && @chest.block(0) == Block::DIRT && @chest.count(0) == 6
     quick_move_chest(0)
-    out_of_chest = @chest_count[0] == 0 && count_items(Block::DIRT) == 70
+    out_of_chest = @chest.count(0) == 0 && @inv.total(Block::DIRT) == 70
     @chest_key = -1
-    @chest_block.fill(0)
-    @chest_count.fill(0)
+    @chest.clear
     check("a Shift-click moves a stack to the other side", pack && into_chest && out_of_chest)
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
   end
 
   # The recipe list shows a recipe once the player has had its ingredient.
   def test_seen_recipes
     @seen.fill(0)
     @recipe_new.fill(0)
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    give(Block::LOG)
+    @inv.clear
+    @inv.add(Block::LOG)
     note_seen
     logs = shown_recipes == [recipe_for(Block::PLANKS)]
     told = @message == "NEW RECIPE: PLANKS" && @recipe_new[recipe_for(Block::PLANKS)] == 1
     toggle_inventory
     toggle_inventory
     check("a new recipe shows a message and a tag until the inventory closes", told && !@recipe_new.include?(1))
-    give(Block::PLANKS)
+    @inv.add(Block::PLANKS)
     note_seen
-    remove_items(Block::PLANKS, 1)
+    @inv.remove(Block::PLANKS, 1)
     note_seen
     planks = shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))
     check("the recipe list shows only the recipes for seen ingredients", logs && planks)
@@ -635,91 +618,78 @@ class Game
   def test_crafting_limits
     i = 0
     while i < INV
-      @inv_block[i] = Block::PLANKS
-      @inv_count[i] = 64
+      @inv.set(i, Block::PLANKS, 64)
       i += 1
     end
-    @inv_block[0] = Block::LOG
-    @inv_count[0] = 5
-    @inv_count[1] = 62
+    @inv.set(0, Block::LOG, 5)
+    @inv.set(1, Block::PLANKS, 62)
     @slot = 0
     craft_recipe(recipe_for(Block::PLANKS))
-    check("crafting refuses when the result does not fit", @inv_count[0] == 5 && @inv_count[1] == 62)
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    @inv_block[3] = Block::PLANKS
-    @inv_count[3] = 2
-    @inv_block[20] = Block::PLANKS
-    @inv_count[20] = 4
+    check("crafting refuses when the result does not fit", @inv.count(0) == 5 && @inv.count(1) == 62)
+    @inv.clear
+    @inv.set(3, Block::PLANKS, 2)
+    @inv.set(20, Block::PLANKS, 4)
     craft_at_table(recipe_for(Block::BOW))
-    check("a recipe takes ingredients from several stacks", count_items(Block::PLANKS) == 1 && count_items(Block::BOW) == Block.uses(Block::BOW))
+    check("a recipe takes ingredients from several stacks", @inv.total(Block::PLANKS) == 1 && @inv.total(Block::BOW) == Block.uses(Block::BOW))
     # A tool wears out, and a thrown tool keeps the uses that it has left.
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    give(Block::WOOD_PICK)
-    give(Block::WOOD_PICK)
+    @inv.clear
+    @inv.add(Block::WOOD_PICK)
+    @inv.add(Block::WOOD_PICK)
     @slot = 0
-    @inv_count[0] = 1
+    @inv.set(0, Block::WOOD_PICK, 1)
     survival = @survival
     @survival = true
     wear_tool
-    broke = @inv_count[0] == 0 && @inv_block[1] == Block::WOOD_PICK
-    @inv_count[1] = 7
+    broke = @inv.count(0) == 0 && @inv.block(1) == Block::WOOD_PICK
+    @inv.set(1, Block::WOOD_PICK, 7)
     @slot = 1
     @items.clear
     throw_selected
     collect_items
     @survival = survival
-    check("a tool breaks after its last use, and a thrown tool keeps its uses", broke && @inv_count[0] == 7 && @inv_block[0] == Block::WOOD_PICK)
+    check("a tool breaks after its last use, and a thrown tool keeps its uses", broke && @inv.count(0) == 7 && @inv.block(0) == Block::WOOD_PICK)
     # The only free slot is the one that the recipe empties.
     i = 0
     while i < INV
-      @inv_block[i] = Block::DIRT
-      @inv_count[i] = 64
+      @inv.set(i, Block::DIRT, 64)
       i += 1
     end
-    @inv_block[0] = Block::LOG
-    @inv_count[0] = 1
+    @inv.set(0, Block::LOG, 1)
     craft_recipe(0)
-    check("a recipe click counts the slot that it empties as room", @inv_block[0] == Block::PLANKS && @inv_count[0] == 4)
+    check("a recipe click counts the slot that it empties as room", @inv.block(0) == Block::PLANKS && @inv.count(0) == 4)
   end
 
   # Chest contents survive a save and come back when the chest breaks.
   def test_chests(cx, cz)
     set_block(cx, 90, cz, Block::CHEST)
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     open_chest(cx, 90, cz)
-    @chest_block[5] = Block::DIAMOND
-    @chest_count[5] = 7
+    @chest.set(5, Block::DIAMOND, 7)
     toggle_inventory
     save
     @chests = {}
     ok = load
     apply_loaded if ok
     stored = @chests[World.key(cx, 90, cz)]
-    check("chest contents survive a save", ok && !stored.nil? && stored[5] == Block::DIAMOND && stored[CHEST_SLOTS + 5] == 7)
+    check("chest contents survive a save", ok && !stored.nil? && stored.block(5) == Block::DIAMOND && stored.count(5) == 7)
     set_block(cx, 90, cz, Block::AIR)
-    dropped = ground_count(Block::DIAMOND) == 7 && count_items(Block::DIAMOND) == 0
+    dropped = ground_count(Block::DIAMOND) == 7 && @inv.total(Block::DIAMOND) == 0
     collect_items
-    check("a broken chest drops its contents", dropped && count_items(Block::DIAMOND) == 7 && @chests.empty?)
+    check("a broken chest drops its contents", dropped && @inv.total(Block::DIAMOND) == 7 && @chests.empty?)
     # An open chest destroyed by a blast never duplicates its contents.
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     @items.clear
     set_block(cx, 90, cz, Block::CHEST)
     open_chest(cx, 90, cz)
-    @chest_block[0] = Block::DIAMOND
-    @chest_count[0] = 7
+    @chest.set(0, Block::DIAMOND, 7)
     set_block(cx, 90, cz, Block::AIR)
-    check("a chest destroyed while open does not duplicate items", count_items(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.empty?)
+    check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.empty?)
     @items.clear
   end
 
   # Mobs that die without the player's help drop nothing.
   def test_mob_drops
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     far = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
     far.hp = 0
     far.alive = false
@@ -735,7 +705,7 @@ class Game
     update_mobs(1.0 / 60.0)
     dropped = ground_count(Block::PORKCHOP) == 1
     collect_items
-    check("a pig that the player kills drops a porkchop", dropped && count_items(Block::PORKCHOP) == 1)
+    check("a pig that the player kills drops a porkchop", dropped && @inv.total(Block::PORKCHOP) == 1)
     @items.clear
     loot(killed, Block::BOW, 1)
     check("a bow that a mob drops is new", @items.size == 1 && @items[0].count == Block.uses(Block::BOW))
@@ -772,19 +742,18 @@ class Game
       end
       dx += 1
     end
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     @items.clear
     @player.x = cx + 0.5
     @player.y = y + 1.0
     @player.z = cz + 0.5
     throw_stack(Block::DIRT, 1)
     run_items(0.5)
-    waited = count_items(Block::DIRT) == 0 && ground_count(Block::DIRT) == 1
+    waited = @inv.total(Block::DIRT) == 0 && ground_count(Block::DIRT) == 1
     @player.x = @items[0].x
     @player.z = @items[0].z
     run_items(1.5)
-    check("a thrown item waits before the player picks it up", waited && count_items(Block::DIRT) == 1 && @items.empty?)
+    check("a thrown item waits before the player picks it up", waited && @inv.total(Block::DIRT) == 1 && @items.empty?)
     drop_item(Block::SAND, 1, cx + 2.5, y + 3.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     @player.x = cx + 0.5
     run_items(1.5)
@@ -792,17 +761,15 @@ class Game
     @items.clear
     i = 0
     while i < INV
-      @inv_block[i] = Block::STONE
-      @inv_count[i] = STACK
+      @inv.set(i, Block::STONE, Slots::STACK)
       i += 1
     end
     drop_item(Block::SAND, 1, cx + 0.5, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     drop_item(Block::SAND, 1, cx + 0.6, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     run_items(0.5)
-    check("a full inventory leaves items on the ground, and items of one kind join", @items.size == 1 && @items[0].count == 2 && count_items(Block::SAND) == 0)
+    check("a full inventory leaves items on the ground, and items of one kind join", @items.size == 1 && @items[0].count == 2 && @inv.total(Block::SAND) == 0)
     @items.clear
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     set_block(cx + 2, y + 1, cz, Block::LAVA)
     drop_item(Block::SAND, 1, cx + 2.5, y + 1.2, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     run_items(0.2)
@@ -861,9 +828,8 @@ class Game
     @player.z = bz + 0.5
     @player.yaw = 1.5708
     @player.pitch = -0.12
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    give(Block::ARROW)
+    @inv.clear
+    @inv.add(Block::ARROW)
     pig = Mob.new(Mob::PIG, bx + 8.5, 89.0, bz + 0.5, 3)
     @mobs << pig
     shoot_bow(1.0)
@@ -872,7 +838,7 @@ class Game
       update_arrows(1.0 / 60.0)
       frames += 1
     end
-    check("a full bow draw hits a pig and uses an arrow", pig.hp < 10 && room_for(Block::ARROW) == INV * STACK)
+    check("a full bow draw hits a pig and uses an arrow", pig.hp < 10 && @inv.room_for(Block::ARROW) == INV * Slots::STACK)
     @mobs.clear
   end
 
@@ -1012,38 +978,37 @@ class Game
     @player.x = x + 0.5
     @player.y = y.to_f
     @player.z = z + 3.5
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    9.times { give(Block::IRON) }
-    give(Block::COAL)
-    2.times { give(Block::PLANKS) }
+    @inv.clear
+    9.times { @inv.add(Block::IRON) }
+    @inv.add(Block::COAL)
+    2.times { @inv.add(Block::PLANKS) }
     smelt = recipe_for(Block::IRON_INGOT)
     craft_recipe(smelt)
-    far = count_items(Block::IRON) == 9
+    far = @inv.total(Block::IRON) == 9
     check("smelting needs a furnace nearby", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
     furnace = World.key(x + 2, y, z + 3)
     # A click smelts one item, and the weakest fuel (a plank) covers it.
     craft_recipe(smelt)
-    one = count_items(Block::IRON) == 8 && count_items(Block::IRON_INGOT) == 1 && count_items(Block::PLANKS) == 1 && count_items(Block::COAL) == 1 && furnace_heat(furnace) == 0
+    one = @inv.total(Block::IRON) == 8 && @inv.total(Block::IRON_INGOT) == 1 && @inv.total(Block::PLANKS) == 1 && @inv.total(Block::COAL) == 1 && furnace_heat(furnace) == 0
     # A Shift-click smelts all 8 others, and the coal covers them.
     craft_recipe(smelt, CRAFT_ALL)
-    all = count_items(Block::IRON) == 0 && count_items(Block::IRON_INGOT) == 9 && count_items(Block::COAL) == 0
+    all = @inv.total(Block::IRON) == 0 && @inv.total(Block::IRON_INGOT) == 9 && @inv.total(Block::COAL) == 0
     # Coal for one item leaves 7 smelts of heat in the furnace.
-    give(Block::IRON)
-    give(Block::COAL)
-    remove_items(Block::PLANKS, 1)
+    @inv.add(Block::IRON)
+    @inv.add(Block::COAL)
+    @inv.remove(Block::PLANKS, 1)
     craft_recipe(smelt)
-    kept = count_items(Block::COAL) == 0 && furnace_heat(furnace) == 7
-    give(Block::SAND)
+    kept = @inv.total(Block::COAL) == 0 && furnace_heat(furnace) == 7
+    @inv.add(Block::SAND)
     craft_recipe(recipe_for(Block::GLASS))
-    used = count_items(Block::GLASS) == 1 && furnace_heat(furnace) == 6
+    used = @inv.total(Block::GLASS) == 1 && furnace_heat(furnace) == 6
     # A broken furnace loses its heat, and with no fuel nothing smelts.
     set_block(x + 2, y, z + 3, Block::AIR)
     set_block(x + 2, y, z + 3, Block::FURNACE)
-    give(Block::SAND)
+    @inv.add(Block::SAND)
     craft_recipe(recipe_for(Block::GLASS))
-    no_fuel = count_items(Block::SAND) == 1 && count_items(Block::GLASS) == 1
+    no_fuel = @inv.total(Block::SAND) == 1 && @inv.total(Block::GLASS) == 1
     set_block(x + 2, y, z + 3, Block::AIR)
     check("a furnace keeps the heat of its fuel, and smelting needs fuel", one && all && kept && used && no_fuel)
     set_block(x, y, z, Block::SAPLING)
@@ -1077,10 +1042,9 @@ class Game
     end
     survival = @survival
     @survival = true
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    give(Block::BED)
-    give(Block::BED)
+    @inv.clear
+    @inv.add(Block::BED)
+    @inv.add(Block::BED)
     @slot = 0
     @player.x = x - 1.5
     @player.y = g.to_f
@@ -1090,16 +1054,15 @@ class Game
     set_block(x + 1, g, z, Block::STONE)
     @player.raycast(@world)
     place
-    blocked = @world.get(x, g, z) == Block::AIR && @inv_count[0] == 2
+    blocked = @world.get(x, g, z) == Block::AIR && @inv.count(0) == 2
     set_block(x + 1, g, z, Block::AIR)
     @player.raycast(@world)
     place
-    two = @world.get(x, g, z) == Block::BED && @world.get(x + 1, g, z) == Block::BED_HEAD && @inv_count[0] == 1
+    two = @world.get(x, g, z) == Block::BED && @world.get(x + 1, g, z) == Block::BED_HEAD && @inv.count(0) == 1
     set_block(x + 1, g, z, Block::AIR)
     gone = @world.get(x, g, z) == Block::AIR
     @survival = survival
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     check("a bed takes two blocks along the view and breaks as a whole", blocked && two && gone)
   end
 
@@ -1147,21 +1110,20 @@ class Game
     @player.y = y.to_f
     @player.z = z + 0.5
     @player.pitch = -1.55
-    @inv_block.fill(0)
-    @inv_count.fill(0)
+    @inv.clear
     @slot = 0
     ok = true
     [Block::WATER, Block::LAVA].each do |fluid|
       full = fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET
       set_block(x, y - 1, z, fluid)
-      give(Block::BUCKET)
+      @inv.add(Block::BUCKET)
       @player.raycast(@world)
       use_bucket
-      took = @inv_block[0] == full && @world.get(x, y - 1, z) == Block::AIR
+      took = @inv.block(0) == full && @world.get(x, y - 1, z) == Block::AIR
       @player.raycast(@world)
       use_bucket
-      ok = false unless took && @inv_block[0] == Block::BUCKET && @world.get(x, y - 1, z) == fluid
-      remove_items(Block::BUCKET, 1)
+      ok = false unless took && @inv.block(0) == Block::BUCKET && @world.get(x, y - 1, z) == fluid
+      @inv.remove(Block::BUCKET, 1)
     end
     set_block(x, y - 1, z, Block::STONE)
     check("a bucket takes a water or lava source and puts it back", ok)
@@ -1227,16 +1189,15 @@ class Game
 
   # Stacks spill into the backpack, and clicks move and merge them.
   def test_inventory_clicks
-    @inv_block.fill(0)
-    @inv_count.fill(0)
-    (9 * STACK + 3).times { give(Block::DIRT) }
-    check("a full hotbar spills into the backpack", @inv_block[9] == Block::DIRT && @inv_count[9] == 3)
-    click_slot(9)
-    click_slot(20)
-    check("clicks move a stack", @inv_count[9] == 0 && @inv_block[20] == Block::DIRT && @inv_count[20] == 3 && @held_count == 0)
-    click_slot(20)
-    click_slot(0)
-    check("clicks merge into a full stack and keep the rest", @inv_count[0] == 64 && @held_count == 3)
+    @inv.clear
+    (9 * Slots::STACK + 3).times { @inv.add(Block::DIRT) }
+    check("a full hotbar spills into the backpack", @inv.block(9) == Block::DIRT && @inv.count(9) == 3)
+    click_cell(@inv, 9)
+    click_cell(@inv, 20)
+    check("clicks move a stack", @inv.count(9) == 0 && @inv.block(20) == Block::DIRT && @inv.count(20) == 3 && @held_count == 0)
+    click_cell(@inv, 20)
+    click_cell(@inv, 0)
+    check("clicks merge into a full stack and keep the rest", @inv.count(0) == 64 && @held_count == 3)
     return_held
   end
 

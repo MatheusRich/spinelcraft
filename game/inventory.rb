@@ -12,106 +12,27 @@ class Game
   FUEL_SMELTS = [1, 2, 8]
 
   def current_block
-    @survival ? @inv_block[@slot] : @hotbar[@slot]
-  end
-
-  # How many of b still fit in the inventory. Each empty slot fits one tool.
-  def room_for(b)
-    tool = Block.tool?(b)
-    room = 0
-    i = 0
-    while i < INV
-      if @inv_count[i] == 0
-        room += tool ? 1 : STACK
-      elsif @inv_block[i] == b && !tool
-        room += STACK - @inv_count[i]
-      end
-      i += 1
-    end
-    room
-  end
-
-  # Puts tool b with uses left into an empty slot; false when none is empty.
-  def give_tool(b, uses)
-    i = 0
-    while i < INV
-      if @inv_count[i] == 0
-        @inv_block[i] = b
-        @inv_count[i] = uses
-        return true
-      end
-      i += 1
-    end
-    false
+    @survival ? @inv.block(@slot) : @hotbar[@slot]
   end
 
   # Uses up one use of the selected tool. A tool with no uses left breaks.
   def wear_tool
     return unless @survival
-    b = @inv_block[@slot]
-    return unless Block.tool?(b) && @inv_count[@slot] > 0
-    @inv_count[@slot] -= 1
-    return if @inv_count[@slot] > 0
-    @inv_block[@slot] = Block::AIR
+    b = @inv.block(@slot)
+    return unless Block.tool?(b) && @inv.count(@slot) > 0
+    @inv.take(@slot, 1)
+    return unless @inv.empty?(@slot)
     play(Sfx::BREAK, 0.8)
     say("#{Block::NAMES[b]} BROKE")
   end
 
-  # Adds one b (a new tool, if b is a tool); false when it does not fit.
-  def give(b)
-    return true if b == Block::AIR
-    return give_tool(b, Block.uses(b)) if Block.tool?(b)
-    i = 0
-    while i < INV
-      if @inv_block[i] == b && @inv_count[i] < STACK
-        @inv_count[i] += 1
-        return true
-      end
-      i += 1
-    end
-    i = 0
-    while i < INV
-      if @inv_count[i] == 0
-        @inv_block[i] = b
-        @inv_count[i] = 1
-        return true
-      end
-      i += 1
-    end
-    false
-  end
-
-  def count_items(b)
-    n = 0
-    i = 0
-    while i < INV
-      n += @inv_count[i] if @inv_block[i] == b
-      i += 1
-    end
-    n
-  end
-
-  def remove_items(b, n)
-    i = INV - 1
-    while i >= 0 && n > 0
-      if @inv_block[i] == b && @inv_count[i] > 0
-        take = @inv_count[i] < n ? @inv_count[i] : n
-        @inv_count[i] -= take
-        n -= take
-        @inv_block[i] = Block::AIR if @inv_count[i] == 0
-      end
-      i -= 1
-    end
-  end
-
-  # Crafts recipe k from items anywhere in the inventory.
   # Crafts recipe k up to want times from items anywhere in the inventory.
   # A click asks for 1, and a Shift-click for CRAFT_ALL. A smelt takes heat
   # from the furnace. When the heat runs out, the furnace burns fuel from
   # the inventory, and it keeps the heat that is left.
   def craft_recipe(k, want = 1)
     r = RECIPES[k]
-    have = count_items(r[0]) / r[1]
+    have = @inv.total(r[0]) / r[1]
     if have == 0
       say("NEED #{r[1]} #{Block::NAMES[r[0]]}")
       return
@@ -128,33 +49,30 @@ class Game
     end
     times = want < have ? want : have
     heat = 0
-    blocks = @inv_block.dup
-    counts = @inv_count.dup
+    saved = @inv.copy
     # Fewer times when the results do not fit.
     while times > 0
-      @inv_block = blocks.dup
-      @inv_count = counts.dup
+      @inv = saved.copy
       heat = smelt ? furnace_heat(key) : 0
       while smelt && heat < times
         fuel = pick_fuel(times - heat)
         break if fuel < 0
-        remove_items(FUEL_BLOCKS[fuel], 1)
+        @inv.remove(FUEL_BLOCKS[fuel], 1)
         heat += FUEL_SMELTS[fuel]
       end
       times = heat if smelt && heat < times
       # Take the ingredients first: a slot that they empty is room for the result.
-      remove_items(r[0], r[1] * times)
-      break if room_for(r[2]) >= r[3] * times
+      @inv.remove(r[0], r[1] * times)
+      break if @inv.room_for(r[2]) >= r[3] * times
       times -= 1
     end
     if times == 0
-      @inv_block = blocks
-      @inv_count = counts
+      @inv = saved
       say("INVENTORY FULL")
       return
     end
     n = r[3] * times
-    n.times { give(r[2]) }
+    n.times { @inv.add(r[2]) }
     if smelt
       set_furnace_heat(key, heat - times)
       say("SMELTED #{n} #{Block::NAMES[r[2]]}  #{heat - times} HEAT LEFT")
@@ -165,7 +83,7 @@ class Game
   end
 
   # What a Shift-click on a recipe asks for: all that the inventory holds.
-  CRAFT_ALL = STACK * INV
+  CRAFT_ALL = Slots::STACK * INV
 
   # The smelts left in the furnace with the World.key key.
   def furnace_heat(key)
@@ -187,7 +105,7 @@ class Game
     best = -1
     i = 0
     while i < FUEL_BLOCKS.size
-      if count_items(FUEL_BLOCKS[i]) > 0
+      if @inv.total(FUEL_BLOCKS[i]) > 0
         return i if FUEL_SMELTS[i] >= want
         best = i
       end
@@ -286,11 +204,7 @@ class Game
   # Marks what is in the inventory or in the hand as seen. @seen stays
   # through death and goes into the save.
   def note_seen
-    i = 0
-    while i < INV
-      see(@inv_block[i]) if @inv_count[i] > 0
-      i += 1
-    end
+    (0...INV).each { |i| see(@inv.block(i)) unless @inv.empty?(i) }
     see(@held_block) if @held_count > 0
   end
 
@@ -352,31 +266,26 @@ class Game
     -1
   end
 
-  def click_slot(i) = click_cell(@inv_block, @inv_count, i)
-
   # A click picks up a stack, puts it down, merges it, or swaps it.
-  def click_cell(blocks, counts, i)
-    b = blocks[i]
-    n = counts[i]
+  def click_cell(slots, i)
+    b = slots.block(i)
+    n = slots.count(i)
     if @held_count == 0
       return if n == 0
       @held_block = b
       @held_count = n
-      blocks[i] = Block::AIR
-      counts[i] = 0
+      slots.set(i, b, 0)
     elsif n == 0
-      blocks[i] = @held_block
-      counts[i] = @held_count
+      slots.set(i, @held_block, @held_count)
       @held_count = 0
       @held_block = Block::AIR
     elsif b == @held_block && !Block.tool?(b)
-      moved = [STACK - n, @held_count].min
-      counts[i] += moved
+      moved = [Slots::STACK - n, @held_count].min
+      slots.set(i, b, n + moved)
       @held_count -= moved
       @held_block = Block::AIR if @held_count == 0
     else
-      blocks[i] = @held_block
-      counts[i] = @held_count
+      slots.set(i, @held_block, @held_count)
       @held_block = b
       @held_count = n
     end
@@ -385,21 +294,19 @@ class Game
   # A right-click with an empty hand takes half the stack; a tool goes
   # whole. With a stack in the hand, it puts one item into an empty cell or
   # onto the same kind, and it swaps otherwise.
-  def split_cell(blocks, counts, i)
-    b = blocks[i]
-    n = counts[i]
+  def split_cell(slots, i)
+    b = slots.block(i)
+    n = slots.count(i)
     if @held_count == 0
       return if n == 0
-      take = Block.tool?(b) ? n : (n + 1) / 2
+      taken = Block.tool?(b) ? n : (n + 1) / 2
       @held_block = b
-      @held_count = take
-      counts[i] -= take
-      blocks[i] = Block::AIR if counts[i] == 0
+      @held_count = taken
+      slots.take(i, taken)
     elsif Block.tool?(@held_block) || (n > 0 && b != @held_block)
-      click_cell(blocks, counts, i)
-    elsif n < STACK
-      blocks[i] = @held_block
-      counts[i] += 1
+      click_cell(slots, i)
+    elsif n < Slots::STACK
+      slots.set(i, @held_block, n + 1)
       @held_count -= 1
       @held_block = Block::AIR if @held_count == 0
     end
@@ -408,46 +315,20 @@ class Game
   # A Shift-click on inventory slot i moves the stack into the open chest,
   # or else between the hotbar and the backpack.
   def quick_move_slot(i)
-    return if @inv_count[i] == 0 || @held_count > 0
+    return if @inv.empty?(i) || @held_count > 0
     if @chest_key >= 0
-      move_stack(@inv_block, @inv_count, i, @chest_block, @chest_count, 0, CHEST_SLOTS)
+      @inv.move_stack(i, @chest, 0, CHEST_SLOTS)
     elsif i < HOTBAR
-      move_stack(@inv_block, @inv_count, i, @inv_block, @inv_count, HOTBAR, INV)
+      @inv.move_stack(i, @inv, HOTBAR, INV)
     else
-      move_stack(@inv_block, @inv_count, i, @inv_block, @inv_count, 0, HOTBAR)
+      @inv.move_stack(i, @inv, 0, HOTBAR)
     end
   end
 
   # A Shift-click on chest cell k moves the stack into the inventory.
   def quick_move_chest(k)
-    return if @chest_count[k] == 0 || @held_count > 0
-    move_stack(@chest_block, @chest_count, k, @inv_block, @inv_count, 0, INV)
-  end
-
-  # Moves the stack in cell i of from into the cells lo...hi of to: onto
-  # stacks of the same kind first, then into empty cells. What does not fit
-  # stays in cell i.
-  def move_stack(from_blocks, from_counts, i, to_blocks, to_counts, lo, hi)
-    b = from_blocks[i]
-    # A tool never stacks, so it only goes into an empty cell.
-    pass = Block.tool?(b) ? 1 : 0
-    while pass < 2 && from_counts[i] > 0
-      k = lo
-      while k < hi && from_counts[i] > 0
-        if pass == 0 && to_blocks[k] == b && to_counts[k] > 0 && to_counts[k] < STACK
-          moved = [STACK - to_counts[k], from_counts[i]].min
-          to_counts[k] += moved
-          from_counts[i] -= moved
-        elsif pass == 1 && to_counts[k] == 0
-          to_blocks[k] = b
-          to_counts[k] = from_counts[i]
-          from_counts[i] = 0
-        end
-        k += 1
-      end
-      pass += 1
-    end
-    from_blocks[i] = Block::AIR if from_counts[i] == 0
+    return if @chest.empty?(k) || @held_count > 0
+    @chest.move_stack(k, @inv, 0, INV)
   end
 
   # Chest cell k, in the place of the recipe list: x, y, size.
@@ -471,19 +352,11 @@ class Game
 
   def open_chest(x, y, z)
     @chest_key = World.key(x, y, z)
-    stored = @chests[@chest_key]
-    k = 0
-    while k < CHEST_SLOTS
-      @chest_block[k] = stored.nil? ? 0 : stored[k]
-      @chest_count[k] = stored.nil? ? 0 : stored[CHEST_SLOTS + k]
-      k += 1
-    end
+    @chest = @chests[@chest_key] ||= Slots.new(CHEST_SLOTS)
     toggle_inventory
   end
 
   def close_chest
-    return if @chest_key < 0
-    @chests[@chest_key] = @chest_block + @chest_count
     @chest_key = -1
   end
 
@@ -497,34 +370,25 @@ class Game
       @captured = true
       Gfx.in_capture(1)
     end
-    stored = @chests[key]
-    return if stored.nil?
-    if @survival
-      k = 0
-      while k < CHEST_SLOTS
-        # Spinel types the values of @chests as untyped. to_i keeps the item
-        # arrays, and Block.plant? in the mesher, on plain Integers.
-        drop_from_block(stored[k].to_i, stored[CHEST_SLOTS + k].to_i, x, y, z)
-        k += 1
-      end
-    end
-    @chests.delete(key)
+    chest = @chests.delete(key)
+    return if chest.nil? || !@survival
+    (0...CHEST_SLOTS).each { |k| drop_from_block(chest.block(k), chest.count(k), x, y, z) }
   end
 
   def return_held
     tool = Block.tool?(@held_block)
-    @held_count = 0 if tool && @held_count > 0 && give_tool(@held_block, @held_count)
-    while @held_count > 0 && !tool && give(@held_block)
+    @held_count = 0 if tool && @held_count > 0 && @inv.put(@held_block, @held_count)
+    while @held_count > 0 && !tool && @inv.add(@held_block)
       @held_count -= 1
     end
     if @held_count > 0 && @chest_key >= 0
       k = 0
       while k < CHEST_SLOTS && @held_count > 0
-        if @chest_count[k] == 0 || (@chest_block[k] == @held_block && !tool)
-          take = tool || STACK - @chest_count[k] >= @held_count ? @held_count : STACK - @chest_count[k]
-          @chest_block[k] = @held_block
-          @chest_count[k] += take
-          @held_count -= take
+        n = @chest.count(k)
+        if n == 0 || (@chest.block(k) == @held_block && !tool)
+          taken = tool || Slots::STACK - n >= @held_count ? @held_count : Slots::STACK - n
+          @chest.set(k, @held_block, n + taken)
+          @held_count -= taken
         end
         k += 1
       end
@@ -567,9 +431,9 @@ class Game
         if shift
           quick_move_slot(hover)
         elsif left
-          click_slot(hover)
+          click_cell(@inv, hover)
         else
-          split_cell(@inv_block, @inv_count, hover)
+          split_cell(@inv, hover)
         end
       end
       if @chest_key >= 0
@@ -578,9 +442,9 @@ class Game
           if shift
             quick_move_chest(cell)
           elsif left
-            click_cell(@chest_block, @chest_count, cell)
+            click_cell(@chest, cell)
           else
-            split_cell(@chest_block, @chest_count, cell)
+            split_cell(@chest, cell)
           end
         end
       elsif left

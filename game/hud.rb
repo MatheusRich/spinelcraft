@@ -73,10 +73,10 @@ class Game
         @ui.rect(x - 3.0 * s, y0 - 3.0 * s, size + 6.0 * s, size + 6.0 * s, 1.0, 1.0, 1.0, 0.95)
       end
       @ui.rect(x, y0, size, size, 0.25, 0.25, 0.25, 0.9)
-      slot_block = @survival ? @inv_block[i] : @hotbar[i]
+      slot_block = @survival ? @inv.block(i) : @hotbar[i]
       if slot_block != Block::AIR
         @ui.icon(x + 5.0 * s, y0 + 5.0 * s, size - 10.0 * s, Block::SIDE[slot_block], 1.0)
-        draw_count(slot_block, @inv_count[i], x, y0, size, 2.0 * s, s) if @survival
+        draw_count(slot_block, @inv.count(i), x, y0, size, 2.0 * s, s) if @survival
       end
       i += 1
     end
@@ -118,7 +118,7 @@ class Game
 
   # The first-steps hint for an empty survival inventory, and the last message.
   def draw_messages(w, y0, s)
-    if @survival && !@vitals.dead? && !@inventory_open && room_for(Block::DIRT) == INV * STACK
+    if @survival && !@vitals.dead? && !@inventory_open && @inv.room_for(Block::DIRT) == INV * Slots::STACK
       hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
       @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, 1.0, 1.0, 0.7, 0.9)
     end
@@ -167,9 +167,9 @@ class Game
       end
       shade = i == hover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      if @inv_count[i] > 0
-        @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::SIDE[@inv_block[i]], 1.0)
-        draw_count(@inv_block[i], @inv_count[i], c[0], c[1], c[2], 2.0 * s, s)
+      unless @inv.empty?(i)
+        @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::SIDE[@inv.block(i)], 1.0)
+        draw_count(@inv.block(i), @inv.count(i), c[0], c[1], c[2], 2.0 * s, s)
       end
       i += 1
     end
@@ -179,7 +179,7 @@ class Game
       draw_recipe_panel(w, h, s, pad)
     end
     tip = @chest_key >= 0 ? "SHIFT-CLICK MOVES A STACK ACROSS  RIGHT-CLICK TAKES HALF" : "SHIFT-CLICK MOVES A STACK OR CRAFTS ALL  RIGHT-CLICK TAKES HALF"
-    label = hover >= 0 && @inv_count[hover] > 0 ? Block::NAMES[@inv_block[hover]] : tip
+    label = hover >= 0 && !@inv.empty?(hover) ? Block::NAMES[@inv.block(hover)] : tip
     mid = (top[0] + bottom[0] + bottom[2]) / 2.0
     @ui.text(mid - @ui.text_width(label, 2.0 * s) / 2.0, bottom[1] + bottom[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
     if @held_count > 0
@@ -201,9 +201,9 @@ class Game
       c = chest_cell(k, w, h, s)
       shade = k == chover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      if @chest_count[k] > 0
-        @ui.icon(c[0] + 3.0 * s, c[1] + 3.0 * s, c[2] - 6.0 * s, Block::SIDE[@chest_block[k]], 1.0)
-        draw_count(@chest_block[k], @chest_count[k], c[0], c[1], c[2], 1.5 * s, s)
+      unless @chest.empty?(k)
+        @ui.icon(c[0] + 3.0 * s, c[1] + 3.0 * s, c[2] - 6.0 * s, Block::SIDE[@chest.block(k)], 1.0)
+        draw_count(@chest.block(k), @chest.count(k), c[0], c[1], c[2], 1.5 * s, s)
       end
       k += 1
     end
@@ -244,7 +244,7 @@ class Game
       k = shown[j]
       r = RECIPES[k]
       c = recipe_cell(j, w, h, s)
-      can = count_items(r[0]) >= r[1] && (r[4] == BY_HAND || (r[4] == AT_TABLE ? table : furnace))
+      can = @inv.total(r[0]) >= r[1] && (r[4] == BY_HAND || (r[4] == AT_TABLE ? table : furnace))
       shade = k == rhover ? 0.5 : 0.28
       fresh = @recipe_new[k] == 1
       @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)

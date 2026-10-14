@@ -22,12 +22,11 @@ class Game
 
   # Q in survival throws one of the selected stack where the player looks.
   def throw_selected
-    b = @inv_block[@slot]
-    return if @inv_count[@slot] <= 0
+    b = @inv.block(@slot)
+    return if @inv.empty?(@slot)
     # A tool goes with the uses that it has left.
-    n = Block.tool?(b) ? @inv_count[@slot] : 1
-    @inv_count[@slot] -= n
-    @inv_block[@slot] = Block::AIR if @inv_count[@slot] == 0
+    n = Block.tool?(b) ? @inv.count(@slot) : 1
+    @inv.take(@slot, n)
     throw_stack(b, n)
   end
 
@@ -43,10 +42,9 @@ class Game
     p = @player
     i = 0
     while i < INV
-      if @inv_count[i] > 0
-        drop_item(@inv_block[i], @inv_count[i], p.x, p.y + 0.5, p.z, (rand01 - 0.5) * 4.0, 3.0, (rand01 - 0.5) * 4.0, PICKUP_WAIT)
-        @inv_block[i] = Block::AIR
-        @inv_count[i] = 0
+      unless @inv.empty?(i)
+        drop_item(@inv.block(i), @inv.count(i), p.x, p.y + 0.5, p.z, (rand01 - 0.5) * 4.0, 3.0, (rand01 - 0.5) * 4.0, PICKUP_WAIT)
+        @inv.set(i, Block::AIR, 0)
       end
       i += 1
     end
@@ -78,16 +76,16 @@ class Game
     b = item.block
     n = item.count
     if Block.tool?(b)
-      return unless give_tool(b, n)
+      return unless @inv.put(b, n)
       item.count = 0
       play(Sfx::POP, 0.5)
       say("+1 #{Block::NAMES[b]}")
       return
     end
-    room = room_for(b)
+    room = @inv.room_for(b)
     n = room if room < n
     return if n <= 0
-    n.times { give(b) }
+    n.times { @inv.add(b) }
     item.count -= n
     play(Sfx::POP, 0.5)
     say("+#{n} #{Block::NAMES[b]}#{Block.food(b) > 0 ? "  RIGHT CLICK TO EAT" : ""}") if Block.item?(b)
@@ -106,7 +104,7 @@ class Game
       next if a.count <= 0 || Block.tool?(a.block)
       ((i + 1)...@items.size).each do |j|
         b = @items[j]
-        a.absorb(b) if b.block == a.block && b.count > 0 && a.count + b.count <= STACK && a.touches?(b)
+        a.absorb(b) if b.block == a.block && b.count > 0 && a.count + b.count <= Slots::STACK && a.touches?(b)
       end
     end
   end

@@ -17,6 +17,7 @@ require_relative "game/constants"
 require_relative "game/save"
 require_relative "game/streaming"
 require_relative "game/block_changes"
+require_relative "game/slots"
 require_relative "game/inventory"
 require_relative "game/items"
 require_relative "game/hand"
@@ -69,8 +70,7 @@ class Game
     @later_list = []
     @defer = false
     @hotbar = HOTBAR_START.dup
-    @inv_block = Array.new(INV, 0)
-    @inv_count = Array.new(INV, 0)
+    @inv = Slots.new(INV)
     @seen = Array.new(Block::COUNT, 0)
     @recipe_new = Array.new(RECIPES.size, 0)
     # The smelts left in each furnace, by World.key.
@@ -83,9 +83,9 @@ class Game
     @held_block = 0
     @held_count = 0
     @chests = {}
+    # The open chest, and its World.key; -1 when no chest is open.
+    @chest = Slots.new(CHEST_SLOTS)
     @chest_key = -1
-    @chest_block = Array.new(CHEST_SLOTS, 0)
-    @chest_count = Array.new(CHEST_SLOTS, 0)
     @sky = Ui.new
     make_stars
     @flow_queue = []

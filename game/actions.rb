@@ -217,11 +217,10 @@ class Game
   # Takes one bucket from the selected slot and gives b for it. An emptied
   # slot gets b, so b stays in the hand.
   def swap_bucket(b)
-    @inv_count[@slot] -= 1
-    if @inv_count[@slot] == 0
-      @inv_block[@slot] = b
-      @inv_count[@slot] = 1
-    elsif !give(b)
+    @inv.take(@slot, 1)
+    if @inv.empty?(@slot)
+      @inv.set(@slot, b, 1)
+    elsif !@inv.add(b)
       throw_stack(b, 1)
     end
   end
@@ -387,10 +386,9 @@ class Game
 
   def eat
     food = Block.food(current_block.to_i)
-    return unless @survival && @inv_count[@slot] > 0 && @vitals.hungry? && food > 0
+    return unless @survival && !@inv.empty?(@slot) && @vitals.hungry? && food > 0
     @vitals.eat(food)
-    @inv_count[@slot] -= 1
-    @inv_block[@slot] = Block::AIR if @inv_count[@slot] == 0
+    @inv.take(@slot, 1)
     play(Sfx::PLACE, 0.5)
     say("YUM")
   end
@@ -400,7 +398,7 @@ class Game
     # the parameters of Block.solid?, plant? and emits? unboxed.
     b = current_block.to_i
     return if b == Block::AIR || Block.item?(b)
-    return if @survival && @inv_count[@slot] <= 0
+    return if @survival && @inv.empty?(@slot)
     x = @player.px
     y = @player.py
     z = @player.pz
@@ -430,9 +428,6 @@ class Game
     set_block(x, y, z, b)
     play(Sfx::PLACE, 0.7)
     @swing = 0.25
-    if @survival
-      @inv_count[@slot] -= 1
-      @inv_block[@slot] = Block::AIR if @inv_count[@slot] == 0
-    end
+    @inv.take(@slot, 1) if @survival
   end
 end

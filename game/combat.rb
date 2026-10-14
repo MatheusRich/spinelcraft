@@ -195,18 +195,11 @@ class Game
     pull = held > 1.0 ? 1.0 : held
     return if pull < 0.1
     if @survival
-      slot = -1
-      i = 0
-      while i < INV
-        slot = i if slot < 0 && @inv_block[i] == Block::ARROW && @inv_count[i] > 0
-        i += 1
-      end
-      if slot < 0
+      if @inv.total(Block::ARROW) == 0
         say("NO ARROWS")
         return
       end
-      @inv_count[slot] -= 1
-      @inv_block[slot] = Block::AIR if @inv_count[slot] == 0
+      @inv.remove(Block::ARROW, 1)
     end
     speed = 12.0 + pull * 30.0
     @arrows << Arrow.new(@player.x, @player.eye_y - 0.1, @player.z,
