@@ -45,7 +45,7 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | F3 | Debug text |
 | F4 | View distance |
 | F5 | Save |
-| Esc | Pause |
+| Esc | Pause, play again |
 
 In survival, start by punching a tree. The inventory shows a recipe after you have had its ingredient. Some recipes need a crafting table or a furnace near you.
 

@@ -5,11 +5,13 @@ class Game
       handle_inventory
       return
     end
-    if Gfx.in_key_pressed(Key::ESCAPE) || Gfx.in_focus_lost
+    escape = Gfx.in_key_pressed(Key::ESCAPE)
+    if (escape && @captured) || Gfx.in_focus_lost
       # Saving takes tens of milliseconds, so it happens when the game pauses, not mid-play.
       save if @captured && @changed && @save_on_quit
       @captured = false
       Gfx.in_capture(0)
+      return
     end
     if @vitals.dead?
       if Gfx.in_button_pressed(1) || Gfx.in_key_pressed(Key::R)
@@ -21,7 +23,7 @@ class Game
     end
     if !@captured
       new_world if Gfx.in_key_pressed(Key::N)
-      if Gfx.in_button_pressed(1)
+      if Gfx.in_button_pressed(1) || escape
         @captured = true
         Gfx.in_capture(1)
       end

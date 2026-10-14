@@ -282,7 +282,7 @@ class Game
 
   def draw_pause_screen(w, h, s)
     @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.45)
-    msg = "PAUSED - CLICK TO PLAY  N NEW WORLD"
+    msg = "PAUSED - CLICK OR ESC TO PLAY  N NEW WORLD"
     @ui.text((w - @ui.text_width(msg, 4.0 * s)) / 2.0, h / 2.0 - 60.0 * s, msg, 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     lines = ["WASD MOVE  SPACE JUMP  CTRL SPRINT  SHIFT DOWN",
              "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
