@@ -240,6 +240,10 @@ class Game
     @player.raycast(@world)
     place
     check("survival place uses one item", @inv_count[1] == before - 1 && @world.get(x, ground + 1, z) == Block::PLANKS)
+    set_block(x, ground + 1, z, Block::TALL_GRASS)
+    @player.raycast(@world)
+    place
+    check("a block placed on tall grass takes its cell", @world.get(x, ground + 1, z) == Block::PLANKS && @world.get(x, ground + 2, z) == Block::AIR)
     # Stone drops cobblestone only to a pickaxe.
     @inv_block.fill(0)
     @inv_count.fill(0)

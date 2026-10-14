@@ -297,6 +297,12 @@ class Game
     x = @player.px
     y = @player.py
     z = @player.pz
+    # A block placed on tall grass takes its cell, as in Minecraft.
+    if @world.get(@player.hx, @player.hy, @player.hz) == Block::TALL_GRASS
+      x = @player.hx
+      y = @player.hy
+      z = @player.hz
+    end
     return unless @world.inside?(x, y, z)
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
     return if Block.plant?(b) && (!Block.solid?(@world.get(x, y - 1, z)) || Block.water?(@world.get(x, y, z)))
