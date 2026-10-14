@@ -137,9 +137,40 @@ class Game
     test_water
     test_inventory_clicks
     test_swim_out
+    test_hand_sway
     test_streaming
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
     puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
+  end
+
+  # The held item moves only a little in each frame while the player walks,
+  # and when the player stops.
+  def test_hand_sway
+    p = @player
+    p.on_ground = true
+    p.flying = false
+    p.vz = 0.0
+    @bob = 0.0
+    @hand_walk = 0.0
+    dt = 1.0 / 60.0
+    update_hand(dt)
+    last_x = @hand_dx
+    last_y = @hand_dy
+    most = 0.0
+    frame = 0
+    while frame < 150
+      p.vx = frame < 120 ? 4.3 : 0.0
+      # As in Game#update.
+      @bob += p.vx * dt * 2.6
+      update_hand(dt)
+      d = (@hand_dx - last_x).abs + (@hand_dy - last_y).abs
+      most = d if d > most
+      last_x = @hand_dx
+      last_y = @hand_dy
+      frame += 1
+    end
+    p.vx = 0.0
+    check("the held item sways smoothly while the player walks and stops", most < 0.006)
   end
 
   # Runs the falling blocks for the given seconds.

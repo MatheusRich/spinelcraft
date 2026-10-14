@@ -12,6 +12,15 @@ class Game
       @equip = 1.0
     end
     @equip -= dt * 5.0 if @equip > 0.0
+    # The sway follows the walk speed over about a fifth of a second, so it
+    # fades in and out when the player starts, stops, jumps or lands.
+    p = @player
+    walk = p.on_ground && !p.flying ? (Math.sqrt(p.vx * p.vx + p.vz * p.vz) / 4.3).clamp(0.0, 1.0) : 0.0
+    @hand_walk += (walk - @hand_walk) * (dt * 6.0).clamp(0.0, 1.0)
+    # A turn of @bob is one step: the item dips once in each step, and it
+    # goes to one side in one step and back in the next.
+    @hand_dx = Math.sin(@bob * 0.5) * 0.025 * @hand_walk
+    @hand_dy = -(1.0 - Math.cos(@bob)) * 0.5 * 0.02 * @hand_walk
   end
 
   # Adds the held model to @dyn, in the frame of the eye at ex, ey, ez.
@@ -69,11 +78,8 @@ class Game
       oz += pull * 0.12
     end
     oy -= @equip * 0.45
-    if p.on_ground && !p.flying
-      k = (Math.sqrt(p.vx * p.vx + p.vz * p.vz) / 4.3).clamp(0.0, 1.0)
-      ox += Math.sin(@bob) * 0.025 * k
-      oy -= Math.cos(@bob * 2.0).abs * 0.02 * k
-    end
+    ox += @hand_dx
+    oy += @hand_dy
     # The turn: yaw around up, then pitch around right, then roll around back.
     cy = Math.cos(yaw)
     sy = Math.sin(yaw)

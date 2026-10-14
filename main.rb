@@ -203,6 +203,10 @@ class Game
     # the selection changed (1 to 0).
     @hand_block = 0
     @equip = 0.0
+    # The sway of the held item while the player walks (game/hand.rb).
+    @hand_dx = 0.0
+    @hand_dy = 0.0
+    @hand_walk = 0.0
     # Where the held model starts in @dyn (see gfx_dyn).
     @hand_at = 0
   end
