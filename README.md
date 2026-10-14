@@ -150,7 +150,8 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/falling_block.rb` | Sand or gravel that falls down its column |
 | `game/particles.rb` | Block chips, flames, smoke, embers and drops of rain |
 | `game/weather.rb` | Rain: the weather cycle, the rain quads, the splashes, and the rain sound |
-| `game/draw.rb` | Vertex builders for the HUD, for 3D boxes, and for the model of a block or item |
+| `game/ui.rb` | Vertex builder for the HUD |
+| `game/mesh3.rb` | Vertex builder for 3D boxes and for the model of a block or item |
 | `game/textures.rb` | Generated textures and the bitmap font |
 | `game/sounds.rb` | Sound synthesis |
 | `game/clouds.rb` | Cloud layer |

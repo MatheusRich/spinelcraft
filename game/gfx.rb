@@ -103,7 +103,7 @@ module Gfx
       "  {{0.15,0,0.15},{0.85,0,0.85},{0.85,1,0.85},{0.15,1,0.15}}, {{0.85,0,0.85},{0.15,0,0.15},{0.15,1,0.15},{0.85,1,0.85}},\n"
       "  {{0.85,0,0.15},{0.15,0,0.85},{0.15,1,0.85},{0.85,1,0.15}}, {{0.15,0,0.85},{0.85,0,0.15},{0.85,1,0.15},{0.15,1,0.85}} };\n"
       "constant float2 UV[4] = {{0,1},{1,1},{1,0},{0,0}};\n"
-      "// Light for each face direction; Mesh3::SHADE in draw.rb has the same values.\n"
+      "// Light for each face direction; Mesh3::SHADE in mesh3.rb has the same values.\n"
       "constant float SHADE[10] = {0.82, 0.82, 1.0, 0.55, 0.9, 0.9, 0.95, 0.95, 0.95, 0.95};\n"
       "float fog_of(float3 p, constant U &u) {\n"
       "  float d = length(p - u.cam.xyz);\n"
