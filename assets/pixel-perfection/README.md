@@ -37,6 +37,18 @@ These files are copies with no changes.
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 
+## Mob skins
+
+The mob skins are in the layout of Minecraft skins: each face of each box of a model has its own rectangle of the image. `Tex::SKIN_FILES` lists them. The game loads them into a second texture array of 64x64 layers, and a skin of 64x32 fills the top half of its layer.
+
+VoxeLibre replaced the creeper with another mob, so the creeper skin comes from Mineclonia, another game that continues MineClone 2. Its `mods/ENTITIES/mobs_mc/LICENSE-media.md` gives the same source and license as VoxeLibre: Pixel Perfection, CC BY-SA 4.0.
+
+| File | Source file |
+| --- | --- |
+| `skin_pig.png`, `skin_sheep.png`, `skin_sheep_fur.png` | VoxeLibre `mobs_mc_pig.png`, `mobs_mc_sheep.png`, `mobs_mc_sheep_fur.png` |
+| `skin_zombie.png`, `skin_skeleton.png` | VoxeLibre `mobs_mc_zombie.png`, `mobs_mc_skeleton.png`, changed by MysticTempest for VoxeLibre |
+| `skin_creeper.png` | Mineclonia `mods/ENTITIES/mobs_mc/textures/mobs_mc_creeper.png` (<https://codeberg.org/mineclonia/mineclonia>, the `main` branch, October 2026) |
+
 ## Changed images
 
 In Minecraft, grass, leaves and water are gray, and the biome gives them their color. Spinelcraft has no biome color, so these images have the plains color of Minecraft. The colors come from minecraft.wiki/w/Plains: grass `#91BD59`, foliage `#77AB2F` and water `#3F76E4`. A tint multiplies each channel of a pixel by the channel of the color.
@@ -67,4 +79,4 @@ The chest and the bed are not blocks in VoxeLibre. They are models with one 64x6
 2. Save it here with the name of its `Tex` layer, and add a row to a table above.
 3. Add the layer to `Tex::IMAGE_LAYERS` and the name to `Tex::IMAGE_FILES`.
 
-The game loads only 16x16 images. An animated texture is a strip of frames, so take the first 16x16 frame.
+The game loads only 16x16 images for blocks and items. An animated texture is a strip of frames, so take the first 16x16 frame.

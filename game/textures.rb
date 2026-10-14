@@ -171,7 +171,7 @@ module Tex
     s = 0
     while s < IMAGE_LAYERS.size
       path = "assets/pixel-perfection/#{IMAGE_FILES[s]}.png"
-      abort "#{path} did not load" unless Gfx.gfx_png(path)
+      abort "#{path} did not load" unless Gfx.gfx_png(path, 16, 16)
       i = 0
       while i < 256
         px[IMAGE_LAYERS[s] * 256 + i] = Gfx.gfx_png_pixel(i)
@@ -179,6 +179,32 @@ module Tex
       end
       s += 1
     end
+  end
+
+  # The mob skins: a second texture array of 64 x 64 layers. A dynamic
+  # vertex with layer SKINS + k takes layer k of it (fdyn in gfx.rb). Layer k
+  # is the skin of the mob kind k (Mob::PIG and the others), and the last
+  # layer is the fur of a sheep. A skin of 64 x 32 fills the top half of its
+  # layer.
+  SKINS = 256
+  SKIN_FUR = 5
+  SKIN_FILES = %w[skin_pig skin_zombie skin_skeleton skin_sheep skin_creeper skin_sheep_fur]
+  SKIN_HEIGHTS = [32, 64, 32, 32, 32, 32]
+
+  def self.skins
+    px = Array.new(SKIN_FILES.size * 4096, 0)
+    s = 0
+    while s < SKIN_FILES.size
+      path = "assets/pixel-perfection/#{SKIN_FILES[s]}.png"
+      abort "#{path} did not load" unless Gfx.gfx_png(path, 64, SKIN_HEIGHTS[s])
+      i = 0
+      while i < 64 * SKIN_HEIGHTS[s]
+        px[s * 4096 + i] = Gfx.gfx_png_pixel(i)
+        i += 1
+      end
+      s += 1
+    end
+    px
   end
 
   def self.build

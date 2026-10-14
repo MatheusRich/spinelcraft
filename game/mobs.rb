@@ -264,85 +264,74 @@ class Mob
     Ray.box_distance(ox, oy, oz, dx, dy, dz, @x - @half, @y, @z - @half, @x + @half, @y + @tall, @z + @half)
   end
 
+  # The mob as the boxes of its Minecraft model, with its skin (Tex::SKINS).
+  # A hurt mob is red, and a creeper flashes white as its fuse burns down.
   def draw(mesh)
     swing = Math.sin(@phase) * 0.7
     red = @hurt > 0.0 ? 0.45 : 1.0
-    s = Tex::SKIN
+    l = Tex::SKINS + @kind
     if @kind == CREEPER
-      # It flashes white faster as the fuse burns down.
-      flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.0 : 0.0
-      cr = 0.3 + flash * 0.7
-      cg = 0.72 * red + flash * 0.28
-      cb = 0.3 + flash * 0.7
-      grow = 1.0 + @fuse * 0.08
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.25 * grow, 1.2, -0.25 * grow, 0.25 * grow, 1.7, 0.25 * grow, s, cr, cg, cb, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.16, 1.45, 0.251 * grow, -0.05, 1.56, 0.26 * grow, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, 0.05, 1.45, 0.251 * grow, 0.16, 1.56, 0.26 * grow, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.06, 1.28, 0.251 * grow, 0.06, 1.42, 0.26 * grow, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.2 * grow, 0.4, -0.13 * grow, 0.2 * grow, 1.2, 0.13 * grow, s, cr * 0.9, cg * 0.9, cb * 0.9, 1.0)
-      i = 0
-      while i < 4
-        lx = i % 2 == 0 ? -0.13 : 0.13
-        lz = i / 2 == 0 ? -0.24 : 0.24
-        sw = (i == 0 || i == 3) ? swing : -swing
-        mesh.box(@x, @y, @z, @yaw, 0.4, lz, sw, lx - 0.11, 0.0, lz - 0.1, lx + 0.11, 0.4, lz + 0.1, s, cr * 0.8, cg * 0.8, cb * 0.8, 1.0)
-        i += 1
-      end
-    elsif @kind == SHEEP
-      wool = Tex::WOOL
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.45, 0.45, -0.6, 0.45, 1.15, 0.6, wool, red, red, red, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.22, 0.75, 0.55, 0.22, 1.15, 0.95, s, 0.55, 0.5 * red, 0.48 * red, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.18, 0.95, 0.951, -0.08, 1.03, 0.96, Tex::WHITE, 0.1, 0.1, 0.1, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, 0.08, 0.95, 0.951, 0.18, 1.03, 0.96, Tex::WHITE, 0.1, 0.1, 0.1, 1.0)
-      i = 0
-      while i < 4
-        lx = i % 2 == 0 ? -0.22 : 0.22
-        lz = i / 2 == 0 ? -0.38 : 0.38
-        sw = (i == 0 || i == 3) ? swing : -swing
-        mesh.box(@x, @y, @z, @yaw, 0.45, lz, sw, lx - 0.09, 0.0, lz - 0.09, lx + 0.09, 0.47, lz + 0.09, s, 0.55, 0.5 * red, 0.48 * red, 1.0)
-        i += 1
-      end
+      flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.6 : 0.0
+      c = 1.0 + flash
+      grow = @fuse * 0.4
+      part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, grow, false, c, c * red, c * red)
+      part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, grow, false, c, c * red, c * red)
+      legs(mesh, l, 2.0, 18.0, 4.0, -4.0, 6.0, 0.0, swing, c, c * red)
     elsif @kind == PIG
-      r = 0.95
-      g = 0.62 * red
-      b = 0.62 * red
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.4, 0.4, -0.55, 0.4, 0.9, 0.55, s, r, g, b, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.28, 0.5, 0.5, 0.28, 1.0, 0.95, s, r, g, b, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.13, 0.55, 0.95, 0.13, 0.72, 1.02, s, 0.85, 0.45 * red, 0.5 * red, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.2, 0.8, 0.951, -0.1, 0.9, 0.96, Tex::WHITE, 0.1, 0.1, 0.1, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, 0.1, 0.8, 0.951, 0.2, 0.9, 0.96, Tex::WHITE, 0.1, 0.1, 0.1, 1.0)
-      i = 0
-      while i < 4
-        lx = i % 2 == 0 ? -0.22 : 0.22
-        lz = i / 2 == 0 ? -0.35 : 0.35
-        sw = (i == 0 || i == 3) ? swing : -swing
-        mesh.box(@x, @y, @z, @yaw, 0.4, lz, sw, lx - 0.1, 0.0, lz - 0.1, lx + 0.1, 0.42, lz + 0.1, s, r * 0.9, g * 0.9, b * 0.9, 1.0)
-        i += 1
-      end
-    elsif @kind == SKELETON
-      b = 0.86 * red + (1.0 - red) * 0.9
-      c = 0.84 * red
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.24, 1.42, -0.24, 0.24, 1.9, 0.24, s, b, c, c, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.16, 1.6, 0.241, -0.05, 1.7, 0.25, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, 0.05, 1.6, 0.241, 0.16, 1.7, 0.25, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.2, 0.78, -0.08, 0.2, 1.42, 0.08, s, b * 0.8, c * 0.8, c * 0.8, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 1.35, 0.0, -1.45, -0.3, 0.8, -0.05, -0.2, 1.4, 0.05, s, b, c, c, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 1.35, 0.0, -1.45, 0.2, 0.8, -0.05, 0.3, 1.4, 0.05, s, b, c, c, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.78, 0.0, swing, -0.17, 0.0, -0.05, -0.07, 0.78, 0.05, s, b, c, c, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.78, 0.0, -swing, 0.07, 0.0, -0.05, 0.17, 0.78, 0.05, s, b, c, c, 1.0)
+      part(mesh, l, 0.0, 12.0, -6.0, 0.0, -4.0, -4.0, -8.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+      part(mesh, l, 0.0, 12.0, -6.0, 0.0, -2.0, 0.0, -9.0, 4.0, 3.0, 1.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
+      part(mesh, l, 0.0, 11.0, 2.0, Math::PI / 2.0, -5.0, -10.0, -7.0, 10.0, 16.0, 8.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
+      legs(mesh, l, 3.0, 18.0, 7.0, -5.0, 6.0, 0.0, swing, 1.0, red)
+    elsif @kind == SHEEP
+      part(mesh, l, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+      part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
+      legs(mesh, l, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, 1.0, red)
+      fur = Tex::SKINS + Tex::SKIN_FUR
+      part(mesh, fur, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
+      part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, 1.0, red, red)
+      legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, 1.0, red)
     else
-      skin_r = 0.35 * red + (1.0 - red)
-      skin_g = 0.62 * red
-      skin_b = 0.32 * red
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.25, 1.4, -0.25, 0.25, 1.9, 0.25, s, skin_r, skin_g, skin_b, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.17, 1.6, 0.251, -0.06, 1.68, 0.26, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, 0.06, 1.6, 0.251, 0.17, 1.68, 0.26, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.25, 0.75, -0.13, 0.25, 1.4, 0.13, s, 0.15 + (1.0 - red), 0.55 * red, 0.6 * red, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 1.35, 0.0, -1.5 + swing * 0.2, -0.37, 0.75, -0.12, -0.25, 1.4, 0.12, s, skin_r, skin_g, skin_b, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 1.35, 0.0, -1.5 - swing * 0.2, 0.25, 0.75, -0.12, 0.37, 1.4, 0.12, s, skin_r, skin_g, skin_b, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.75, 0.0, swing, -0.24, 0.0, -0.12, -0.01, 0.75, 0.12, s, 0.25, 0.25 * red, 0.6 * red, 1.0)
-      mesh.box(@x, @y, @z, @yaw, 0.75, 0.0, -swing, 0.01, 0.0, -0.12, 0.24, 0.75, 0.12, s, 0.25, 0.25 * red, 0.6 * red, 1.0)
+      # A zombie or a skeleton: a person with the arms out to the front. A
+      # skeleton has thin arms and legs, and holds a bow.
+      thin = @kind == SKELETON
+      t = thin ? 2.0 : 4.0
+      part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+      part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 32.0, 0.0, 0.5, false, 1.0, red, red)
+      part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
+      arm = thin ? -1.45 : -1.5 + swing * 0.2
+      part(mesh, l, -5.0, 2.0, 0.0, arm, thin ? -1.0 : -3.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, false, 1.0, red, red)
+      arm = thin ? -1.45 : -1.5 - swing * 0.2
+      part(mesh, l, 5.0, 2.0, 0.0, arm, -1.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, true, 1.0, red, red)
+      leg = thin ? 2.0 : 1.9
+      part(mesh, l, -leg, 12.0, 0.0, swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, false, 1.0, red, red)
+      part(mesh, l, leg, 12.0, 0.0, -swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, true, 1.0, red, red)
+      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0) if thin
+    end
+  end
+
+  # One box of the Minecraft model: w x h x d pixels at bx, by, bz from the
+  # pivot px, py, pz, turned by rot around the x axis through the pivot.
+  # The numbers are those of the Minecraft model: 16 pixels to a block, y
+  # down from 24 pixels above the feet, and the front to -z. The box takes
+  # the skin at u, v (Mesh3#skin_box). grow makes the box larger on each
+  # side, but not its skin, as for a hat or wool.
+  def part(mesh, layer, px, py, pz, rot, bx, by, bz, w, h, d, u, v, grow, mirror, r, g, b)
+    mesh.skin_box(@x, @y, @z, @yaw, (24.0 - py) / 16.0, -pz / 16.0, rot,
+                  (px + bx - grow) / 16.0, (24.0 - py - by - h - grow) / 16.0, (-pz - bz - d - grow) / 16.0,
+                  (px + bx + w + grow) / 16.0, (24.0 - py - by + grow) / 16.0, (-pz - bz + grow) / 16.0,
+                  layer, u, v, w, h, d, mirror, r, g, b, 1.0)
+  end
+
+  # The four legs of a pig, a sheep or a creeper, in the numbers of part:
+  # 4 pixels wide and h high, with pivots at x -dx and dx, height py, and
+  # z hind and front. The legs on one diagonal swing one way, and the other
+  # two the other way.
+  def legs(mesh, layer, dx, py, hind, front, h, grow, swing, r, gb)
+    i = 0
+    while i < 4
+      sw = (i == 0 || i == 3) ? swing : -swing
+      part(mesh, layer, i % 2 == 0 ? -dx : dx, py, i / 2 == 0 ? hind : front, sw, -2.0, 0.0, -2.0, 4.0, h, 4.0, 0.0, 16.0, grow, false, r, gb, gb)
+      i += 1
     end
   end
 end

@@ -59,6 +59,41 @@ class Mesh3
   # A box in a body's local space: the box swings by `swing` around the x axis
   # through (0, pivot_y, pivot_z), then the body turns by `yaw` and moves to ox, oy, oz.
   def box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
+    body_corners(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1)
+    corner_faces(63, layer, layer, layer, r, g, b, a)
+  end
+
+  # The box of box with the skin of a mob (layer Tex::SKINS + k) in the
+  # layout of Minecraft: a box of w x h x d skin pixels at u, v. The front
+  # of the body is +z, and its right is -x. mirror swaps the right and the
+  # left, as on the left legs of Minecraft models.
+  def skin_box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, u, v, w, h, d, mirror, r, g, b, a)
+    body_corners(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1)
+    k = 1.0 / 64.0
+    # Under the top and the bottom, the skin has the right side, the front,
+    # the left side and the back in a row. A mirror takes the right side
+    # for the left, and the left side for the right.
+    right = mirror ? u + d + w : u
+    left = mirror ? u : u + d + w
+    front = u + d
+    back = u + d + d + w
+    # The corners of FACES go across each face the other way from the skin,
+    # so a face goes from the far edge of its rectangle (n) to the near edge
+    # (m). A mirror turns this around.
+    m = mirror ? 0.0 : 1.0
+    n = 1.0 - m
+    s0 = (v + d) * k
+    s1 = (v + d + h) * k
+    face_quad(0, layer, (left + d * m) * k, (left + d * n) * k, s0, s1, r, g, b, a)
+    face_quad(1, layer, (right + d * m) * k, (right + d * n) * k, s0, s1, r, g, b, a)
+    face_quad(2, layer, (front + w * n) * k, (front + w * m) * k, s0, v * k, r, g, b, a)
+    face_quad(3, layer, (front + w + w * n) * k, (front + w + w * m) * k, v * k, s0, r, g, b, a)
+    face_quad(4, layer, (front + w * m) * k, (front + w * n) * k, s0, s1, r, g, b, a)
+    face_quad(5, layer, (back + w * m) * k, (back + w * n) * k, s0, s1, r, g, b, a)
+  end
+
+  # Puts the corners of the box of box in @cx, @cy and @cz.
+  def body_corners(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1)
     cs = Math.cos(swing)
     sn = Math.sin(swing)
     cyw = Math.cos(yaw)
@@ -77,7 +112,6 @@ class Mesh3
       @cz[i] = oz + lx * syw + rz * cyw
       i += 1
     end
-    corner_faces(63, layer, layer, layer, r, g, b, a)
   end
 
   def aabb(x0, y0, z0, x1, y1, z1, layer, r, g, b, a)

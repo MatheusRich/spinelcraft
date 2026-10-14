@@ -12,7 +12,7 @@ module Gfx
     static SDL_Window *win;
     static SDL_GPUDevice *dev;
     static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth, *p_hand, *p_rain;
-    static SDL_GPUTexture *atlas, *depth_tex, *cloud_tex;
+    static SDL_GPUTexture *atlas, *skins, *depth_tex, *cloud_tex;
     static SDL_GPUSampler *sampler, *cloud_sampler;
     static SDL_GPUTextureFormat depth_fmt;
     static Uint32 depth_w, depth_h;
@@ -289,6 +289,16 @@ module Gfx
       "  if (c.a < (in.color.a > 0.99 ? 0.5 : 0.02)) discard_fragment();\n"
       "  return float4(mix(c.rgb, u.fog.rgb, in.fog), c.a);\n"
       "}\n"
+      "// The dynamic vertices also draw mobs: a layer from 256 on is layer - 256 of the\n"
+      "// mob skins (Tex::SKINS).\n"
+      "fragment float4 fdyn(VOut in [[stage_in]], constant U &u [[buffer(0)]],\n"
+      "                     texture2d_array<float> tex [[texture(0)]], texture2d_array<float> skins [[texture(1)]],\n"
+      "                     sampler smp [[sampler(0)]], sampler skin_smp [[sampler(1)]]) {\n"
+      "  float4 c = in.layer < 256.0 ? tex.sample(smp, in.uv, uint(in.layer)) : skins.sample(skin_smp, in.uv, uint(in.layer - 256.0));\n"
+      "  c *= in.color;\n"
+      "  if (c.a < (in.color.a > 0.99 ? 0.5 : 0.02)) discard_fragment();\n"
+      "  return float4(mix(c.rgb, u.fog.rgb, in.fog), c.a);\n"
+      "}\n"
       "fragment float4 fui(VOut in [[stage_in]], texture2d_array<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {\n"
       "  float4 c = tex.sample(smp, in.uv, uint(in.layer)) * in.color;\n"
       "  if (c.a < 0.01) discard_fragment();\n"
@@ -455,6 +465,7 @@ module Gfx
       SDL_GPUShader *vrain = shader("vrain", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vui = shader("vui", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *fworld = shader("fworld", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
+      SDL_GPUShader *fdyn = shader("fdyn", SDL_GPU_SHADERSTAGE_FRAGMENT, 2);
       SDL_GPUShader *vlod = shader("vlod", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *flod = shader("flod", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
       SDL_GPUShader *vcloud = shader("vcloud", SDL_GPU_SHADERSTAGE_VERTEX, 0);
@@ -467,7 +478,7 @@ module Gfx
       fui_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
       fui_info.num_samplers = 1;
       SDL_GPUShader *fui = SDL_CreateGPUShader(dev, &fui_info);
-      if (!vchunk || !vdyn || !vui || !fworld || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box || !vhand || !vrain) return fail("SDL_CreateGPUShader");
+      if (!vchunk || !vdyn || !vui || !fworld || !fdyn || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box || !vhand || !vrain) return fail("SDL_CreateGPUShader");
 
       SDL_GPUVertexBufferDescription chunk_vb = {.slot = 0, .pitch = 8, .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE};
       SDL_GPUVertexAttribute chunk_attr = {.location = 0, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_UINT2};
@@ -483,8 +494,8 @@ module Gfx
         {.location = 3, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 24},
         {.location = 4, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, .offset = 40},
       };
-      p_dyn = pipeline(vdyn, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
-      p_hand = pipeline(vhand, fworld, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
+      p_dyn = pipeline(vdyn, fdyn, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
+      p_hand = pipeline(vhand, fdyn, &dyn_vb, dyn_attr, 5, 1, 1, 1, 0);
       p_rain = pipeline(vrain, fworld, &dyn_vb, dyn_attr, 5, 1, 0, 1, 0);
       /* Cloud boxes: depth first, then the color of the nearest face only, so
          each pixel blends one cloud face. */
@@ -506,6 +517,7 @@ module Gfx
       SDL_ReleaseGPUShader(dev, vdyn);
       SDL_ReleaseGPUShader(dev, vui);
       SDL_ReleaseGPUShader(dev, fworld);
+      SDL_ReleaseGPUShader(dev, fdyn);
       SDL_ReleaseGPUShader(dev, vlod);
       SDL_ReleaseGPUShader(dev, flod);
       SDL_ReleaseGPUShader(dev, fui);
@@ -595,12 +607,46 @@ module Gfx
       return true;
     }
 
-    /* The pixels of the last image that gfx_png loaded (0xAABBGGRR). */
-    static Uint32 png_px[256];
+    /* layers of 64x64 RGBA pixels (0xAABBGGRR): the mob skins. Mobs are
+       small on the screen only when they are far, so the skins have no
+       mipmaps. */
+    bool gfx_skins(const int64_t *px, long layers) {
+      SDL_GPUTextureCreateInfo ti = {0};
+      ti.type = SDL_GPU_TEXTURETYPE_2D_ARRAY;
+      ti.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+      ti.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+      ti.width = 64; ti.height = 64;
+      ti.layer_count_or_depth = (Uint32)layers;
+      ti.num_levels = 1;
+      skins = SDL_CreateGPUTexture(dev, &ti);
+      if (!skins) return fail("SDL_CreateGPUTexture");
+      Uint32 size = (Uint32)(layers * 4096 * 4);
+      SDL_GPUTransferBuffer *tb = make_transfer(size);
+      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, false);
+      for (long i = 0; i < layers * 4096; i++) dst[i] = (Uint32)px[i];
+      SDL_UnmapGPUTransferBuffer(dev, tb);
+      SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
+      SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
+      SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb, .pixels_per_row = 64, .rows_per_layer = 64};
+      SDL_GPUTextureRegion region = {.texture = skins, .w = 64, .h = 64, .d = 1};
+      for (long l = 0; l < layers; l++) {
+        src.offset = (Uint32)(l * 4096 * 4);
+        region.layer = (Uint32)l;
+        SDL_UploadToGPUTexture(cp, &src, &region, false);
+      }
+      SDL_EndGPUCopyPass(cp);
+      SDL_SubmitGPUCommandBuffer(c);
+      SDL_ReleaseGPUTransferBuffer(dev, tb);
+      return true;
+    }
 
-    /* Loads a 16x16 PNG. The path is relative to the folder of the game,
-       so the game finds assets/ from any working directory. */
-    bool gfx_png(const char *path) {
+    /* The pixels of the last image that gfx_png loaded (0xAABBGGRR). */
+    static Uint32 png_px[64 * 64];
+
+    /* Loads a PNG of w x h pixels, at most 64 x 64. The path is relative to
+       the folder of the game, so the game finds assets/ from any working
+       directory. */
+    bool gfx_png(const char *path, long w, long h) {
       char full[1024];
       SDL_snprintf(full, sizeof full, "%s%s", SDL_GetBasePath(), path);
       SDL_Surface *s = SDL_LoadPNG(full);
@@ -608,11 +654,11 @@ module Gfx
       SDL_Surface *c = SDL_ConvertSurface(s, SDL_PIXELFORMAT_RGBA32);
       SDL_DestroySurface(s);
       if (!c) return fail(full);
-      bool ok = c->w == 16 && c->h == 16;
+      bool ok = c->w == w && c->h == h && w * h <= 64 * 64;
       if (ok) {
-        for (int y = 0; y < 16; y++) SDL_memcpy(png_px + y * 16, (Uint8 *)c->pixels + y * c->pitch, 64);
+        for (int y = 0; y < h; y++) SDL_memcpy(png_px + y * w, (Uint8 *)c->pixels + y * c->pitch, w * 4);
       } else {
-        fprintf(stderr, "%s: not 16x16\n", full);
+        fprintf(stderr, "%s: not %ldx%ld\n", full, w, h);
       }
       SDL_DestroySurface(c);
       return ok;
@@ -859,6 +905,8 @@ module Gfx
     long gfx_draw_dyn(void) {
       if (!pass || !hand_first) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_dyn);
+      SDL_GPUTextureSamplerBinding tsb[2] = {{.texture = atlas, .sampler = sampler}, {.texture = skins, .sampler = sampler}};
+      SDL_BindGPUFragmentSamplers(pass, 0, tsb, 2);
       SDL_GPUBufferBinding b = {.buffer = dyn_buf};
       SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
       SDL_DrawGPUPrimitives(pass, hand_first, 1, 0, 0);
@@ -879,6 +927,8 @@ module Gfx
     long gfx_draw_hand(void) {
       if (!pass || dyn_count <= hand_first) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_hand);
+      SDL_GPUTextureSamplerBinding tsb[2] = {{.texture = atlas, .sampler = sampler}, {.texture = skins, .sampler = sampler}};
+      SDL_BindGPUFragmentSamplers(pass, 0, tsb, 2);
       SDL_GPUBufferBinding b = {.buffer = dyn_buf};
       SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
       SDL_DrawGPUPrimitives(pass, dyn_count - hand_first, 1, hand_first, 0);
@@ -1059,7 +1109,8 @@ module Gfx
   C
   ffi_func :gfx_init, [:long, :long, :long, :long], :bool
   ffi_func :gfx_textures, [:int_array, :long], :bool
-  ffi_func :gfx_png, [:str], :bool
+  ffi_func :gfx_skins, [:int_array, :long], :bool
+  ffi_func :gfx_png, [:str, :long, :long], :bool
   ffi_func :gfx_png_pixel, [:long], :long
   ffi_func :gfx_clouds, [:int_array, :long], :bool
   ffi_func :gfx_mesh, [:long, :int_array, :long, :int_array], :long

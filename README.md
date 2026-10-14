@@ -145,4 +145,4 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 
 ## Credits
 
-The images in `assets/pixel-perfection` come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license. `assets/pixel-perfection/README.md` gives the sources.
+The images in `assets/pixel-perfection` come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre and Mineclonia contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license. `assets/pixel-perfection/README.md` gives the sources.
