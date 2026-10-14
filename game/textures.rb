@@ -97,7 +97,10 @@ module Tex
   ROTTEN_FLESH = 96
   MUTTON = 97
   COOKED_MUTTON = 98
-  FONT = 99
+  # The full and the empty food icon of the HUD (see ICON_LAYERS).
+  HUNGER = 99
+  HUNGER_EMPTY = 100
+  FONT = 101
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -172,6 +175,13 @@ module Tex
                    bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
                    mutton cooked_mutton]
 
+  # The HUD icons are 9 x 9 images, as in Minecraft. Each one fills the top
+  # left corner of its layer, so the HUD draws ICON_PART of the layer.
+  ICON_LAYERS = [HUNGER, HUNGER_EMPTY]
+  ICON_FILES = %w[hunger hunger_empty]
+  ICON_SIZE = 9
+  ICON_PART = ICON_SIZE / 16.0
+
   def self.images(px)
     s = 0
     while s < IMAGE_LAYERS.size
@@ -180,6 +190,17 @@ module Tex
       i = 0
       while i < 256
         px[IMAGE_LAYERS[s] * 256 + i] = Gfx.gfx_png_pixel(i)
+        i += 1
+      end
+      s += 1
+    end
+    s = 0
+    while s < ICON_LAYERS.size
+      path = "assets/pixel-perfection/#{ICON_FILES[s]}.png"
+      abort "#{path} did not load" unless Gfx.gfx_png(path, ICON_SIZE, ICON_SIZE)
+      i = 0
+      while i < ICON_SIZE * ICON_SIZE
+        px[ICON_LAYERS[s] * 256 + i / ICON_SIZE * 16 + i % ICON_SIZE] = Gfx.gfx_png_pixel(i)
         i += 1
       end
       s += 1

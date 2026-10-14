@@ -6,7 +6,7 @@ These images come from Pixel Perfection, a 16x16 resource pack for Minecraft by 
 - Original pack: <https://www.planetminecraft.com/texture_pack/131pixel-perfection/>
 - Source of these files: the `textures/` folder of <https://git.minetest.land/VoxeLibre/VoxeLibre> (the `master` branch, October 2026). VoxeLibre's `LEGAL.md` gives the license.
 
-Each file has the name of its layer in `Tex` (`iron_pick.png` is `Tex::IRON_PICK`). `Tex::IMAGE_FILES` in `game/textures.rb` lists the files that the game loads.
+Each file has the name of its layer in `Tex` (`iron_pick.png` is `Tex::IRON_PICK`). `Tex::IMAGE_FILES` and `Tex::ICON_FILES` in `game/textures.rb` list the files that the game loads.
 
 ## Copies
 
@@ -37,6 +37,7 @@ These files are copies with no changes.
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
 | `rotten_flesh.png` | `mcl_mobitems_rotten_flesh.png` |
 | `mutton.png`, `cooked_mutton.png` | `mcl_mobitems_mutton_raw.png`, `mcl_mobitems_mutton_cooked.png` |
+| `hunger.png`, `hunger_empty.png` | `hbhunger_icon.png`, `hbhunger_bgicon.png` (9x9, as the HUD icons of Minecraft) |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 
 ## Mob skins

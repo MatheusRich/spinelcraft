@@ -108,8 +108,11 @@ class Game
     i = 0
     while i < 10
       fx = x0 + total - (i + 1) * 20.0 * s
-      shade = @vitals.hunger - i * 2 >= 1 ? 1.0 : 0.22
-      @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::PORKCHOP, 1.0, 1.0, shade * (sick ? 0.55 : 1.0), shade * (sick ? 1.5 : 1.0), shade * (sick ? 0.3 : 1.0), 1.0)
+      p = Tex::ICON_PART
+      @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::HUNGER_EMPTY, p, p, 1.0, 1.0, 1.0, 1.0)
+      if @vitals.hunger - i * 2 >= 1
+        @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::HUNGER, p, p, sick ? 0.55 : 1.0, sick ? 1.5 : 1.0, sick ? 0.3 : 1.0, 1.0)
+      end
       i += 1
     end
     if @vitals.air < Vitals::MAX_AIR
