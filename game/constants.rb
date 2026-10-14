@@ -75,6 +75,8 @@ class Game
   INV_COLS = 8
 
   SAVE_PATH = "world.sav"
+  # The first word of a save. A save with another version does not load.
+  SAVE_VERSION = "SPINELCRAFT12"
   # Where a save that does not load goes, so that the next save does not replace it.
   BAD_SAVE_PATH = "world-bad.sav"
 end
