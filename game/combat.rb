@@ -39,7 +39,11 @@ class Game
   # minecraft.wiki/w/Mob_spawning
   # The cap for the 17 x 17 chunks around the player. The game always loads
   # all of them, so the cap does not get smaller as in Minecraft.
-  MONSTER_CAP = 70
+  # Minecraft's cap is 70, but its world is 384 blocks tall. This world is
+  # 96 blocks tall, so it has less cave room. With a cap of 70, 33 to 44
+  # monsters came to the surface at night, with 35, 14 to 20, and with 25,
+  # about 10 to 14. This is not a Minecraft value.
+  MONSTER_CAP = 25
   # Chunks on each side of the player's chunk where monsters spawn.
   SPAWN_CHUNKS = 8
   # Pack centers each second: one for each of the 17 x 17 chunks each tick.
