@@ -15,4 +15,5 @@ shot sunset TIME=0.485 CAM=200,72,190,-1.57,0.05
 shot mobs SHOWMOBS=1 FRAMES=60
 shot cave CAM=190.5,10.05,179.5,0.8,-0.45
 shot inventory INVENTORY=1
+shot blocks SHOWITEMS=1 HAND=44 FRAMES=600
 rm -f /tmp/spinelcraft_gallery.ppm

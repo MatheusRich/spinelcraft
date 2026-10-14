@@ -11,6 +11,8 @@ A small Minecraft-like game written in Ruby. The Spinel compiler turns the Ruby 
 | ![A sunset over snowy hills with spruces](screenshots/sunset.png) | ![A zombie, a skeleton and a creeper on a stone floor](screenshots/mobs.png) |
 | ![A cave lit by lava](screenshots/cave.png) | ![The creative block picker](screenshots/inventory.png) |
 
+![A chest, doors, a ladder, a lit furnace, a crafting table and a bed, with dropped items in front](screenshots/blocks.png)
+
 ![The world from 400 blocks up with a 5000-block view](screenshots/far.png)
 
 `tools/gallery.sh` renders these images again.
