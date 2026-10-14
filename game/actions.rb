@@ -205,7 +205,7 @@ class Game
   def dig_sound(b)
     return Sfx::DIG_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::GLASS || b == Block::BEDROCK
     return Sfx::DIG_STONE if b == Block::FURNACE
-    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || Block.door?(b) || b == Block::CRAFTING_TABLE
+    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || Block.door?(b) || b == Block::CRAFTING_TABLE || b == Block::LADDER
     Sfx::DIG_SOFT
   end
 

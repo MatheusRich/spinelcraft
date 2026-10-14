@@ -77,7 +77,10 @@ module Tex
   BREAD = 78
   CRAFT_TOP = 79
   CRAFT_SIDE = 80
-  FONT = 81
+  LADDER = 81
+  # Nothing paints this layer, so it is fully transparent.
+  CLEAR = 82
+  FONT = 83
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -283,6 +286,7 @@ module Tex
     bread(px)
     furnace(px)
     crafting_table(px)
+    ladder(px)
     lava(px)
     noisy(px, WOOL, 232, 232, 228, 14, 71)
     bed(px)
@@ -739,6 +743,25 @@ module Tex
         v = rnd(x, y, 131) / 12
         c = y == 6 ? 240 : 200
         set(px, IRON_INGOT, x, y, c + v - 10, c + v - 12, c + v - 18, 255)
+        x += 1
+      end
+      y += 1
+    end
+  end
+
+  # Ladder: two rails and four rungs; the rest is transparent.
+  def self.ladder(px)
+    y = 0
+    while y < 16
+      x = 0
+      while x < 16
+        rail = x == 2 || x == 3 || x == 12 || x == 13
+        rung = (y % 4 == 1 || y % 4 == 2) && x > 3 && x < 12
+        if rail || rung
+          v = (rnd(x, y, 95) - 128) / 16
+          dark = x == 3 || x == 13 || y % 4 == 2 ? 25 : 0
+          set(px, LADDER, x, y, 150 + v - dark, 105 + v - dark, 60 + v - dark, 255)
+        end
         x += 1
       end
       y += 1

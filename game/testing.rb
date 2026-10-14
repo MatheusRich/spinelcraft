@@ -59,6 +59,8 @@ class Game
     set_block(bx + 2, y + 1, bz - 2, Block::FURNACE)
     set_block(bx + 3, y + 1, bz - 2, Block::SAPLING)
     set_block(bx + 4, y + 1, bz - 2, Block::CRAFTING_TABLE)
+    set_block(bx + 1, y + 1, bz - 2, Block::LADDER)
+    set_block(bx + 1, y + 2, bz - 2, Block::LADDER)
     [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |b, i|
       set_block(bx - 4 + i, y + 1, bz - 1, b)
     end
@@ -121,6 +123,7 @@ class Game
     test_dark
     test_door_furnace_sapling
     test_door_rules
+    test_ladder
     test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -946,6 +949,45 @@ class Game
     check("a sapling grows into a tree", @world.get(x, y, z) == Block::LOG && @world.get(x, y + 3, z) == Block::LOG)
     check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)
     set_block(x + 4, cy, z, Block::AIR)
+  end
+
+  # A ladder lifts the player on jump, holds the player on Shift, and lets
+  # the player slide down slowly.
+  def test_ladder
+    x = @spawn_x.floor + 40
+    z = @spawn_z.floor - 40
+    y = @world.height_at(x, z)
+    i = 0
+    while i < 6
+      set_block(x, y + i, z, Block::LADDER)
+      set_block(x + 1, y + i, z, Block::STONE)
+      i += 1
+    end
+    p = Player.new(x + 0.5, y.to_f, z + 0.5)
+    50.times { p.update(@world, 0.02, 0.0, 0.0, true, false, false) }
+    up = p.y > y + 2.0
+    h = p.y
+    50.times { p.update(@world, 0.02, 0.0, 0.0, false, true, false) }
+    held = (p.y - h).abs < 0.05
+    50.times { p.update(@world, 0.02, 0.0, 0.0, false, false, false) }
+    slid = p.y < h - 0.5 && p.y > h - 3.0
+    # Forward into the wall climbs to its top and steps onto it.
+    p = Player.new(x + 0.5, y.to_f, z + 0.5)
+    p.yaw = Math::PI / 2.0
+    frames = 0
+    while frames < 150 && p.x < x + 1.5
+      p.update(@world, 0.02, 1.0, 0.0, false, false, false)
+      frames += 1
+    end
+    top = p.x >= x + 1.5 && (p.y - (y + 6)).abs < 0.05
+    i = 0
+    while i < 6
+      set_block(x, y + i, z, Block::AIR)
+      set_block(x + 1, y + i, z, Block::AIR)
+      i += 1
+    end
+    check("a ladder climbs on jump, holds on Shift, and slides down slowly", up && held && slid)
+    check("forward on a ladder climbs onto the block at its top", top)
   end
 
   # Water spreads 7 blocks over a floor and drains without its source.

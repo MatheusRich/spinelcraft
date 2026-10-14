@@ -66,6 +66,7 @@ These recipes need a crafting table within 4 blocks:
 - 3 wool give a bed.
 - 5 planks give a bow.
 - 6 planks give 3 doors.
+- 3 planks give 4 ladders.
 - 8 planks give a chest.
 - 3 wheat give a loaf of bread.
 - 8 cobblestone give a furnace.
@@ -88,7 +89,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 ## What is in it
 
 - An endless world, 96 blocks tall. Chunks of 16 × 16 columns generate as you move and unload behind you. Perlin noise makes continents, hills, ridged mountains, beaches, oceans, deserts with cactus, and snowy peaks. Caves are long tunnels. The world also has coal, iron and diamond ore, trees, tall grass and flowers.
-- 32 block types and 24 items with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
+- 33 block types and 24 items with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
 - Ambient occlusion at each face corner, sky light from a height map, and warm torch light. Torch light spreads by flood fill, so walls stop it.
 - Sand and gravel fall when nothing holds them up.
 - Lava fills the bottom of deep caves. It glows, flows up to 3 blocks, burns players and mobs, throws embers, and turns into cobblestone where water touches it.
@@ -203,7 +204,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 77 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 79 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

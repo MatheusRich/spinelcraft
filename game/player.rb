@@ -44,11 +44,18 @@ class Player
     @pitch = @pitch.clamp(-1.55, 1.55)
   end
 
+  # Speeds on a ladder, in blocks per second.
+  CLIMB = 3.0
+  SLIDE = 2.0
+
   # Moves the player for one step of dt seconds and returns the fall
   # distance when it lands (0.0 otherwise).
   def update(world, dt, fwd, strafe, jump, down, sprint)
     feet = world.get(@x.floor, (@y + 0.4).floor, @z.floor)
     @in_water = Block.water?(feet) || Block.lava?(feet)
+    # The feet or the body in a ladder cell: the player climbs to the top.
+    climbing = !@flying && (world.get(@x.floor, @y.floor, @z.floor) == Block::LADDER ||
+                            world.get(@x.floor, (@y + 1.0).floor, @z.floor) == Block::LADDER)
     @sneaking = down && !@flying && @on_ground
     speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking ? 1.3 : (sprint ? 6.8 : 4.3))
     speed *= 0.55 if @in_water && !@flying
@@ -68,6 +75,9 @@ class Player
     if @flying
       target = (jump ? 1.0 : 0.0) - (down ? 1.0 : 0.0)
       @vy += (target * speed - @vy) * (10.0 * dt).clamp(0.0, 1.0)
+    elsif climbing
+      # Jump or forward climbs, Shift holds on, and nothing slides down.
+      @vy = jump || fwd > 0.0 ? CLIMB : (down ? 0.0 : -SLIDE)
     elsif @in_water
       @vy -= 10.0 * dt
       @vy = 3.2 if jump
@@ -82,7 +92,7 @@ class Player
     was_ground = @on_ground
     move(world, @vx * dt, @vy * dt, @vz * dt)
     landed = 0.0
-    if @flying || @in_water || Block.water?(world.get(@x.floor, (@y + 0.4).floor, @z.floor))
+    if @flying || @in_water || climbing || Block.water?(world.get(@x.floor, (@y + 0.4).floor, @z.floor))
       @fall_start = @y
     elsif !@on_ground
       @fall_start = @y if @y > @fall_start

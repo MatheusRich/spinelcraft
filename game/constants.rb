@@ -8,7 +8,7 @@ class Game
                Block::SNOW_GRASS, Block::CACTUS, Block::COAL, Block::IRON, Block::DIAMOND, Block::WATER,
                Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
                Block::BOW, Block::ARROW, Block::LAVA, Block::WOOL, Block::BED, Block::CHEST,
-               Block::DOOR, Block::SAPLING, Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE]
+               Block::DOOR, Block::SAPLING, Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER]
   FOG_END = 1600.0
   # F4 view distances, in blocks.
   VIEWS = [200.0, 800.0, 1600.0, 5000.0]
@@ -70,7 +70,8 @@ class Game
              [Block::IRON_INGOT, 1, Block::IRON_SHOVEL, 1, AT_TABLE], [Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, AT_TABLE],
              [Block::STONE, 2, Block::BRICK, 1, AT_TABLE], [Block::WOOL, 3, Block::BED, 1, AT_TABLE],
              [Block::PLANKS, 5, Block::BOW, 1, AT_TABLE], [Block::PLANKS, 8, Block::CHEST, 1, AT_TABLE],
-             [Block::PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE],
+             [Block::PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::PLANKS, 3, Block::LADDER, 4, AT_TABLE],
+             [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE],
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
              [Block::SAND, 1, Block::GLASS, 1, AT_FURNACE], [Block::COBBLE, 1, Block::STONE, 1, AT_FURNACE]]
