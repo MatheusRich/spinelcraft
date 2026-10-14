@@ -662,11 +662,12 @@ module Tex
     set(px, layer, 1, 15, 90, 65, 40, 255)
   end
 
-  # A diagonal handle with a wide blade at the top right.
+  # A diagonal handle with a wide blade at the top right. The blade is below
+  # the end of the handle, so it faces forward in the hand (see draw_hand).
   def self.axe(px, layer, r, g, b)
     handle(px, layer)
-    [[8, 1], [9, 1], [10, 1], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2], [7, 3], [8, 3], [9, 3], [11, 3],
-     [12, 3], [7, 4], [8, 4], [12, 4], [8, 5], [12, 5], [13, 5], [12, 6], [13, 6]].each do |c|
+    [[9, 2], [10, 2], [9, 3], [10, 3], [11, 3], [12, 3], [12, 4], [13, 4], [13, 5], [14, 5], [12, 6], [13, 6],
+     [14, 6], [10, 7], [11, 7], [12, 7], [13, 7], [14, 7], [11, 8], [12, 8], [13, 8]].each do |c|
       set(px, layer, c[0], c[1], r, g, b, 255)
     end
   end
