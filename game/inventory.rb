@@ -6,10 +6,13 @@ class Game
   # The recipe list shows this many rows of two recipes. The wheel scrolls
   # the other rows into view.
   RECIPE_ROWS = 10
-  # What a furnace burns, and how many items one of each smelts. The list
-  # goes from the weakest fuel to the strongest.
+  # What a furnace burns, and the ticks of burn time of one of each.
+  # minecraft.wiki/w/Smelting (Fuel). The game has no coal item, so coal
+  # ore burns as coal.
   FUEL_BLOCKS = [Block::PLANKS, Block::LOG, Block::COAL]
-  FUEL_SMELTS = [1, 2, 8]
+  FUEL_TICKS = [300, 300, 1600]
+  # Furnace ticks in a second, as in Minecraft.
+  TICKS_PER_SECOND = 20
 
   def current_block
     @survival ? @inv.block(@slot) : @hotbar[@slot]
@@ -28,9 +31,9 @@ class Game
   end
 
   # Crafts recipe k up to want times from items anywhere in the inventory.
-  # A click asks for 1, and a Shift-click for CRAFT_ALL. A smelt takes heat
-  # from the furnace. When the heat runs out, the furnace burns fuel from
-  # the inventory, and it keeps the heat that is left.
+  # A click asks for 1, and a Shift-click for CRAFT_ALL. A smelting recipe
+  # puts its ingredient into the furnace instead, and the furnace smelts it
+  # in time.
   def craft_recipe(k, want = 1)
     r = RECIPES[k]
     have = @inv.total(r[0]) / r[1]
@@ -42,26 +45,15 @@ class Game
       say(r[4] == AT_TABLE ? "NEED A CRAFTING TABLE" : "NEED A FURNACE")
       return
     end
-    smelt = r[4] == AT_FURNACE
-    key = smelt ? World.key(@station_x, @station_y, @station_z) : 0
-    if smelt && furnace_heat(key) == 0 && pick_fuel(1) < 0
-      say("NEED FUEL: PLANKS, LOGS OR COAL ORE")
+    if r[4] == AT_FURNACE
+      load_furnace(r[0], want)
       return
     end
     times = want < have ? want : have
-    heat = 0
     saved = @inv.copy
     # Fewer times when the results do not fit.
     while times > 0
       @inv = saved.copy
-      heat = smelt ? furnace_heat(key) : 0
-      while smelt && heat < times
-        fuel = pick_fuel(times - heat)
-        break if fuel < 0
-        @inv.remove(FUEL_BLOCKS[fuel], 1)
-        heat += FUEL_SMELTS[fuel]
-      end
-      times = heat if smelt && heat < times
       # Take the ingredients first: a slot that they empty is room for the result.
       @inv.remove(r[0], r[1] * times)
       break if @inv.room_for(r[2]) >= r[3] * times
@@ -74,50 +66,111 @@ class Game
     end
     n = r[3] * times
     n.times { @inv.add(r[2]) }
-    if smelt
-      set_furnace_heat(@station_x, @station_y, @station_z, heat - times)
-      say("SMELTED #{n} #{Block::NAMES[r[2]]}  #{heat - times} HEAT LEFT")
-    else
-      say("CRAFTED #{n} #{Block::NAMES[r[2]]}")
-    end
+    say("CRAFTED #{n} #{Block::NAMES[r[2]]}")
     play(Sfx::PLACE, 0.6)
   end
 
   # What a Shift-click on a recipe asks for: all that the inventory holds.
   CRAFT_ALL = Slots::STACK * INV
 
-  # The smelts left in the furnace with the World.key key.
-  def furnace_heat(key)
-    heat = @furnace_heat[key]
-    heat.nil? ? 0 : heat
-  end
-
-  # A furnace with heat is lit.
-  def set_furnace_heat(x, y, z, heat)
-    key = World.key(x, y, z)
-    if heat > 0
-      @furnace_heat[key] = heat
-    else
-      @furnace_heat.delete(key)
-    end
-    b = @world.get(x, y, z)
-    lit = Block.furnace_id(Block::FACING[b], heat > 0)
-    set_block(x, y, z, lit) if lit != b
-  end
-
-  # The fuel to burn for want smelts: the weakest fuel in the inventory that
-  # covers them all, or else the strongest one. -1 when there is no fuel.
-  def pick_fuel(want)
-    best = -1
+  # The ticks of burn time of one b, or 0 when b is not a fuel.
+  def fuel_ticks(b)
     i = 0
     while i < FUEL_BLOCKS.size
-      if @inv.total(FUEL_BLOCKS[i]) > 0
-        return i if FUEL_SMELTS[i] >= want
-        best = i
-      end
+      return FUEL_TICKS[i] if FUEL_BLOCKS[i] == b
       i += 1
     end
-    best
+    0
+  end
+
+  def fuel?(b) = fuel_ticks(b) > 0
+
+  # The smelting recipe for b, or -1 when a furnace does not smelt b.
+  def smelt_recipe(b)
+    k = 0
+    while k < RECIPES.size
+      return k if RECIPES[k][4] == AT_FURNACE && RECIPES[k][0] == b
+      k += 1
+    end
+    -1
+  end
+
+  def smelts?(b) = smelt_recipe(b) >= 0
+
+  # The furnace whose screen is open.
+  def open_furnace
+    @furnaces[World.key(@station_x, @station_y, @station_z)] ||= Furnace.new(@station_x, @station_y, @station_z)
+  end
+
+  # Moves up to want of b from the inventory into the input slot of the
+  # open furnace.
+  def load_furnace(b, want)
+    slots = open_furnace.slots
+    if !slots.empty?(Furnace::INPUT) && slots.block(Furnace::INPUT) != b
+      say("THE FURNACE HOLDS #{Block::NAMES[slots.block(Furnace::INPUT)]}")
+      return
+    end
+    n = Slots::STACK - slots.count(Furnace::INPUT)
+    n = want if want < n
+    n = @inv.total(b) if @inv.total(b) < n
+    return if n == 0
+    @inv.remove(b, n)
+    slots.set(Furnace::INPUT, b, slots.count(Furnace::INPUT) + n)
+    play(Sfx::PLACE, 0.4)
+  end
+
+  # Furnaces work while their chunk is loaded, as in Minecraft. A furnace
+  # is lit while it burns.
+  def update_furnaces(dt)
+    @furnace_clock += dt
+    ticks = (@furnace_clock * TICKS_PER_SECOND).to_i
+    @furnace_clock -= ticks.to_f / TICKS_PER_SECOND
+    return if ticks == 0
+    @furnaces.each do |key, f|
+      if @world.loaded?(f.x, f.z)
+        k = smelt_recipe(f.slots.block(Furnace::INPUT))
+        out = k >= 0 ? RECIPES[k][2] : 0
+        out_n = k >= 0 ? RECIPES[k][3] : 0
+        ticks.times { f.tick(out, out_n, fuel_ticks(f.slots.block(Furnace::FUEL))) }
+        b = @world.get(f.x, f.y, f.z)
+        lit = Block.furnace_id(Block::FACING[b], f.lit?)
+        set_block(f.x, f.y, f.z, lit) if Block::BASE[b] == Block::FURNACE && lit != b
+      end
+    end
+  end
+
+  # A click on slot i of the open furnace. The input slot takes only what
+  # the furnace smelts, and the fuel slot only fuel. The output slot only
+  # gives: a click takes its stack, or adds it to the same kind in the hand.
+  def click_furnace(i, left)
+    slots = open_furnace.slots
+    if i == Furnace::OUTPUT && @held_count > 0
+      return if @held_block != slots.block(i) || slots.empty?(i)
+      moved = [Slots::STACK - @held_count, slots.count(i)].min
+      @held_count += moved
+      slots.take(i, moved)
+      return
+    end
+    if @held_count > 0 && i == Furnace::FUEL && !fuel?(@held_block)
+      say("NOT A FUEL")
+      return
+    end
+    if @held_count > 0 && i == Furnace::INPUT && !smelts?(@held_block)
+      say("THE FURNACE DOES NOT SMELT THAT")
+      return
+    end
+    if left
+      click_cell(slots, i)
+    else
+      split_cell(slots, i)
+    end
+  end
+
+  # A broken furnace drops what it holds (in survival).
+  def drop_furnace(x, y, z)
+    furnace = @furnaces.delete(World.key(x, y, z))
+    return if furnace.nil? || !@survival
+    (0...3).each { |i| drop_from_block(furnace.slots.block(i), furnace.slots.count(i), x, y, z) }
   end
 
   # True when the open screen makes the recipes for where (BY_HAND,
@@ -197,6 +250,32 @@ class Game
     last = pack_cell(INV - 1, w, h, s)
     top = pack_cell(HOTBAR, w, h, s)
     [last[0] + last[2] + 60.0 * s + (j % 2) * (RECIPE_W + 8.0) * s, top[1] + (j / 2) * RECIPE_H * s, RECIPE_W * s, (RECIPE_H - 4.0) * s]
+  end
+
+  # The places that the recipe list skips: a furnace shows its slots in the
+  # first five rows.
+  def recipe_skip = station_makes?(AT_FURNACE) ? 10 : 0
+
+  # Slot i of the open furnace, in the place of the first recipe rows, as in
+  # Minecraft: the input on top, the flame under it, the fuel at the bottom,
+  # and the output at the right, between them. x, y, size.
+  def furnace_cell(i, w, h, s)
+    first = recipe_cell(0, w, h, s)
+    x = i == Furnace::OUTPUT ? first[0] + 244.0 * s : first[0]
+    [x, first[1] + (i == Furnace::INPUT ? 14.0 : (i == Furnace::FUEL ? 130.0 : 72.0)) * s, 52.0 * s]
+  end
+
+  # The slot of the open furnace under the mouse, or -1.
+  def furnace_hover(w, h, s)
+    mx = Gfx.in_mouse_x
+    my = Gfx.in_mouse_y
+    i = 0
+    while i < 3
+      c = furnace_cell(i, w, h, s)
+      return i if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
+      i += 1
+    end
+    -1
   end
 
   # The recipes in view: RECIPE_ROWS rows of shown_recipes from row
@@ -289,9 +368,10 @@ class Game
     mx = Gfx.in_mouse_x
     my = Gfx.in_mouse_y
     view = recipes_in_view
+    skip = recipe_skip
     j = 0
     while j < view.size
-      c = recipe_cell(j, w, h, s)
+      c = recipe_cell(j + skip, w, h, s)
       return view[j] if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[3]
       j += 1
     end
@@ -357,11 +437,17 @@ class Game
   end
 
   # A Shift-click on inventory slot i moves the stack into the open chest,
-  # or else between the hotbar and the backpack.
+  # or into the input or the fuel slot of the open furnace, or else between
+  # the hotbar and the backpack.
   def quick_move_slot(i)
     return if @inv.empty?(i) || @held_count > 0
+    furnace = station_makes?(AT_FURNACE)
     if @chest_key >= 0
       @inv.move_stack(i, @chest, 0, CHEST_SLOTS)
+    elsif furnace && smelts?(@inv.block(i))
+      @inv.move_stack(i, open_furnace.slots, Furnace::INPUT, Furnace::INPUT + 1)
+    elsif furnace && fuel?(@inv.block(i))
+      @inv.move_stack(i, open_furnace.slots, Furnace::FUEL, Furnace::FUEL + 1)
     elsif i < HOTBAR
       @inv.move_stack(i, @inv, HOTBAR, INV)
     else
@@ -503,6 +589,13 @@ class Game
           else
             split_cell(@chest, cell)
           end
+        end
+      elsif station_makes?(AT_FURNACE) && furnace_hover(w, h, s) >= 0
+        cell = furnace_hover(w, h, s)
+        if shift
+          open_furnace.slots.move_stack(cell, @inv, 0, INV)
+        else
+          click_furnace(cell, left)
         end
       elsif left
         recipe = recipe_hover(w, h, s)

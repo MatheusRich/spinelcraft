@@ -25,6 +25,7 @@ require_relative "game/save"
 require_relative "game/streaming"
 require_relative "game/block_changes"
 require_relative "game/slots"
+require_relative "game/furnace"
 require_relative "game/inventory"
 require_relative "game/items"
 require_relative "game/hand"
@@ -87,8 +88,9 @@ class Game
     # The first recipe row in view, and the wheel steps not used yet.
     @recipe_top = 0
     @recipe_wheel = 0.0
-    # The smelts left in each furnace, by World.key.
-    @furnace_heat = {}
+    # The furnaces, by World.key, and the time not yet ticked.
+    @furnaces = {}
+    @furnace_clock = 0.0
     # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE),
     # and its cell.
     @station = BY_HAND
@@ -263,7 +265,7 @@ class Game
     @chests = {}
     @seen.fill(0)
     @recipe_new.fill(0)
-    @furnace_heat = {}
+    @furnaces = {}
     @mobs.clear
     @arrows.clear
     @items.clear
@@ -431,6 +433,7 @@ class Game
     @particles.update(@world, dt)
     @particles.sample_fire(@world, @player.x, @player.y, @player.z, dt)
     grow_plants(dt)
+    update_furnaces(dt)
     update_items(dt)
     update_falling(dt)
     note_seen if @survival

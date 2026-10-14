@@ -229,19 +229,23 @@ class Game
   end
 
   # The panel grows with the shown recipes, up to RECIPE_ROWS rows. A bar
-  # at the right shows where the view is when the list is longer.
+  # at the right shows where the view is when the list is longer. A furnace
+  # shows its slots above its recipes.
   def draw_recipe_panel(w, h, s, pad)
     shown = shown_recipes
     view = recipes_in_view
+    furnace = station_makes?(AT_FURNACE)
+    skip = recipe_skip
     rows = (shown.size + 1) / 2
     first = recipe_cell(0, w, h, s)
-    bottom = recipe_cell(rows < 1 ? 0 : ((rows < RECIPE_ROWS ? rows : RECIPE_ROWS) - 1) * 2, w, h, s)
-    right = recipe_cell(shown.size > 1 ? 1 : 0, w, h, s)
+    bottom = recipe_cell(skip + (rows < 1 ? 0 : ((rows < RECIPE_ROWS ? rows : RECIPE_ROWS) - 1) * 2), w, h, s)
+    right = recipe_cell(shown.size > 1 || furnace ? 1 : 0, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, bottom[1] + bottom[3] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(first[0], first[1] - 36.0 * s, "CRAFTING", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(first[0], first[1] - 36.0 * s, furnace ? "FURNACE" : "CRAFTING", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    draw_furnace(w, h, s) if furnace
     rhover = recipe_hover(w, h, s)
     if shown.empty?
-      @ui.text(first[0], first[1] + 4.0 * s, "PICK UP ITEMS TO FIND RECIPES", 2.0 * s, 0.8, 0.8, 0.8, 1.0)
+      @ui.text(first[0], recipe_cell(skip, w, h, s)[1] + 4.0 * s, "PICK UP ITEMS TO FIND RECIPES", 2.0 * s, 0.8, 0.8, 0.8, 1.0)
     end
     if rows > RECIPE_ROWS
       track = bottom[1] + bottom[3] - first[1]
@@ -253,7 +257,7 @@ class Game
     while j < view.size
       k = view[j]
       r = RECIPES[k]
-      c = recipe_cell(j, w, h, s)
+      c = recipe_cell(j + skip, w, h, s)
       can = @inv.total(r[0]) >= r[1]
       shade = k == rhover ? 0.5 : 0.28
       fresh = @recipe_new[k] == 1
@@ -266,6 +270,47 @@ class Game
       @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, need, 2.0 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
       j += 1
     end
+  end
+
+  # The slots of the open furnace. Between the input and the fuel, a flame
+  # burns down with the fuel item that burns, a pixel row of the texture at
+  # a time, as in Minecraft. An arrow to the output fills while an item
+  # smelts.
+  def draw_furnace(w, h, s)
+    f = open_furnace
+    hover = furnace_hover(w, h, s)
+    i = 0
+    while i < 3
+      c = furnace_cell(i, w, h, s)
+      if i == Furnace::FUEL
+        @ui.text(c[0] + c[2] + 16.0 * s, c[1] + 21.0 * s, "FUEL", 2.0 * s, 1.0, 1.0, 1.0, 1.0)
+      else
+        @ui.text(c[0], c[1] - 14.0 * s, i == Furnace::INPUT ? "IN" : "OUT", 2.0 * s, 1.0, 1.0, 1.0, 1.0)
+      end
+      shade = i == hover ? 0.55 : 0.32
+      @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
+      unless f.slots.empty?(i)
+        @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::FRONT[f.slots.block(i)], 1.0)
+        draw_count(f.slots.block(i), f.slots.count(i), c[0], c[1], c[2], 2.0 * s, s)
+      end
+      i += 1
+    end
+    # The flame is 2 pixels to a texture pixel, on whole pixels: a texture
+    # pixel that is not a whole number of pixels shimmers as it burns down.
+    input = furnace_cell(Furnace::INPUT, w, h, s)
+    fx = (input[0] + 10.0 * s).floor.to_f
+    fy = (input[1] + input[2] + 16.0 * s).floor.to_f
+    @ui.icon(fx, fy, 32.0 * s, Tex::FIRE, 0.25)
+    if f.lit?
+      rows = (f.burn * 16 + f.burn_total - 1) / f.burn_total
+      @ui.icon_bottom(fx, fy, 32.0 * s, Tex::FIRE, rows.to_f / 16.0)
+    end
+    out = furnace_cell(Furnace::OUTPUT, w, h, s)
+    ax = input[0] + input[2] + 16.0 * s
+    ay = out[1] + 18.0 * s
+    aw = out[0] - 16.0 * s - ax
+    @ui.rect(ax, ay, aw, 16.0 * s, 0.1, 0.1, 0.12, 1.0)
+    @ui.rect(ax, ay, aw * f.progress.to_f / Furnace::SMELT_TICKS.to_f, 16.0 * s, 1.0, 1.0, 1.0, 1.0) if f.progress > 0
   end
 
   # The creative inventory screen: every block that the player can place.

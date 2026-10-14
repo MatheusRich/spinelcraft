@@ -687,8 +687,15 @@ class Game
     @weather.timer = 77.5
     @seen.fill(0)
     @seen[Block::DIAMOND] = 1
-    @furnace_heat = {}
-    @furnace_heat[77] = 5
+    @furnaces = {}
+    hot = Furnace.new(3, 70, 4)
+    hot.burn = 500
+    hot.burn_total = 1600
+    hot.progress = 37
+    hot.slots.set(Furnace::INPUT, Block::SAND, 2)
+    hot.slots.set(Furnace::FUEL, Block::LOG, 3)
+    @furnaces[World.key(3, 70, 4)] = hot
+    @furnaces[World.key(5, 70, 4)] = Furnace.new(5, 70, 4)
     save
     @world.set(x, ground + 1, z, Block::GLASS)
     @vitals.health = 3
@@ -696,7 +703,7 @@ class Game
     @items.clear
     @weather.set_now(false)
     @seen.fill(0)
-    @furnace_heat = {}
+    @furnaces = {}
     ok = load
     apply_loaded if ok
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
@@ -704,8 +711,11 @@ class Game
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
           @weather.raining? && @weather.rain == 1.0 && @weather.timer == 77.5)
-    check("the save keeps the seen items and the heat in furnaces", @seen[Block::DIAMOND] == 1 && furnace_heat(77) == 5)
-    @furnace_heat = {}
+    loaded = @furnaces[World.key(3, 70, 4)]
+    check("the save keeps the seen items, and the slots and the fire of furnaces",
+          @seen[Block::DIAMOND] == 1 && @furnaces.size == 1 && !loaded.nil? && loaded.x == 3 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&
+          loaded.slots.block(Furnace::INPUT) == Block::SAND && loaded.slots.count(Furnace::INPUT) == 2 && loaded.slots.block(Furnace::FUEL) == Block::LOG && loaded.slots.count(Furnace::FUEL) == 3)
+    @furnaces = {}
     @items.clear
     @weather.set_now(false)
     @vitals.health = 0
@@ -1330,34 +1340,80 @@ class Game
     check("smelting needs a furnace", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
     open_station(x + 2, y, z + 3, AT_FURNACE)
-    furnace = World.key(x + 2, y, z + 3)
-    # A click smelts one item, and the weakest fuel (a plank) covers it.
-    craft_recipe(smelt)
-    one = @inv.total(Block::IRON) == 8 && @inv.total(Block::IRON_INGOT) == 1 && @inv.total(Block::PLANKS) == 1 && @inv.total(Block::COAL) == 1 && furnace_heat(furnace) == 0
-    dark = @world.get(x + 2, y, z + 3) == Block::FURNACE
-    # A Shift-click smelts all 8 others, and the coal covers them.
-    craft_recipe(smelt, CRAFT_ALL)
-    all = @inv.total(Block::IRON) == 0 && @inv.total(Block::IRON_INGOT) == 9 && @inv.total(Block::COAL) == 0
-    # Coal for one item leaves 7 smelts of heat in the furnace.
-    @inv.add(Block::IRON)
-    @inv.add(Block::COAL)
-    @inv.remove(Block::PLANKS, 1)
-    craft_recipe(smelt)
-    kept = @inv.total(Block::COAL) == 0 && furnace_heat(furnace) == 7
+    f = open_furnace
+    slots = f.slots
+    @furnace_clock = 0.0
+    # A Shift-click sends the iron ore to the input and the planks to the
+    # fuel. An item takes 10 seconds.
+    quick_move_slot(0)
+    quick_move_slot(2)
+    update_furnaces(10.0)
+    one = slots.block(Furnace::OUTPUT) == Block::IRON_INGOT && slots.count(Furnace::OUTPUT) == 1 && slots.count(Furnace::INPUT) == 8 &&
+          slots.count(Furnace::FUEL) == 1 && f.burn == 101 && @inv.total(Block::COAL) == 1
     lit = @world.get(x + 2, y, z + 3) == Block.furnace_id(0, true)
-    @inv.add(Block::SAND)
-    craft_recipe(recipe_for(Block::GLASS))
-    used = @inv.total(Block::GLASS) == 1 && furnace_heat(furnace) == 6
-    # A broken furnace loses its heat, and with no fuel nothing smelts.
-    set_block(x + 2, y, z + 3, Block::AIR)
-    set_block(x + 2, y, z + 3, Block::FURNACE)
-    @inv.add(Block::SAND)
-    craft_recipe(recipe_for(Block::GLASS))
-    no_fuel = @inv.total(Block::SAND) == 1 && @inv.total(Block::GLASS) == 1
-    toggle_inventory
-    set_block(x + 2, y, z + 3, Block::AIR)
-    check("a furnace keeps the heat of its fuel, and smelting needs fuel", one && all && kept && used && no_fuel)
+    # 2 planks burn for 600 ticks: 3 items.
+    update_furnaces(30.0)
+    two = slots.count(Furnace::OUTPUT) == 3 && slots.count(Furnace::INPUT) == 6 && slots.empty?(Furnace::FUEL) && !f.lit?
+    dark = @world.get(x + 2, y, z + 3) == Block::FURNACE
+    check("a furnace smelts an item in 10 seconds, and 2 planks smelt 3 items", one && two)
     check("a furnace with heat is lit, and a furnace with none is not", dark && lit)
+    # A plank runs out 100 ticks into the second item. Then the progress goes
+    # back 2 ticks for each tick, and new fuel continues from there.
+    @held_block = Block::PLANKS
+    @held_count = 1
+    click_furnace(Furnace::FUEL, true)
+    update_furnaces(15.0)
+    update_furnaces(1.0)
+    cooled = slots.count(Furnace::OUTPUT) == 4 && f.progress == 60 && !f.lit?
+    @held_block = Block::PLANKS
+    @held_count = 1
+    click_furnace(Furnace::FUEL, true)
+    update_furnaces(7.0)
+    resumed = slots.count(Furnace::OUTPUT) == 5 && f.progress == 0
+    check("the progress goes back while a furnace is out, and new fuel continues it", cooled && resumed)
+    # The burning plank burns to its end, but no new fuel burns without
+    # something to smelt or room for the result.
+    slots.move_stack(Furnace::OUTPUT, @inv, 0, INV)
+    slots.move_stack(Furnace::INPUT, @inv, 0, INV)
+    slots.set(Furnace::FUEL, Block::PLANKS, 2)
+    update_furnaces(10.0)
+    no_input = slots.count(Furnace::FUEL) == 2 && !f.lit? && @inv.total(Block::IRON_INGOT) == 5 && @inv.total(Block::IRON) == 4
+    slots.set(Furnace::OUTPUT, Block::IRON_INGOT, Slots::STACK)
+    slots.set(Furnace::INPUT, Block::IRON, 1)
+    update_furnaces(10.0)
+    full = slots.count(Furnace::FUEL) == 2 && slots.count(Furnace::INPUT) == 1 && !f.lit?
+    check("a furnace burns no new fuel without something to smelt or room for the result", no_input && full)
+    # A smelting recipe puts its ingredient into the input slot.
+    slots.set(Furnace::OUTPUT, Block::AIR, 0)
+    slots.set(Furnace::INPUT, Block::AIR, 0)
+    craft_recipe(smelt)
+    first = slots.count(Furnace::INPUT) == 1 && @inv.total(Block::IRON) == 3
+    craft_recipe(smelt, CRAFT_ALL)
+    rest = slots.count(Furnace::INPUT) == 4 && @inv.total(Block::IRON) == 0
+    @inv.add(Block::SAND)
+    craft_recipe(recipe_for(Block::GLASS))
+    other = @inv.total(Block::SAND) == 1 && @message == "THE FURNACE HOLDS IRON ORE"
+    check("a smelting recipe puts its ingredient into the furnace", first && rest && other)
+    @held_block = Block::IRON_INGOT
+    @held_count = 1
+    click_furnace(Furnace::FUEL, true)
+    not_fuel = @held_count == 1 && slots.count(Furnace::FUEL) == 2 && @message == "NOT A FUEL"
+    @held_block = Block::DIRT
+    click_furnace(Furnace::INPUT, true)
+    not_smelted = @held_block == Block::DIRT && slots.block(Furnace::INPUT) == Block::IRON && @message == "THE FURNACE DOES NOT SMELT THAT"
+    click_furnace(Furnace::OUTPUT, true)
+    no_output = @held_block == Block::DIRT && slots.empty?(Furnace::OUTPUT)
+    @held_count = 0
+    @held_block = Block::AIR
+    survival = @survival
+    @survival = true
+    @items.clear
+    set_block(x + 2, y, z + 3, Block::AIR)
+    dropped = ground_count(Block::IRON) == 4 && ground_count(Block::PLANKS) == 2 && @furnaces[World.key(x + 2, y, z + 3)].nil?
+    @items.clear
+    @survival = survival
+    toggle_inventory
+    check("the furnace slots take only what fits them, and a broken furnace drops what it holds", not_fuel && not_smelted && no_output && dropped)
     set_block(x, y, z, Block::SAPLING)
     # The crop stands out of reach of the tree's leaves, on top of its column.
     cy = @world.height_at(x + 4, z)

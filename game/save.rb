@@ -14,10 +14,11 @@ class Game
   F_WEATHER = F_HUNGER + 3 # raining (1 or 0), seconds to the next change
   # The chest count, then the key and the contents of each chest. Then the
   # item count and ITEM_FIELDS for each item on the ground. Then the count
-  # of seen blocks, and their ids. Then the count of furnaces with heat, and
-  # the key and the heat of each.
+  # of seen blocks, and their ids. Then the count of furnaces that are not
+  # idle, and FURNACE_FIELDS for each.
   F_CHESTS = F_WEATHER + 2
   ITEM_FIELDS = 6 # block, count, x, y, z, age
+  FURNACE_FIELDS = 12 # x, y, z, burn, burn total, progress, then the slots (Slots#to_a)
 
   def save
     header = [WX, WY, WZ, @seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
@@ -36,11 +37,11 @@ class Game
       seen << b if @seen[b] == 1
       b += 1
     end
-    furnace_fields = [@furnace_heat.size]
-    @furnace_heat.each do |key, heat|
-      furnace_fields << key
-      furnace_fields << heat
+    furnace_fields = []
+    @furnaces.each do |key, f|
+      furnace_fields.concat([f.x, f.y, f.z, f.burn, f.burn_total, f.progress] + f.slots.to_a) unless f.idle?
     end
+    furnace_fields = [furnace_fields.size / FURNACE_FIELDS] + furnace_fields
     item_fields = [@items.size]
     @items.each { |item| item_fields.concat([item.block, item.count, item.x, item.y, item.z, item.age]) }
     t0 = Gfx.gfx_ns
@@ -72,7 +73,7 @@ class Game
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
     at += 1 + f[at].to_i
-    at += 1 + f[at].to_i * 2
+    at += 1 + f[at].to_i * FURNACE_FIELDS
     n = f[at].to_i
     return false if data.bytesize - nl - 1 != n * CHUNK_BYTES
     @seed = f[F_SEED].to_i
@@ -164,11 +165,21 @@ class Game
       c += 1
     end
     at += 1 + seen
-    @furnace_heat = {}
+    @furnaces = {}
     furnaces = f[at].to_i
+    at += 1
     c = 0
     while c < furnaces
-      @furnace_heat[f[at + 1 + c * 2].to_i] = f[at + 2 + c * 2].to_i
+      x = f[at].to_i
+      y = f[at + 1].to_i
+      z = f[at + 2].to_i
+      furnace = Furnace.new(x, y, z)
+      furnace.burn = f[at + 3].to_i
+      furnace.burn_total = f[at + 4].to_i
+      furnace.progress = f[at + 5].to_i
+      furnace.slots.load(f, at + 6)
+      @furnaces[World.key(x, y, z)] = furnace
+      at += FURNACE_FIELDS
       c += 1
     end
     stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
