@@ -574,17 +574,15 @@ module Tex
     [[2, 12], [3, 13], [2, 13], [1, 13], [2, 14]].each { |c| set(px, ARROW, c[0], c[1], 235, 235, 235, 255) }
   end
 
-  # A pickaxe: a diagonal handle and a curved head in the tier's color.
+  # A pickaxe: a diagonal handle and a curved head in the tier's color. The
+  # head crosses the end of the handle and bends around the top right corner.
   def self.pick(px, layer, r, g, b)
-    i = 3
-    while i < 15
-      set(px, layer, i, 15 - i, 110, 80, 45, 255)
-      set(px, layer, i + 1, 15 - i, 85, 60, 35, 255)
-      i += 1
+    handle(px, layer)
+    [[7, 1], [8, 1], [9, 1], [10, 1], [11, 1], [12, 1], [5, 2], [6, 2], [7, 2], [11, 2], [12, 2], [13, 2], [4, 3],
+     [5, 3], [12, 3], [13, 3], [14, 3], [13, 4], [14, 4], [14, 5], [14, 6], [14, 7], [13, 8], [14, 8], [13, 9],
+     [12, 10], [13, 10], [12, 11]].each do |c|
+      set(px, layer, c[0], c[1], r, g, b, 255)
     end
-    head = [[2, 4], [3, 3], [4, 2], [5, 2], [6, 1], [7, 1], [8, 1], [9, 1], [10, 2], [11, 2], [12, 3], [13, 4],
-            [3, 4], [4, 3], [5, 3], [11, 3], [12, 4], [13, 5], [14, 6], [14, 7], [13, 6], [2, 5], [1, 6], [1, 7]]
-    head.each { |c| set(px, layer, c[0], c[1], r, g, b, 255) }
   end
 
   # A door of boards with a dark frame and a knob. The open door shows only
@@ -682,7 +680,7 @@ module Tex
     end
   end
 
-  # The handle of an axe or a shovel: from the lower left to the middle.
+  # The handle of a pickaxe, an axe or a shovel: from the lower left to the middle.
   def self.handle(px, layer)
     i = 2
     while i < 12
