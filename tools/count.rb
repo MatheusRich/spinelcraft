@@ -2,6 +2,7 @@
 require_relative "../game/rng"
 require_relative "../game/textures"
 require_relative "../game/block"
+require_relative "../game/biome"
 require_relative "../game/noise"
 require_relative "../game/world"
 

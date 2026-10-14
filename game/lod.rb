@@ -51,11 +51,12 @@ class Lod
       @side[k] = Tex::WATER
       return
     end
-    b = w.top_block(x, z, h, w.temperature(x, z))
+    biome = w.biome(x, z, h)
+    b = w.top_block(x, z, h, biome)
     @top[k] = Block::TOP[b]
     @side[k] = Block::SIDE[b]
     @h[k] = h
-    if (b == Block::GRASS || b == Block::SNOW_GRASS) && w.tree_roll?(x, z, Noise.hash3(cx, 0, cz, 26) >> 4)
+    if (b == Block::GRASS || b == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome]
       @h[k] = h + CANOPY
       @top[k] = Tex::LEAVES
       @side[k] = Tex::LEAVES

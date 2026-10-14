@@ -32,6 +32,18 @@ class World
   CAVE_WIDTH = 0.006
   # Caves at this height and below fill with lava.
   LAVA_LEVEL = 9
+  # The base height of the land (BASE) at each continent noise value
+  # (CONTINENT): deep ocean, ocean, coast, lowland, then highland.
+  CONTINENT = [-0.4, -0.29, -0.19, -0.12, -0.07, 0.06, 0.2, 0.34]
+  BASE = [SEA - 26.0, SEA - 15.0, SEA - 6.0, SEA + 0.0, SEA + 5.0, SEA + 9.0, SEA + 16.0, SEA + 21.0]
+  # How far the warp moves the positions of the large-scale noise, in blocks.
+  WARP = 90.0
+  # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
+  RIVER_VALLEY = 0.07
+  # The shortest trunk of each tree kind (Biome::OAK and so on).
+  TRUNK = [4, 6, 4, 8]
+  # How far leaves reach from the trunk.
+  TREE_REACH = 3
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :edited, :store, :seed
 
@@ -50,7 +62,7 @@ class World
     @store = {}
     @no_torches = Array.new(0, 0)
     @col_h = Array.new(CHUNK * CHUNK, 0)
-    @col_t = Array.new(CHUNK * CHUNK, 0.0)
+    @col_b = Array.new(CHUNK * CHUNK, 0)
     @cave_a = Array.new(GX * GY * GX, 0.0)
     @cave_b = Array.new(GX * GY * GX, 0.0)
     @corner_a = Array.new(8, 0.0)
@@ -58,6 +70,7 @@ class World
     @noise = Noise.new(seed)
     @noise2 = Noise.new(seed * 31 + 7)
     @noise3 = Noise.new(seed * 17 + 3)
+    @noise4 = Noise.new(seed * 43 + 11)
   end
 
   def self.index(x, y, z) = (((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1
@@ -339,32 +352,87 @@ class World
     @height[(x & LMASK) * WZ + (z & LMASK)] = y + 1
   end
 
+  # The large-scale noise fields read warped positions, so coasts and
+  # biome edges bend instead of making round blobs. (Noise goes back into
+  # noise here, and without to_f Spinel cannot type that loop.)
+  def warp_x(x, z) = x + @noise4.noise2(x / 160.0, z / 160.0).to_f * WARP
+  def warp_z(x, z) = z + @noise4.noise2(x / 160.0 + 70.0, z / 160.0).to_f * WARP
+
+  # The height of the column's top block plus one, after Minecraft 1.18.
+  # The continent noise picks ocean, coast, lowland or highland, and a
+  # spline turns it into a base height. The erosion noise picks flat or
+  # rugged land, and only rugged land inland gets high hills and ridges.
+  # Rivers cut valleys down to the sea where the river noise is near zero.
   def surface_height(x, z)
     nx = x / 1.0
     nz = z / 1.0
-    continent = @noise.fbm2(nx / 220.0, nz / 220.0, 3)
+    wx = warp_x(nx, nz)
+    wz = warp_z(nx, nz)
+    continent = @noise.fbm2(wx / 700.0, wz / 700.0, 3)
+    erosion = @noise4.fbm2(wx / 340.0 + 30.0, wz / 340.0, 2)
+    rugged = smooth((0.06 - erosion) / 0.22)
+    inland = smooth((continent + 0.1) / 0.2)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
-    ridge = 1.0 - @noise2.noise2(nx / 70.0, nz / 70.0).abs * 1.6
+    ridge = 1.0 - @noise2.noise2(wx / 90.0, wz / 90.0).abs * 1.6
     ridge = ridge < 0.0 ? 0.0 : ridge
-    mask = (@noise2.fbm2(nx / 150.0 + 9.0, nz / 150.0, 2) + 0.12) * 2.5
-    mask = mask.clamp(0.0, 1.0)
-    h = SEA + 1.0 + continent * 34.0 + hills * 7.0 + mask * ridge * ridge * 40.0
+    h = World.spline(CONTINENT, BASE, continent) + hills * (5.0 + 14.0 * rugged) +
+        ridge * ridge * 46.0 * rugged * inland
+    river = @noise3.fbm2(wx / 420.0 + 90.0, wz / 420.0, 2).abs
+    if river < RIVER_VALLEY && h > SEA - 3.0
+      bed = SEA - 3.0 + (h - SEA + 3.0) * smooth(river / RIVER_VALLEY)
+      h = bed if bed < h
+    end
     h.to_i.clamp(4, WY - 14)
   end
 
-  def temperature(x, z) = @noise3.fbm2(x / 110.0 + 300.0, z / 110.0, 2) * 1.8
+  # 0 below 0, 1 above 1, and an S curve between.
+  def smooth(t)
+    t = t.clamp(0.0, 1.0)
+    t * t * (3.0 - 2.0 * t)
+  end
 
-  # Climate and height bands. t is the temperature, top the y of the column's top block.
-  def desert?(t) = t > 0.28
+  # The y of v on the line through the points xs, ys (xs in rising order).
+  def self.spline(xs, ys, v)
+    return ys[0] if v <= xs[0]
+    i = 1
+    while i < xs.size
+      return ys[i - 1] + (ys[i] - ys[i - 1]) * (v - xs[i - 1]) / (xs[i] - xs[i - 1]) if v < xs[i]
+      i += 1
+    end
+    ys[xs.size - 1]
+  end
+
+  # The biome of a column with height h. The air gets colder up high, so
+  # mountains get snow.
+  def biome(x, z, h)
+    nx = x / 1.0
+    nz = z / 1.0
+    wx = warp_x(nx, nz)
+    wz = warp_z(nx, nz)
+    t = @noise3.fbm2(wx / 480.0 + 300.0, wz / 480.0, 2) * 2.2
+    t -= (h - SEA - 12) * 0.012 if h > SEA + 12
+    w = @noise4.fbm2(wx / 480.0, wz / 480.0 + 150.0, 2) * 2.2
+    Biome.pick(t, w, h <= SEA + 5)
+  end
+
+  # Height bands. top is the y of the column's top block.
   def beach?(top) = top <= SEA + 1
   # High peaks are bare stone at the top and below it.
   def bare_rock?(top) = top > SEA + 40
+  # The top block and the blocks below it are sand.
+  def sandy?(top, biome) = biome == Biome::DESERT || (beach?(top) && biome != Biome::SWAMP)
 
-  # The block at the top of a column before caves and plants.
-  def top_block(x, z, h, t)
+  # The block at the top of a column before caves and plants. Swamps hold
+  # pools at sea level.
+  def top_block(x, z, h, biome)
     top = h - 1
-    snowy = t < -0.3 || top > SEA + 34
-    b = beach?(top) || desert?(t) ? Block::SAND : (snowy ? Block::SNOW_GRASS : Block::GRASS)
+    b = Biome::GROUND[biome]
+    if biome == Biome::SWAMP
+      b = Block::WATER if top == SEA && @noise3.noise2(x / 9.0, z / 9.0 + 40.0) > -0.05
+      b = Block::DIRT if top < SEA
+    elsif beach?(top)
+      b = Block::SAND
+    end
     b = Block::GRAVEL if top < SEA - 2 && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
     b = Block::STONE if bare_rock?(top)
     b = Block::SNOW if top > SEA + 44
@@ -412,16 +480,16 @@ class World
   # The top ground block of the tree that grows at column x, z, or -1. It
   # only reads noise, so every chunk that a tree crosses gets the same tree.
   def tree_top(x, z)
-    return -1 unless tree_roll?(x, z, Noise.hash3(x, 0, z, 21))
+    r = Noise.hash3(x, 0, z, 21)
+    return -1 if r >= Biome::MAX_TREES
     h = surface_height(x, z)
-    ground = top_block(x, z, h, temperature(x, z))
+    biome = biome(x, z, h)
+    return -1 if r >= Biome::TREES[biome]
+    ground = top_block(x, z, h, biome)
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS
     return -1 if !beach?(h - 1) && carved?(x, h - 1, z)
     h - 1
   end
-
-  # Forests get more trees.
-  def tree_roll?(x, z, r) = r < 300 || (r < 2600 && @noise3.fbm2(x / 90.0, z / 90.0 + 70.0, 2) > 0.15)
 
   def generate_chunk(cx, cz)
     x0 = cx * CHUNK
@@ -430,8 +498,9 @@ class World
     while lx < CHUNK
       lz = 0
       while lz < CHUNK
-        @col_h[lx * CHUNK + lz] = surface_height(x0 + lx, z0 + lz)
-        @col_t[lx * CHUNK + lz] = temperature(x0 + lx, z0 + lz)
+        h = surface_height(x0 + lx, z0 + lz)
+        @col_h[lx * CHUNK + lz] = h
+        @col_b[lx * CHUNK + lz] = biome(x0 + lx, z0 + lz, h)
         lz += 1
       end
       lx += 1
@@ -463,10 +532,10 @@ class World
         x = x0 + lx
         z = z0 + lz
         h = @col_h[lx * CHUNK + lz]
-        t = @col_t[lx * CHUNK + lz]
+        biome = @col_b[lx * CHUNK + lz]
         top = h - 1
-        sandy = beach?(top) || desert?(t)
-        surface = top_block(x, z, h, t)
+        sandy = sandy?(top, biome)
+        surface = top_block(x, z, h, biome)
         base = World.index(x, 0, z)
         y = 0
         while y < h
@@ -531,12 +600,12 @@ class World
   def decorate(cx, cz)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
-    x = x0 - 2
-    while x < x0 + CHUNK + 2
-      z = z0 - 2
-      while z < z0 + CHUNK + 2
+    x = x0 - TREE_REACH
+    while x < x0 + CHUNK + TREE_REACH
+      z = z0 - TREE_REACH
+      while z < z0 + CHUNK + TREE_REACH
         top = tree_top(x, z)
-        tree(x, top + 1, z, x0, z0) if top >= 0
+        tree(x, top + 1, z, x0, z0, Biome::TREE[biome(x, z, top + 1)]) if top >= 0
         z += 1
       end
       x += 1
@@ -548,17 +617,17 @@ class World
         x = x0 + lx
         z = z0 + lz
         top = @col_h[lx * CHUNK + lz] - 1
+        biome = @col_b[lx * CHUNK + lz]
         ground = block(World.index(x, top, z))
-        r = Noise.hash3(x, 0, z, 21)
-        if ground == Block::GRASS && !tree_roll?(x, z, r) && block(World.index(x, top + 1, z)) == Block::AIR
+        if ground == Block::GRASS && block(World.index(x, top + 1, z)) == Block::AIR
           p = Noise.hash3(x, 2, z, 25)
           meadow = @noise3.noise2(x / 30.0, z / 30.0 + 11.0)
-          if p < 9000 + (meadow * 12000.0).to_i
+          if p < Biome::GRASS[biome] + (meadow * 12000.0).to_i
             put(x, top + 1, z, Block::TALL_GRASS, x0, z0)
-          elsif p > 63800 && meadow > -0.05
+          elsif p >= 65536 - Biome::FLOWERS[biome] && meadow > -0.05
             put(x, top + 1, z, (x + z) % 3 == 0 ? Block::ROSE : Block::DANDELION, x0, z0)
           end
-        elsif ground == Block::SAND && desert?(@col_t[lx * CHUNK + lz]) && !beach?(top) && r < 350
+        elsif ground == Block::SAND && biome == Biome::DESERT && !beach?(top) && Noise.hash3(x, 0, z, 21) < 350
           tall = 1 + Noise.hash3(x, 1, z, 22) % 3
           i = 0
           while i < tall
@@ -583,19 +652,23 @@ class World
     block(World.index(x, y, z)) == Block::AIR
   end
 
-  def tree(x, y, z, x0, z0)
-    tall = 4 + Noise.hash3(x, y, z, 23) % 3
+  # A tree of kind (Biome::OAK and so on) on the ground below x, y, z.
+  # Oaks have round crowns, spruces narrow cones, acacias flat tops, and
+  # jungle trees are tall with wide crowns.
+  def tree(x, y, z, x0, z0, kind)
+    tall = TRUNK[kind] + Noise.hash3(x, y, z, 23) % 3
     return if y + tall + 2 >= WY
     top = y + tall
-    ly = top - 2
+    ly = kind == Biome::SPRUCE ? y + 2 : (kind == Biome::ACACIA ? top : top - 2)
     while ly <= top + 1
-      radius = ly >= top ? 1 : 2
+      radius = leaf_radius(kind, top + 1 - ly)
       dx = -radius
       while dx <= radius
         dz = -radius
         while dz <= radius
-          corner = dx.abs == radius && dz.abs == radius
-          skip = corner && (ly == top + 1 || Noise.hash3(x + dx, ly, z + dz, 24) < 32000)
+          corner = radius > 0 && dx.abs == radius && dz.abs == radius
+          skip = (radius == 3 && dx * dx + dz * dz > 10) ||
+                 (corner && (ly == top + 1 || Noise.hash3(x + dx, ly, z + dz, 24) < 32000))
           put(x + dx, ly, z + dz, Block::LEAVES, x0, z0) if !skip && air_in?(x + dx, ly, z + dz, x0, z0)
           dz += 1
         end
@@ -609,5 +682,15 @@ class World
       i += 1
     end
     put(x, y - 1, z, Block::DIRT, x0, z0)
+  end
+
+  # The radius of the leaves d layers below the top layer of a tree.
+  def leaf_radius(kind, d)
+    case kind
+    when Biome::SPRUCE then d == 0 ? 0 : (d.odd? ? 1 : 2)
+    when Biome::ACACIA then d == 0 ? 1 : 2
+    when Biome::JUNGLE_TREE then d < 2 ? d + 1 : 3
+    else d < 2 ? 1 : 2
+    end
   end
 end

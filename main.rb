@@ -3,6 +3,7 @@ require_relative "game/gfx"
 require_relative "game/rng"
 require_relative "game/textures"
 require_relative "game/block"
+require_relative "game/biome"
 require_relative "game/noise"
 require_relative "game/world"
 require_relative "game/mesher"
@@ -245,13 +246,9 @@ class Game
       while dx <= r && !found
         dz = -r
         while dz <= r && !found
-          x = dx
-          z = dz
-          h = @world.height_at(x, z)
-          b = @world.get(x, h - 1, z)
-          if h > SEA + 2 && b != Block::LEAVES && !Block.water?(b)
-            best_x = x
-            best_z = z
+          if dry_land?(dx, dz) && dry_land?(dx + 3, dz) && dry_land?(dx - 3, dz) && dry_land?(dx, dz + 3) && dry_land?(dx, dz - 3)
+            best_x = dx
+            best_z = dz
             found = true
           end
           dz += 1
@@ -264,6 +261,13 @@ class Game
     @spawn_x = best_x + 0.5
     @spawn_z = best_z + 0.5
     @player = Player.new(@spawn_x, h + 0.01, @spawn_z)
+  end
+
+  # Ground above the beach with no tree or water on top.
+  def dry_land?(x, z)
+    h = @world.height_at(x, z)
+    b = @world.get(x, h - 1, z)
+    h > SEA + 2 && b != Block::LEAVES && !Block.water?(b)
   end
 
   def respawn

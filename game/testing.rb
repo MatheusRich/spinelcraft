@@ -106,6 +106,8 @@ class Game
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
     ground = h - 1
+    # The tests need air above the ground, and a plant can grow there.
+    set_block(x, ground + 1, z, Block::AIR)
     test_falling_and_torches(x, z, ground)
     test_survival(x, z, ground)
     test_monsters
@@ -246,6 +248,8 @@ class Game
     # chunk lights the next chunk too, so that chunk must remesh.
     tx = (x & ~15) + 8
     th = @world.height_at(tx, z)
+    # The column can be water, and a torch needs ground.
+    set_block(tx, th - 1, z, Block::DIRT)
     set_block(tx, th, z, Block::TORCH)
     flush_dirty while !@later_list.empty?
     set_block(tx, th + 3, z, Block::SAND)
@@ -390,7 +394,9 @@ class Game
     check("zombie hit hurts the player", @vitals.health < Vitals::MAX_HEALTH)
     @mobs.clear
     # Each block that the blast breaks drops by chance, so the blast gets
-    # two more rows of stone to break.
+    # two more rows of stone to break, and the random numbers start from a
+    # known seed.
+    @rng = Rng.new(5)
     (0..5).each do |dx|
       set_block(px + dx, 88, pz - 1, Block::STONE)
       set_block(px + dx, 88, pz + 1, Block::STONE)

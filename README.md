@@ -51,7 +51,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 
 ## What is in it
 
-- An endless generated world with hills, mountains, oceans, deserts, snow, caves, ores and trees.
+- An endless generated world with continents, rivers, mountains and nine biomes, from snowy taiga to desert and jungle, plus caves, ores and trees.
 - A day and night cycle, rain, flowing water and lava, and torch light.
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
 - Animals, and monsters that come out in the dark.
@@ -76,6 +76,17 @@ The loaded area is a ring of 64 × 64 chunk slots, 1024 × 1024 blocks. World ch
 Each frame, `stream_around` loads the missing chunks around the player, nearest first, and meshes each chunk whose neighbors have loaded. The radius follows the view distance, up to 31 chunks, and the work stops after 2.5 ms. At start and on respawn, the nearest 17 × 17 chunks load before play starts, and the rest stream in. When a new chunk needs a slot, the old chunk in it goes to the store if you changed it. Vertices hold the ring column (0 to 1023), and the vertex shader moves each one to the copy nearest the camera.
 
 Trees can cross chunk edges. A chunk asks the noise functions, not its neighbors, where the trees next door grow, so each chunk makes its part of a tree without the other chunk loaded.
+
+## Terrain
+
+The terrain follows the method of Minecraft 1.18, in a smaller form. Each column reads a few noise fields:
+
+- The continent field picks deep ocean, ocean, coast, lowland or highland. A spline (a line through fixed points) turns it into a base height.
+- The erosion field picks flat or rugged land. Only rugged land gets high hills, and only rugged land away from the coast gets ridged mountains.
+- Where the river field is near zero, the land sinks into a valley with a river bed below the sea.
+- The temperature and humidity fields pick the biome (`game/biome.rb`). The air gets colder up high, so mountains get snow.
+
+The large fields read positions that another noise field moves by up to 90 blocks. This domain warp bends the coasts, rivers and biome edges, so they do not look like round blobs.
 
 ## Far terrain
 
