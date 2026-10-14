@@ -232,7 +232,7 @@ class Game
     d2 = dx * dx + dy * dy + dz * dz
     return false if d2 < SPAWN_NEAR * SPAWN_NEAR || d2 > DESPAWN_FAR * DESPAWN_FAR
     ground = @world.get(x, y - 1, z)
-    return false unless Block.solid?(ground) && ground != Block::LEAVES
+    return false unless Block.solid?(ground) && !Block.leaves?(ground)
     return false if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
     dark?(x, y, z, sky)
   end

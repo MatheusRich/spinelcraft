@@ -129,6 +129,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `GPUTIME=1` | Wait for the GPU each frame and print the GPU time |
 | `MODE=survival` | Start in survival |
 | `TIME=0.75` | Start at that time of day (0.75 is midnight) |
+| `DAY=n` | Start on day n. The moon phase is n % 8, and 0 is the full moon |
 | `SEED=n` | World seed |
 | `NEW=1` | Ignore `world.sav` |
 | `SAVE=1` | Save on quit also when `FRAMES` is set |

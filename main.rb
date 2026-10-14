@@ -7,6 +7,7 @@ require_relative "game/biome"
 require_relative "game/noise"
 require_relative "game/world"
 require_relative "game/mesher"
+require_relative "game/tint"
 require_relative "game/ray"
 require_relative "game/player"
 require_relative "game/vitals"
@@ -51,6 +52,7 @@ class Game
     @shot = ENV["SHOT"] || ""
     @world = World.new(@seed)
     @mesher = Mesher.new(@world)
+    @tint = Tint.new(@world)
     @lods = Array.new(LEVELS) { |l| Lod.new(@world, l) }
     @lod_visible = Array.new(0, 0)
     # Per level: the tile the ring walk is centered on, and how far it got.
@@ -62,6 +64,7 @@ class Game
     @ui = Ui.new
     @dyn = Mesh3.new
     @uniforms = Array.new(UNIFORMS, 0.0)
+    @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
     @visible = []
     @water_visible = []
     # Sort keys of the visible chunks with water: distance * LOD_SLOT0 + slot.
@@ -129,6 +132,9 @@ class Game
     @slot = 0
     @captured = false
     @time_of_day = (ENV["TIME"] || "0.3").to_f
+    # The days since the world started, as Minecraft's daytime / 24000.
+    # minecraft.wiki/w/Daylight_cycle
+    @day = (ENV["DAY"] || "0").to_i
     @action_cooldown = 0.0
     @message = ""
     @message_time = 0.0
@@ -222,6 +228,7 @@ class Game
     abort "the world ring is not Mesher::COLUMNS wide" if WX != Mesher::COLUMNS || Lod::TRING * Lod::CELLS != Mesher::COLUMNS
     abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + LEVELS * TILE_SLOTS
     abort "gfx.rb UNIFORMS is not #{UNIFORMS}" if Gfx.gfx_limit(3) != UNIFORMS
+    abort "gfx.rb TINT_SIZE is not #{Tint::SIZE}" if Gfx.gfx_limit(4) != Tint::SIZE
   end
 
   def setup
@@ -275,6 +282,7 @@ class Game
     @items.clear
     @clouds = Clouds.new(@seed)
     upload_clouds
+    @day = 0
     spawn
     respawn
     spawn_animals
@@ -345,7 +353,7 @@ class Game
   def dry_land?(x, z)
     h = @world.height_at(x, z)
     b = @world.get(x, h - 1, z)
-    h > SEA + 2 && b != Block::LEAVES && !Block.water?(b)
+    h > SEA + 2 && !Block.leaves?(b) && !Block.water?(b)
   end
 
   def respawn
@@ -476,7 +484,7 @@ class Game
     @bob += speed * dt * 2.6
     target_fov = speed > 5.0 ? 0.66 : 0.6
     @fov += (target_fov - @fov) * (6.0 * dt).clamp(0.0, 1.0)
-    @time_of_day = (@time_of_day + dt / DAY_SECONDS) % 1.0
+    update_clock(dt)
     @message_time -= dt
     @damage_flash -= dt
     @swing -= dt
@@ -572,6 +580,15 @@ class Game
 
   # True while the player eats or draws the bow.
   def using_item? = @eat_time >= 0.0 || @draw_time >= 0.0
+
+  # The time of day goes past 1.0 at 6:00, and a new day starts.
+  def update_clock(dt)
+    @time_of_day += dt / DAY_SECONDS
+    while @time_of_day >= 1.0
+      @time_of_day -= 1.0
+      @day += 1
+    end
+  end
 
   def daylight
     s = Math.sin(@time_of_day * Math::PI * 2.0)

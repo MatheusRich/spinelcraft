@@ -62,6 +62,7 @@ class Game
       next if @world.chunk_loaded?(cx, cz)
       @meshed[World.slot(cx, cz)] = 0
       @world.load_chunk(cx, cz)
+      @tint.paint(cx, cz)
     end
   end
 

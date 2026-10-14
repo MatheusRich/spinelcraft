@@ -57,47 +57,24 @@ class Game
       if @world.loaded?(x, z)
         y = @world.height_at(x, z)
         b = @world.get(x, y, z)
-        if (b == Block::SAPLING || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
-          b == Block::SAPLING ? grow_tree(x, y, z) : set_block(x, y, z, b + 1)
+        if (Block.sapling?(b) || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
+          Block.sapling?(b) ? grow_tree(x, y, z, Block.wood(b)) : set_block(x, y, z, b + 1)
         end
       end
       n -= 1
     end
   end
 
-  # A tree like the generator's: a trunk of 4 to 6 logs under two wide
-  # layers and two small layers of leaves. It needs air above the sapling.
-  def grow_tree(x, y, z)
-    tall = 4 + (@rng.rand01 * 3.0).to_i
-    return if y + tall + 2 >= WY
-    i = 1
-    while i < tall + 2
-      return unless @world.get(x, y + i, z) == Block::AIR
-      i += 1
-    end
-    top = y + tall
-    ly = top - 2
-    while ly <= top + 1
-      radius = ly >= top ? 1 : 2
-      dx = -radius
-      while dx <= radius
-        dz = -radius
-        while dz <= radius
-          corner = dx.abs == radius && dz.abs == radius
-          skip = corner && (ly == top + 1 || @rng.rand01 < 0.5)
-          set_block(x + dx, ly, z + dz, Block::LEAVES) if !skip && @world.get(x + dx, ly, z + dz) == Block::AIR
-          dz += 1
-        end
-        dx += 1
-      end
-      ly += 1
-    end
+  # Grows a tree of wood (Block::OAK_WOOD and so on) from the sapling at
+  # x, y, z, with the shape of the generator's tree (World#plan_tree). The
+  # sapling waits when something is in the way of a log.
+  def grow_tree(x, y, z, wood)
+    plan = @world.plan_tree(x, y, z, wood)
     i = 0
-    while i < tall
-      set_block(x, y + i, z, Block::LOG)
-      i += 1
+    while i < plan.size
+      set_block(plan[i], plan[i + 1], plan[i + 2], plan[i + 3])
+      i += 4
     end
-    set_block(x, y - 1, z, Block::DIRT) if @world.get(x, y - 1, z) == Block::GRASS
   end
 
   # A light that changes at column x, z reaches Mesher::LIGHT_MAX blocks, so

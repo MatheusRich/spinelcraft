@@ -13,10 +13,30 @@ module Biome
   TREES = [90, 2600, 2000, 1400, 50, 0, 160, 4200, 900]
   TREE_KINDS = [OAK = 0, SPRUCE = 1, ACACIA = 2, JUNGLE_TREE = 3]
   TREE = [OAK, OAK, SPRUCE, SPRUCE, SPRUCE, OAK, ACACIA, JUNGLE_TREE, OAK]
+  # Birches per 65536 trees of a biome with oaks. Forests grow birches
+  # (minecraft.wiki/w/Birch). The wiki does not confirm the share of a
+  # fifth: it copies the forest trees in the game code.
+  BIRCHES = [0, 13107, 0, 0, 0, 0, 0, 0, 0]
+  # Large oaks per 65536 oaks. Plains: "1/3 are large"
+  # (minecraft.wiki/w/Plains). Forest: 1/10, the chance that
+  # minecraft.wiki/w/Oak gives for Alpha; the wiki does not confirm it
+  # for today. Swamps grow no large oaks (minecraft.wiki/w/Oak).
+  LARGE_OAKS = [21845, 6554, 0, 0, 0, 0, 0, 0, 0]
+  # Pines per 65536 spruces. Taigas grow pines, and tundras do not
+  # (minecraft.wiki/w/Spruce). The wiki does not confirm the share of a
+  # third: it copies the taiga trees in the game code.
+  PINES = [0, 0, 21845, 21845, 0, 0, 0, 0, 0]
   # Tall grass per 65536 columns of grass, before the meadow noise.
   GRASS = [9000, 5000, 3000, 0, 0, 0, 26000, 22000, 12000]
   # Flowers per 65536 columns of grass.
   FLOWERS = [2400, 600, 0, 0, 0, 0, 300, 0, 0]
+  # The colors of grass and of oak leaves (0xRRGGBB). Each color comes from
+  # the page of its biome: minecraft.wiki/w/Plains, /w/Forest, /w/Taiga,
+  # /w/Snowy_Taiga, /w/Snowy_Plains (the tundra), /w/Desert, /w/Savanna,
+  # /w/Jungle and /w/Swamp. Swamp grass in Minecraft takes 0x6A7039 or
+  # 0x4C763C from a noise. Here it is always 0x6A7039.
+  GRASS_COLOR = [0x91BD59, 0x79C05A, 0x86B783, 0x80B497, 0x80B497, 0xBFB755, 0xBFB755, 0x59C93C, 0x6A7039]
+  FOLIAGE_COLOR = [0x77AB2F, 0x59AE30, 0x68A464, 0x60A17B, 0x60A17B, 0xAEA42A, 0xAEA42A, 0x30BB0B, 0x6A7039]
   # The most trees of any biome, so a roll at or above it needs no biome.
   MAX_TREES = TREES.max
 

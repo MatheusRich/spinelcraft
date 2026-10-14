@@ -7,10 +7,10 @@ module Tex
   STONE = 4
   SAND = 5
   WATER = 6
-  LOG_SIDE = 7
-  LOG_TOP = 8
-  LEAVES = 9
-  PLANKS = 10
+  OAK_LOG_SIDE = 7
+  OAK_LOG_TOP = 8
+  OAK_LEAVES = 9
+  OAK_PLANKS = 10
   COBBLE = 11
   GLASS = 12
   SNOW = 13
@@ -52,7 +52,7 @@ module Tex
   RAIN = 53
   DOOR_LOWER = 54
   DOOR_UPPER = 55
-  SAPLING = 56
+  OAK_SAPLING = 56
   APPLE = 57
   WOOD_SWORD = 58
   STONE_SWORD = 59
@@ -95,20 +95,42 @@ module Tex
   BED_ITEM = 94
   FURNACE_LIT = 95
   ROTTEN_FLESH = 96
-  MUTTON = 97
-  COOKED_MUTTON = 98
+  SPRUCE_LOG_SIDE = 97
+  SPRUCE_LOG_TOP = 98
+  SPRUCE_LEAVES = 99
+  SPRUCE_PLANKS = 100
+  SPRUCE_SAPLING = 101
+  BIRCH_LOG_SIDE = 102
+  BIRCH_LOG_TOP = 103
+  BIRCH_LEAVES = 104
+  BIRCH_PLANKS = 105
+  BIRCH_SAPLING = 106
+  # The moon in each phase: MOON + 0 is the full moon, in the order of
+  # MOON_LIT.
+  MOON = 107
+  MUTTON = 115
+  COOKED_MUTTON = 116
   # The full and the empty food icon of the HUD, and the full icon while
   # the Hunger effect lasts (see ICON_LAYERS).
-  HUNGER = 99
-  HUNGER_EMPTY = 100
-  HUNGER_EFFECT = 101
-  FONT = 102
+  HUNGER = 117
+  HUNGER_EMPTY = 118
+  HUNGER_EFFECT = 119
+  FONT = 120
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
   # How a layer's texture scrolls: 0 not at all, 1 like water, 2 like lava.
   # The mesher puts it in bits 23-24 of a face record for the shader.
   def self.scroll(layer) = layer == WATER ? 1 : (layer == LAVA ? 2 : 0)
+
+  # The biome color that a layer takes in the world: 0 none, 1 the grass
+  # color, 2 the foliage color (Tint). The images have the plains colors,
+  # so items show the plains colors. A pixel with alpha 254 keeps its
+  # color: the dirt of GRASS_SIDE.
+  def self.tint(layer)
+    return 2 if layer == OAK_LEAVES
+    layer == GRASS_TOP || layer == GRASS_SIDE || layer == TALL_GRASS ? 1 : 0
+  end
 
   GLYPHS = [
     "... ... ... ... ...",
@@ -157,25 +179,29 @@ module Tex
 
   # The layers that come from the images in assets/pixel-perfection, and the
   # name of each image, in the same order.
-  IMAGE_LAYERS = [GRASS_TOP, GRASS_SIDE, DIRT, STONE, SAND, WATER, LOG_SIDE, LOG_TOP, LEAVES, PLANKS, COBBLE, GLASS,
+  IMAGE_LAYERS = [GRASS_TOP, GRASS_SIDE, DIRT, STONE, SAND, WATER, OAK_LOG_SIDE, OAK_LOG_TOP, OAK_LEAVES, OAK_PLANKS, COBBLE, GLASS,
                   SNOW, SNOW_SIDE, BEDROCK, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS_SIDE, CACTUS_TOP, TALL_GRASS,
                   ROSE, DANDELION, TORCH, PORKCHOP, WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, BOW, ARROW, LAVA,
-                  WOOL, FIRE, SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
+                  WOOL, FIRE, OAK_SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
                   COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL,
                   DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
                   BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP,
                   DOOR_LOWER, DOOR_UPPER, DOOR_ITEM, CHEST_TOP, CHEST_SIDE, CHEST_FRONT, BED_TOP, BED_HEAD_TOP,
                   BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH,
-                  MUTTON, COOKED_MUTTON]
-  IMAGE_FILES = %w[grass_top grass_side dirt stone sand water log_side log_top leaves planks cobble glass snow
+                  SPRUCE_LOG_SIDE, SPRUCE_LOG_TOP, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG_SIDE,
+                  BIRCH_LOG_TOP, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING, MOON, MOON + 1, MOON + 2, MOON + 3,
+                  MOON + 4, MOON + 5, MOON + 6, MOON + 7, MUTTON, COOKED_MUTTON]
+  IMAGE_FILES = %w[grass_top grass_side dirt stone sand water oak_log_side oak_log_top oak_leaves oak_planks cobble glass snow
                    snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
-                   torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire sapling apple
+                   torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire oak_sapling apple
                    wood_sword stone_sword iron_sword diamond_sword iron_ingot furnace cooked_porkchop wood_axe
                    stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
                    wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket
                    furnace_side furnace_top door_lower door_upper door_item chest_top chest_side chest_front bed_top
                    bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
-                   mutton cooked_mutton]
+                   spruce_log_side spruce_log_top spruce_leaves spruce_planks spruce_sapling birch_log_side
+                   birch_log_top birch_leaves birch_planks birch_sapling moon_0 moon_1 moon_2 moon_3 moon_4 moon_5
+                   moon_6 moon_7 mutton cooked_mutton]
 
   # The HUD icons are 9 x 9 images, as in Minecraft. Each one fills the top
   # left corner of its layer, so the HUD draws ICON_PART of the layer.
@@ -250,7 +276,9 @@ module Tex
     font(px)
     cracks(px)
     images(px)
-    bleed(px, LEAVES)
+    bleed(px, OAK_LEAVES)
+    bleed(px, SPRUCE_LEAVES)
+    bleed(px, BIRCH_LEAVES)
     bleed(px, GLASS)
     bleed(px, TALL_GRASS)
     bleed(px, ROSE)
@@ -258,7 +286,9 @@ module Tex
     bleed(px, FIRE)
     bleed(px, PUFF)
     bleed(px, RAIN)
-    bleed(px, SAPLING)
+    bleed(px, OAK_SAPLING)
+    bleed(px, SPRUCE_SAPLING)
+    bleed(px, BIRCH_SAPLING)
     bleed(px, SEEDS)
     bleed(px, WHEAT_1)
     bleed(px, WHEAT_2)

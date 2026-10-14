@@ -23,10 +23,12 @@ These files are copies with no changes.
 | `dirt.png`, `stone.png`, `sand.png`, `gravel.png` | `default_dirt.png`, `default_stone.png`, `default_sand.png`, `default_gravel.png` |
 | `snow.png`, `snow_side.png`, `bedrock.png` | `default_snow.png`, `mcl_core_grass_side_snowed.png`, `mcl_core_bedrock.png` |
 | `coal.png`, `iron.png`, `diamond.png` | `mcl_core_coal_ore.png`, `mcl_core_iron_ore.png`, `mcl_core_diamond_ore.png` |
-| `log_side.png`, `log_top.png`, `planks.png` | `default_tree.png`, `default_tree_top.png`, `default_wood.png` |
+| `oak_log_side.png`, `oak_log_top.png`, `oak_planks.png` | `default_tree.png`, `default_tree_top.png`, `default_wood.png` |
+| `spruce_log_side.png`, `spruce_log_top.png`, `spruce_planks.png`, `spruce_sapling.png` | `mcl_core_log_spruce.png`, `mcl_core_log_spruce_top.png`, `mcl_core_planks_spruce.png`, `mcl_core_sapling_spruce.png` |
+| `birch_log_side.png`, `birch_log_top.png`, `birch_planks.png`, `birch_sapling.png` | `mcl_core_log_birch.png`, `mcl_core_log_birch_top.png`, `mcl_core_planks_birch.png`, `mcl_core_sapling_birch.png` |
 | `cobble.png`, `brick.png`, `glass.png`, `wool.png` | `default_cobble.png`, `default_brick.png`, `default_glass.png`, `wool_white.png` |
 | `cactus_side.png`, `cactus_top.png` | `mcl_core_cactus_side.png`, `mcl_core_cactus_top.png` |
-| `rose.png`, `dandelion.png`, `sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
+| `rose.png`, `dandelion.png`, `oak_sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
 | `seeds.png`, `wheat_1.png`, `wheat_2.png`, `wheat_ripe.png` | `mcl_farming_wheat_stage_1.png`, `mcl_farming_wheat_stage_3.png`, `mcl_farming_wheat_stage_5.png`, `mcl_farming_wheat_stage_7.png` |
 | `craft_top.png`, `craft_side.png` | `crafting_workbench_top.png`, `crafting_workbench_front.png` (VoxeLibre has no other side for the crafting table) |
 | `door_lower.png`, `door_upper.png`, `door_item.png` | `mcl_doors_door_wood_lower.png`, `mcl_doors_door_wood_upper.png`, `doors_item_wood.png` |
@@ -54,14 +56,16 @@ VoxeLibre replaced the creeper with another mob, so the creeper skin comes from 
 
 ## Changed images
 
-In Minecraft, grass, leaves and water are gray, and the biome gives them their color. Spinelcraft has no biome color, so these images have the plains color of Minecraft. The colors come from minecraft.wiki/w/Plains: grass `#91BD59`, foliage `#77AB2F` and water `#3F76E4`. A tint multiplies each channel of a pixel by the channel of the color.
+In Minecraft, grass, leaves and water are gray, and the biome gives them their color. These images have the plains color of Minecraft, so items show the plains color. The colors come from minecraft.wiki/w/Plains: grass `#91BD59`, foliage `#77AB2F` and water `#3F76E4`. A tint multiplies each channel of a pixel by the channel of the color. In the world, the game changes the color of grass and oak leaves to the color of the biome (`Tint` in `game/tint.rb`). Water keeps the plains color.
 
 | File | Change |
 | --- | --- |
 | `grass_top.png` | `mcl_core_grass_block_top.png` with the grass tint |
-| `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. |
+| `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. The dirt pixels have alpha 254, so the biome color does not change them. |
 | `tall_grass.png` | `mcl_flowers_tallgrass.png` with the grass tint |
-| `leaves.png` | `default_leaves.png` with the foliage tint |
+| `oak_leaves.png` | `default_leaves.png` with the foliage tint |
+| `spruce_leaves.png` | `mcl_core_leaves_spruce.png` made gray, with the spruce tint `#619961` (minecraft.wiki/w/Leaves). The biome does not change this color in Minecraft. |
+| `birch_leaves.png` | `mcl_core_leaves_birch.png` made gray, with the birch tint `#80A755` (minecraft.wiki/w/Leaves). The biome does not change this color in Minecraft. |
 | `water.png` | The first frame of `mcl_core_water_source_animation.png` with the water tint. The alpha is 170 at most. |
 | `lava.png` | The first frame of `mcl_core_lava_source_animation.png` |
 
@@ -75,6 +79,12 @@ The chest and the bed are not blocks in VoxeLibre. They are models with one 64x6
 | `bed_head_top.png`, `bed_top.png` | The top of the head half and of the foot half, turned so that the outer end of the half is on the right |
 | `bed_head_side.png`, `bed_side.png` | The side of each half in rows 7-12, with the outer end on the right, and a leg in rows 13-15 at the outer end |
 | `bed_head_end.png`, `bed_foot_end.png` | The outer end of each half in rows 7-12, with a leg in rows 13-15 at each corner |
+
+The moon phases are one 256x128 image in VoxeLibre, `mcl_moon_moon_phases.png`. It has 4 × 2 cells of 64x64, in the order of `MOON_LIT` in `game/constants.rb`, from the full moon. Each cell has a 16x16 moon at 24, 24, with a glow around it. The game draws its own glow.
+
+| File | Change |
+| --- | --- |
+| `moon_0.png` … `moon_7.png` | The 16x16 moon of cell k, without the glow. Cell k is in row k / 4 and column k % 4. |
 
 ## Add an image
 

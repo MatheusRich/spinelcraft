@@ -313,9 +313,9 @@ class Game
     return M_SNOW if b == Block::SNOW
     return M_CLOTH if b == Block::WOOL
     return M_WOOD if b == Block::TORCH || b == Block::CACTUS
-    return M_LEAVES if b == Block::LEAVES || Block.plant?(b)
+    return M_LEAVES if Block.leaves?(b) || Block.plant?(b)
     return M_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::BEDROCK || b == Block::FURNACE
-    return M_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
+    return M_WOOD if Block.log?(b) || Block.planks?(b) || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
     M_DIRT
   end
 
@@ -332,19 +332,24 @@ class Game
       say("YOU CANNOT SLEEP NOW  MONSTERS ARE NEARBY")
       return
     end
+    # A night is always before the 6:00 wrap, so the morning is the next day.
     @time_of_day = 0.02
+    @day += 1
     say("GOOD MORNING")
   end
 
   # What a broken block drops besides Block::DROPS: leaves now and then a
-  # sapling and more rarely an apple, tall grass now and then seeds, and
-  # ripe wheat 1 or 2 seeds.
+  # sapling of their wood, oak leaves more rarely an apple, tall grass now
+  # and then seeds, and ripe wheat 1 or 2 seeds.
   def drop_extra(b, x, y, z)
     r = @rng.rand01
-    if b == Block::LEAVES
-      if r < 0.1
-        drop_from_block(Block::SAPLING, 1, x, y, z)
-      elsif r < 0.15
+    if Block.leaves?(b)
+      # Spruce and birch leaves drop a sapling 1 time in 20, and no apple.
+      # minecraft.wiki/w/Leaves
+      sapling = b == Block::OAK_LEAVES ? 0.1 : 0.05
+      if r < sapling
+        drop_from_block(Block::SAPLINGS[Block.wood(b)], 1, x, y, z)
+      elsif b == Block::OAK_LEAVES && r < 0.15
         drop_from_block(Block::APPLE, 1, x, y, z)
       end
     elsif b == Block::TALL_GRASS

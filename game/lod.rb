@@ -23,6 +23,7 @@ class Lod
     @h = Array.new((CELLS + 2) * (CELLS + 2), 0)
     @top = Array.new((CELLS + 2) * (CELLS + 2), 0)
     @side = Array.new((CELLS + 2) * (CELLS + 2), 0)
+    @biome = Array.new((CELLS + 2) * (CELLS + 2), 0)
     @lists = Array.new(6) { Array.new(0, 0) }
     @faces = Array.new(0, 0)
     @offsets = Array.new(8, 0)
@@ -31,6 +32,11 @@ class Lod
   end
 
   def self.slot(tx, tz) = (tx & TMASK) * TRING + (tz & TMASK)
+
+  # Bits 18-19 of the second word of a face record hold the tint of the
+  # texture (Tex.tint), and bits 20-23 hold the biome. The shader takes the
+  # ratio of that biome from the uniforms (Tint#write_uniforms).
+  def self.tint(tex, biome) = (Tex.tint(tex) << 18) | (biome << 20)
 
   def ready?(tx, tz)
     s = Lod.slot(tx, tz)
@@ -50,6 +56,7 @@ class Lod
       return
     end
     biome = w.biome(x, z, h)
+    @biome[k] = biome
     b = w.top_block(x, z, h, biome)
     @top[k] = Block::TOP[b]
     @side[k] = Block::SIDE[b]
@@ -57,8 +64,9 @@ class Lod
     if (b == Block::GRASS || b == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome]
       # About the height of the biome's trees: the trunk, plus the leaves above it.
       @h[k] = h + World::TRUNK[Biome::TREE[biome]] + 2
-      @top[k] = Tex::LEAVES
-      @side[k] = Tex::LEAVES
+      leaves = Block::TOP[Block::LEAVES[World::WOOD[Biome::TREE[biome]]]]
+      @top[k] = leaves
+      @side[k] = leaves
     end
   end
 
@@ -89,7 +97,7 @@ class Lod
         cz = (c0z + j) & Mesher::COLUMN_MASK
         # The top face: the cell's top block is at y = h - 1.
         @lists[2] << Mesher.pack(cx, h - 1, cz, 2)
-        @lists[2] << (@top[k] | (1 << 8) | (@shift << 15))
+        @lists[2] << (@top[k] | (1 << 8) | (@shift << 15) | Lod.tint(@top[k], @biome[k]))
         f = 0
         while f < 6
           if f != 2 && f != 3
@@ -98,7 +106,7 @@ class Lod
               tall = h - n
               tall = 127 if tall > 127
               @lists[f] << Mesher.pack(cx, n, cz, f)
-              @lists[f] << (@side[k] | (tall << 8) | (@shift << 15))
+              @lists[f] << (@side[k] | (tall << 8) | (@shift << 15) | Lod.tint(@side[k], @biome[k]))
             end
           end
           f += 1
