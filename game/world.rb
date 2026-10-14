@@ -45,7 +45,13 @@ class World
   # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
   # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
-  RIVER_VALLEY = 0.045
+  # RIVER_SCALE is the size of the river noise in blocks: a larger scale
+  # puts the rivers farther apart.
+  RIVER_VALLEY = 0.021
+  RIVER_SCALE = 900.0
+  # The size of the temperature and humidity noise in blocks. A climate
+  # zone is a few hundred blocks or more across.
+  CLIMATE_SCALE = 1600.0
   # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
@@ -454,7 +460,7 @@ class World
       dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * 3.0
       h += (dome - h) * ocean if dome > h
     end
-    river = @noise3.fbm2(wx / 420.0 + 90.0, wz / 420.0, 2).abs
+    river = @noise3.fbm2(wx / RIVER_SCALE + 90.0, wz / RIVER_SCALE, 2).abs
     if river < RIVER_VALLEY && h > SEA - 3.0
       bed = SEA - 3.0 + (h - SEA + 3.0) * World.smooth(river / RIVER_VALLEY)
       h = bed if bed < h
@@ -492,9 +498,9 @@ class World
     nz = z + SHIFT
     wx = warp_x(nx, nz)
     wz = warp_z(nx, nz)
-    t = @noise3.fbm2(wx / 480.0 + 300.0, wz / 480.0, 2) * 2.2
+    t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2
     t -= (h - SEA - 12) * 0.012 if h > SEA + 12
-    w = @noise4.fbm2(wx / 480.0, wz / 480.0 + 150.0, 2) * 2.2
+    w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2
     Biome.pick(t, w, h <= SEA + 5)
   end
 
