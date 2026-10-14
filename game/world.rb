@@ -81,7 +81,12 @@ class World
     @noise4 = Noise.new(seed * 43 + 11)
   end
 
-  def self.index(x, y, z) = (((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1
+  # Spinel cannot type the positions that the game code gives World (from
+  # the player, the mobs or the flow queue). So get, set and the chunk
+  # lookups call to_i before they use index or slot, and the generator and
+  # the mesher stay unboxed. The to_i in index lets Spinel type block and
+  # put_block before its inference stops at its round limit.
+  def self.index(x, y, z) = ((((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1).to_i
   # Block i of a packed store: byte i & 7 of Integer i >> 3.
   def self.byte(a, i) = (a[i >> 3] >> ((i & 7) << 3)) & 127
 
@@ -99,8 +104,10 @@ class World
   def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)
 
   def chunk_loaded?(cx, cz)
-    s = World.slot(cx, cz)
-    @slot_cx[s] == cx && @slot_cz[s] == cz
+    icx = cx.to_i
+    icz = cz.to_i
+    s = World.slot(icx, icz)
+    @slot_cx[s] == icx && @slot_cz[s] == icz
   end
 
   def loaded?(x, z) = chunk_loaded?(x >> 4, z >> 4)
@@ -111,11 +118,14 @@ class World
 
   # The light list of a loaded chunk, else an empty list. (An Array-or-nil
   # return makes Spinel box the elements.)
-  def torches_of(cx, cz) = chunk_loaded?(cx, cz) ? @chunk_torches[World.slot(cx, cz)] : @no_torches
+  def torches_of(cx, cz) = chunk_loaded?(cx, cz) ? @chunk_torches[World.slot(cx.to_i, cz.to_i)] : @no_torches
 
   def get(x, y, z)
-    return Block::AIR unless inside?(x, y, z)
-    block(World.index(x, y, z))
+    ix = x.to_i
+    iy = y.to_i
+    iz = z.to_i
+    return Block::AIR unless inside?(ix, iy, iz)
+    block(World.index(ix, iy, iz))
   end
 
   # True when a solid block overlaps the box of half width half and height
@@ -141,17 +151,18 @@ class World
   end
 
   def set(x, y, z, b)
-    return unless inside?(x, y, z)
-    # Spinel widens b (it comes from the inventory); to_i gives the writers
-    # an Integer, so the generator's writes stay unboxed.
+    ix = x.to_i
+    iy = y.to_i
+    iz = z.to_i
     v = b.to_i
-    i = World.index(x, y, z)
-    remove_torch(x, y, z) if Block.emits?(block(i))
-    write(i, x & LMASK, z & LMASK, v)
-    @edited[World.slot(x >> 4, z >> 4)] = 1
-    add_torch(x, y, z) if Block.emits?(v)
-    update_height(x, z)
-    expose_lava(x, y, z) if Block::OPAQUE[v] == 0
+    return unless inside?(ix, iy, iz)
+    i = World.index(ix, iy, iz)
+    remove_torch(ix, iy, iz) if Block.emits?(block(i))
+    write(i, ix & LMASK, iz & LMASK, v)
+    @edited[World.slot(ix >> 4, iz >> 4)] = 1
+    add_torch(ix, iy, iz) if Block.emits?(v)
+    update_height(ix, iz)
+    expose_lava(ix, iy, iz) if Block::OPAQUE[v] == 0
   end
 
   # Stores b at index i and in the padding copy of an edge column.
@@ -235,10 +246,12 @@ class World
   def chunk_bytes(cx, cz)
     parts = []
     col = Array.new(WY, 0)
-    x = cx * CHUNK
-    while x < cx * CHUNK + CHUNK
-      z = cz * CHUNK
-      while z < cz * CHUNK + CHUNK
+    x0 = cx.to_i * CHUNK
+    z0 = cz.to_i * CHUNK
+    x = x0
+    while x < x0 + CHUNK
+      z = z0
+      while z < z0 + CHUNK
         base = World.index(x, 0, z)
         y = 0
         while y < WY

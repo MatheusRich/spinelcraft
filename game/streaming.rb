@@ -191,7 +191,7 @@ class Game
   # A chunk without a mesh gets one from stream_around, so only meshed ones queue.
   def mark_chunk(cx, cz)
     return unless @world.chunk_loaded?(cx, cz)
-    i = World.slot(cx, cz)
+    i = World.slot(cx.to_i, cz.to_i)
     return if @meshed[i] == 0
     if @defer
       return if @dirty[i] || @later[i]
