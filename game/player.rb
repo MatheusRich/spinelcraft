@@ -61,16 +61,35 @@ class Player
     @pitch = @pitch.clamp(-1.55, 1.55)
   end
 
-  # Speeds on a ladder, in blocks per second.
-  CLIMB = 3.0
-  SLIDE = 2.0
-  # The jump speed. With the gravity of 28 and the step of 0.02 seconds,
-  # it lifts the feet 1.2522 blocks. minecraft.wiki/w/Jumping
-  JUMP = 8.1
+  # Speeds in blocks per second. minecraft.wiki/w/Transportation
+  WALK = 4.317
+  SPRINT = 5.612
+  FLY = 11.0
+  SPRINT_FLY = 22.0
+  FLY_UP = 7.49
+  # Swim speeds at the surface, under water, and in a sprint.
+  SWIM = 2.2
+  SWIM_UNDER = 1.97
+  SWIM_SPRINT = 3.918
+  # Speeds on a ladder.
+  CLIMB = 2.35
+  SLIDE = 3.0
+  # Sneaking scales the movement keys by this much, so a sneak moves at
+  # 1.3 m/s straight and 1.83 m/s on a diagonal. A player who draws a bow
+  # moves the same (minecraft.wiki/w/Bow). The wiki does not give the
+  # speed for eating, so eating uses the same. minecraft.wiki/w/Transportation
+  SNEAK = 0.3
+  # Gravity in m/s per second, and the speed at which a fall stops getting
+  # faster. minecraft.wiki/w/Entity
+  GRAVITY = 32.0
+  TERMINAL = 78.4
+  # The jump speed. With this gravity and the step of 0.02 seconds, it
+  # lifts the feet 1.2522 blocks. minecraft.wiki/w/Jumping
+  JUMP = 8.96
   # The forward push of a sprint-jump. Sprint-jumps on flat ground then
   # move at 7.127 m/s on average. minecraft.wiki/w/Sprinting gives that
   # average, but not the push, so the push is tuned to the average.
-  SPRINT_JUMP_PUSH = 3.7
+  SPRINT_JUMP_PUSH = 3.46
 
   # Moves the player for one step of dt seconds and returns the fall
   # distance when it lands (0.0 otherwise).
@@ -82,16 +101,21 @@ class Player
     climbing = !@flying && (Block::BASE[world.get(@x.floor, @y.floor, @z.floor)] == Block::LADDER ||
                             Block::BASE[world.get(@x.floor, (@y + 1.0).floor, @z.floor)] == Block::LADDER)
     @sneaking = down && !@flying && @on_ground
+    sprint = false if @sneaking || @slowed
     @jumped = false
-    # Walk and sprint speeds: minecraft.wiki/w/Sprinting. A player who draws
-    # a bow moves at sneaking speed (minecraft.wiki/w/Bow). The wiki does
-    # not give the speed for eating, so eating uses the same.
-    speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking || @slowed ? 1.3 : (sprint ? 5.6 : 4.3))
-    speed *= 0.55 if @in_water && !@flying
+    speed = if @flying
+              sprint ? SPRINT_FLY : FLY
+            elsif @in_water
+              under = Block.water?(world.get(@x.floor, eye_y.floor, @z.floor))
+              sprint ? SWIM_SPRINT : (under ? SWIM_UNDER : SWIM)
+            else
+              sprint ? SPRINT : WALK
+            end
+    keys = @sneaking || @slowed ? SNEAK : 1.0
     sy = Math.sin(@yaw)
     cy = Math.cos(@yaw)
-    wx = (sy * fwd + cy * strafe)
-    wz = (-cy * fwd + sy * strafe)
+    wx = (sy * fwd + cy * strafe) * keys
+    wz = (-cy * fwd + sy * strafe) * keys
     len = Math.sqrt(wx * wx + wz * wz)
     if len > 1.0
       wx /= len
@@ -103,18 +127,20 @@ class Player
     @vz += (wz * speed - @vz) * k
     if @flying
       target = (jump ? 1.0 : 0.0) - (down ? 1.0 : 0.0)
-      @vy += (target * speed - @vy) * (10.0 * dt).clamp(0.0, 1.0)
+      @vy += (target * FLY_UP - @vy) * (10.0 * dt).clamp(0.0, 1.0)
     elsif climbing
       # Jump or forward climbs, Shift holds on, and nothing slides down.
       @vy = jump || fwd > 0.0 ? CLIMB : (down ? 0.0 : -SLIDE)
     elsif @in_water
+      # The wiki does not give the speeds to swim up and to sink.
       @vy -= 10.0 * dt
       @vy = 3.2 if jump
       @vy = @vy.clamp(-4.0, 4.0)
       # Against a wall, a jump lifts the player over an edge as high as the water.
       @vy = 6.0 if jump && @against_wall
     else
-      @vy -= 28.0 * dt
+      # The fall gets faster at GRAVITY, less so near TERMINAL.
+      @vy -= GRAVITY * (1.0 + @vy / TERMINAL) * dt
       @jumped = jump && @on_ground
       if @jumped
         @vy = JUMP
@@ -124,7 +150,6 @@ class Player
           @vz -= cy * SPRINT_JUMP_PUSH
         end
       end
-      @vy = -55.0 if @vy < -55.0
     end
     was_ground = @on_ground
     move(world, @vx * dt, @vy * dt, @vz * dt)

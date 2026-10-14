@@ -287,6 +287,7 @@ class Game
     test_lava_swim
     test_eat_slowdown
     test_jump
+    test_swim_speed
     test_cave_sound
   end
 
@@ -328,6 +329,49 @@ class Game
     @player.flying = flying
     check("a jump lifts the feet 1.25 blocks, and sprint-jumps move at 7.1 m/s",
           (height - 1.2522).abs < 0.01 && (speed - 7.127).abs < 0.15)
+  end
+
+  # The player swims at 2.2 m/s at the surface, 1.97 m/s under water, and
+  # 3.918 m/s in a sprint.
+  def test_swim_speed
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    yaw = @player.yaw
+    flying = @player.flying
+    x = px.floor
+    z = pz.floor
+    y = WY - 4
+    (0..20).each do |d|
+      set_block(x, y, z - d, Block::STONE)
+      set_block(x, y + 1, z - d, Block::WATER)
+    end
+    @player.flying = false
+    @player.yaw = 0.0
+    speeds = [[false, false], [true, false], [false, true]].map do |sprint, under|
+      (0..20).each { |d| set_block(x, y + 2, z - d, under ? Block::WATER : Block::AIR) }
+      @player.x = x + 0.5
+      @player.y = y + 1.0
+      @player.z = z + 0.5
+      @player.vx = 0.0
+      @player.vz = 0.0
+      25.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, sprint) }
+      z0 = @player.z
+      100.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, sprint) }
+      (z0 - @player.z) / 2.0
+    end
+    (0..20).each do |d|
+      set_block(x, y, z - d, Block::AIR)
+      set_block(x, y + 1, z - d, Block::AIR)
+      set_block(x, y + 2, z - d, Block::AIR)
+    end
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.yaw = yaw
+    @player.flying = flying
+    check("the player swims at 2.2 m/s, 1.97 m/s under water, and 3.918 m/s in a sprint",
+          (speeds[0] - 2.2).abs < 0.05 && (speeds[1] - 3.918).abs < 0.05 && (speeds[2] - 1.97).abs < 0.05)
   end
 
   # A player who eats or draws the bow walks at sneaking speed.
@@ -1415,7 +1459,7 @@ class Game
     out = false
     240.times do
       @player.update(@world, 1.0 / 60.0, 1.0, 0.0, true, false, false)
-      out = true if @player.on_ground && @player.y >= 91.0 && @player.x > wx + 2.0
+      out = true if @player.on_ground && @player.y >= 91.0 && @player.x + Player::HALF > wx + 2.0
     end
     check("a jump against the shore lifts the player out of the water", out)
   end
@@ -1765,8 +1809,8 @@ class Game
     check("a bucket takes a water or lava source and puts it back", ok)
   end
 
-  # A ladder lifts the player on jump, holds the player on Shift, and lets
-  # the player slide down slowly.
+  # A ladder lifts the player at 2.35 m/s on jump, holds the player on
+  # Shift, and lets the player slide down at 3 m/s.
   def test_ladder
     x = @spawn_x.floor + 40
     z = @spawn_z.floor - 40
@@ -1779,12 +1823,12 @@ class Game
     end
     p = Player.new(x + 0.5, y.to_f, z + 0.5)
     50.times { p.update(@world, 0.02, 0.0, 0.0, true, false, false) }
-    up = p.y > y + 2.0
+    up = (p.y - y - 2.35).abs < 0.05
     h = p.y
     50.times { p.update(@world, 0.02, 0.0, 0.0, false, true, false) }
     held = (p.y - h).abs < 0.05
-    50.times { p.update(@world, 0.02, 0.0, 0.0, false, false, false) }
-    slid = p.y < h - 0.5 && p.y > h - 3.0
+    25.times { p.update(@world, 0.02, 0.0, 0.0, false, false, false) }
+    slid = (h - p.y - 1.5).abs < 0.05
     # Forward into the wall climbs to its top and steps onto it.
     p = Player.new(x + 0.5, y.to_f, z + 0.5)
     p.yaw = Math::PI / 2.0
@@ -1800,7 +1844,7 @@ class Game
       set_block(x + 1, y + i, z, Block::AIR)
       i += 1
     end
-    check("a ladder climbs on jump, holds on Shift, and slides down slowly", up && held && slid)
+    check("a ladder climbs at 2.35 m/s on jump, holds on Shift, and slides down at 3 m/s", up && held && slid)
     check("forward on a ladder climbs onto the block at its top", top)
   end
 
