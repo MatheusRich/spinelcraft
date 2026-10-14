@@ -444,7 +444,7 @@ class Game
       x += 1
     end
     @particles.smoke(cx, cy, cz, 40, 3.0)
-    play(Sfx::EXPLODE, 1.0)
+    play_at(Sfx::EXPLODE, cx, cy, cz, 1.0)
     pdx = @player.x - cx
     pdy = @player.y + 0.9 - cy
     pdz = @player.z - cz
