@@ -5,9 +5,9 @@ class Game
   def render
     w = Gfx.gfx_width.to_f
     h = Gfx.gfx_height.to_f
-    ex = @player.x
-    ey = @player.eye_y
-    ez = @player.z
+    ex = @player.x.to_f
+    ey = @player.eye_y.to_f
+    ez = @player.z.to_f
     walking = @player.on_ground && !@player.flying
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
     ey += Math.sin(@bob) * 0.05 * (speed / 4.3).clamp(0.0, 1.0) if walking
@@ -169,10 +169,13 @@ class Game
   def build_dyn(ex, ey, ez, reach)
     @dyn.clear
     @mobs.each do |m|
-      ddx = m.x - ex
-      ddz = m.z - ez
+      mx = m.x.to_f
+      my = m.y.to_f
+      mz = m.z.to_f
+      ddx = mx - ex
+      ddz = mz - ez
       next if ddx * ddx + ddz * ddz > reach * reach
-      next unless @camera.box_visible?(m.x - 1.0, m.y, m.z - 1.0, m.x + 1.0, m.y + 2.0, m.z + 1.0)
+      next unless @camera.box_visible?(mx - 1.0, my, mz - 1.0, mx + 1.0, my + 2.0, mz + 1.0)
       m.draw(@dyn)
     end
     @arrows.each { |a| a.draw(@dyn) }
@@ -239,9 +242,9 @@ class Game
     a = @time_of_day * Math::PI * 2.0
     ca = Math.cos(a)
     sa = Math.sin(a)
-    ex = @player.x
-    ey = @player.eye_y
-    ez = @player.z
+    ex = @player.x.to_f
+    ey = @player.eye_y.to_f
+    ez = @player.z.to_f
     i = 0
     while i < @stars.size
       # The stars turn with the sun around the z axis.
@@ -267,9 +270,9 @@ class Game
     dy = Math.sin(a) * side
     dz = 0.25
     return if dy < -0.15
-    ex = @player.x
-    ey = @player.eye_y
-    ez = @player.z
+    ex = @player.x.to_f
+    ey = @player.eye_y.to_f
+    ez = @player.z.to_f
     return unless @camera.project(ex + dx * 100.0, ey + dy * 100.0, ez + dz * 100.0, w, h)
     half = size * s / 2.0
     sx = @camera.sx
