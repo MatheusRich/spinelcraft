@@ -24,6 +24,8 @@ These files are copies with no changes.
 | `snow.png`, `snow_side.png`, `bedrock.png` | `default_snow.png`, `mcl_core_grass_side_snowed.png`, `mcl_core_bedrock.png` |
 | `coal.png`, `iron.png`, `diamond.png` | `mcl_core_coal_ore.png`, `mcl_core_iron_ore.png`, `mcl_core_diamond_ore.png` |
 | `oak_log_side.png`, `oak_log_top.png`, `oak_planks.png` | `default_tree.png`, `default_tree_top.png`, `default_wood.png` |
+| `spruce_log_side.png`, `spruce_log_top.png`, `spruce_planks.png`, `spruce_sapling.png` | `mcl_core_log_spruce.png`, `mcl_core_log_spruce_top.png`, `mcl_core_planks_spruce.png`, `mcl_core_sapling_spruce.png` |
+| `birch_log_side.png`, `birch_log_top.png`, `birch_planks.png`, `birch_sapling.png` | `mcl_core_log_birch.png`, `mcl_core_log_birch_top.png`, `mcl_core_planks_birch.png`, `mcl_core_sapling_birch.png` |
 | `cobble.png`, `brick.png`, `glass.png`, `wool.png` | `default_cobble.png`, `default_brick.png`, `default_glass.png`, `wool_white.png` |
 | `cactus_side.png`, `cactus_top.png` | `mcl_core_cactus_side.png`, `mcl_core_cactus_top.png` |
 | `rose.png`, `dandelion.png`, `oak_sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
@@ -60,6 +62,8 @@ In Minecraft, grass, leaves and water are gray, and the biome gives them their c
 | `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. |
 | `tall_grass.png` | `mcl_flowers_tallgrass.png` with the grass tint |
 | `oak_leaves.png` | `default_leaves.png` with the foliage tint |
+| `spruce_leaves.png` | `mcl_core_leaves_spruce.png` made gray, with the spruce tint `#619961` (minecraft.wiki/w/Leaves). The biome does not change this color in Minecraft. |
+| `birch_leaves.png` | `mcl_core_leaves_birch.png` made gray, with the birch tint `#80A755` (minecraft.wiki/w/Leaves). The biome does not change this color in Minecraft. |
 | `water.png` | The first frame of `mcl_core_water_source_animation.png` with the water tint. The alpha is 170 at most. |
 | `lava.png` | The first frame of `mcl_core_lava_source_animation.png` |
 

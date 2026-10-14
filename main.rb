@@ -345,7 +345,7 @@ class Game
   def dry_land?(x, z)
     h = @world.height_at(x, z)
     b = @world.get(x, h - 1, z)
-    h > SEA + 2 && b != Block::OAK_LEAVES && !Block.water?(b)
+    h > SEA + 2 && !Block.leaves?(b) && !Block.water?(b)
   end
 
   def respawn

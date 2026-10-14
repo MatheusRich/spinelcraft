@@ -9,8 +9,9 @@ class Game
   # What a furnace burns, and the ticks of burn time of one of each.
   # minecraft.wiki/w/Smelting (Fuel). The game has no coal item, so coal
   # ore burns as coal.
-  FUEL_BLOCKS = [Block::OAK_PLANKS, Block::OAK_LOG, Block::COAL]
-  FUEL_TICKS = [300, 300, 1600]
+  FUEL_BLOCKS = [Block::OAK_PLANKS, Block::SPRUCE_PLANKS, Block::BIRCH_PLANKS, Block::OAK_LOG, Block::SPRUCE_LOG,
+                 Block::BIRCH_LOG, Block::COAL]
+  FUEL_TICKS = [300, 300, 300, 300, 300, 300, 1600]
   # Furnace ticks in a second, as in Minecraft.
   TICKS_PER_SECOND = 20
 

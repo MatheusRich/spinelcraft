@@ -95,7 +95,17 @@ module Tex
   BED_ITEM = 94
   FURNACE_LIT = 95
   ROTTEN_FLESH = 96
-  FONT = 97
+  SPRUCE_LOG_SIDE = 97
+  SPRUCE_LOG_TOP = 98
+  SPRUCE_LEAVES = 99
+  SPRUCE_PLANKS = 100
+  SPRUCE_SAPLING = 101
+  BIRCH_LOG_SIDE = 102
+  BIRCH_LOG_TOP = 103
+  BIRCH_LEAVES = 104
+  BIRCH_PLANKS = 105
+  BIRCH_SAPLING = 106
+  FONT = 107
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -158,7 +168,9 @@ module Tex
                   DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
                   BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP,
                   DOOR_LOWER, DOOR_UPPER, DOOR_ITEM, CHEST_TOP, CHEST_SIDE, CHEST_FRONT, BED_TOP, BED_HEAD_TOP,
-                  BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH]
+                  BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH,
+                  SPRUCE_LOG_SIDE, SPRUCE_LOG_TOP, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG_SIDE,
+                  BIRCH_LOG_TOP, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING]
   IMAGE_FILES = %w[grass_top grass_side dirt stone sand water oak_log_side oak_log_top oak_leaves oak_planks cobble glass snow
                    snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
                    torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire oak_sapling apple
@@ -166,7 +178,9 @@ module Tex
                    stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
                    wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket
                    furnace_side furnace_top door_lower door_upper door_item chest_top chest_side chest_front bed_top
-                   bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh]
+                   bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
+                   spruce_log_side spruce_log_top spruce_leaves spruce_planks spruce_sapling birch_log_side
+                   birch_log_top birch_leaves birch_planks birch_sapling]
 
   def self.images(px)
     s = 0
@@ -224,6 +238,8 @@ module Tex
     cracks(px)
     images(px)
     bleed(px, OAK_LEAVES)
+    bleed(px, SPRUCE_LEAVES)
+    bleed(px, BIRCH_LEAVES)
     bleed(px, GLASS)
     bleed(px, TALL_GRASS)
     bleed(px, ROSE)
@@ -232,6 +248,8 @@ module Tex
     bleed(px, PUFF)
     bleed(px, RAIN)
     bleed(px, OAK_SAPLING)
+    bleed(px, SPRUCE_SAPLING)
+    bleed(px, BIRCH_SAPLING)
     bleed(px, SEEDS)
     bleed(px, WHEAT_1)
     bleed(px, WHEAT_2)

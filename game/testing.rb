@@ -180,7 +180,7 @@ class Game
     z = @spawn_z.floor
     h = @world.height_at(x, z)
     b = @world.get(x, h - 1, z)
-    check("the player spawns on dry land", h > SEA + 2 && Block.solid?(b) && b != Block::OAK_LEAVES && !Block.water?(b))
+    check("the player spawns on dry land", h > SEA + 2 && Block.solid?(b) && !Block.leaves?(b) && !Block.water?(b))
   end
 
   # The terrain tables are read by position, so each must have one entry

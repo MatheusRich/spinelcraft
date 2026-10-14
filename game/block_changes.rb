@@ -57,17 +57,18 @@ class Game
       if @world.loaded?(x, z)
         y = @world.height_at(x, z)
         b = @world.get(x, y, z)
-        if (b == Block::OAK_SAPLING || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
-          b == Block::OAK_SAPLING ? grow_tree(x, y, z) : set_block(x, y, z, b + 1)
+        if (Block.sapling?(b) || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
+          Block.sapling?(b) ? grow_tree(x, y, z, Block.wood(b)) : set_block(x, y, z, b + 1)
         end
       end
       n -= 1
     end
   end
 
-  # A tree like the generator's: a trunk of 4 to 6 logs under two wide
-  # layers and two small layers of leaves. It needs air above the sapling.
-  def grow_tree(x, y, z)
+  # A tree of wood (an index in Block::LOGS) like the generator's oak: a
+  # trunk of 4 to 6 logs under two wide layers and two small layers of
+  # leaves. It needs air above the sapling.
+  def grow_tree(x, y, z, wood)
     tall = 4 + (@rng.rand01 * 3.0).to_i
     return if y + tall + 2 >= WY
     i = 1
@@ -85,7 +86,7 @@ class Game
         while dz <= radius
           corner = dx.abs == radius && dz.abs == radius
           skip = corner && (ly == top + 1 || @rng.rand01 < 0.5)
-          set_block(x + dx, ly, z + dz, Block::OAK_LEAVES) if !skip && @world.get(x + dx, ly, z + dz) == Block::AIR
+          set_block(x + dx, ly, z + dz, Block::LEAVES[wood]) if !skip && @world.get(x + dx, ly, z + dz) == Block::AIR
           dz += 1
         end
         dx += 1
@@ -94,7 +95,7 @@ class Game
     end
     i = 0
     while i < tall
-      set_block(x, y + i, z, Block::OAK_LOG)
+      set_block(x, y + i, z, Block::LOGS[wood])
       i += 1
     end
     set_block(x, y - 1, z, Block::DIRT) if @world.get(x, y - 1, z) == Block::GRASS

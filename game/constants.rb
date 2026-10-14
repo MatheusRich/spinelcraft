@@ -5,10 +5,12 @@ class Game
                   Block::OAK_LOG, Block::GLASS, Block::BRICK, Block::TORCH]
   # The creative inventory screen: the blocks, then the items.
   CREATIVE_ITEMS = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::OAK_PLANKS, Block::OAK_LOG,
-                    Block::OAK_LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
+                    Block::OAK_LEAVES, Block::SPRUCE_PLANKS, Block::SPRUCE_LOG, Block::SPRUCE_LEAVES,
+                    Block::BIRCH_PLANKS, Block::BIRCH_LOG, Block::BIRCH_LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
                     Block::SNOW_GRASS, Block::CACTUS, Block::COAL, Block::IRON, Block::DIAMOND, Block::WATER,
                     Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
                     Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::OAK_SAPLING,
+                    Block::SPRUCE_SAPLING, Block::BIRCH_SAPLING,
                     Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER,
                     Block::WOOD_SWORD, Block::STONE_SWORD, Block::IRON_SWORD, Block::DIAMOND_SWORD,
                     Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK,
@@ -119,7 +121,8 @@ class Game
              [Block::COBBLE, 3, Block::STONE_AXE, 1, AT_TABLE], [Block::COBBLE, 1, Block::STONE_SHOVEL, 1, AT_TABLE],
              [Block::IRON_INGOT, 3, Block::IRON_AXE, 1, AT_TABLE], [Block::IRON_INGOT, 1, Block::IRON_SHOVEL, 1, AT_TABLE],
              [Block::DIAMOND, 3, Block::DIAMOND_AXE, 1, AT_TABLE], [Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, AT_TABLE],
-             [Block::OAK_LOG, 1, Block::OAK_PLANKS, 4, BY_HAND], [Block::COAL, 1, Block::TORCH, 4, BY_HAND],
+             [Block::OAK_LOG, 1, Block::OAK_PLANKS, 4, BY_HAND], [Block::SPRUCE_LOG, 1, Block::SPRUCE_PLANKS, 4, BY_HAND],
+             [Block::BIRCH_LOG, 1, Block::BIRCH_PLANKS, 4, BY_HAND], [Block::COAL, 1, Block::TORCH, 4, BY_HAND],
              [Block::OAK_PLANKS, 4, Block::CRAFTING_TABLE, 1, BY_HAND], [Block::GRAVEL, 1, Block::ARROW, 4, AT_TABLE],
              [Block::STONE, 2, Block::BRICK, 1, AT_TABLE], [Block::WOOL, 3, Block::BED, 1, AT_TABLE],
              [Block::OAK_PLANKS, 5, Block::BOW, 1, AT_TABLE], [Block::OAK_PLANKS, 8, Block::CHEST, 1, AT_TABLE],
