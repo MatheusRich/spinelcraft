@@ -13,6 +13,11 @@ module Biome
   TREES = [90, 2600, 2000, 1400, 50, 0, 160, 4200, 900]
   TREE_KINDS = [OAK = 0, SPRUCE = 1, ACACIA = 2, JUNGLE_TREE = 3]
   TREE = [OAK, OAK, SPRUCE, SPRUCE, SPRUCE, OAK, ACACIA, JUNGLE_TREE, OAK]
+  # Large oaks per 65536 oaks. Plains: "1/3 are large"
+  # (minecraft.wiki/w/Plains). Forest: 1/10, the chance that
+  # minecraft.wiki/w/Oak gives for Alpha; the wiki does not confirm it
+  # for today. Swamps grow no large oaks (minecraft.wiki/w/Oak).
+  LARGE_OAKS = [21845, 6554, 0, 0, 0, 0, 0, 0, 0]
   # Tall grass per 65536 columns of grass, before the meadow noise.
   GRASS = [9000, 5000, 3000, 0, 0, 0, 26000, 22000, 12000]
   # Flowers per 65536 columns of grass.

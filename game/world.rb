@@ -50,9 +50,9 @@ class World
   # The shortest trunk of each tree kind (Biome::OAK and so on), one
   # entry for each of Biome::TREE_KINDS.
   TRUNK = [4, 6, 5, 8]
-  # How far leaves reach from the root of a tree: an acacia leans 3
-  # blocks, and its crown reaches 3 more.
-  TREE_REACH = 6
+  # How far leaves reach from the root of a tree: a large oak grows a
+  # branch 5 blocks long, and the leaves at its end reach 2 more.
+  TREE_REACH = 7
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :edited, :store, :seed
 
@@ -673,7 +673,7 @@ class World
       z = z0 - TREE_REACH
       while z < z0 + CHUNK + TREE_REACH
         top = tree_top(x, z)
-        tree(x, top + 1, z, x0, z0, Biome::TREE[biome(x, z, top + 1)]) if top >= 0
+        tree(x, top + 1, z, x0, z0, biome(x, z, top + 1)) if top >= 0
         z += 1
       end
       x += 1
@@ -720,11 +720,13 @@ class World
     block(World.index(x, y, z)) == Block::AIR
   end
 
-  # A tree of kind (Biome::OAK and so on) on the ground below x, y, z.
-  # Oaks have round crowns, spruces narrow cones, acacias flat tops, and
-  # jungle trees are tall with wide crowns.
-  def tree(x, y, z, x0, z0, kind)
+  # A tree of the biome on the ground below x, y, z. Oaks have round
+  # crowns, spruces narrow cones, acacias flat tops, and jungle trees are
+  # tall with wide crowns.
+  def tree(x, y, z, x0, z0, biome)
+    kind = Biome::TREE[biome]
     return acacia(x, y, z, x0, z0) if kind == Biome::ACACIA
+    return large_oak(x, y, z, x0, z0) if kind == Biome::OAK && Noise.hash3(x, y, z, 28) < Biome::LARGE_OAKS[biome]
     tall = TRUNK[kind] + Noise.hash3(x, y, z, 23) % 3
     return if y + tall + 2 >= WY
     top = y + tall
@@ -751,6 +753,92 @@ class World
       i += 1
     end
     put(x, y - 1, z, Block::DIRT, x0, z0)
+  end
+
+  # A large oak on the ground below x, y, z: a tall trunk with a branch on
+  # most layers of its upper part, and a ball of leaves at the top and at
+  # the end of each branch. minecraft.wiki/w/Oak says only that "they
+  # often have branches", and that the sapling needs 4 to 14 blocks of
+  # space. The heights and the branch lengths copy the fancy trunk in the
+  # game code. The wiki does not confirm them.
+  def large_oak(x, y, z, x0, z0)
+    tall = 5 + Noise.hash3(x, y, z, 23) % 12
+    return if y + tall >= WY
+    trunk = (tall * 0.618).floor
+    limb(x, y, z, x, y + trunk, z, x0, z0)
+    limb(x, y + trunk, z, x, y + tall - 5, z, x0, z0)
+    oak_ball(x, y + tall - 5, z, x0, z0)
+    put(x, y - 1, z, Block::DIRT, x0, z0)
+    n = tall - 5
+    while n >= 0
+      spread = large_oak_spread(tall, n)
+      if spread >= 0.0
+        reach = spread * (Noise.hash3(x, y + n, z, 29) / 65536.0 + 0.328)
+        angle = Noise.hash3(x, y + n, z, 30) / 65536.0 * 2.0 * Math::PI
+        ex = x + (reach * Math.sin(angle) + 0.5).floor
+        ez = z + (reach * Math.cos(angle) + 0.5).floor
+        ey = y + n - 1
+        # The branch rises from the trunk by about 2 blocks for each 5 out.
+        rise = ey - Math.sqrt(((x - ex) * (x - ex) + (z - ez) * (z - ez)).to_f) * 0.381
+        base = rise > y + trunk ? y + trunk : rise.to_i
+        # Branches that start low on the trunk do not grow.
+        if base - y >= tall * 0.2
+          limb(x, base, z, ex, ey, ez, x0, z0)
+          oak_ball(ex, ey, ez, x0, z0)
+        end
+      end
+      n -= 1
+    end
+  end
+
+  # How far out a large oak that is tall blocks high grows the branch at
+  # n blocks above the ground, or -1.0 below 30% of its height. Branches
+  # are longest at half the height, so the crown is round.
+  def large_oak_spread(tall, n)
+    return -1.0 if n < tall * 0.3
+    half = tall / 2.0
+    d = half - n
+    return 0.0 if d.abs >= half
+    Math.sqrt(half * half - d * d) * 0.5
+  end
+
+  # A straight line of logs from one block to another, both included.
+  def limb(sx, sy, sz, ex, ey, ez, x0, z0)
+    dx = ex - sx
+    dy = ey - sy
+    dz = ez - sz
+    steps = [dx.abs, dy.abs, dz.abs].max
+    i = 0
+    while i <= steps
+      t = steps == 0 ? 0.0 : i.to_f / steps
+      put(sx + (0.5 + t * dx).floor, sy + (0.5 + t * dy).floor, sz + (0.5 + t * dz).floor, Block::LOG, x0, z0)
+      i += 1
+    end
+  end
+
+  # A ball of leaves 5 blocks tall on the end of a large oak branch at x,
+  # y, z. A layer keeps each block whose far corner is within r of the
+  # branch end: a plus at the bottom and at the top (r = 2), and 5 x 5
+  # without the corners between them (r = 3).
+  def oak_ball(x, y, z, x0, z0)
+    ly = 0
+    while ly <= 4
+      r = ly == 0 || ly == 4 ? 2 : 3
+      dx = -r
+      while dx <= r
+        dz = -r
+        while dz <= r
+          ax = dx.abs + 0.5
+          az = dz.abs + 0.5
+          if ax * ax + az * az <= r * r && air_in?(x + dx, y + ly, z + dz, x0, z0)
+            put(x + dx, y + ly, z + dz, Block::LEAVES, x0, z0)
+          end
+          dz += 1
+        end
+        dx += 1
+      end
+      ly += 1
+    end
   end
 
   # An acacia on the ground below x, y, z. Near its top, the trunk leans
