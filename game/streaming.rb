@@ -27,7 +27,11 @@ class Game
   # Loads and meshes the chunks within radius of chunk (pcx, pcz), nearest
   # first, until budget_ns has passed (a negative budget does all of them).
   # A chunk is meshed once its ring of neighbors has loaded.
-  def stream_around(pcx, pcz, budget_ns, radius)
+  def stream_around(player_cx, player_cz, budget_ns, radius)
+    # Spinel cannot type the player's position, so to_i gives the chunk
+    # math and the world generator Integers.
+    pcx = player_cx.to_i
+    pcz = player_cz.to_i
     t0 = Gfx.gfx_ns
     if pcx != @stream_cx || pcz != @stream_cz
       @stream_cx = pcx
@@ -114,8 +118,8 @@ class Game
     level = 0
     while level < LEVELS && @fog_end > lod_start(level)
       lod = @lods[level]
-      ptx = @player.x.floor >> lod.tile_shift
-      ptz = @player.z.floor >> lod.tile_shift
+      ptx = (@player.x.floor >> lod.tile_shift).to_i
+      ptz = (@player.z.floor >> lod.tile_shift).to_i
       if ptx != @lod_tx[level] || ptz != @lod_tz[level]
         @lod_tx[level] = ptx
         @lod_tz[level] = ptz
