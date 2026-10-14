@@ -215,7 +215,7 @@ class Game
     set_slider(M_VIEW, 0.0)
     near = @fog_end
     @fog_end = view
-    check("the render distance slider goes in steps of 100 blocks", half == 2600.0 && near == VIEWS[0])
+    check("the render distance slider goes in steps of 100 blocks", half == 2600.0 && near == VIEW_MIN)
     set_slider(M_BRIGHTNESS, 1.0)
     set_slider(M_VOLUME, 0.25)
     check("the brightness and volume sliders set the options", @brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")

@@ -766,8 +766,9 @@ module Gfx
     }
 
     /* uniforms: 16 view-projection (column-major), cam xyz + time, fog rgb + end,
-       daylight, fog start, screen w, screen h, and for each far terrain level the
-       square x0 z0 x1 z1 that the next finer level covers.
+       daylight, fog start, screen w, screen h, for each far terrain level the
+       square x0 z0 x1 z1 that the next finer level covers, 8 for the far cloud
+       layer, 4 for the rain, and 4 for the options (brightness first).
        Returns true when there is a frame to draw. */
     bool gfx_begin(const double *u) {
       for (int i = 0; i < UNIFORMS; i++) uni[i] = (float)u[i];
@@ -1164,7 +1165,6 @@ module Key
   E = 8
   F = 9
   G = 10
-  N = 17
   Q = 20
   R = 21
   S = 22
@@ -1174,7 +1174,6 @@ module Key
   ESCAPE = 41
   SPACE = 44
   F3 = 60
-  F4 = 61
   F5 = 62
   F11 = 68
   LCTRL = 224

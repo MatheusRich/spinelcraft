@@ -10,8 +10,9 @@ class Game
                Block::BOW, Block::ARROW, Block::LAVA, Block::WOOL, Block::BED, Block::CHEST,
                Block::DOOR, Block::SAPLING, Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER]
   FOG_END = 1600.0
-  # F4 view distances, in blocks.
-  VIEWS = [200.0, 800.0, 1600.0, 5000.0]
+  # The range of the render distance slider, in blocks.
+  VIEW_MIN = 200.0
+  VIEW_MAX = 5000.0
   # Full-detail chunks reach this far at most; far terrain (lod.rb) draws the rest.
   DETAIL_VIEW = 400.0
   # Far terrain levels: level L has cells of 4 << L blocks and reaches

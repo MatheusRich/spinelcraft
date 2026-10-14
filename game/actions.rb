@@ -16,8 +16,7 @@ class Game
     if @vitals.dead?
       if Gfx.in_button_pressed(1) || Gfx.in_key_pressed(Key::R)
         respawn
-        @captured = true
-        Gfx.in_capture(1)
+        resume
       end
       return
     end
@@ -81,11 +80,6 @@ class Game
     end
     @show_debug = !@show_debug if Gfx.in_key_pressed(Key::F3)
     save if Gfx.in_key_pressed(Key::F5)
-    if Gfx.in_key_pressed(Key::F4)
-      i = VIEWS.index { |v| v > @fog_end }
-      @fog_end = i.nil? ? VIEWS[0] : VIEWS[i]
-      say("VIEW DISTANCE #{@fog_end.to_i}")
-    end
     toggle_fullscreen if Gfx.in_key_pressed(Key::F11)
     @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T)
     if !@survival && Gfx.in_key_pressed(Key::R)

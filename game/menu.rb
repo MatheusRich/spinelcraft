@@ -16,7 +16,6 @@ class Game
   # button acts at once, and a slider follows the mouse while the button is
   # down.
   def handle_menu(escape)
-    new_world if Gfx.in_key_pressed(Key::N)
     if escape
       resume
       return
@@ -75,7 +74,7 @@ class Game
     elsif i == M_VOLUME
       @volume
     else
-      (@fog_end - VIEWS[0]) / (VIEWS[VIEWS.size - 1] - VIEWS[0])
+      (@fog_end - VIEW_MIN) / (VIEW_MAX - VIEW_MIN)
     end
   end
 
@@ -87,7 +86,7 @@ class Game
     elsif i == M_VOLUME
       @volume = t
     else
-      @fog_end = ((VIEWS[0] + t * (VIEWS[VIEWS.size - 1] - VIEWS[0])) / 100.0).round * 100.0
+      @fog_end = ((VIEW_MIN + t * (VIEW_MAX - VIEW_MIN)) / 100.0).round * 100.0
     end
   end
 
@@ -160,7 +159,7 @@ class Game
     last = menu_cell(MENU_ITEMS - 1, w, h, s)
     lines = ["WASD MOVE  SPACE JUMP  CTRL SPRINT  SHIFT DOWN",
              "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
-             "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  F FLY  G GAME MODE  T TIME  R RAIN  F3 DEBUG  F4 VIEW  F5 SAVE  F11 FULLSCREEN",
+             "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  F FLY  G GAME MODE  T TIME  R RAIN  F3 DEBUG  F5 SAVE  F11 FULLSCREEN",
              "SURVIVAL: E TO CRAFT  BY HAND ONLY PLANKS, TORCHES AND A CRAFTING TABLE",
              "TOOLS NEED A CRAFTING TABLE NEARBY  SMELTING NEEDS A FURNACE AND FUEL  STONE NEEDS A PICKAXE TO DROP"]
     i = 0

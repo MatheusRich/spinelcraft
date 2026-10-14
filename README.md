@@ -45,7 +45,6 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | F | Fly (creative) |
 | G | Switch between creative and survival |
 | F3 | Debug text |
-| F4 | View distance |
 | F5 | Save |
 | Esc | Pause, play again |
 
