@@ -186,8 +186,8 @@ class Game
   # The terrain tables are read by position, so each must have one entry
   # for each biome or tree kind, and the spline needs rising points.
   def test_terrain_tables
-    biomes = [Biome::GROUND, Biome::TREES, Biome::TREE, Biome::LARGE_OAKS, Biome::PINES, Biome::GRASS, Biome::FLOWERS].all? { |t| t.size == Biome::ALL.size }
-    kinds = World::TRUNK.size == Biome::TREE_KINDS.size && Biome::TREE.all? { |k| k < Biome::TREE_KINDS.size }
+    biomes = [Biome::GROUND, Biome::TREES, Biome::TREE, Biome::BIRCHES, Biome::LARGE_OAKS, Biome::PINES, Biome::GRASS, Biome::FLOWERS].all? { |t| t.size == Biome::ALL.size }
+    kinds = World::TRUNK.size == Biome::TREE_KINDS.size && World::WOOD.size == Biome::TREE_KINDS.size && Biome::TREE.all? { |k| k < Biome::TREE_KINDS.size }
     xs = World::CONTINENT
     rising = (1...xs.size).all? { |i| xs[i] > xs[i - 1] }
     check("each terrain table has one entry for each biome or tree kind", biomes && kinds)

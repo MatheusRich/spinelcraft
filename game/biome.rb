@@ -13,6 +13,10 @@ module Biome
   TREES = [90, 2600, 2000, 1400, 50, 0, 160, 4200, 900]
   TREE_KINDS = [OAK = 0, SPRUCE = 1, ACACIA = 2, JUNGLE_TREE = 3]
   TREE = [OAK, OAK, SPRUCE, SPRUCE, SPRUCE, OAK, ACACIA, JUNGLE_TREE, OAK]
+  # Birches per 65536 trees of a biome with oaks. Forests grow birches
+  # (minecraft.wiki/w/Birch). The wiki does not confirm the share of a
+  # fifth: it copies the forest trees in the game code.
+  BIRCHES = [0, 13107, 0, 0, 0, 0, 0, 0, 0]
   # Large oaks per 65536 oaks. Plains: "1/3 are large"
   # (minecraft.wiki/w/Plains). Forest: 1/10, the chance that
   # minecraft.wiki/w/Oak gives for Alpha; the wiki does not confirm it

@@ -96,7 +96,8 @@ module Block
   BIRCH_PLANKS = 122
   BIRCH_SAPLING = 123
   COUNT = 124
-  # The blocks of each wood, one entry for each wood: oak, spruce, birch.
+  WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
+  # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
   LEAVES = [OAK_LEAVES, SPRUCE_LEAVES, BIRCH_LEAVES]
   PLANKS = [OAK_PLANKS, SPRUCE_PLANKS, BIRCH_PLANKS]
@@ -177,7 +178,8 @@ module Block
   # The blocks that fill the recipe ingredient ing.
   def self.fillers(ing) = ing == ANY_PLANKS ? PLANKS : [ing]
   def self.ingredient_name(ing) = ing == ANY_PLANKS ? "PLANKS" : NAMES[ing]
-  # The wood of a log, leaves, planks or sapling: its index in LOGS, or -1.
+  # The wood of a log, leaves, planks or sapling (Block::OAK_WOOD and so
+  # on), or -1.
   def self.wood(b)
     w = 0
     while w < LOGS.size
