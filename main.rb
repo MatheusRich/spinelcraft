@@ -228,9 +228,12 @@ class Game
   end
 
   # N on the pause screen: a fresh world from a new seed, same game mode.
+  # The player starts again with an empty inventory.
   def new_world
     @seed = (Gfx.gfx_ns / 1000) % 1000000
     reset_world
+    @inv.clear
+    @hotbar = HOTBAR_START.dup
     @chests = {}
     @seen.fill(0)
     @recipe_new.fill(0)

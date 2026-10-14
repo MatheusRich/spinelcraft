@@ -1486,8 +1486,11 @@ class Game
     slot = far.build(3, -2)
     check("a far tile has a top face for each cell, sorted by direction", far.faces.size / 2 == far.offsets[7] && far.offsets[3] - far.offsets[2] == Lod::CELLS * Lod::CELLS && slot == Lod.slot(3, -2))
     old_seed = @seed
+    @inv.add(Block::DIAMOND)
+    @hotbar[0] = Block::GLASS
     new_world
     h = @world.height_at(@player.x.floor, @player.z.floor)
     check("a new world has a new seed and the player stands on it", @seed != old_seed && h > 0 && (@player.y - h).abs < 1.5 && @mobs.size > 0)
+    check("a new world starts with an empty inventory", @inv.room_for(Block::DIRT) == INV * Slots::STACK && @hotbar == HOTBAR_START)
   end
 end
