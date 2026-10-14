@@ -23,6 +23,7 @@ class Game
     @inv.take(@slot, n < @inv.count(@slot) ? n : @inv.count(@slot))
     return unless @inv.empty?(@slot)
     play(Sfx::TOOL_BREAK, 0.8)
+    @particles.shatter(@player, b)
     say("#{Block::NAMES[b]} BROKE")
   end
 

@@ -831,8 +831,9 @@ class Game
     @inv.set(0, Block::WOOD_PICK, 1)
     survival = @survival
     @survival = true
+    chips = @particles.count(Particle::CHIP)
     wear_tool(1)
-    broke = @inv.count(0) == 0 && @inv.block(1) == Block::WOOD_PICK
+    broke = @inv.count(0) == 0 && @inv.block(1) == Block::WOOD_PICK && @particles.count(Particle::CHIP) - chips == 5
     @inv.set(1, Block::WOOD_PICK, 7)
     @slot = 1
     @items.clear

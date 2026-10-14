@@ -130,6 +130,33 @@ class Particles
     end
   end
 
+  # Chips of item b that fly from in front of the player when the item
+  # breaks. As in Minecraft (LivingEntity.spawnItemParticles, not on the
+  # wiki), 5 chips start 0.6 blocks ahead of the eyes and 0.3 to 0.9 blocks
+  # below them, and fly up and a little to the sides.
+  def shatter(player, b)
+    cy = Math.cos(player.yaw)
+    sy = Math.sin(player.yaw)
+    cp = Math.cos(player.pitch)
+    sp = Math.sin(player.pitch)
+    # The right, up and forward axes of the view.
+    ux = -sp * sy
+    uz = sp * cy
+    fx = sy * cp
+    fz = -cy * cp
+    5.times do
+      side = (@rng.rand01 - 0.5) * 0.3
+      down = -0.3 - @rng.rand01 * 0.6
+      vside = (@rng.rand01 - 0.5) * 2.0
+      vup = 2.0 + @rng.rand01 * 2.0
+      chip = Particle.new(Particle::CHIP, player.x + cy * side + ux * down + fx * 0.6, player.eye_y + cp * down + sp * 0.6,
+                          player.z + sy * side + uz * down + fz * 0.6, cy * vside + ux * vup, cp * vup + 1.0, sy * vside + uz * vup,
+                          0.3 + @rng.rand01 * 0.7, Block::SIDE[b])
+      chip.piece((@rng.rand01 * 13.0).floor / 16.0, (@rng.rand01 * 13.0).floor / 16.0, 0.05 + @rng.rand01 * 0.05)
+      @all << chip if @all.size < MAX
+    end
+  end
+
   # Flames and smoke for dt seconds of a burning body: the box of half width
   # half and height tall on x, y, z.
   def fire(x, y, z, half, tall, dt)
