@@ -48,7 +48,7 @@ class Game
       end
       dx += 1
     end
-    shown = [Block::GRASS, Block::CHEST, Block::DOOR, Block::FURNACE, Block::SAPLING, Block::APPLE,
+    shown = [Block::GRASS, Block::CHEST, Block::DOOR, Block::FURNACE, Block::OAK_SAPLING, Block::APPLE,
              Block::BREAD, Block::WHEAT, Block::IRON_SWORD, Block::IRON_AXE, Block::STONE_SHOVEL, Block::ARROW]
     shown.each_with_index do |b, i|
       drop_item(b, i == 11 ? 3 : 1, bx - 3.6 + i * 0.65, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
@@ -75,7 +75,7 @@ class Game
       set_block(bx - 4 + i, y + 1, bz - 1, b)
     end
     @survival = true
-    hand = (ENV["HAND"] || Block::LOG.to_s).to_i
+    hand = (ENV["HAND"] || Block::OAK_LOG.to_s).to_i
     @inv.set(0, hand, hand == Block::AIR ? 0 : 5)
     @slot = 0
     @player.x = bx + 0.5
@@ -180,7 +180,7 @@ class Game
     z = @spawn_z.floor
     h = @world.height_at(x, z)
     b = @world.get(x, h - 1, z)
-    check("the player spawns on dry land", h > SEA + 2 && Block.solid?(b) && b != Block::LEAVES && !Block.water?(b))
+    check("the player spawns on dry land", h > SEA + 2 && Block.solid?(b) && b != Block::OAK_LEAVES && !Block.water?(b))
   end
 
   # The terrain tables are read by position, so each must have one entry
@@ -252,8 +252,8 @@ class Game
     check("every sound file loads", Sfx.load_files == Sfx::FILES.size && Gfx.au_seconds(Sfx::RAIN) > 5.0)
     check("blocks sound like their material",
           MATERIAL_STEP[material(Block::GRASS)] == Sfx::STEP_GRASS && MATERIAL_STEP[material(Block::STONE)] == Sfx::STEP_HARD &&
-          MATERIAL_STEP[material(Block::PLANKS)] == Sfx::STEP_WOOD && MATERIAL_STEP[material(Block::SAND)] == Sfx::STEP_SAND &&
-          MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::LEAVES)] == Sfx::DIG_LEAVES &&
+          MATERIAL_STEP[material(Block::OAK_PLANKS)] == Sfx::STEP_WOOD && MATERIAL_STEP[material(Block::SAND)] == Sfx::STEP_SAND &&
+          MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::OAK_LEAVES)] == Sfx::DIG_LEAVES &&
           MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD &&
           MATERIAL_STEP[material(Block::WOOL)] == Sfx::CLOTH && MATERIAL_STEP[material(Block::SNOW)] == Sfx::SNOW)
     creeper = Mob.new(Mob::CREEPER, @player.x + 1.5, @player.y, @player.z, 11)
@@ -578,10 +578,10 @@ class Game
   def test_survival(x, z, ground)
     @survival = true
     @inv.clear
-    3.times { @inv.add(Block::LOG) }
+    3.times { @inv.add(Block::OAK_LOG) }
     @slot = 0
-    craft_recipe(recipe_for(Block::PLANKS))
-    check("craft log into planks", @inv.block(0) == Block::LOG && @inv.count(0) == 2 && @inv.block(1) == Block::PLANKS && @inv.count(1) == 4)
+    craft_recipe(recipe_for(Block::OAK_PLANKS))
+    check("craft log into planks", @inv.block(0) == Block::OAK_LOG && @inv.count(0) == 2 && @inv.block(1) == Block::OAK_PLANKS && @inv.count(1) == 4)
     70.times { @inv.add(Block::DIRT) }
     check("stacks split at 64", @inv.count(2) == 64 && @inv.block(3) == Block::DIRT && @inv.count(3) == 6)
     @vitals.health = Vitals::MAX_HEALTH
@@ -592,7 +592,7 @@ class Game
     toggle_inventory
     hurt(30, Sfx::HURT)
     check("death at zero health, and it closes the inventory", @vitals.health == 0 && @vitals.dead? && !@inventory_open)
-    check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
+    check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::OAK_PLANKS) == 4)
     @items.clear
     @inv = kept
     respawn
@@ -608,11 +608,11 @@ class Game
     @player.y = ground + 3.0
     @player.raycast(@world)
     place
-    check("survival place uses one item", @inv.count(1) == before - 1 && @world.get(x, ground + 1, z) == Block::PLANKS)
+    check("survival place uses one item", @inv.count(1) == before - 1 && @world.get(x, ground + 1, z) == Block::OAK_PLANKS)
     set_block(x, ground + 1, z, Block::TALL_GRASS)
     @player.raycast(@world)
     place
-    check("a block placed on tall grass takes its cell", @world.get(x, ground + 1, z) == Block::PLANKS && @world.get(x, ground + 2, z) == Block::AIR)
+    check("a block placed on tall grass takes its cell", @world.get(x, ground + 1, z) == Block::OAK_PLANKS && @world.get(x, ground + 2, z) == Block::AIR)
     # Stone drops cobblestone only to a pickaxe. Off the ground, mining is
     # slow, so the player stands while it mines.
     @inv.clear
@@ -627,7 +627,7 @@ class Game
       n += 1
     end
     check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && @items.empty?)
-    7.times { @inv.add(Block::PLANKS) }
+    7.times { @inv.add(Block::OAK_PLANKS) }
     craft_recipe(recipe_for(Block::WOOD_PICK))
     by_hand = @inv.total(Block::WOOD_PICK)
     craft_recipe(recipe_for(Block::CRAFTING_TABLE))
@@ -646,9 +646,9 @@ class Game
     dropped = ground_count(Block::COBBLE) == 1 && @inv.count(1) == 0
     collect_items
     check("a pickaxe mines stone faster, and the cobblestone drops to the ground", mining_frames < n && dropped && @inv.block(1) == Block::COBBLE)
-    by_hand = frames_to_mine(x, ground + 1, z, Block::LOG, Block::AIR)
-    by_axe = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_AXE)
-    by_pick = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_PICK)
+    by_hand = frames_to_mine(x, ground + 1, z, Block::OAK_LOG, Block::AIR)
+    by_axe = frames_to_mine(x, ground + 1, z, Block::OAK_LOG, Block::STONE_AXE)
+    by_pick = frames_to_mine(x, ground + 1, z, Block::OAK_LOG, Block::STONE_PICK)
     check("an axe chops a log faster than a hand or a pickaxe", by_axe < by_hand && by_pick == by_hand)
     # 1.5 hardness * 1.5 seconds / speed 4 = 0.5625 seconds, as in Minecraft.
     check("a stone pickaxe breaks stone in 12 frames", frames_to_mine(x, ground + 1, z, Block::STONE, Block::STONE_PICK) == 12)
@@ -859,7 +859,7 @@ class Game
     hot.burn_total = 1600
     hot.progress = 37
     hot.slots.set(Furnace::INPUT, Block::SAND, 2)
-    hot.slots.set(Furnace::FUEL, Block::LOG, 3)
+    hot.slots.set(Furnace::FUEL, Block::OAK_LOG, 3)
     @furnaces[World.key(3, 70, 4)] = hot
     @furnaces[World.key(5, 70, 4)] = Furnace.new(5, 70, 4)
     save
@@ -880,7 +880,7 @@ class Game
     loaded = @furnaces[World.key(3, 70, 4)]
     check("the save keeps the seen items, and the slots and the fire of furnaces",
           @seen[Block::DIAMOND] == 1 && @furnaces.size == 1 && !loaded.nil? && loaded.x == 3 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&
-          loaded.slots.block(Furnace::INPUT) == Block::SAND && loaded.slots.count(Furnace::INPUT) == 2 && loaded.slots.block(Furnace::FUEL) == Block::LOG && loaded.slots.count(Furnace::FUEL) == 3)
+          loaded.slots.block(Furnace::INPUT) == Block::SAND && loaded.slots.count(Furnace::INPUT) == 2 && loaded.slots.block(Furnace::FUEL) == Block::OAK_LOG && loaded.slots.count(Furnace::FUEL) == 3)
     @furnaces = {}
     @items.clear
     @weather.set_now(false)
@@ -934,29 +934,29 @@ class Game
     @seen.fill(0)
     @recipe_new.fill(0)
     @inv.clear
-    @inv.add(Block::LOG)
+    @inv.add(Block::OAK_LOG)
     note_seen
-    logs = shown_recipes == [recipe_for(Block::PLANKS)]
-    told = @message == "NEW RECIPE: PLANKS" && @recipe_new[recipe_for(Block::PLANKS)] == 1
+    logs = shown_recipes == [recipe_for(Block::OAK_PLANKS)]
+    told = @message == "NEW RECIPE: OAK PLANKS" && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 1
     toggle_inventory
     toggle_inventory
     check("a new recipe shows a message and a tag until the inventory closes", told && !@recipe_new.include?(1))
-    @inv.add(Block::PLANKS)
+    @inv.add(Block::OAK_PLANKS)
     note_seen
-    @inv.remove(Block::PLANKS, 1)
+    @inv.remove(Block::OAK_PLANKS, 1)
     note_seen
     planks = shown_recipes.include?(recipe_for(Block::CRAFTING_TABLE)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))
     check("the recipe list shows only the recipes for seen ingredients", logs && planks)
     @inv.add(Block::IRON)
     note_seen
-    hand = shown_recipes.include?(recipe_for(Block::PLANKS)) && !shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
+    hand = shown_recipes.include?(recipe_for(Block::OAK_PLANKS)) && !shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
     x = @player.x.floor + 2
     y = @player.y.floor
     z = @player.z.floor
     old = @world.get(x, y, z)
     set_block(x, y, z, Block::CRAFTING_TABLE)
     open_station(x, y, z, AT_TABLE)
-    table = shown_recipes.include?(recipe_for(Block::PLANKS)) && shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
+    table = shown_recipes.include?(recipe_for(Block::OAK_PLANKS)) && shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
     toggle_inventory
     set_block(x, y, z, Block::FURNACE)
     open_station(x, y, z, AT_FURNACE)
@@ -1038,19 +1038,19 @@ class Game
   def test_crafting_limits
     i = 0
     while i < INV
-      @inv.set(i, Block::PLANKS, 64)
+      @inv.set(i, Block::OAK_PLANKS, 64)
       i += 1
     end
-    @inv.set(0, Block::LOG, 5)
-    @inv.set(1, Block::PLANKS, 62)
+    @inv.set(0, Block::OAK_LOG, 5)
+    @inv.set(1, Block::OAK_PLANKS, 62)
     @slot = 0
-    craft_recipe(recipe_for(Block::PLANKS))
+    craft_recipe(recipe_for(Block::OAK_PLANKS))
     check("crafting refuses when the result does not fit", @inv.count(0) == 5 && @inv.count(1) == 62)
     @inv.clear
-    @inv.set(3, Block::PLANKS, 2)
-    @inv.set(20, Block::PLANKS, 4)
+    @inv.set(3, Block::OAK_PLANKS, 2)
+    @inv.set(20, Block::OAK_PLANKS, 4)
     craft_at_table(recipe_for(Block::BOW))
-    check("a recipe takes ingredients from several stacks", @inv.total(Block::PLANKS) == 1 && @inv.total(Block::BOW) == Block.uses(Block::BOW))
+    check("a recipe takes ingredients from several stacks", @inv.total(Block::OAK_PLANKS) == 1 && @inv.total(Block::BOW) == Block.uses(Block::BOW))
     # A tool wears out, and a thrown tool keeps the uses that it has left.
     @inv.clear
     @inv.add(Block::WOOD_PICK)
@@ -1075,9 +1075,9 @@ class Game
       @inv.set(i, Block::DIRT, 64)
       i += 1
     end
-    @inv.set(0, Block::LOG, 1)
-    craft_recipe(recipe_for(Block::PLANKS))
-    check("a recipe click counts the slot that it empties as room", @inv.block(0) == Block::PLANKS && @inv.count(0) == 4)
+    @inv.set(0, Block::OAK_LOG, 1)
+    craft_recipe(recipe_for(Block::OAK_PLANKS))
+    check("a recipe click counts the slot that it empties as room", @inv.block(0) == Block::OAK_PLANKS && @inv.count(0) == 4)
   end
 
   # Chest contents survive a save and come back when the chest breaks.
@@ -1422,7 +1422,7 @@ class Game
     set_block(x + 2, h, z, Block::AIR)
     walls.each { |w| set_block(x + w[0], h, z + w[1], Block::AIR) }
     set_block(x, h + 1, z, Block::AIR)
-    set_block(x, h + 3, z, Block::LEAVES)
+    set_block(x, h + 3, z, Block::OAK_LEAVES)
     under_leaves = dark?(x, h, z, 15)
     set_block(x, h + 3, z, Block::AIR)
     check("leaves let the daylight through", !under_leaves)
@@ -1512,7 +1512,7 @@ class Game
     @inv.clear
     9.times { @inv.add(Block::IRON) }
     @inv.add(Block::COAL)
-    2.times { @inv.add(Block::PLANKS) }
+    2.times { @inv.add(Block::OAK_PLANKS) }
     smelt = recipe_for(Block::IRON_INGOT)
     craft_recipe(smelt)
     far = @inv.total(Block::IRON) == 9
@@ -1538,13 +1538,13 @@ class Game
     check("a furnace with heat is lit, and a furnace with none is not", dark && lit)
     # A plank runs out 100 ticks into the second item. Then the progress goes
     # back 2 ticks for each tick, and new fuel continues from there.
-    @held_block = Block::PLANKS
+    @held_block = Block::OAK_PLANKS
     @held_count = 1
     click_furnace(Furnace::FUEL, true)
     update_furnaces(15.0)
     update_furnaces(1.0)
     cooled = slots.count(Furnace::OUTPUT) == 4 && f.progress == 60 && !f.lit?
-    @held_block = Block::PLANKS
+    @held_block = Block::OAK_PLANKS
     @held_count = 1
     click_furnace(Furnace::FUEL, true)
     update_furnaces(7.0)
@@ -1554,7 +1554,7 @@ class Game
     # something to smelt or room for the result.
     slots.move_stack(Furnace::OUTPUT, @inv, 0, INV)
     slots.move_stack(Furnace::INPUT, @inv, 0, INV)
-    slots.set(Furnace::FUEL, Block::PLANKS, 2)
+    slots.set(Furnace::FUEL, Block::OAK_PLANKS, 2)
     update_furnaces(10.0)
     no_input = slots.count(Furnace::FUEL) == 2 && !f.lit? && @inv.total(Block::IRON_INGOT) == 5 && @inv.total(Block::IRON) == 4
     slots.set(Furnace::OUTPUT, Block::IRON_INGOT, Slots::STACK)
@@ -1588,18 +1588,18 @@ class Game
     @survival = true
     @items.clear
     set_block(x + 2, y, z + 3, Block::AIR)
-    dropped = ground_count(Block::IRON) == 4 && ground_count(Block::PLANKS) == 2 && @furnaces[World.key(x + 2, y, z + 3)].nil?
+    dropped = ground_count(Block::IRON) == 4 && ground_count(Block::OAK_PLANKS) == 2 && @furnaces[World.key(x + 2, y, z + 3)].nil?
     @items.clear
     @survival = survival
     toggle_inventory
     check("the furnace slots take only what fits them, and a broken furnace drops what it holds", not_fuel && not_smelted && no_output && dropped)
-    set_block(x, y, z, Block::SAPLING)
+    set_block(x, y, z, Block::OAK_SAPLING)
     # The crop stands out of reach of the tree's leaves, on top of its column.
     cy = @world.height_at(x + 4, z)
     set_block(x + 4, cy - 1, z, Block::DIRT)
     set_block(x + 4, cy, z, Block::SEEDS)
     grow_plants(1200.0)
-    check("a sapling grows into a tree", @world.get(x, y, z) == Block::LOG && @world.get(x, y + 3, z) == Block::LOG)
+    check("a sapling grows into a tree", @world.get(x, y, z) == Block::OAK_LOG && @world.get(x, y + 3, z) == Block::OAK_LOG)
     check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)
     set_block(x + 4, cy, z, Block::AIR)
   end

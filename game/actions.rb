@@ -313,9 +313,9 @@ class Game
     return M_SNOW if b == Block::SNOW
     return M_CLOTH if b == Block::WOOL
     return M_WOOD if b == Block::TORCH || b == Block::CACTUS
-    return M_LEAVES if b == Block::LEAVES || Block.plant?(b)
+    return M_LEAVES if b == Block::OAK_LEAVES || Block.plant?(b)
     return M_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::BEDROCK || b == Block::FURNACE
-    return M_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
+    return M_WOOD if b == Block::OAK_LOG || b == Block::OAK_PLANKS || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
     M_DIRT
   end
 
@@ -341,9 +341,9 @@ class Game
   # ripe wheat 1 or 2 seeds.
   def drop_extra(b, x, y, z)
     r = @rng.rand01
-    if b == Block::LEAVES
+    if b == Block::OAK_LEAVES
       if r < 0.1
-        drop_from_block(Block::SAPLING, 1, x, y, z)
+        drop_from_block(Block::OAK_SAPLING, 1, x, y, z)
       elsif r < 0.15
         drop_from_block(Block::APPLE, 1, x, y, z)
       end

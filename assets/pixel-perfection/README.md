@@ -23,10 +23,10 @@ These files are copies with no changes.
 | `dirt.png`, `stone.png`, `sand.png`, `gravel.png` | `default_dirt.png`, `default_stone.png`, `default_sand.png`, `default_gravel.png` |
 | `snow.png`, `snow_side.png`, `bedrock.png` | `default_snow.png`, `mcl_core_grass_side_snowed.png`, `mcl_core_bedrock.png` |
 | `coal.png`, `iron.png`, `diamond.png` | `mcl_core_coal_ore.png`, `mcl_core_iron_ore.png`, `mcl_core_diamond_ore.png` |
-| `log_side.png`, `log_top.png`, `planks.png` | `default_tree.png`, `default_tree_top.png`, `default_wood.png` |
+| `oak_log_side.png`, `oak_log_top.png`, `oak_planks.png` | `default_tree.png`, `default_tree_top.png`, `default_wood.png` |
 | `cobble.png`, `brick.png`, `glass.png`, `wool.png` | `default_cobble.png`, `default_brick.png`, `default_glass.png`, `wool_white.png` |
 | `cactus_side.png`, `cactus_top.png` | `mcl_core_cactus_side.png`, `mcl_core_cactus_top.png` |
-| `rose.png`, `dandelion.png`, `sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
+| `rose.png`, `dandelion.png`, `oak_sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
 | `seeds.png`, `wheat_1.png`, `wheat_2.png`, `wheat_ripe.png` | `mcl_farming_wheat_stage_1.png`, `mcl_farming_wheat_stage_3.png`, `mcl_farming_wheat_stage_5.png`, `mcl_farming_wheat_stage_7.png` |
 | `craft_top.png`, `craft_side.png` | `crafting_workbench_top.png`, `crafting_workbench_front.png` (VoxeLibre has no other side for the crafting table) |
 | `door_lower.png`, `door_upper.png`, `door_item.png` | `mcl_doors_door_wood_lower.png`, `mcl_doors_door_wood_upper.png`, `doors_item_wood.png` |
@@ -59,7 +59,7 @@ In Minecraft, grass, leaves and water are gray, and the biome gives them their c
 | `grass_top.png` | `mcl_core_grass_block_top.png` with the grass tint |
 | `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. |
 | `tall_grass.png` | `mcl_flowers_tallgrass.png` with the grass tint |
-| `leaves.png` | `default_leaves.png` with the foliage tint |
+| `oak_leaves.png` | `default_leaves.png` with the foliage tint |
 | `water.png` | The first frame of `mcl_core_water_source_animation.png` with the water tint. The alpha is 170 at most. |
 | `lava.png` | The first frame of `mcl_core_lava_source_animation.png` |
 

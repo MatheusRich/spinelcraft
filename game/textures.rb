@@ -7,10 +7,10 @@ module Tex
   STONE = 4
   SAND = 5
   WATER = 6
-  LOG_SIDE = 7
-  LOG_TOP = 8
-  LEAVES = 9
-  PLANKS = 10
+  OAK_LOG_SIDE = 7
+  OAK_LOG_TOP = 8
+  OAK_LEAVES = 9
+  OAK_PLANKS = 10
   COBBLE = 11
   GLASS = 12
   SNOW = 13
@@ -52,7 +52,7 @@ module Tex
   RAIN = 53
   DOOR_LOWER = 54
   DOOR_UPPER = 55
-  SAPLING = 56
+  OAK_SAPLING = 56
   APPLE = 57
   WOOD_SWORD = 58
   STONE_SWORD = 59
@@ -150,18 +150,18 @@ module Tex
 
   # The layers that come from the images in assets/pixel-perfection, and the
   # name of each image, in the same order.
-  IMAGE_LAYERS = [GRASS_TOP, GRASS_SIDE, DIRT, STONE, SAND, WATER, LOG_SIDE, LOG_TOP, LEAVES, PLANKS, COBBLE, GLASS,
+  IMAGE_LAYERS = [GRASS_TOP, GRASS_SIDE, DIRT, STONE, SAND, WATER, OAK_LOG_SIDE, OAK_LOG_TOP, OAK_LEAVES, OAK_PLANKS, COBBLE, GLASS,
                   SNOW, SNOW_SIDE, BEDROCK, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS_SIDE, CACTUS_TOP, TALL_GRASS,
                   ROSE, DANDELION, TORCH, PORKCHOP, WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, BOW, ARROW, LAVA,
-                  WOOL, FIRE, SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
+                  WOOL, FIRE, OAK_SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
                   COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL,
                   DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
                   BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP,
                   DOOR_LOWER, DOOR_UPPER, DOOR_ITEM, CHEST_TOP, CHEST_SIDE, CHEST_FRONT, BED_TOP, BED_HEAD_TOP,
                   BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH]
-  IMAGE_FILES = %w[grass_top grass_side dirt stone sand water log_side log_top leaves planks cobble glass snow
+  IMAGE_FILES = %w[grass_top grass_side dirt stone sand water oak_log_side oak_log_top oak_leaves oak_planks cobble glass snow
                    snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
-                   torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire sapling apple
+                   torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire oak_sapling apple
                    wood_sword stone_sword iron_sword diamond_sword iron_ingot furnace cooked_porkchop wood_axe
                    stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
                    wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket
@@ -223,7 +223,7 @@ module Tex
     font(px)
     cracks(px)
     images(px)
-    bleed(px, LEAVES)
+    bleed(px, OAK_LEAVES)
     bleed(px, GLASS)
     bleed(px, TALL_GRASS)
     bleed(px, ROSE)
@@ -231,7 +231,7 @@ module Tex
     bleed(px, FIRE)
     bleed(px, PUFF)
     bleed(px, RAIN)
-    bleed(px, SAPLING)
+    bleed(px, OAK_SAPLING)
     bleed(px, SEEDS)
     bleed(px, WHEAT_1)
     bleed(px, WHEAT_2)

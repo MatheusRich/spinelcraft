@@ -753,7 +753,7 @@ class World
         while dz <= radius
           corner = dx.abs == radius && dz.abs == radius
           skip = corner && (ly == top + 1 || Noise.hash3(x + dx, ly, z + dz, 24) < 32000)
-          put(x + dx, ly, z + dz, Block::LEAVES, x0, z0) if !skip && air_in?(x + dx, ly, z + dz, x0, z0)
+          put(x + dx, ly, z + dz, Block::OAK_LEAVES, x0, z0) if !skip && air_in?(x + dx, ly, z + dz, x0, z0)
           dz += 1
         end
         dx += 1
@@ -797,7 +797,7 @@ class World
         dz = -radius
         while dz <= radius
           skip = dx.abs == radius && dz.abs == radius && Noise.hash3(x + dx, y + ly, z + dz, 24) < 32768
-          put(x + dx, y + ly, z + dz, Block::LEAVES, x0, z0) if !skip && air_in?(x + dx, y + ly, z + dz, x0, z0)
+          put(x + dx, y + ly, z + dz, Block::OAK_LEAVES, x0, z0) if !skip && air_in?(x + dx, y + ly, z + dz, x0, z0)
           dz += 1
         end
         dx += 1
@@ -836,7 +836,7 @@ class World
       while l < 5
         bx = (1.5 + Math.cos(angle) * l).to_i
         bz = (1.5 + Math.sin(angle) * l).to_i
-        put(x + bx, y + i - 3 + l / 2, z + bz, Block::LOG, x0, z0)
+        put(x + bx, y + i - 3 + l / 2, z + bz, Block::OAK_LOG, x0, z0)
         l += 1
       end
       b = Noise.hash3(x, y + i, z, 30)
@@ -863,7 +863,7 @@ class World
           ax = (dx - 1).abs if wide && dx > 0
           az = (dz - 1).abs if wide && dz > 0
           if ax + az < 7 && ax * ax + az * az <= reach * reach && air_in?(x + dx, y - i, z + dz, x0, z0)
-            put(x + dx, y - i, z + dz, Block::LEAVES, x0, z0)
+            put(x + dx, y - i, z + dz, Block::OAK_LEAVES, x0, z0)
           end
           dz += 1
         end
@@ -931,7 +931,7 @@ class World
   def logs(x, y, z, tall, x0, z0)
     i = 0
     while i < tall
-      put(x, y + i, z, Block::LOG, x0, z0)
+      put(x, y + i, z, Block::OAK_LOG, x0, z0)
       i += 1
     end
     put(x, y - 1, z, Block::DIRT, x0, z0)
@@ -945,7 +945,7 @@ class World
       dz = -r
       while dz <= r
         if (dx.abs < r || dz.abs < r || r == 0) && air_in?(x + dx, y, z + dz, x0, z0)
-          put(x + dx, y, z + dz, Block::LEAVES, x0, z0)
+          put(x + dx, y, z + dz, Block::OAK_LEAVES, x0, z0)
         end
         dz += 1
       end
@@ -1009,7 +1009,7 @@ class World
     i = 0
     while i <= steps
       t = steps == 0 ? 0.0 : i.to_f / steps
-      put(sx + (0.5 + t * dx).floor, sy + (0.5 + t * dy).floor, sz + (0.5 + t * dz).floor, Block::LOG, x0, z0)
+      put(sx + (0.5 + t * dx).floor, sy + (0.5 + t * dy).floor, sz + (0.5 + t * dz).floor, Block::OAK_LOG, x0, z0)
       i += 1
     end
   end
@@ -1029,7 +1029,7 @@ class World
           ax = dx.abs + 0.5
           az = dz.abs + 0.5
           if ax * ax + az * az <= r * r && air_in?(x + dx, y + ly, z + dz, x0, z0)
-            put(x + dx, y + ly, z + dz, Block::LEAVES, x0, z0)
+            put(x + dx, y + ly, z + dz, Block::OAK_LEAVES, x0, z0)
           end
           dz += 1
         end
@@ -1062,7 +1062,7 @@ class World
         tz += Block::DIR_DZ[dir]
         lean -= 1
       end
-      put(tx, y + i, tz, Block::LOG, x0, z0)
+      put(tx, y + i, tz, Block::OAK_LOG, x0, z0)
       i += 1
     end
     put(x, y - 1, z, Block::DIRT, x0, z0)
@@ -1078,7 +1078,7 @@ class World
         if i >= 1
           bx += Block::DIR_DX[side]
           bz += Block::DIR_DZ[side]
-          put(bx, y + i, bz, Block::LOG, x0, z0)
+          put(bx, y + i, bz, Block::OAK_LOG, x0, z0)
           top = y + i
         end
         i += 1
@@ -1102,7 +1102,7 @@ class World
         ax = dx.abs
         az = dz.abs
         if ((ax <= 1 && az <= 1) || ax + az < reach) && air_in?(x + dx, y + 1, z + dz, x0, z0)
-          put(x + dx, y + 1, z + dz, Block::LEAVES, x0, z0)
+          put(x + dx, y + 1, z + dz, Block::OAK_LEAVES, x0, z0)
         end
         dz += 1
       end

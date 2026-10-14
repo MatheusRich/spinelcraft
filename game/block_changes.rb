@@ -57,8 +57,8 @@ class Game
       if @world.loaded?(x, z)
         y = @world.height_at(x, z)
         b = @world.get(x, y, z)
-        if (b == Block::SAPLING || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
-          b == Block::SAPLING ? grow_tree(x, y, z) : set_block(x, y, z, b + 1)
+        if (b == Block::OAK_SAPLING || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
+          b == Block::OAK_SAPLING ? grow_tree(x, y, z) : set_block(x, y, z, b + 1)
         end
       end
       n -= 1
@@ -85,7 +85,7 @@ class Game
         while dz <= radius
           corner = dx.abs == radius && dz.abs == radius
           skip = corner && (ly == top + 1 || @rng.rand01 < 0.5)
-          set_block(x + dx, ly, z + dz, Block::LEAVES) if !skip && @world.get(x + dx, ly, z + dz) == Block::AIR
+          set_block(x + dx, ly, z + dz, Block::OAK_LEAVES) if !skip && @world.get(x + dx, ly, z + dz) == Block::AIR
           dz += 1
         end
         dx += 1
@@ -94,7 +94,7 @@ class Game
     end
     i = 0
     while i < tall
-      set_block(x, y + i, z, Block::LOG)
+      set_block(x, y + i, z, Block::OAK_LOG)
       i += 1
     end
     set_block(x, y - 1, z, Block::DIRT) if @world.get(x, y - 1, z) == Block::GRASS

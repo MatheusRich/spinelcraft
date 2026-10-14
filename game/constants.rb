@@ -1,14 +1,14 @@
 # Game constants that more than one file uses. main.rb requires this file
 # first, so each constant has its value before any method reads it.
 class Game
-  HOTBAR_START = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::PLANKS,
-                  Block::LOG, Block::GLASS, Block::BRICK, Block::TORCH]
+  HOTBAR_START = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::OAK_PLANKS,
+                  Block::OAK_LOG, Block::GLASS, Block::BRICK, Block::TORCH]
   # The creative inventory screen: the blocks, then the items.
-  CREATIVE_ITEMS = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::PLANKS, Block::LOG,
-                    Block::LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
+  CREATIVE_ITEMS = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::OAK_PLANKS, Block::OAK_LOG,
+                    Block::OAK_LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
                     Block::SNOW_GRASS, Block::CACTUS, Block::COAL, Block::IRON, Block::DIAMOND, Block::WATER,
                     Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
-                    Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::SAPLING,
+                    Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::OAK_SAPLING,
                     Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER,
                     Block::WOOD_SWORD, Block::STONE_SWORD, Block::IRON_SWORD, Block::DIAMOND_SWORD,
                     Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK,
@@ -111,19 +111,19 @@ class Game
   # pairs of one material, so that each kind of tool is a column: the
   # pickaxes and then the axes at the left, the swords and then the
   # shovels at the right.
-  RECIPES = [[Block::PLANKS, 3, Block::WOOD_PICK, 1, AT_TABLE], [Block::PLANKS, 2, Block::WOOD_SWORD, 1, AT_TABLE],
+  RECIPES = [[Block::OAK_PLANKS, 3, Block::WOOD_PICK, 1, AT_TABLE], [Block::OAK_PLANKS, 2, Block::WOOD_SWORD, 1, AT_TABLE],
              [Block::COBBLE, 3, Block::STONE_PICK, 1, AT_TABLE], [Block::COBBLE, 2, Block::STONE_SWORD, 1, AT_TABLE],
              [Block::IRON_INGOT, 3, Block::IRON_PICK, 1, AT_TABLE], [Block::IRON_INGOT, 2, Block::IRON_SWORD, 1, AT_TABLE],
              [Block::DIAMOND, 3, Block::DIAMOND_PICK, 1, AT_TABLE], [Block::DIAMOND, 2, Block::DIAMOND_SWORD, 1, AT_TABLE],
-             [Block::PLANKS, 3, Block::WOOD_AXE, 1, AT_TABLE], [Block::PLANKS, 1, Block::WOOD_SHOVEL, 1, AT_TABLE],
+             [Block::OAK_PLANKS, 3, Block::WOOD_AXE, 1, AT_TABLE], [Block::OAK_PLANKS, 1, Block::WOOD_SHOVEL, 1, AT_TABLE],
              [Block::COBBLE, 3, Block::STONE_AXE, 1, AT_TABLE], [Block::COBBLE, 1, Block::STONE_SHOVEL, 1, AT_TABLE],
              [Block::IRON_INGOT, 3, Block::IRON_AXE, 1, AT_TABLE], [Block::IRON_INGOT, 1, Block::IRON_SHOVEL, 1, AT_TABLE],
              [Block::DIAMOND, 3, Block::DIAMOND_AXE, 1, AT_TABLE], [Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, AT_TABLE],
-             [Block::LOG, 1, Block::PLANKS, 4, BY_HAND], [Block::COAL, 1, Block::TORCH, 4, BY_HAND],
-             [Block::PLANKS, 4, Block::CRAFTING_TABLE, 1, BY_HAND], [Block::GRAVEL, 1, Block::ARROW, 4, AT_TABLE],
+             [Block::OAK_LOG, 1, Block::OAK_PLANKS, 4, BY_HAND], [Block::COAL, 1, Block::TORCH, 4, BY_HAND],
+             [Block::OAK_PLANKS, 4, Block::CRAFTING_TABLE, 1, BY_HAND], [Block::GRAVEL, 1, Block::ARROW, 4, AT_TABLE],
              [Block::STONE, 2, Block::BRICK, 1, AT_TABLE], [Block::WOOL, 3, Block::BED, 1, AT_TABLE],
-             [Block::PLANKS, 5, Block::BOW, 1, AT_TABLE], [Block::PLANKS, 8, Block::CHEST, 1, AT_TABLE],
-             [Block::PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::PLANKS, 3, Block::LADDER, 4, AT_TABLE],
+             [Block::OAK_PLANKS, 5, Block::BOW, 1, AT_TABLE], [Block::OAK_PLANKS, 8, Block::CHEST, 1, AT_TABLE],
+             [Block::OAK_PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::OAK_PLANKS, 3, Block::LADDER, 4, AT_TABLE],
              [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE], [Block::IRON_INGOT, 3, Block::BUCKET, 1, AT_TABLE],
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
