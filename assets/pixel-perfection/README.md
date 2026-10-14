@@ -37,7 +37,7 @@ These files are copies with no changes.
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
 | `rotten_flesh.png` | `mcl_mobitems_rotten_flesh.png` |
 | `mutton.png`, `cooked_mutton.png` | `mcl_mobitems_mutton_raw.png`, `mcl_mobitems_mutton_cooked.png` |
-| `hunger.png`, `hunger_empty.png` | `hbhunger_icon.png`, `hbhunger_bgicon.png` (9x9, as the HUD icons of Minecraft) |
+| `hunger.png`, `hunger_empty.png`, `hunger_effect.png` | `hbhunger_icon.png`, `hbhunger_bgicon.png`, `mcl_hunger_icon_foodpoison.png` (9x9, as the HUD icons of Minecraft) |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 
 ## Mob skins

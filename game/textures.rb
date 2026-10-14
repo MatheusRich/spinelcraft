@@ -97,10 +97,12 @@ module Tex
   ROTTEN_FLESH = 96
   MUTTON = 97
   COOKED_MUTTON = 98
-  # The full and the empty food icon of the HUD (see ICON_LAYERS).
+  # The full and the empty food icon of the HUD, and the full icon while
+  # the Hunger effect lasts (see ICON_LAYERS).
   HUNGER = 99
   HUNGER_EMPTY = 100
-  FONT = 101
+  HUNGER_EFFECT = 101
+  FONT = 102
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -177,8 +179,8 @@ module Tex
 
   # The HUD icons are 9 x 9 images, as in Minecraft. Each one fills the top
   # left corner of its layer, so the HUD draws ICON_PART of the layer.
-  ICON_LAYERS = [HUNGER, HUNGER_EMPTY]
-  ICON_FILES = %w[hunger hunger_empty]
+  ICON_LAYERS = [HUNGER, HUNGER_EMPTY, HUNGER_EFFECT]
+  ICON_FILES = %w[hunger hunger_empty hunger_effect]
   ICON_SIZE = 9
   ICON_PART = ICON_SIZE / 16.0
 
