@@ -343,6 +343,74 @@ class Game
     end
   end
 
+  # A right-click with an empty hand takes half the stack; a tool goes
+  # whole. With a stack in the hand, it puts one item into an empty cell or
+  # onto the same kind, and it swaps otherwise.
+  def split_cell(blocks, counts, i)
+    b = blocks[i]
+    n = counts[i]
+    if @held_count == 0
+      return if n == 0
+      take = Block.tool?(b) ? n : (n + 1) / 2
+      @held_block = b
+      @held_count = take
+      counts[i] -= take
+      blocks[i] = Block::AIR if counts[i] == 0
+    elsif Block.tool?(@held_block) || (n > 0 && b != @held_block)
+      click_cell(blocks, counts, i)
+    elsif n < STACK
+      blocks[i] = @held_block
+      counts[i] += 1
+      @held_count -= 1
+      @held_block = Block::AIR if @held_count == 0
+    end
+  end
+
+  # A Shift-click on inventory slot i moves the stack into the open chest,
+  # or else between the hotbar and the backpack.
+  def quick_move_slot(i)
+    return if @inv_count[i] == 0 || @held_count > 0
+    if @chest_key >= 0
+      move_stack(@inv_block, @inv_count, i, @chest_block, @chest_count, 0, CHEST_SLOTS)
+    elsif i < HOTBAR
+      move_stack(@inv_block, @inv_count, i, @inv_block, @inv_count, HOTBAR, INV)
+    else
+      move_stack(@inv_block, @inv_count, i, @inv_block, @inv_count, 0, HOTBAR)
+    end
+  end
+
+  # A Shift-click on chest cell k moves the stack into the inventory.
+  def quick_move_chest(k)
+    return if @chest_count[k] == 0 || @held_count > 0
+    move_stack(@chest_block, @chest_count, k, @inv_block, @inv_count, 0, INV)
+  end
+
+  # Moves the stack in cell i of from into the cells lo...hi of to: onto
+  # stacks of the same kind first, then into empty cells. What does not fit
+  # stays in cell i.
+  def move_stack(from_blocks, from_counts, i, to_blocks, to_counts, lo, hi)
+    b = from_blocks[i]
+    # A tool never stacks, so it only goes into an empty cell.
+    pass = Block.tool?(b) ? 1 : 0
+    while pass < 2 && from_counts[i] > 0
+      k = lo
+      while k < hi && from_counts[i] > 0
+        if pass == 0 && to_blocks[k] == b && to_counts[k] > 0 && to_counts[k] < STACK
+          moved = [STACK - to_counts[k], from_counts[i]].min
+          to_counts[k] += moved
+          from_counts[i] -= moved
+        elsif pass == 1 && to_counts[k] == 0
+          to_blocks[k] = b
+          to_counts[k] = from_counts[i]
+          from_counts[i] = 0
+        end
+        k += 1
+      end
+      pass += 1
+    end
+    from_blocks[i] = Block::AIR if from_counts[i] == 0
+  end
+
   # Chest cell k, in the place of the recipe list: x, y, size.
   def chest_cell(k, w, h, s)
     first = recipe_cell(0, w, h, s)
@@ -449,16 +517,34 @@ class Game
       return
     end
     select_slot
-    if @survival && Gfx.in_button_pressed(1)
+    left = Gfx.in_button_pressed(1)
+    if @survival && (left || Gfx.in_button_pressed(3))
       w = Gfx.gfx_width.to_f
       h = Gfx.gfx_height.to_f
       s = inventory_scale(w, h)
+      shift = left && Gfx.in_key(Key::LSHIFT)
       hover = pack_hover(w, h, s)
-      click_slot(hover) if hover >= 0
+      if hover >= 0
+        if shift
+          quick_move_slot(hover)
+        elsif left
+          click_slot(hover)
+        else
+          split_cell(@inv_block, @inv_count, hover)
+        end
+      end
       if @chest_key >= 0
         cell = chest_hover(w, h, s)
-        click_cell(@chest_block, @chest_count, cell) if cell >= 0
-      else
+        if cell >= 0
+          if shift
+            quick_move_chest(cell)
+          elsif left
+            click_cell(@chest_block, @chest_count, cell)
+          else
+            split_cell(@chest_block, @chest_count, cell)
+          end
+        end
+      elsif left
         recipe = recipe_hover(w, h, s)
         craft_recipe(recipe) if recipe >= 0 && @held_count == 0
       end

@@ -53,6 +53,8 @@ The game saves to `world.sav` in the current directory when you quit, when you p
 | Esc | Pause and release the mouse |
 | N (while paused) | New world from a random seed |
 
+In the survival inventory, a click picks up or puts down a stack. A right-click picks up half a stack, or puts down one item of the stack in your hand. A Shift-click moves a stack between the inventory and an open chest, or else between the hotbar and the backpack.
+
 To craft in survival, open the inventory (E) and click a recipe. A right-click on a crafting table or a furnace also opens it. The list shows a recipe only after you have had its ingredient. A message tells you about each new recipe, and the list tags it NEW until you close the inventory. By hand you can make only these:
 
 - 1 log gives 4 planks.
@@ -205,7 +207,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 80 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 82 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

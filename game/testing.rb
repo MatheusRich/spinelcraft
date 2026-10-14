@@ -114,6 +114,7 @@ class Game
     test_crafting_limits
     test_inventory_layout
     test_seen_recipes
+    test_split_and_quick_move
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
     test_chests(cx, cz)
@@ -482,6 +483,47 @@ class Game
     keep_bad_save
     check("a save that does not load moves aside", !ok && !File.exist?(SAVE_PATH) && File.exist?(BAD_SAVE_PATH))
     File.delete(BAD_SAVE_PATH) if File.exist?(BAD_SAVE_PATH)
+  end
+
+  # A right-click takes half a stack or puts down one item. A Shift-click
+  # moves a stack between the hotbar and the backpack, or between the
+  # inventory and an open chest.
+  def test_split_and_quick_move
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    @held_count = 0
+    @held_block = Block::AIR
+    @inv_block[5] = Block::DIRT
+    @inv_count[5] = 7
+    split_cell(@inv_block, @inv_count, 5)
+    half = @held_count == 4 && @inv_count[5] == 3
+    split_cell(@inv_block, @inv_count, 6)
+    split_cell(@inv_block, @inv_count, 6)
+    split_cell(@inv_block, @inv_count, 5)
+    one = @inv_count[6] == 2 && @inv_count[5] == 4 && @held_count == 1
+    return_held
+    check("a right-click takes half a stack and puts down one item", half && one && @inv_count[5] == 5)
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    @inv_block[0] = Block::DIRT
+    @inv_count[0] = 10
+    @inv_block[HOTBAR] = Block::DIRT
+    @inv_count[HOTBAR] = 60
+    quick_move_slot(0)
+    pack = @inv_count[0] == 0 && @inv_count[HOTBAR] == 64 && @inv_block[HOTBAR + 1] == Block::DIRT && @inv_count[HOTBAR + 1] == 6
+    @chest_key = 0
+    @chest_block.fill(0)
+    @chest_count.fill(0)
+    quick_move_slot(HOTBAR + 1)
+    into_chest = @inv_count[HOTBAR + 1] == 0 && @chest_block[0] == Block::DIRT && @chest_count[0] == 6
+    quick_move_chest(0)
+    out_of_chest = @chest_count[0] == 0 && count_items(Block::DIRT) == 70
+    @chest_key = -1
+    @chest_block.fill(0)
+    @chest_count.fill(0)
+    check("a Shift-click moves a stack to the other side", pack && into_chest && out_of_chest)
+    @inv_block.fill(0)
+    @inv_count.fill(0)
   end
 
   # The recipe list shows a recipe once the player has had its ingredient.
