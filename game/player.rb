@@ -64,6 +64,13 @@ class Player
   # Speeds on a ladder, in blocks per second.
   CLIMB = 3.0
   SLIDE = 2.0
+  # The jump speed. With the gravity of 28 and the step of 0.02 seconds,
+  # it lifts the feet 1.2522 blocks. minecraft.wiki/w/Jumping
+  JUMP = 8.1
+  # The forward push of a sprint-jump. Sprint-jumps on flat ground then
+  # move at 7.127 m/s on average. minecraft.wiki/w/Sprinting gives that
+  # average, but not the push, so the push is tuned to the average.
+  SPRINT_JUMP_PUSH = 3.7
 
   # Moves the player for one step of dt seconds and returns the fall
   # distance when it lands (0.0 otherwise).
@@ -109,7 +116,14 @@ class Player
     else
       @vy -= 28.0 * dt
       @jumped = jump && @on_ground
-      @vy = 8.6 if @jumped
+      if @jumped
+        @vy = JUMP
+        # A sprint-jump pushes the player forward.
+        if sprint
+          @vx += sy * SPRINT_JUMP_PUSH
+          @vz -= cy * SPRINT_JUMP_PUSH
+        end
+      end
       @vy = -55.0 if @vy < -55.0
     end
     was_ground = @on_ground

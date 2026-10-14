@@ -286,7 +286,48 @@ class Game
     test_block_sounds
     test_lava_swim
     test_eat_slowdown
+    test_jump
     test_cave_sound
+  end
+
+  # A jump lifts the feet 1.2522 blocks, and sprint-jumps move faster than
+  # a sprint, at 7.127 m/s on average.
+  def test_jump
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    yaw = @player.yaw
+    flying = @player.flying
+    x = px.floor
+    z = pz.floor
+    y = WY - 4
+    (0..40).each { |d| set_block(x, y, z - d, Block::STONE) }
+    @player.flying = false
+    @player.yaw = 0.0
+    @player.x = x + 0.5
+    @player.y = y + 1.0
+    @player.z = z + 0.5
+    @player.vx = 0.0
+    @player.vz = 0.0
+    top = 0.0
+    50.times do
+      @player.update(@world, 0.02, 0.0, 0.0, true, false, false)
+      top = @player.y if @player.y > top
+    end
+    height = top - (y + 1.0)
+    @player.z = z + 0.5
+    25.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, true) }
+    z0 = @player.z
+    150.times { @player.update(@world, 0.02, 1.0, 0.0, true, false, true) }
+    speed = (z0 - @player.z) / 3.0
+    (0..40).each { |d| set_block(x, y, z - d, Block::AIR) }
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.yaw = yaw
+    @player.flying = flying
+    check("a jump lifts the feet 1.25 blocks, and sprint-jumps move at 7.1 m/s",
+          (height - 1.2522).abs < 0.01 && (speed - 7.127).abs < 0.15)
   end
 
   # A player who eats or draws the bow walks at sneaking speed.

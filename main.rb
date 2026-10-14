@@ -419,7 +419,8 @@ class Game
       end
       @w_sprint = false unless Gfx.in_key(Key::W)
       sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
-      sprint = false if (@survival && !@vitals.can_sprint?) || using_item?
+      # The player sprints only forward. The wiki does not confirm this.
+      sprint = false if fwd <= 0.0 || (@survival && !@vitals.can_sprint?) || using_item?
     end
     if @autopilot
       @player.flying = true
