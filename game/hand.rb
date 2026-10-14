@@ -54,9 +54,10 @@ class Game
     elsif flat
       # item/generated: translation (1.13, 3.2, 1.13) / 16, rotation
       # (0, -90, 25) and scale 0.68. The texture of the sprite goes along -x,
-      # not +x as in Minecraft, so the roll has the other sign.
+      # not +x as in Minecraft, so the roll has the other sign. The item is
+      # 0.08 higher than in Minecraft, so the guard of a sword shows.
       ox = 0.56 + 1.13 / 16.0
-      oy = -0.52 + 3.2 / 16.0
+      oy = -0.52 + 3.2 / 16.0 + 0.08
       oz = -0.72 + 1.13 / 16.0
       yaw = -Math::PI / 2.0
       pitch = 0.0
