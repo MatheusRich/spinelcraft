@@ -26,94 +26,36 @@ You need macOS, SDL3 (`brew install sdl3`) and a built Spinel compiler.
 
 `build.sh` uses `$SPINEL` if you set it. Otherwise it uses `spinel` from `PATH`, and then `~/Documents/dev/oss/spinel/spinel`. Use a recent Spinel.
 
-The game saves to `world.sav` in the current directory when you quit, when you press F5, and when it pauses after the world changed. It pauses when you press Esc or when the window loses focus. It loads `world.sav` at start. To get a new world, delete the file or start with `NEW=1`. If `world.sav` exists but does not load, the game renames it to `world-bad.sav` and starts a new world, so the next save does not replace the old one. The save keeps only the chunks that you changed, because the generator makes the same blocks again for every other chunk. It also keeps the items on the ground and the weather.
+The game saves to `world.sav` in the current directory and loads it at start. To get a new world, delete the file or start with `NEW=1`.
 
 ## Controls
 
 | Key | Action |
 | --- | --- |
 | WASD, mouse | Move, look |
-| Space | Jump; swim up; fly up |
-| Left Shift | Sneak (slow, never falls off an edge); fly down |
+| Space | Jump, swim up, fly up |
+| Left Shift | Sneak, fly down |
 | Left Ctrl, double-tap W | Sprint |
-| Left click | Break a block (hold in survival), attack a mob |
-| Right click | Place the selected block; open or close a door; use a bed; open a chest (survival); eat food (survival); hold to draw a bow, release to shoot |
-| Middle click | Pick the block you look at (creative) |
+| Left click | Break a block, attack |
+| Right click | Place a block, use an item or a block |
 | 1–9, wheel | Select a hotbar slot |
-| E | Inventory: all blocks in creative; the 36-slot backpack in survival (click to move stacks) |
-| Q | Next block in the slot (creative); throw one item of the selected stack (survival) |
-| F | Fly on or off (creative) |
+| E | Inventory and crafting |
+| F | Fly (creative) |
 | G | Switch between creative and survival |
-| T | Skip six hours |
-| R | Start or stop the rain (creative) |
 | F3 | Debug text |
-| F4 | View distance: 200 (full detail only, the fastest), 800, 1600 (the default) or 5000 blocks |
+| F4 | View distance |
 | F5 | Save |
-| F11 | Fullscreen |
-| Esc | Pause and release the mouse |
-| N (while paused) | New world from a random seed |
+| Esc | Pause |
 
-In the survival inventory, a click picks up or puts down a stack. A right-click picks up half a stack, or puts down one item of the stack in your hand. A Shift-click moves a stack between the inventory and an open chest, or else between the hotbar and the backpack.
-
-To craft in survival, open the inventory (E) and click a recipe. A right-click on a crafting table or a furnace also opens it. The list shows a recipe only after you have had its ingredient. A message tells you about each new recipe, and the list tags it NEW until you close the inventory. By hand you can make only these:
-
-- 1 log gives 4 planks.
-- 1 coal gives 4 torches.
-- 4 planks give a crafting table.
-
-These recipes need a crafting table within 4 blocks:
-
-- 1 gravel gives 4 arrows.
-- 2 stone give 1 brick.
-- 3 wool give a bed. A bed is two blocks long, and its head goes the way you look.
-- 5 planks give a bow.
-- 6 planks give 3 doors.
-- 3 planks give 4 ladders.
-- 8 planks give a chest.
-- 3 wheat give a loaf of bread.
-- 3 iron ingots give a bucket. A right-click with it takes a water or lava source, and a right-click with a full bucket pours it out.
-- 8 cobblestone give a furnace.
-- 3 planks, cobblestone, iron ingots or diamond ore give a wooden, stone, iron or diamond pickaxe.
-- 2 planks, cobblestone, iron ingots or diamond ore give a wooden, stone, iron or diamond sword.
-- 4 planks, cobblestone, iron ingots or diamond ore give a wooden, stone, iron or diamond axe.
-- 1 plank, cobblestone, iron ingot or diamond ore gives a wooden, stone, iron or diamond shovel.
-
-These recipes need a furnace within 4 blocks and fuel:
-
-- 1 iron ore gives 1 iron ingot.
-- 1 porkchop gives 1 cooked porkchop.
-- 1 sand gives 1 glass.
-- 1 cobblestone gives 1 stone.
-
-A click on a recipe makes it once, and a Shift-click makes it as many times as your inventory allows. A smelt takes heat from the furnace. When the heat runs out, the furnace burns fuel from your inventory: a plank gives 1 smelt of heat, a log 2 and coal 8. It burns the weakest fuel that covers the smelts, or else the strongest fuel. The furnace keeps the heat that is left for later, and it loses the heat when you break it.
-
-Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the right tier. Iron ore needs a stone pickaxe or better, and diamond ore needs an iron one. A better pickaxe also mines faster. An axe chops wood, planks, chests, beds and doors faster, and a shovel digs grass, dirt, sand, gravel and snow faster. A better tier is faster. Tools wear out: a wooden, stone, iron or diamond tool breaks after 60, 130, 250 or 1560 uses, and a bow after 380 shots. A bar under the icon shows the uses that are left. Logs, dirt, sand and gravel need no tool, so start by punching a tree.
+In survival, start by punching a tree. The inventory shows a recipe after you have had its ingredient. Some recipes need a crafting table or a furnace near you.
 
 ## What is in it
 
-- An endless world, 96 blocks tall. Chunks of 16 × 16 columns generate as you move and unload behind you. Perlin noise makes continents, hills, ridged mountains, beaches, oceans, deserts with cactus, and snowy peaks. Caves are long tunnels. The world also has coal, iron and diamond ore, trees, tall grass and flowers.
-- 33 block types and 27 items with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
-- Ambient occlusion at each face corner, sky light from a height map, and warm torch light. Torch light spreads by flood fill, so walls stop it.
-- Sand and gravel fall when nothing holds them up. You see them drop, and they land on the first block below.
-- Lava fills the bottom of deep caves. It glows, flows up to 3 blocks, burns players and mobs, throws embers, and turns into cobblestone where water touches it.
-- Rain. Spells of rain come between dry spells. Rain grays the sky, hides the sun, the moon and the stars, dims the light, brings the fog nearer, and splashes on the ground. It stops at roofs, monsters do not burn in it, and it puts out fires under the open sky.
-- Fire. A mob that burns in daylight or lava gives off flames and smoke, and it burns on for a while after it leaves the sun or the lava. Lava sets you on fire for 4 seconds after you leave it, and flames show at the bottom of the view. Water puts out the fire. Torches flicker with small flames and smoke.
-- Water flows. A source spreads up to 7 blocks over solid ground, pours down slopes and drains when you remove the source. Place a water block in creative mode to start a stream.
-- A 10-minute day and night cycle with orange sunrises and sunsets, a sun, a moon, turning stars, drifting clouds, distance haze and fog.
-- A bow. A full one-second draw shoots far and hits hard. Skeletons drop arrows and sometimes a bow.
-- Pigs and sheep that wander. A sheep drops 2 wool, a white building block.
-- Monsters in the dark: at night under the open sky, and at any time in caves and under roofs. A torch or lava within 8 blocks stops them from spawning. Zombies chase you and hit you. Skeletons keep their distance and shoot arrows when they can see you. Creepers walk up to you, flash and explode, which removes blocks and hurts everything near them. In survival, about a third of the blocks that a blast removes drop as items. Zombies and skeletons burn in daylight, and creepers do not.
-- A survival mode with 10 hearts, a hunger bar, fall damage, drowning, regeneration, timed block breaking with growing cracks and a knock sound, stacks of 64, crafting, death and respawn. At death you drop your inventory where you died.
-- Items drop. A broken block, the loot of a mob and a thrown item fall to the ground, turn there, and go to your inventory when you walk over them. Items of one kind join into one stack. An item that does not fit stays on the ground. Lava burns items, and the game removes an item after 5 minutes.
-- Swords. A hand hits for 2 hearts, and a wooden, stone, iron or diamond sword hits for 3, 3.5, 4.5 or 5.5.
-- Doors, two blocks tall. Right-click opens or closes a door, and mobs cannot pass a closed door.
-- Farming. Tall grass sometimes drops seeds. Seeds that you plant under the open sky grow through two stages into ripe wheat, about a minute for each stage. Ripe wheat drops wheat and 1 or 2 seeds.
-- Saplings. Leaves sometimes drop a sapling. A sapling under the open sky grows into a tree in about a minute.
-- Chests that hold 27 stacks. Click to move stacks between the chest and your inventory. A broken chest drops what it held, and the save keeps chest contents.
-- Beds. Right-click a bed to set your spawn point there. At night, if no monster is within 10 blocks, the bed also skips to morning.
-- Food. A pig drops a porkchop, and leaves sometimes drop an apple. Right-click eats the selected food. A porkchop or an apple fills 2 of the 10 hunger icons, a loaf of bread fills 4, and a cooked porkchop fills 5. Hunger drains over time, and faster when you sprint. Health regenerates only while hunger is 15 or more, and an empty hunger bar hurts you down to half a heart.
-- Generated sound effects, block-break particles, view bobbing, and a wider field of view when you sprint.
-- The held block or item is a 3D model at the lower right of the view. It swings when you use it, and an empty hand shows the arm.
+- An endless generated world with hills, mountains, oceans, deserts, snow, caves, ores and trees.
+- A day and night cycle, rain, flowing water and lava, and torch light.
+- Creative and survival modes, with health, hunger, tools, crafting and smelting.
+- Animals, and monsters that come out in the dark.
+- A view distance of up to 5000 blocks.
 
 ## Layout
 
