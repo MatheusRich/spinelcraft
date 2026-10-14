@@ -43,7 +43,7 @@ class Game
     @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3)
     if Gfx.in_button_pressed(2) && @player.hit && !@survival
       picked = @world.get(@player.hx, @player.hy, @player.hz)
-      picked = Block::TORCH if Block.wall_torch?(picked)
+      picked = Block::BASE[picked]
       @hotbar[@slot] = picked if picked != Block::BEDROCK
       say(Block::NAMES[@hotbar[@slot]])
     end
@@ -159,7 +159,7 @@ class Game
       if @survival && @player.hit && @world.get(@player.hx, @player.hy, @player.hz) == Block::CHEST
         open_chest(@player.hx, @player.hy, @player.hz)
         return
-      elsif @survival && (target == Block::CRAFTING_TABLE || target == Block::FURNACE)
+      elsif @survival && (Block::BASE[target] == Block::CRAFTING_TABLE || Block::BASE[target] == Block::FURNACE)
         toggle_inventory
         return
       elsif Block.bed?(target)
@@ -301,6 +301,7 @@ class Game
   end
 
   def dig_sound(b)
+    b = Block::BASE[b]
     return Sfx::DIG_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::GLASS || b == Block::BEDROCK
     return Sfx::DIG_STONE if b == Block::FURNACE
     return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || Block.bed?(b) || Block.door?(b) || b == Block::CRAFTING_TABLE || b == Block::LADDER
@@ -373,13 +374,10 @@ class Game
     Block.solid?(below) && !Block.door?(below) && @world.get(x, y + 1, z) == Block::AIR && !Block.door?(@world.get(x, y + 2, z))
   end
 
-  # The four directions on the ground, for the two halves of a bed.
-  BED_DX = [1, -1, 0, 0]
-  BED_DZ = [0, 0, 1, -1]
-
-  # The direction from the foot of a new bed to its head: the direction on
-  # the ground that the player looks in most.
-  def bed_direction
+  # The direction on the ground that the player looks in most (see
+  # Block::DIR_DX). A new bed points its head this way, and a new furnace
+  # turns its front the other way, to the player.
+  def look_direction
     fx = @player.fx
     fz = @player.fz
     if fx.abs > fz.abs
@@ -399,8 +397,8 @@ class Game
     return false if @player.overlaps?(hx, y, hz) || mob_in?(hx, y, hz, 1)
     d = 0
     while d < 4
-      return false if Block.bed?(@world.get(x + BED_DX[d], y, z + BED_DZ[d]))
-      return false if Block.bed?(@world.get(hx + BED_DX[d], y, hz + BED_DZ[d]))
+      return false if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
+      return false if Block.bed?(@world.get(hx + Block::DIR_DX[d], y, hz + Block::DIR_DZ[d]))
       d += 1
     end
     true
@@ -410,7 +408,7 @@ class Game
   def bed_partner(x, y, z)
     d = 0
     while d < 4
-      return d if Block.bed?(@world.get(x + BED_DX[d], y, z + BED_DZ[d]))
+      return d if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
       d += 1
     end
     -1
@@ -444,14 +442,17 @@ class Game
       z = @player.hz
     end
     return unless @world.inside?(x, y, z)
-    # A torch on the side of a block hangs on that block.
+    # A torch on the side of a block hangs on that block, and faces away from it.
     if b == Block::TORCH && y == @player.hy && (x != @player.hx || z != @player.hz)
-      b = Block::WALL_TORCH + (@player.hx > x ? 0 : (@player.hx < x ? 1 : (@player.hz > z ? 2 : 3)))
+      wall = @player.hx > x ? 0 : (@player.hx < x ? 1 : (@player.hz > z ? 2 : 3))
+      b = Block.facing_id(Block::TORCH, wall ^ 1)
+    elsif Block::FACING[b] >= 0
+      b = Block.facing_id(b, look_direction ^ 1)
     end
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
     if Block.plant?(b)
       held = if Block.wall_torch?(b)
-        @world.get(x + Block::WALL_DX[b - Block::WALL_TORCH], y, z + Block::WALL_DZ[b - Block::WALL_TORCH])
+        @world.get(x - Block::DIR_DX[Block::FACING[b]], y, z - Block::DIR_DZ[Block::FACING[b]])
       else
         @world.get(x, y - 1, z)
       end
@@ -467,9 +468,9 @@ class Game
       set_block(x, y + 1, z, b)
     end
     if b == Block::BED
-      d = bed_direction
-      return unless bed_fits?(x, y, z, x + BED_DX[d], z + BED_DZ[d])
-      set_block(x + BED_DX[d], y, z + BED_DZ[d], Block::BED_HEAD)
+      d = look_direction
+      return unless bed_fits?(x, y, z, x + Block::DIR_DX[d], z + Block::DIR_DZ[d])
+      set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::BED_HEAD)
     end
     set_block(x, y, z, b)
     play(Sfx::PLACE, 0.7)

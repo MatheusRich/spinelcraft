@@ -28,7 +28,8 @@ These files are copies with no changes.
 | `cactus_side.png`, `cactus_top.png` | `mcl_core_cactus_side.png`, `mcl_core_cactus_top.png` |
 | `rose.png`, `dandelion.png`, `sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
 | `seeds.png`, `wheat_1.png`, `wheat_2.png`, `wheat_ripe.png` | `mcl_farming_wheat_stage_1.png`, `mcl_farming_wheat_stage_3.png`, `mcl_farming_wheat_stage_5.png`, `mcl_farming_wheat_stage_7.png` |
-| `craft_top.png`, `craft_side.png`, `furnace.png` | `crafting_workbench_top.png`, `crafting_workbench_front.png`, `default_furnace_front.png` |
+| `craft_top.png`, `craft_side.png` | `crafting_workbench_top.png`, `crafting_workbench_front.png` (VoxeLibre has no other side for the crafting table) |
+| `furnace.png`, `furnace_side.png`, `furnace_top.png` | `default_furnace_front.png`, `default_furnace_side.png`, `default_furnace_top.png` |
 | `torch.png`, `ladder.png`, `fire.png` | `default_torch_on_floor.png`, `default_ladder.png`, `fire_basic_flame.png` |
 | `apple.png`, `bread.png`, `wheat.png` | `default_apple.png`, `farming_bread.png`, `farming_wheat_harvested.png` |
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |

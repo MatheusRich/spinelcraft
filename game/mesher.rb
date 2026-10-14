@@ -108,6 +108,8 @@ class Mesher
     top_tex = Block::TOP
     side_tex = Block::SIDE
     bottom_tex = Block::BOTTOM
+    front_tex = Block::FRONT
+    facing = Block::FACING
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     @tx.clear
@@ -164,8 +166,8 @@ class Mesher
             sky = y >= height[lx * WZ + lz] ? 1 : 0
             w1 = top_tex[id] | (255 << 8) | (sky << 17)
             w1 |= torch_light(x, y, z) << 19 if lit
-            # Bits 25-27 hold 1 + the wall direction of a wall torch.
-            w1 |= (id - Block::WALL_TORCH + 1) << 25 if Block.wall_torch?(id)
+            # Bits 25-27 hold 1 + the facing of a wall torch.
+            w1 |= (Block::FACING[id] + 1) << 25 if Block.wall_torch?(id)
             plants = @lists[6]
             f = 6
             while f < 10
@@ -175,6 +177,7 @@ class Mesher
             end
           elsif id != Block::AIR && (opaque[above] + opaque[below] + opaque[World.byte(blocks, i + py)] + opaque[World.byte(blocks, i - py)] + opaque[World.byte(blocks, i + dx)] + opaque[World.byte(blocks, i - dx)] < 6 || water_level[id] > 0)
             water = water_level[id] > 0
+            front = facing[id] >= 0 ? Block::DIR_FACE[facing[id]] : -1
             f = 0
             while f < 6
               nb = World.byte(blocks, i + @delta[f])
@@ -185,7 +188,7 @@ class Mesher
               end
               visible = false if f == 3 && y == 0
               if visible
-                tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : side_tex[id])
+                tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : (f == front ? front_tex[id] : side_tex[id]))
                 ny = y + (f == 2 ? 1 : (f == 3 ? -1 : 0))
                 sx = x + @nx[f]
                 sz = z + @nz[f]

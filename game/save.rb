@@ -50,7 +50,7 @@ class Game
     inv = (@inv.to_a + @hotbar + [@vitals.hunger, @vitals.saturation, @vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
-      f.write("SPINELCRAFT9 #{header} #{inv}\n")
+      f.write("SPINELCRAFT10 #{header} #{inv}\n")
       keys.each { |k| f.write(chunks[k]) }
     end
     @changed = false
@@ -67,7 +67,7 @@ class Game
     return false if nl.nil?
     f = data[0, nl].split(" ")
     return false if f.size <= F_CHESTS
-    return false unless f[0] == "SPINELCRAFT9"
+    return false unless f[0] == "SPINELCRAFT10"
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS

@@ -129,7 +129,7 @@ class Game
       while y <= py + STATION_REACH
         z = pz - STATION_REACH
         while z <= pz + STATION_REACH
-          if @world.get(x, y, z) == b
+          if Block::BASE[@world.get(x, y, z)] == b
             @station_key = World.key(x, y, z)
             return true
           end

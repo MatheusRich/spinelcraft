@@ -79,7 +79,7 @@ class Game
       @ui.rect(x, y0, size, size, 0.25, 0.25, 0.25, 0.9)
       slot_block = @survival ? @inv.block(i) : @hotbar[i]
       if slot_block != Block::AIR
-        @ui.icon(x + 5.0 * s, y0 + 5.0 * s, size - 10.0 * s, Block::SIDE[slot_block], 1.0)
+        @ui.icon(x + 5.0 * s, y0 + 5.0 * s, size - 10.0 * s, Block::FRONT[slot_block], 1.0)
         draw_count(slot_block, @inv.count(i), x, y0, size, 2.0 * s, s) if @survival
       end
       i += 1
@@ -172,7 +172,7 @@ class Game
       shade = i == hover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
       unless @inv.empty?(i)
-        @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::SIDE[@inv.block(i)], 1.0)
+        @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::FRONT[@inv.block(i)], 1.0)
         draw_count(@inv.block(i), @inv.count(i), c[0], c[1], c[2], 2.0 * s, s)
       end
       i += 1
@@ -189,7 +189,7 @@ class Game
     if @held_count > 0
       mx = Gfx.in_mouse_x
       my = Gfx.in_mouse_y
-      @ui.icon(mx - 20.0 * s, my - 20.0 * s, 40.0 * s, Block::SIDE[@held_block], 1.0)
+      @ui.icon(mx - 20.0 * s, my - 20.0 * s, 40.0 * s, Block::FRONT[@held_block], 1.0)
       draw_count(@held_block, @held_count, mx - 20.0 * s, my - 20.0 * s, 40.0 * s, 2.0 * s, s)
     end
   end
@@ -206,7 +206,7 @@ class Game
       shade = k == chover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
       unless @chest.empty?(k)
-        @ui.icon(c[0] + 3.0 * s, c[1] + 3.0 * s, c[2] - 6.0 * s, Block::SIDE[@chest.block(k)], 1.0)
+        @ui.icon(c[0] + 3.0 * s, c[1] + 3.0 * s, c[2] - 6.0 * s, Block::FRONT[@chest.block(k)], 1.0)
         draw_count(@chest.block(k), @chest.count(k), c[0], c[1], c[2], 1.5 * s, s)
       end
       k += 1
@@ -253,7 +253,7 @@ class Game
       fresh = @recipe_new[k] == 1
       @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)
       @ui.text(c[0] + c[2] - @ui.text_width("NEW", 1.5 * s) - 4.0 * s, c[1] + 3.0 * s, "NEW", 1.5 * s, 1.0, 0.85, 0.2, 1.0) if fresh
-      @ui.icon(c[0] + 2.0 * s, c[1] + 2.0 * s, 22.0 * s, Block::SIDE[r[2]], can ? 1.0 : 0.35)
+      @ui.icon(c[0] + 2.0 * s, c[1] + 2.0 * s, 22.0 * s, Block::FRONT[r[2]], can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
       @ui.text(c[0] + 30.0 * s, c[1] + 4.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.0 * s, bright, bright, bright, 1.0)
       need = "#{r[1]} #{Block::NAMES[r[0]]}#{r[4] == AT_FURNACE ? " + FURNACE" : (r[4] == AT_TABLE ? " + TABLE" : "")}"
@@ -277,7 +277,7 @@ class Game
       c = inventory_cell(i, w, h, s)
       shade = i == hover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::SIDE[PLACEABLE[i]], 1.0)
+      @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::FRONT[PLACEABLE[i]], 1.0)
       i += 1
     end
     label = hover >= 0 ? Block::NAMES[PLACEABLE[hover]] : "CLICK A BLOCK TO PUT IT IN THE SELECTED SLOT"

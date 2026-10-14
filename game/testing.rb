@@ -57,12 +57,13 @@ class Game
     set_block(bx - 2, y + 2, bz - 2, Block::DOOR)
     set_block(bx, y + 1, bz - 2, Block::DOOR_OPEN)
     set_block(bx, y + 2, bz - 2, Block::DOOR_OPEN)
-    set_block(bx + 2, y + 1, bz - 2, Block::FURNACE)
+    # The furnace faces the player.
+    set_block(bx + 2, y + 1, bz - 2, Block.facing_id(Block::FURNACE, 2))
     set_block(bx + 4, y + 1, bz - 2, Block::CRAFTING_TABLE)
     set_block(bx + 5, y + 1, bz - 2, Block::SAPLING)
     # Wall torches on the front of the furnace and on the side of the table.
-    set_block(bx + 2, y + 1, bz - 1, Block::WALL_TORCH + 3)
-    set_block(bx + 3, y + 1, bz - 2, Block::WALL_TORCH)
+    set_block(bx + 2, y + 1, bz - 1, Block.facing_id(Block::TORCH, 2))
+    set_block(bx + 3, y + 1, bz - 2, Block.facing_id(Block::TORCH, 1))
     set_block(bx + 1, y + 1, bz - 2, Block::LADDER)
     set_block(bx + 1, y + 2, bz - 2, Block::LADDER)
     [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |b, i|
@@ -240,10 +241,11 @@ class Game
     set_block(x, ground, z, Block::DIRT)
     # A wall torch on the -x side of a stone.
     set_block(x + 1, ground + 1, z, Block::STONE)
-    set_block(x, ground + 1, z, Block::WALL_TORCH)
+    wall_torch = Block.facing_id(Block::TORCH, 1)
+    set_block(x, ground + 1, z, wall_torch)
     check("wall torch is listed", torches.size == lights + 3)
     set_block(x, ground, z, Block::AIR)
-    check("breaking the block under a wall torch keeps it", @world.get(x, ground + 1, z) == Block::WALL_TORCH)
+    check("breaking the block under a wall torch keeps it", @world.get(x, ground + 1, z) == wall_torch)
     set_block(x, ground, z, Block::DIRT)
     set_block(x + 1, ground + 1, z, Block::AIR)
     check("breaking the block that holds a wall torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
@@ -1174,9 +1176,16 @@ class Game
     two = @world.get(x, g, z) == Block::BED && @world.get(x + 1, g, z) == Block::BED_HEAD && @inv.count(0) == 1
     set_block(x + 1, g, z, Block::AIR)
     gone = @world.get(x, g, z) == Block::AIR
+    @inv.clear
+    @inv.add(Block::FURNACE)
+    @player.raycast(@world)
+    place
+    furnace = @world.get(x, g, z)
+    set_block(x, g, z, Block::AIR)
     @survival = survival
     @inv.clear
     check("a bed takes two blocks along the view and breaks as a whole", blocked && two && gone)
+    check("a furnace turns its front to the player", furnace == Block.facing_id(Block::FURNACE, 1))
   end
 
   # The view ray hits a plant only in its small box, and goes on past it.

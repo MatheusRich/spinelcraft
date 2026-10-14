@@ -138,6 +138,10 @@ class Mesh3
     if Block.flat?(b)
       layer = Block::SIDE[b]
       frame_box(-0.5, -0.5, 0.0, 0.5, 0.5, 0.0, 16, layer, layer, layer, 1.0, 1.0, 1.0, 1.0)
+    elsif Block::FACING[b] >= 0
+      # The front is on the -x face, which faces the view in the hand.
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 2, Block::FRONT[b], Block::FRONT[b], Block::FRONT[b], 1.0, 1.0, 1.0, 1.0)
     else
       frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
     end

@@ -4,7 +4,7 @@ class Game
     @changed = true
     drop_chest(x, y, z) if b != Block::CHEST && @world.get(x, y, z) == Block::CHEST
     old = @world.get(x, y, z)
-    @furnace_heat.delete(World.key(x, y, z)) if old == Block::FURNACE && b != Block::FURNACE
+    @furnace_heat.delete(World.key(x, y, z)) if Block::BASE[old] == Block::FURNACE && Block::BASE[b] != Block::FURNACE
     # A door goes as a whole: removing one half removes the other.
     if Block.door?(old) && !Block.door?(b)
       @world.set(x, y, z, b)
@@ -15,7 +15,7 @@ class Game
     if Block.bed?(old) && !Block.bed?(b)
       @world.set(x, y, z, b)
       d = bed_partner(x, y, z)
-      set_block(x + BED_DX[d], y, z + BED_DZ[d], Block::AIR) if d >= 0
+      set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::AIR) if d >= 0
     end
     if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && near_lava?(x, y, z))
       mark_light_area(x, z)
@@ -28,9 +28,9 @@ class Game
       # A wall torch falls with the block that holds it.
       d = 0
       while d < 4
-        tx = x - Block::WALL_DX[d]
-        tz = z - Block::WALL_DZ[d]
-        set_block(tx, y, tz, Block::AIR) if @world.get(tx, y, tz) == Block::WALL_TORCH + d
+        tx = x + Block::DIR_DX[d]
+        tz = z + Block::DIR_DZ[d]
+        set_block(tx, y, tz, Block::AIR) if @world.get(tx, y, tz) == Block.facing_id(Block::TORCH, d)
         d += 1
       end
     end

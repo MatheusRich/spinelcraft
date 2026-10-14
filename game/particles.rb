@@ -146,11 +146,12 @@ class Particles
         sx = fx
         sz = fz
         if Block.wall_torch?(b)
-          w = b - Block::WALL_TORCH
-          fx += Block::WALL_DX[w] * Block.wall_lean(0.75)
-          fz += Block::WALL_DZ[w] * Block.wall_lean(0.75)
-          sx += Block::WALL_DX[w] * Block.wall_lean(0.9)
-          sz += Block::WALL_DZ[w] * Block.wall_lean(0.9)
+          # The torch leans toward its wall, behind its front.
+          w = Block::FACING[b]
+          fx -= Block::DIR_DX[w] * Block.wall_lean(0.75)
+          fz -= Block::DIR_DZ[w] * Block.wall_lean(0.75)
+          sx -= Block::DIR_DX[w] * Block.wall_lean(0.9)
+          sz -= Block::DIR_DZ[w] * Block.wall_lean(0.9)
           fy += Block::WALL_LIFT
         end
         add(Particle::FLAME, fx, fy + 0.75, fz, 0.0, 0.25, 0.0, 0.3 + @rng.rand01 * 0.2, Tex::FIRE)
