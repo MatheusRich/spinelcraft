@@ -44,13 +44,13 @@ class Game
     tries = 0
     while tries < 20
       tries += 1
-      ang = rand01 * 6.283
-      dist = 16.0 + rand01 * 24.0
+      ang = @rng.rand01 * 6.283
+      dist = 16.0 + @rng.rand01 * 24.0
       x = (@player.x + Math.cos(ang) * dist).floor
       z = (@player.z + Math.sin(ang) * dist).floor
       next unless @world.loaded?(x, z)
       h = @world.height_at(x, z)
-      y = rand01 < 0.5 ? h : (@player.y + rand01 * 32.0 - 16.0).floor
+      y = @rng.rand01 < 0.5 ? h : (@player.y + @rng.rand01 * 32.0 - 16.0).floor
       y = h if y > h
       # Down to the first floor in the cave.
       floor = y - 16
@@ -60,7 +60,7 @@ class Game
       next unless Block.solid?(ground) && ground != Block::LEAVES
       next if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
       next unless dark?(x, y, z, day)
-      @mobs << Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (rand01 * 100000.0).to_i)
+      @mobs << Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
       return
     end
   end
@@ -70,8 +70,8 @@ class Game
     tries = 0
     while tries < 20
       tries += 1
-      ang = rand01 * 6.283
-      dist = near + rand01 * (far - near)
+      ang = @rng.rand01 * 6.283
+      dist = near + @rng.rand01 * (far - near)
       x = (@player.x + Math.cos(ang) * dist).floor
       z = (@player.z + Math.sin(ang) * dist).floor
       next unless @world.loaded?(x, z)
@@ -79,7 +79,7 @@ class Game
       ground = @world.get(x, h - 1, z)
       next unless ground == Block::GRASS || ground == Block::SNOW_GRASS
       next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
-      @mobs << Mob.new(kind, x + 0.5, h + 0.01, z + 0.5, (rand01 * 100000.0).to_i)
+      @mobs << Mob.new(kind, x + 0.5, h + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
       return
     end
   end
@@ -111,12 +111,12 @@ class Game
       zombies = 0
       pigs = 0
       @mobs.each { |m| m.passive? ? pigs += 1 : zombies += 1 }
-      roll = rand01
+      roll = @rng.rand01
       spawn_monster(roll < 0.3 ? Mob::SKELETON : (roll < 0.55 ? Mob::CREEPER : Mob::ZOMBIE), day) if zombies < MAX_ZOMBIES
-      spawn_mob(rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
+      spawn_mob(@rng.rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
     end
     @mobs.each do |m|
-      if rand01 < dt * 0.08
+      if @rng.rand01 < dt * 0.08
         play(MOB_SOUND[m.kind], near_volume(m.x, m.z, 0.8))
       end
       if m.shoot
@@ -166,8 +166,8 @@ class Game
   # What a mob that the player killed drops.
   def drop_loot(m)
     if m.kind == Mob::SKELETON
-      loot(m, Block::ARROW, 1 + (rand01 * 3.0).to_i)
-      loot(m, Block::BOW, 1) if rand01 < 0.3
+      loot(m, Block::ARROW, 1 + (@rng.rand01 * 3.0).to_i)
+      loot(m, Block::BOW, 1) if @rng.rand01 < 0.3
     elsif m.kind == Mob::SHEEP
       loot(m, Block::WOOL, 2)
     elsif m.kind == Mob::PIG
@@ -178,7 +178,7 @@ class Game
   # A tool drops new: its count is its uses.
   def loot(m, b, n)
     n = Block.uses(b) if Block.tool?(b)
-    drop_item(b, n, m.x, m.y + 0.5, m.z, (rand01 - 0.5) * 2.0, 3.0, (rand01 - 0.5) * 2.0, PICKUP_WAIT)
+    drop_item(b, n, m.x, m.y + 0.5, m.z, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
   end
 
   # PIGS pigs and sheep around the player.
@@ -225,10 +225,10 @@ class Game
           dy = y + 0.5 - cy
           dz = z + 0.5 - cz
           b = @world.get(x, y, z)
-          if dx * dx + dy * dy + dz * dz < 9.5 - rand01 * 2.5 && b != Block::AIR && b != Block::BEDROCK && !Block.water?(b) && !Block.lava?(b)
-            @particles.burst(x, y, z, b) if rand01 < 0.15
+          if dx * dx + dy * dy + dz * dz < 9.5 - @rng.rand01 * 2.5 && b != Block::AIR && b != Block::BEDROCK && !Block.water?(b) && !Block.lava?(b)
+            @particles.burst(x, y, z, b) if @rng.rand01 < 0.15
             set_block(x, y, z, Block::AIR)
-            drop_from_block(Block::DROPS[b], 1, x, y, z) if @survival && rand01 < BLAST_DROP
+            drop_from_block(Block::DROPS[b], 1, x, y, z) if @survival && @rng.rand01 < BLAST_DROP
           end
           z += 1
         end

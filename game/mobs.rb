@@ -40,7 +40,7 @@ class Mob
     @tall = TALL[kind]
     @think = 0.0
     @walking = false
-    @rng = seed & 0x7fffffff
+    @rng = Rng.new(seed)
     @attack_wait = 0.0
     @on_ground = false
     @burn = 0.0
@@ -52,11 +52,6 @@ class Mob
   # Rain or water puts out the fire.
   def douse
     @fire = 0.0
-  end
-
-  def rand01
-    @rng = (@rng * 1103515245 + 12345) & 0x7fffffff
-    (@rng >> 8) / 8388608.0
   end
 
   def blocked?(world)
@@ -127,9 +122,9 @@ class Mob
     if passive?
       @think -= dt
       if @think <= 0.0
-        @think = 2.0 + rand01 * 4.0
-        @walking = rand01 < 0.6
-        @yaw = rand01 * 6.283
+        @think = 2.0 + @rng.rand01 * 4.0
+        @walking = @rng.rand01 < 0.6
+        @yaw = @rng.rand01 * 6.283
       end
       speed = @walking ? 1.3 : 0.0
       speed = 4.0 if @hurt > 0.0
@@ -143,7 +138,7 @@ class Mob
           face(dx, dz)
           speed = dist > 12.0 ? 2.0 : (dist < 7.0 ? -1.6 : 0.0)
           if @attack_wait <= 0.0 && dist < 18.0 && sees?(world, player)
-            @attack_wait = 2.2 + rand01
+            @attack_wait = 2.2 + @rng.rand01
             @shoot = true
           end
         end

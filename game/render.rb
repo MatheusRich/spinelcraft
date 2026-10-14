@@ -213,15 +213,12 @@ class Game
   # Star directions on the upper sphere, fixed for the world.
   def make_stars
     @stars = []
-    rng = 977
+    rng = Rng.new(977)
     i = 0
     while i < STARS
-      rng = (rng * 1103515245 + 12345) & 0x7fffffff
-      u = (rng % 10000) / 10000.0
-      rng = (rng * 1103515245 + 12345) & 0x7fffffff
-      v = (rng % 10000) / 10000.0
-      rng = (rng * 1103515245 + 12345) & 0x7fffffff
-      bright = 0.4 + (rng % 600) / 1000.0
+      u = (rng.next_int % 10000) / 10000.0
+      v = (rng.next_int % 10000) / 10000.0
+      bright = 0.4 + (rng.next_int % 600) / 1000.0
       theta = u * 6.283185
       y = v * 1.6 - 0.6
       r = Math.sqrt(1.0 - y * y)

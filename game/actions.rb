@@ -293,7 +293,7 @@ class Game
   # sapling and more rarely an apple, tall grass now and then seeds, and
   # ripe wheat 1 or 2 seeds.
   def drop_extra(b, x, y, z)
-    r = rand01
+    r = @rng.rand01
     if b == Block::LEAVES
       if r < 0.1
         drop_from_block(Block::SAPLING, 1, x, y, z)

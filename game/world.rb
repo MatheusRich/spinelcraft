@@ -182,11 +182,10 @@ CHUNK_BYTES = CHUNK * CHUNK * WY
 class Noise
   def initialize(seed)
     p = (0...256).to_a
-    rng = seed & 0x7fffffff
+    rng = Rng.new(seed)
     i = 255
     while i > 0
-      rng = (rng * 1103515245 + 12345) & 0x7fffffff
-      j = rng % (i + 1)
+      j = rng.next_int % (i + 1)
       t = p[i]
       p[i] = p[j]
       p[j] = t

@@ -87,7 +87,7 @@ class Particles
 
   def initialize(seed)
     @all = []
-    @rng = seed & 0x7fffffff
+    @rng = Rng.new(seed)
   end
 
   def add(kind, x, y, z, vx, vy, vz, life, layer)
@@ -100,29 +100,29 @@ class Particles
   def burst(x, y, z, b)
     layer = Block::SIDE[b]
     12.times do
-      add(Particle::CHIP, x + 0.2 + rand01 * 0.6, y + 0.2 + rand01 * 0.6, z + 0.2 + rand01 * 0.6,
-          (rand01 - 0.5) * 4.0, rand01 * 4.0 + 1.0, (rand01 - 0.5) * 4.0, 0.5 + rand01 * 0.4, layer)
+      add(Particle::CHIP, x + 0.2 + @rng.rand01 * 0.6, y + 0.2 + @rng.rand01 * 0.6, z + 0.2 + @rng.rand01 * 0.6,
+          (@rng.rand01 - 0.5) * 4.0, @rng.rand01 * 4.0 + 1.0, (@rng.rand01 - 0.5) * 4.0, 0.5 + @rng.rand01 * 0.4, layer)
     end
   end
 
   # Flames and smoke for dt seconds of a burning body: the box of half width
   # half and height tall on x, y, z.
   def fire(x, y, z, half, tall, dt)
-    (dt * 45.0 + rand01).to_i.times do
-      add(Particle::FLAME, x + (rand01 * 2.0 - 1.0) * half, y + rand01 * tall * 0.9, z + (rand01 * 2.0 - 1.0) * half,
-          (rand01 - 0.5) * 0.3, 0.6 + rand01 * 0.6, (rand01 - 0.5) * 0.3, 0.35 + rand01 * 0.35, Tex::FIRE)
+    (dt * 45.0 + @rng.rand01).to_i.times do
+      add(Particle::FLAME, x + (@rng.rand01 * 2.0 - 1.0) * half, y + @rng.rand01 * tall * 0.9, z + (@rng.rand01 * 2.0 - 1.0) * half,
+          (@rng.rand01 - 0.5) * 0.3, 0.6 + @rng.rand01 * 0.6, (@rng.rand01 - 0.5) * 0.3, 0.35 + @rng.rand01 * 0.35, Tex::FIRE)
     end
-    (dt * 6.0 + rand01).to_i.times do
-      add(Particle::SMOKE, x + (rand01 - 0.5) * half, y + tall * 0.8 + rand01 * 0.3, z + (rand01 - 0.5) * half,
-          (rand01 - 0.5) * 0.3, 0.7 + rand01 * 0.4, (rand01 - 0.5) * 0.3, 1.0 + rand01 * 0.8, Tex::PUFF)
+    (dt * 6.0 + @rng.rand01).to_i.times do
+      add(Particle::SMOKE, x + (@rng.rand01 - 0.5) * half, y + tall * 0.8 + @rng.rand01 * 0.3, z + (@rng.rand01 - 0.5) * half,
+          (@rng.rand01 - 0.5) * 0.3, 0.7 + @rng.rand01 * 0.4, (@rng.rand01 - 0.5) * 0.3, 1.0 + @rng.rand01 * 0.8, Tex::PUFF)
     end
   end
 
   # n puffs of smoke that spread from x, y, z, for an explosion or a burnt item.
   def smoke(x, y, z, n, spread)
     n.times do
-      add(Particle::SMOKE, x + (rand01 - 0.5) * spread, y + (rand01 - 0.5) * spread, z + (rand01 - 0.5) * spread,
-          (rand01 - 0.5) * spread * 2.0, rand01 * 1.5, (rand01 - 0.5) * spread * 2.0, 0.8 + rand01 * 1.0, Tex::PUFF)
+      add(Particle::SMOKE, x + (@rng.rand01 - 0.5) * spread, y + (@rng.rand01 - 0.5) * spread, z + (@rng.rand01 - 0.5) * spread,
+          (@rng.rand01 - 0.5) * spread * 2.0, @rng.rand01 * 1.5, (@rng.rand01 - 0.5) * spread * 2.0, 0.8 + @rng.rand01 * 1.0, Tex::PUFF)
     end
   end
 
@@ -134,17 +134,17 @@ class Particles
     sy = y.floor - SAMPLE_REACH
     sz = z.floor - SAMPLE_REACH
     (dt * SAMPLES_PER_SECOND).to_i.times do
-      bx = sx + (rand01 * span).to_i
-      by = sy + (rand01 * span).to_i
-      bz = sz + (rand01 * span).to_i
+      bx = sx + (@rng.rand01 * span).to_i
+      by = sy + (@rng.rand01 * span).to_i
+      bz = sz + (@rng.rand01 * span).to_i
       b = world.get(bx, by, bz)
       if b == Block::TORCH
-        add(Particle::FLAME, bx + 0.5, by + 0.75, bz + 0.5, 0.0, 0.25, 0.0, 0.3 + rand01 * 0.2, Tex::FIRE)
-        if rand01 < 0.5
-          add(Particle::SMOKE, bx + 0.5, by + 0.9, bz + 0.5, (rand01 - 0.5) * 0.1, 0.5, (rand01 - 0.5) * 0.1, 0.8 + rand01 * 0.6, Tex::PUFF)
+        add(Particle::FLAME, bx + 0.5, by + 0.75, bz + 0.5, 0.0, 0.25, 0.0, 0.3 + @rng.rand01 * 0.2, Tex::FIRE)
+        if @rng.rand01 < 0.5
+          add(Particle::SMOKE, bx + 0.5, by + 0.9, bz + 0.5, (@rng.rand01 - 0.5) * 0.1, 0.5, (@rng.rand01 - 0.5) * 0.1, 0.8 + @rng.rand01 * 0.6, Tex::PUFF)
         end
-      elsif b == Block::LAVA && rand01 < 0.05 && world.get(bx, by + 1, bz) == Block::AIR
-        add(Particle::EMBER, bx + rand01, by + 1.0, bz + rand01, (rand01 - 0.5) * 2.0, 3.0 + rand01 * 2.0, (rand01 - 0.5) * 2.0, 1.2, Tex::WHITE)
+      elsif b == Block::LAVA && @rng.rand01 < 0.05 && world.get(bx, by + 1, bz) == Block::AIR
+        add(Particle::EMBER, bx + @rng.rand01, by + 1.0, bz + @rng.rand01, (@rng.rand01 - 0.5) * 2.0, 3.0 + @rng.rand01 * 2.0, (@rng.rand01 - 0.5) * 2.0, 1.2, Tex::WHITE)
       end
     end
   end
@@ -156,12 +156,5 @@ class Particles
 
   def draw(mesh, rx, rz, ux, uy, uz)
     @all.each { |p| p.draw(mesh, rx, rz, ux, uy, uz) }
-  end
-
-  private
-
-  def rand01
-    @rng = (@rng * 1103515245 + 12345) & 0x7fffffff
-    (@rng >> 8) / 8388608.0
   end
 end

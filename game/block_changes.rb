@@ -37,15 +37,15 @@ class Game
   GROW_CHANCE = 0.1
 
   def grow_plants(dt)
-    n = (dt * GROW_SAMPLES + rand01).to_i
+    n = (dt * GROW_SAMPLES + @rng.rand01).to_i
     span = GROW_REACH * 2 + 1
     while n > 0
-      x = @player.x.floor - GROW_REACH + (rand01 * span).to_i
-      z = @player.z.floor - GROW_REACH + (rand01 * span).to_i
+      x = @player.x.floor - GROW_REACH + (@rng.rand01 * span).to_i
+      z = @player.z.floor - GROW_REACH + (@rng.rand01 * span).to_i
       if @world.loaded?(x, z)
         y = @world.height_at(x, z)
         b = @world.get(x, y, z)
-        if (b == Block::SAPLING || Block.growing?(b)) && rand01 < GROW_CHANCE
+        if (b == Block::SAPLING || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
           b == Block::SAPLING ? grow_tree(x, y, z) : set_block(x, y, z, b + 1)
         end
       end
@@ -56,7 +56,7 @@ class Game
   # A tree like the generator's: a trunk of 4 to 6 logs under two wide
   # layers and two small layers of leaves. It needs air above the sapling.
   def grow_tree(x, y, z)
-    tall = 4 + (rand01 * 3.0).to_i
+    tall = 4 + (@rng.rand01 * 3.0).to_i
     return if y + tall + 2 >= WY
     i = 1
     while i < tall + 2
@@ -72,7 +72,7 @@ class Game
         dz = -radius
         while dz <= radius
           corner = dx.abs == radius && dz.abs == radius
-          skip = corner && (ly == top + 1 || rand01 < 0.5)
+          skip = corner && (ly == top + 1 || @rng.rand01 < 0.5)
           set_block(x + dx, ly, z + dz, Block::LEAVES) if !skip && @world.get(x + dx, ly, z + dz) == Block::AIR
           dz += 1
         end

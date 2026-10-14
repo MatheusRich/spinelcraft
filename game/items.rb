@@ -17,7 +17,7 @@ class Game
 
   # Drops n of b from the block cell x, y, z with a small random push.
   def drop_from_block(b, n, x, y, z)
-    drop_item(b, n, x + 0.5, y + 0.3, z + 0.5, (rand01 - 0.5) * 2.0, 3.0, (rand01 - 0.5) * 2.0, PICKUP_WAIT)
+    drop_item(b, n, x + 0.5, y + 0.3, z + 0.5, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
   end
 
   # Q in survival throws one of the selected stack where the player looks.
@@ -43,7 +43,7 @@ class Game
     i = 0
     while i < INV
       unless @inv.empty?(i)
-        drop_item(@inv.block(i), @inv.count(i), p.x, p.y + 0.5, p.z, (rand01 - 0.5) * 4.0, 3.0, (rand01 - 0.5) * 4.0, PICKUP_WAIT)
+        drop_item(@inv.block(i), @inv.count(i), p.x, p.y + 0.5, p.z, (@rng.rand01 - 0.5) * 4.0, 3.0, (@rng.rand01 - 0.5) * 4.0, PICKUP_WAIT)
         @inv.set(i, Block::AIR, 0)
       end
       i += 1

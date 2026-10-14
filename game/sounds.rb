@@ -17,20 +17,15 @@ module Sfx
   RAIN = 14
   RATE = 22050.0
 
-  def self.noise(state)
-    (state * 1103515245 + 12345) & 0x7fffffff
-  end
-
   # Low-passed noise with an exponential decay.
   def self.burst(seconds, decay, smooth, gain, seed)
     n = (seconds * RATE).to_i
     out = Array.new(n, 0.0)
-    rng = seed
+    rng = Rng.new(seed)
     lp = 0.0
     i = 0
     while i < n
-      rng = noise(rng)
-      white = (rng % 2000) / 1000.0 - 1.0
+      white = (rng.next_int % 2000) / 1000.0 - 1.0
       lp += (white - lp) * smooth
       out[i] = lp * gain * Math.exp(-i / RATE * decay)
       i += 1

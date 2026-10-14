@@ -151,6 +151,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/textures.rb` | Generated textures and the bitmap font |
 | `game/sounds.rb` | Sound synthesis |
 | `game/clouds.rb` | Cloud layer |
+| `game/rng.rb` | The seeded random number generator |
 | `game/gfx.rb` | The C layer (`ffi_source`): the SDL3 window, input, audio and GPU calls, and the Metal shaders |
 
 ## Rendering

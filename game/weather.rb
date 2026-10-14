@@ -16,7 +16,7 @@ class Weather
   attr_reader :mesh
 
   def initialize(seed, raining)
-    @rng = seed & 0x7fffffff
+    @rng = Rng.new(seed)
     @raining = false
     @rain = 0.0
     @timer = 0.0
@@ -36,7 +36,7 @@ class Weather
   # strength of the rain follows over FADE seconds.
   def set(on)
     @raining = on
-    @timer = on ? 120.0 + rand01 * 240.0 : 300.0 + rand01 * 600.0
+    @timer = on ? 120.0 + @rng.rand01 * 240.0 : 300.0 + @rng.rand01 * 600.0
   end
 
   # Starts or stops the rain at full strength at once.
@@ -57,13 +57,13 @@ class Weather
 
   # Drops that splash on the ground around the player.
   def splash(particles, world, player, dt)
-    n = (dt * 90.0 * @rain + rand01).to_i
+    n = (dt * 90.0 * @rain + @rng.rand01).to_i
     n.times do
-      x = player.x + (rand01 * 2.0 - 1.0) * 8.0
-      z = player.z + (rand01 * 2.0 - 1.0) * 8.0
+      x = player.x + (@rng.rand01 * 2.0 - 1.0) * 8.0
+      z = player.z + (@rng.rand01 * 2.0 - 1.0) * 8.0
       h = world.height_at(x.floor, z.floor)
       if h > player.y - 8.0 && h < player.y + 6.0
-        particles.add(Particle::DROP, x, h + 0.05, z, 0.0, 1.2 + rand01, 0.0, 0.2 + rand01 * 0.1, Tex::PUFF)
+        particles.add(Particle::DROP, x, h + 0.05, z, 0.0, 1.2 + @rng.rand01, 0.0, 0.2 + @rng.rand01 * 0.1, Tex::PUFF)
       end
     end
   end
@@ -114,12 +114,5 @@ class Weather
       end
     end
     true
-  end
-
-  private
-
-  def rand01
-    @rng = (@rng * 1103515245 + 12345) & 0x7fffffff
-    (@rng >> 8) / 8388608.0
   end
 end

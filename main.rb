@@ -1,4 +1,5 @@
 require_relative "game/gfx"
+require_relative "game/rng"
 require_relative "game/textures"
 require_relative "game/world"
 require_relative "game/mesher"
@@ -136,7 +137,7 @@ class Game
     @dig_wait = 0.0
     @mobs = []
     @spawn_timer = 0.0
-    @rng = @seed * 7 + 1
+    @rng = Rng.new(@seed * 7 + 1)
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
     @swing = 0.0
@@ -150,11 +151,6 @@ class Game
     @hand_walk = 0.0
     # Where the held model starts in @dyn (see gfx_dyn).
     @hand_at = 0
-  end
-
-  def rand01
-    @rng = (@rng * 1103515245 + 12345) & 0x7fffffff
-    (@rng >> 8) / 8388608.0
   end
 
   # CAM=x,y,z,yaw,pitch puts a flying camera somewhere, for screenshots.
