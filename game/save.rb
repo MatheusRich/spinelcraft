@@ -24,6 +24,7 @@ class Game
               @time_of_day, @survival ? 1 : 0, @health, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
     close_chest
+    land_falling
     chest_fields = [@chests.size]
     @chests.each do |key, stored|
       chest_fields << key
@@ -111,6 +112,7 @@ class Game
     @later_list.each { |i| @later[i] = false }
     @later_list.clear
     @flow_queue.clear
+    remove_falling(0) while !@fall_block.empty?
   end
 
   def apply_loaded

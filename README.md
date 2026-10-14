@@ -94,7 +94,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 - An endless world, 96 blocks tall. Chunks of 16 × 16 columns generate as you move and unload behind you. Perlin noise makes continents, hills, ridged mountains, beaches, oceans, deserts with cactus, and snowy peaks. Caves are long tunnels. The world also has coal, iron and diamond ore, trees, tall grass and flowers.
 - 33 block types and 27 items with generated 16 × 16 textures. Leaves and glass have transparent pixels, and water is translucent.
 - Ambient occlusion at each face corner, sky light from a height map, and warm torch light. Torch light spreads by flood fill, so walls stop it.
-- Sand and gravel fall when nothing holds them up.
+- Sand and gravel fall when nothing holds them up. You see them drop, and they land on the first block below.
 - Lava fills the bottom of deep caves. It glows, flows up to 3 blocks, burns players and mobs, throws embers, and turns into cobblestone where water touches it.
 - Rain. Spells of rain come between dry spells. Rain grays the sky, hides the sun, the moon and the stars, dims the light, brings the fog nearer, and splashes on the ground. It stops at roofs, monsters do not burn in it, and it puts out fires under the open sky.
 - Fire. A mob that burns in daylight or lava gives off flames and smoke, and it burns on for a while after it leaves the sun or the lava. Lava sets you on fire for 4 seconds after you leave it, and flames show at the bottom of the view. Water puts out the fire. Torches flicker with small flames and smoke.

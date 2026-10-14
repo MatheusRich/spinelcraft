@@ -202,32 +202,87 @@ class Game
 
   def falls?(b) = b == Block::SAND || b == Block::GRAVEL
 
-  # Sand and gravel drop onto the first block below that holds them.
+  # A falling block passes air, water and plants.
+  def lets_fall?(b) = b == Block::AIR || Block.water?(b) || Block.plant?(b)
+
+  # Sand and gravel with nothing under them leave their cells and fall as
+  # blocks in the air. update_falling moves them.
   def settle_column(x, z)
     moved = false
     y = 1
     while y < WY
       b = @world.get(x, y, z)
-      if falls?(b)
-        below = @world.get(x, y - 1, z)
-        if below == Block::AIR || Block.water?(below) || Block.plant?(below)
-          ty = y - 1
-          while ty > 0
-            under = @world.get(x, ty - 1, z)
-            break unless under == Block::AIR || Block.water?(under) || Block.plant?(under)
-            ty -= 1
-          end
-          # The block lands in the place of a plant or a torch: a buried torch's light goes out.
-          mark_light_area(x, z) if Block.emits?(@world.get(x, ty, z))
-          @world.set(x, y, z, Block::AIR)
-          @world.set(x, ty, z, b)
-          wake_water(x, y, z)
-          wake_water(x, ty, z)
-          moved = true
-        end
+      if falls?(b) && lets_fall?(@world.get(x, y - 1, z))
+        @world.set(x, y, z, Block::AIR)
+        wake_water(x, y, z)
+        @fall_block << b
+        @fall_x << x
+        @fall_z << z
+        @fall_y << y.to_f
+        @fall_vy << 0.0
+        moved = true
       end
       y += 1
     end
     mark_dirty(x, z) if moved
+  end
+
+  # Falling blocks speed up like the player. A block lands on the first
+  # cell that does not let it fall, and set_block puts it there. It takes
+  # the place of a plant or a torch, so a buried torch's light goes out. A
+  # block over a chunk that is not loaded waits.
+  def update_falling(dt)
+    i = 0
+    while i < @fall_block.size
+      x = @fall_x[i]
+      z = @fall_z[i]
+      unless @world.loaded?(x, z)
+        i += 1
+        next
+      end
+      vy = @fall_vy[i] - 28.0 * dt
+      vy = -40.0 if vy < -40.0
+      y = @fall_y[i] + vy * dt
+      if y < 0.0
+        remove_falling(i)
+      elsif !lets_fall?(@world.get(x, y.floor, z))
+        ty = y.floor + 1
+        ty += 1 while ty < WY - 1 && !lets_fall?(@world.get(x, ty, z))
+        b = @fall_block[i]
+        remove_falling(i)
+        set_block(x, ty, z, b)
+      else
+        @fall_y[i] = y
+        @fall_vy[i] = vy
+        i += 1
+      end
+    end
+  end
+
+  def remove_falling(i)
+    @fall_block.delete_at(i)
+    @fall_x.delete_at(i)
+    @fall_z.delete_at(i)
+    @fall_y.delete_at(i)
+    @fall_vy.delete_at(i)
+  end
+
+  # Lands the falling blocks at once, so that the save keeps them.
+  def land_falling
+    steps = 0
+    while !@fall_block.empty? && steps < 500
+      update_falling(0.05)
+      steps += 1
+    end
+  end
+
+  # Falling blocks are full-size cubes.
+  def draw_falling
+    i = 0
+    while i < @fall_block.size
+      @dyn.set_frame(@fall_x[i] + 0.5, @fall_y[i] + 0.5, @fall_z[i] + 0.5, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+      item_model(@fall_block[i])
+      i += 1
+    end
   end
 end

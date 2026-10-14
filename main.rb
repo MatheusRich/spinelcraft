@@ -165,6 +165,13 @@ class Game
     @it_vz = []
     @it_age = []
     @it_wait = []
+    # Falling sand and gravel (game/block_changes.rb): the block, the column,
+    # the height of the bottom, and the speed down.
+    @fall_block = []
+    @fall_x = []
+    @fall_z = []
+    @fall_y = []
+    @fall_vy = []
     @draw_time = -1.0
     @health = MAX_HEALTH
     @hunger = MAX_HUNGER
@@ -398,6 +405,7 @@ class Game
     sample_fire_blocks(dt)
     grow_plants(dt)
     update_items(dt)
+    update_falling(dt)
     note_seen if @survival
     update_weather(dt)
     Gfx.gfx_rain(@rain_mesh.v, @rain_mesh.count) if build_rain(dt)

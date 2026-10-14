@@ -142,10 +142,24 @@ class Game
     puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
   end
 
+  # Runs the falling blocks for the given seconds.
+  def fall_for(seconds)
+    t = 0.0
+    while t < seconds
+      update_falling(0.02)
+      t += 0.02
+    end
+  end
+
   # Falling sand, the torch list, and how far torch light goes.
   def test_falling_and_torches(x, z, ground)
     set_block(x, ground + 6, z, Block::SAND)
-    check("sand falls to the ground", @world.get(x, ground + 1, z) == Block::SAND && @world.get(x, ground + 6, z) == Block::AIR)
+    set_block(x, ground + 7, z, Block::GRAVEL)
+    midair = @world.get(x, ground + 6, z) == Block::AIR && @world.get(x, ground + 1, z) == Block::AIR && @fall_block.size == 2
+    fall_for(2.0)
+    landed = @world.get(x, ground + 1, z) == Block::SAND && @world.get(x, ground + 2, z) == Block::GRAVEL && @fall_block.empty?
+    check("sand and gravel fall through the air and land on the ground", midair && landed)
+    set_block(x, ground + 2, z, Block::AIR)
     set_block(x, ground + 1, z, Block::AIR)
     torches = @world.chunk_torches[World.slot(x >> 4, z >> 4)]
     lights = torches.size
@@ -204,6 +218,7 @@ class Game
     set_block(tx, th, z, Block::TORCH)
     flush_dirty while !@later_list.empty?
     set_block(tx, th + 3, z, Block::SAND)
+    fall_for(2.0)
     lit = World.slot((tx >> 4) + 1, z >> 4)
     check("sand that buries a torch remeshes the chunks that it lit", @world.get(tx, th, z) == Block::SAND && (@dirty[lit] == true || @later[lit] == true))
     set_block(tx, th, z, Block::AIR)

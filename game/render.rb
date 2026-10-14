@@ -177,6 +177,7 @@ class Game
     end
     draw_arrows
     draw_items(ex, ez, reach)
+    draw_falling
     # The camera's right and up axes, as in Camera#update.
     fx = @player.fx
     fy = @player.fy
