@@ -25,6 +25,22 @@ class Game
   RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
   OPTION_UNIFORMS = RAIN_UNIFORMS + 4
   UNIFORMS = OPTION_UNIFORMS + 4
+  # The materials of blocks for their sounds (Game#material), and the sound
+  # of each material when the player digs it, breaks it, steps on it and
+  # places it. They follow VoxeLibre (mcl_sounds), but stone, wood and dirt
+  # break with one sound.
+  M_STONE = 0
+  M_WOOD = 1
+  M_DIRT = 2
+  M_GRASS = 3
+  M_SAND = 4
+  M_GRAVEL = 5
+  M_GLASS = 6
+  M_LEAVES = 7
+  MATERIAL_DIG = [Sfx::DIG_STONE, Sfx::DIG_WOOD, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_GRAVEL, Sfx::DIG_STONE, Sfx::DIG_LEAVES]
+  MATERIAL_BREAK = [Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::STEP_SAND, Sfx::BREAK_GRAVEL, Sfx::BREAK_GLASS, Sfx::STEP_GRASS]
+  MATERIAL_STEP = [Sfx::STEP_HARD, Sfx::STEP_WOOD, Sfx::STEP_DIRT, Sfx::STEP_GRASS, Sfx::STEP_SAND, Sfx::STEP_GRAVEL, Sfx::STEP_GLASS, Sfx::STEP_GRASS]
+  MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE]
   # A day and a night last 20 minutes, as in Minecraft.
   # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0

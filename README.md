@@ -19,7 +19,7 @@ A small Minecraft-like game written in Ruby. The Spinel compiler turns the Ruby 
 
 ## Build and run
 
-You need macOS, SDL3 (`brew install sdl3`) and a built Spinel compiler.
+You need macOS, SDL3 and libvorbis (`brew install sdl3 libvorbis`) and a built Spinel compiler.
 
 ```sh
 ./build.sh      # writes ./spinelcraft
@@ -59,10 +59,11 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
 - Animals, and monsters that come out in the dark.
 - A view distance of up to 5000 blocks.
+- Sounds from VoxeLibre, under free licenses. `assets/sounds/CREDITS.md` names the author and the license of each file.
 
 ## Layout
 
-`build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module.
+`build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module. The game loads the OGG files in `assets/sounds` from the folder of the executable.
 
 Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the bed, the chest, the block cracks, the hearts, the smoke, the rain and the font.
 

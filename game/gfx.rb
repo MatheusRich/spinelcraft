@@ -2,9 +2,12 @@
 # Every game decision lives in Ruby; this file only moves data to SDL.
 module Gfx
   ffi_lib "SDL3"
+  ffi_lib "vorbisfile"
   ffi_cflags "-I/opt/homebrew/include -L/opt/homebrew/lib"
   ffi_source <<~'C'
     #include <SDL3/SDL.h>
+    #include <math.h>
+    #include <vorbis/vorbisfile.h>
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
@@ -1033,7 +1036,8 @@ module Gfx
 
     /* Audio: a few voices bound to one device; SDL mixes them. */
     #define VOICES 8
-    #define SOUNDS 16
+    #define SOUNDS 64
+    #define AU_RATE 44100
     static SDL_AudioDeviceID audio_dev;
     static SDL_AudioStream *voice[VOICES];
     static float *sound_data[SOUNDS];
@@ -1042,7 +1046,7 @@ module Gfx
 
     bool au_init(void) {
       if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) return fail("SDL_InitSubSystem(audio)");
-      SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, 22050};
+      SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, AU_RATE};
       audio_dev = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
       if (!audio_dev) return fail("SDL_OpenAudioDevice");
       for (int i = 0; i < VOICES; i++) {
@@ -1052,14 +1056,56 @@ module Gfx
       return true;
     }
 
-    long au_load(long id, const double *samples, long n) {
-      if (id < 0 || id >= SOUNDS || n <= 0) return -1;
-      free(sound_data[id]);
-      sound_data[id] = malloc(sizeof(float) * n);
-      for (long i = 0; i < n; i++) sound_data[id][i] = (float)samples[i];
-      sound_len[id] = (int)n;
+    /* Loads the OGG file at path, relative to the folder of the game, as
+       sound id in the format of the device, louder by gain dB. Samples above
+       KNEE bend smoothly toward 1.0, so that a sharp peak does not clip. It
+       needs no audio device, so a muted game can load sounds too. Returns 0,
+       or -1 when it fails. */
+    #define KNEE 0.8f
+    long au_load_ogg(long id, const char *path, double gain) {
+      if (id < 0 || id >= SOUNDS) return -1;
+      char full[1024];
+      SDL_snprintf(full, sizeof full, "%s%s", SDL_GetBasePath(), path);
+      OggVorbis_File vf;
+      if (ov_fopen(full, &vf) != 0) { fail(full); return -1; }
+      vorbis_info *vi = ov_info(&vf, -1);
+      int ch = vi->channels;
+      SDL_AudioSpec src = {SDL_AUDIO_F32, ch, (int)vi->rate};
+      float *buf = NULL;
+      int len = 0, cap = 0, section;
+      float **pcm;
+      long n;
+      while ((n = ov_read_float(&vf, &pcm, 4096, &section)) > 0) {
+        if (len + n * ch > cap) {
+          cap = (len + n * ch) * 2;
+          buf = SDL_realloc(buf, cap * sizeof(float));
+        }
+        for (long i = 0; i < n; i++)
+          for (int c = 0; c < ch; c++) buf[len++] = pcm[c][i];
+      }
+      ov_clear(&vf);
+      if (n < 0 || len == 0) { SDL_free(buf); fail(full); return -1; }
+      SDL_AudioSpec dst = {SDL_AUDIO_F32, 1, AU_RATE};
+      Uint8 *out;
+      int out_len;
+      bool ok = SDL_ConvertAudioSamples(&src, (Uint8 *)buf, len * (int)sizeof(float), &dst, &out, &out_len);
+      SDL_free(buf);
+      if (!ok) { fail(full); return -1; }
+      float *s = (float *)out;
+      int count = out_len / (int)sizeof(float);
+      float k = powf(10.0f, (float)gain / 20.0f);
+      for (int i = 0; i < count; i++) {
+        float a = fabsf(s[i] * k);
+        if (a > KNEE) a = KNEE + (1.0f - KNEE) * tanhf((a - KNEE) / (1.0f - KNEE));
+        s[i] = s[i] < 0 ? -a : a;
+      }
+      SDL_free(sound_data[id]);
+      sound_data[id] = s;
+      sound_len[id] = count;
       return 0;
     }
+
+    double au_seconds(long id) { return id < 0 || id >= SOUNDS ? 0.0 : sound_len[id] / (double)AU_RATE; }
 
     void au_play(long id, double volume) {
       if (!audio_dev || id < 0 || id >= SOUNDS || !sound_data[id] || volume <= 0.01) return;
@@ -1137,7 +1183,8 @@ module Gfx
   ffi_func :gfx_gpu_ms, [], :double
   ffi_func :gfx_wait_ns, [], :long
   ffi_func :au_init, [], :bool
-  ffi_func :au_load, [:long, :float_array, :long], :long
+  ffi_func :au_load_ogg, [:long, :str, :double], :long
+  ffi_func :au_seconds, [:long], :double
   ffi_func :au_play, [:long, :double], :void
   ffi_func :gfx_width, [], :long
   ffi_func :gfx_height, [], :long

@@ -165,6 +165,7 @@ class Game
     test_pause
     test_menu
     test_chips
+    test_sounds
     test_streaming
     test_terrain_tables
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
@@ -211,6 +212,7 @@ class Game
   # second click.
   def test_menu
     view = @fog_end
+    volume = @volume
     set_slider(M_VIEW, 0.5)
     half = @fog_end
     set_slider(M_VIEW, 0.0)
@@ -221,13 +223,67 @@ class Game
     set_slider(M_VOLUME, 0.25)
     check("the brightness and volume sliders set the options", @brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")
     @brightness = 0.0
-    @volume = 1.0
+    @volume = volume
     seed = @seed
     click_menu(M_NEW_WORLD)
     once = @seed == seed && @menu_confirm
     click_menu(M_DEBUG)
     check("new world asks for a second click", once && !@menu_confirm && @seed == seed)
     click_menu(M_DEBUG)
+  end
+
+  # Every sound file loads, footsteps follow the block underfoot, and a
+  # creeper hisses once when it lights its fuse.
+  def test_sounds
+    check("every sound file loads", Sfx.load_files == Sfx::FILES.size && Gfx.au_seconds(Sfx::RAIN) > 5.0)
+    check("blocks sound like their material",
+          MATERIAL_STEP[material(Block::GRASS)] == Sfx::STEP_GRASS && MATERIAL_STEP[material(Block::STONE)] == Sfx::STEP_HARD &&
+          MATERIAL_STEP[material(Block::PLANKS)] == Sfx::STEP_WOOD && MATERIAL_STEP[material(Block::SAND)] == Sfx::STEP_SAND &&
+          MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::LEAVES)] == Sfx::DIG_LEAVES &&
+          MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD)
+    creeper = Mob.new(Mob::CREEPER, @player.x + 1.5, @player.y, @player.z, 11)
+    hisses = 0
+    20.times do
+      creeper.update_mob(@world, 1.0 / 60.0, @player, 0.3)
+      hisses += 1 if creeper.hiss
+      creeper.hiss = false
+    end
+    check("a creeper hisses once when it lights its fuse", hisses == 1 && creeper.fuse > 0.0)
+    pig = Mob.new(Mob::PIG, @player.x, @player.y, @player.z, 5)
+    pig.wound(1.0)
+    check("a hit makes a mob cry out", pig.ouch)
+    test_cave_sound
+  end
+
+  # In a dark pocket deep in the rock, the fear grows and a cave sound
+  # plays when it is full.
+  def test_cave_sound
+    cx = @spawn_x.floor - 6
+    cz = @spawn_z.floor - 6
+    (cx - 1..cx + 1).each do |x|
+      (cz - 1..cz + 1).each do |z|
+        (4..8).each { |y| @world.set(x, y, z, Block::STONE) }
+      end
+    end
+    @world.set(cx, 5, cz, Block::AIR)
+    @world.set(cx, 6, cz, Block::AIR)
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    @player.x = cx + 0.5
+    @player.y = 5.0
+    @player.z = cz + 0.5
+    @cave_fear = 0.0
+    @cave_timer = 0.0
+    update_cave_sound(0.0)
+    grew = @cave_fear == 3.0
+    @cave_fear = 299.0
+    @cave_timer = 0.0
+    update_cave_sound(0.0)
+    check("the dark builds fear, and full fear plays a cave sound", grew && @cave_fear == 0.0)
+    @player.x = px
+    @player.y = py
+    @player.z = pz
   end
 
   # A broken block throws 64 chips, as in Minecraft.
@@ -373,12 +429,12 @@ class Game
     70.times { @inv.add(Block::DIRT) }
     check("stacks split at 64", @inv.count(2) == 64 && @inv.block(3) == Block::DIRT && @inv.count(3) == 6)
     @vitals.health = Vitals::MAX_HEALTH
-    hurt(5)
+    hurt(5, Sfx::HURT)
     check("hurt lowers health", @vitals.health == 15 && !@vitals.dead?)
     kept = @inv.copy
     @items.clear
     toggle_inventory
-    hurt(30)
+    hurt(30, Sfx::HURT)
     check("death at zero health, and it closes the inventory", @vitals.health == 0 && @vitals.dead? && !@inventory_open)
     check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
     @items.clear

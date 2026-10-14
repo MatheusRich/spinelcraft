@@ -32,6 +32,10 @@ class Mob
   DEATH_TIME = 1.0
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :shoot, :explode, :by_player
+  # True for one step after a creeper lights its fuse.
+  attr_accessor :hiss
+  # True after a hit, until Game#update_mobs plays the hurt sound.
+  attr_accessor :ouch
   attr_reader :fuse
   # Seconds that the mob still burns.
   attr_reader :fire
@@ -53,6 +57,8 @@ class Mob
     @hp = HP[kind]
     @shoot = false
     @explode = false
+    @hiss = false
+    @ouch = false
     @by_player = false
     @fuse = 0.0
     @hurt = 0.0
@@ -163,6 +169,7 @@ class Mob
         end
         lit = @fuse > 0.0 ? dist < FUSE_REACH : dist < LIGHT_REACH && (player.y - @y).abs < 2.5
         if lit
+          @hiss = true if @fuse == 0.0
           @fuse += dt
           @explode = true if @fuse >= FUSE
         else
@@ -256,6 +263,7 @@ class Mob
     end
     @last_damage = damage
     @hurt = 0.35
+    @ouch = true
     true
   end
 

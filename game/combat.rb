@@ -1,7 +1,13 @@
 # Mobs and combat: spawning, mob turns, damage, explosions, the bow, and arrows.
 class Game
   # The sound that each mob kind makes now and then, indexed by kind.
-  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::STEP, Sfx::OINK, Sfx::SPLASH]
+  # The sounds of a mob by kind: pig, zombie, skeleton, sheep and creeper.
+  # They follow VoxeLibre. MOB_SOUND plays now and then, MOB_HURT after a
+  # hit, and MOB_DEATH when the mob dies. A creeper is silent until its fuse
+  # hisses, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
+  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1]
+  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, -1]
+  MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH]
 
   # Light in Minecraft: a torch has 14, lava 15, and a cell under the open
   # sky 15 by day. Light goes down by 1 for each step to a cell that is
@@ -257,16 +263,18 @@ class Game
     end
   end
 
-  def hurt(amount)
+  # Takes amount of health and plays sound: Sfx::HURT, or Sfx::FALL for a
+  # fall, as in Minecraft.
+  def hurt(amount, sound)
     return if !@survival || @vitals.dead? || amount <= 0
     @vitals.hurt(amount)
-    felt_hurt
+    felt_hurt(sound)
   end
 
   # The sound and the red flash of a hit. At zero health the player dies
   # and drops the inventory.
-  def felt_hurt
-    play(Sfx::HURT, 0.8)
+  def felt_hurt(sound)
+    play(sound, 0.8)
     @damage_flash = 0.35
     return unless @vitals.dead?
     toggle_inventory if @inventory_open
@@ -286,8 +294,12 @@ class Game
       spawn_mob(@rng.rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
     end
     @mobs.each do |m|
-      if @rng.rand01 < dt * 0.08
+      if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
         play(MOB_SOUND[m.kind], near_volume(m.x, m.z, 0.8))
+      end
+      if m.hiss
+        m.hiss = false
+        play(Sfx::FUSE, near_volume(m.x, m.z, 1.0))
       end
       if m.shoot
         m.shoot = false
@@ -307,7 +319,7 @@ class Game
       while k < steps
         damage = m.update_mob(@world, sdt, @player, day)
         if damage > 0
-          hurt(damage)
+          hurt(damage, Sfx::HURT)
           if @survival
             dx = @player.x - m.x
             dz = @player.z - m.z
@@ -323,6 +335,12 @@ class Game
       # A mob drops its loot when it dies, and its body goes up in smoke
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player
+      if lived && m.dying?
+        play(MOB_DEATH[m.kind], near_volume(m.x, m.z, 1.0))
+      elsif m.ouch && MOB_HURT[m.kind] >= 0
+        play(MOB_HURT[m.kind], near_volume(m.x, m.z, 1.0))
+      end
+      m.ouch = false
       @particles.smoke(m.x, m.y + m.tall * 0.3, m.z, 12, m.tall * 0.6) if !m.alive && m.dying?
     end
     steps = (dt * 180.0).ceil
@@ -426,14 +444,13 @@ class Game
       x += 1
     end
     @particles.smoke(cx, cy, cz, 40, 3.0)
-    play(Sfx::BREAK, 1.0)
-    play(Sfx::HIT, 1.0)
+    play(Sfx::EXPLODE, 1.0)
     pdx = @player.x - cx
     pdy = @player.y + 0.9 - cy
     pdz = @player.z - cz
     dist = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz)
     if dist < BLAST_REACH
-      hurt(blast_damage(dist))
+      hurt(blast_damage(dist), Sfx::HURT)
       len = dist < 0.1 ? 1.0 : dist
       @player.vx += pdx / len * (BLAST_REACH - dist) * 2.0
       @player.vz += pdz / len * (BLAST_REACH - dist) * 2.0
@@ -476,7 +493,7 @@ class Game
         end
       elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)
         # A skeleton's arrow does 3 to 5. minecraft.wiki/w/Skeleton
-        hurt(3 + (@rng.rand01 * 3.0).to_i)
+        hurt(3 + (@rng.rand01 * 3.0).to_i, Sfx::HURT)
         if @survival
           len = Math.sqrt(a.vx * a.vx + a.vz * a.vz)
           len = 1.0 if len < 0.001

@@ -121,7 +121,7 @@ class Game
       elsif @action_cooldown <= 0.0
         broken = @world.get(@player.hx, @player.hy, @player.hz)
         @particles.burst(@player.hx, @player.hy, @player.hz, broken)
-        play(Sfx::BREAK, 0.7)
+        play(MATERIAL_BREAK[material(broken)], 0.7)
         set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
         @attack_time = 0.0
         @action_cooldown = 0.22
@@ -178,6 +178,7 @@ class Game
       fluid = @world.get(@fluid_x, @fluid_y, @fluid_z)
       set_block(@fluid_x, @fluid_y, @fluid_z, Block::AIR)
       swap_bucket(fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET)
+      play(fluid == Block::WATER ? Sfx::WATER_TAKE : Sfx::LAVA_POUR, 0.5)
     else
       return unless @player.hit
       x = @player.px
@@ -193,8 +194,8 @@ class Game
       return if Block.solid?(current) || Block.door?(current)
       set_block(x, y, z, b == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
       swap_bucket(Block::BUCKET)
+      play(b == Block::WATER_BUCKET ? Sfx::WATER_POUR : Sfx::LAVA_POUR, 0.5)
     end
-    play(Sfx::SPLASH, 0.5)
   end
 
   # Finds the first water or lava source on the line of sight within reach,
@@ -262,7 +263,7 @@ class Game
     return if hardness < 0.0
     @dig_wait -= dt
     if @dig_wait <= 0.0 && hardness > 0.0
-      play(dig_sound(b), 0.55)
+      play(MATERIAL_DIG[material(b)], 0.55)
       @dig_wait = 0.25
     end
     # A held button swings again when the last swing ends.
@@ -278,7 +279,7 @@ class Game
     @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / seconds
     if @mine_progress >= 1.0
       @particles.burst(x, y, z, b)
-      play(Sfx::BREAK, 0.7)
+      play(MATERIAL_BREAK[material(b)], 0.7)
       set_block(x, y, z, Block::AIR)
       @attack_time = 0.0
       drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
@@ -292,12 +293,18 @@ class Game
     end
   end
 
-  def dig_sound(b)
+  # The material of block b for its sounds, as in VoxeLibre (mcl_sounds).
+  def material(b)
     b = Block::BASE[b]
-    return Sfx::DIG_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::GLASS || b == Block::BEDROCK
-    return Sfx::DIG_STONE if b == Block::FURNACE
-    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
-    Sfx::DIG_SOFT
+    return M_GLASS if b == Block::GLASS
+    return M_GRAVEL if b == Block::GRAVEL
+    return M_SAND if b == Block::SAND
+    return M_GRASS if b == Block::GRASS || b == Block::SNOW_GRASS || b == Block::SNOW
+    return M_WOOD if b == Block::TORCH || b == Block::CACTUS
+    return M_LEAVES if b == Block::LEAVES || Block.plant?(b)
+    return M_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::BEDROCK || b == Block::FURNACE
+    return M_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
+    M_DIRT
   end
 
   # A bed sets the spawn point; at night with no monster close by, it skips to morning.
@@ -348,7 +355,7 @@ class Game
     partner = @world.get(x, other, z)
     @world.set(x, other, z, Block.door_toggled(partner)) if Block.door?(partner)
     mark_dirty(x, z)
-    play(Block.door_open?(b) ? Sfx::PLACE : Sfx::DIG_WOOD, 0.6)
+    play(Block.door_open?(b) ? Sfx::DOOR_OPEN : Sfx::DOOR_CLOSE, 0.6)
     @swing = SWING
   end
 
@@ -398,7 +405,7 @@ class Game
     return unless @survival && !@inv.empty?(@slot) && @vitals.hungry? && food > 0
     @vitals.eat(food, Block.saturation(current_block.to_i))
     @inv.take(@slot, 1)
-    play(Sfx::PLACE, 0.5)
+    play(Sfx::EAT, 0.6)
     say("YUM")
   end
 
@@ -461,7 +468,7 @@ class Game
       set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block.bed_id(d, true))
     end
     set_block(x, y, z, b)
-    play(Sfx::PLACE, 0.7)
+    play(MATERIAL_PLACE[material(b)], 0.7)
     @swing = 0.25
     @inv.take(@slot, 1) if @survival
   end

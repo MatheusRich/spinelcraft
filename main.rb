@@ -106,9 +106,9 @@ class Game
     @fullscreen = false
     @fog_end = (ENV["VIEW"] || FOG_END.to_s).to_f
     # The options of the pause menu (game/menu.rb), from 0 to 1. Brightness 0
-    # is the light without a lift.
+    # is the light without a lift. The volume starts at half.
     @brightness = 0.0
-    @volume = 1.0
+    @volume = 0.5
     # The slider that the mouse drags, or -1.
     @menu_drag = -1
     # True after one click on New world.
@@ -162,6 +162,10 @@ class Game
     @light_stamp = 0
     @light_queue = []
     @spawn_timer = 0.0
+    # The cave sounds (update_cave_sound): seconds to the next check, and
+    # the fear that the darkness built up.
+    @cave_timer = 0.0
+    @cave_fear = 0.0
     @rng = Rng.new(@seed * 7 + 1)
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
@@ -394,7 +398,7 @@ class Game
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining
       fell = @player.update(@world, step, fwd, strafe, jump, down, sprint)
-      hurt((fell - 3.0).ceil) if fell > 3.5
+      hurt((fell - 3.0).ceil, Sfx::FALL) if fell > 3.5
       if @survival
         moved = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * step
         @vitals.move(moved, sprint && @player.on_ground, @player.in_water, @player.jumped)
@@ -402,11 +406,12 @@ class Game
       remaining -= step
     end
     @player.raycast(@world)
-    if @player.on_ground && !@player.flying
+    if (@player.on_ground || @player.in_water) && !@player.flying
       @step_dist += Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * dt
       if @step_dist > 2.1
         @step_dist = 0.0
-        play(Sfx::STEP, 0.35)
+        ground = MATERIAL_STEP[material(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))]
+        play(@player.in_water ? Sfx::STEP_WATER : ground, 0.35)
       end
     end
     play(Sfx::SPLASH, 0.6) if @player.in_water && !@was_in_water && !@player.flying
@@ -436,6 +441,7 @@ class Game
     @swing -= dt
     @attack_time += dt
     update_hand(dt)
+    update_cave_sound(dt)
     update_survival(dt)
     update_mobs(dt)
     @flow_timer -= dt
@@ -459,12 +465,32 @@ class Game
       @vitals.douse
       play(Sfx::FIZZ, 0.6)
     end
-    felt_hurt if @vitals.update_vitals(dt, in_lava, under_water)
+    felt_hurt(Sfx::HURT) if @vitals.update_vitals(dt, in_lava, under_water)
   end
 
   # The pause screen is open. The world stops, as in Minecraft, but not on
   # the death screen or in the inventory.
   def paused? = !@captured && !@inventory_open && !@vitals.dead?
+
+  # A cave sound now and then below the sea level, as in VoxeLibre
+  # (vl_cavesounds). Each 3 seconds the fear grows by 3 * (15 - light) / 15,
+  # so after 5 minutes of full darkness a random cave sound plays.
+  def update_cave_sound(dt)
+    @cave_timer -= dt
+    return if @cave_timer > 0.0
+    @cave_timer = 3.0
+    x = @player.x.floor
+    y = @player.eye_y.floor
+    z = @player.z.floor
+    return if y >= SEA || !@world.inside?(x, y, z)
+    sky = sky_light
+    light = spawn_light(x, y, z, sky, lamp_near?(x, y, z), sky)
+    light = 15 if light < 0
+    @cave_fear += 3.0 * (15 - light) / 15.0
+    return if @cave_fear < 300.0
+    @cave_fear = 0.0
+    play(Sfx::CAVE + (@rng.rand01 * Sfx::CAVES).to_i, 0.6)
+  end
 
   def daylight
     s = Math.sin(@time_of_day * Math::PI * 2.0)

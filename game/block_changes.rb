@@ -178,6 +178,7 @@ class Game
     batch = @flow_queue
     @flow_queue = []
     @defer = true
+    hiss = false
     i = 0
     while i < batch.size && i < 6000
       x = batch[i]
@@ -189,6 +190,8 @@ class Game
       if Block.lava?(b) && touches_water?(x, y, z)
         # Water cools lava into cobblestone.
         set_block(x, y, z, Block::COBBLE)
+        play(Sfx::FIZZ, near_volume(x + 0.5, z + 0.5, 0.6)) unless hiss
+        hiss = true
         next
       end
       level = Block::WATER_LEVEL[b]

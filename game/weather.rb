@@ -68,13 +68,13 @@ class Weather
     end
   end
 
-  # The volume of the rain sound to start now, or 0.0. The sound is 1.5
-  # seconds long; the next one starts before it ends. Under a roof it is
-  # quieter, and 10 blocks under the ground it stops.
+  # The volume of the rain sound to start now, or 0.0. The next clip starts
+  # when the last one ends. Under a roof it is quieter, and 10 blocks under
+  # the ground it stops.
   def sound(world, player, dt)
     @sound_wait -= dt
     return 0.0 if @sound_wait > 0.0
-    @sound_wait = 1.3
+    @sound_wait = Gfx.au_seconds(Sfx::RAIN)
     cover = world.height_at(player.x.floor, player.z.floor) - player.eye_y
     (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain
   end

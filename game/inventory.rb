@@ -22,7 +22,7 @@ class Game
     return unless Block.tool?(b) && @inv.count(@slot) > 0
     @inv.take(@slot, n < @inv.count(@slot) ? n : @inv.count(@slot))
     return unless @inv.empty?(@slot)
-    play(Sfx::BREAK, 0.8)
+    play(Sfx::TOOL_BREAK, 0.8)
     say("#{Block::NAMES[b]} BROKE")
   end
 
@@ -361,6 +361,7 @@ class Game
   def open_chest(x, y, z)
     @chest_key = World.key(x, y, z)
     @chest = @chests[@chest_key] ||= Slots.new(CHEST_SLOTS)
+    play(Sfx::CHEST_OPEN, 0.5)
     toggle_inventory
   end
 
@@ -416,7 +417,10 @@ class Game
         @held_block = Block::AIR
       end
     end
-    close_chest if @inventory_open
+    if @inventory_open && @chest_key >= 0
+      play(Sfx::CHEST_CLOSE, 0.5)
+      close_chest
+    end
     @inventory_open = !@inventory_open
     @captured = !@inventory_open
     Gfx.in_capture(@inventory_open ? 0 : 1)
