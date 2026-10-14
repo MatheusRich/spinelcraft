@@ -267,21 +267,21 @@ class Game
     check("craft log into planks", @inv_block[0] == Block::LOG && @inv_count[0] == 2 && @inv_block[1] == Block::PLANKS && @inv_count[1] == 4)
     70.times { give(Block::DIRT) }
     check("stacks split at 64", @inv_count[2] == 64 && @inv_block[3] == Block::DIRT && @inv_count[3] == 6)
-    @health = MAX_HEALTH
+    @vitals.health = Vitals::MAX_HEALTH
     hurt(5)
-    check("hurt lowers health", @health == 15 && !@dead)
+    check("hurt lowers health", @vitals.health == 15 && !@vitals.dead?)
     kept_blocks = @inv_block.dup
     kept_counts = @inv_count.dup
     @items.clear
     toggle_inventory
     hurt(30)
-    check("death at zero health, and it closes the inventory", @health == 0 && @dead && !@inventory_open)
+    check("death at zero health, and it closes the inventory", @vitals.health == 0 && @vitals.dead? && !@inventory_open)
     check("death drops the inventory on the ground", room_for(Block::DIRT) == INV * STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
     @items.clear
     @inv_block = kept_blocks
     @inv_count = kept_counts
     respawn
-    check("respawn restores health", @health == MAX_HEALTH && !@dead)
+    check("respawn restores health", @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead?)
     @player.x = x + 0.5
     @player.y = ground + 1.0
     @player.z = z + 0.5
@@ -339,9 +339,9 @@ class Game
     @inv_block[5] = Block::COOKED_PORKCHOP
     @inv_count[5] = 2
     @slot = 5
-    @hunger = 5
+    @vitals.hunger = 5
     eat
-    check("eating restores hunger", @hunger == 15 && @inv_count[5] == 1)
+    check("eating restores hunger", @vitals.hunger == 15 && @inv_count[5] == 1)
   end
 
   # Frames of 0.05 seconds that it takes to break block b at x, y, z (which
@@ -376,27 +376,26 @@ class Game
     flush_dirty
     @mobs.clear
     @time_of_day = 0.75
-    @health = MAX_HEALTH
-    @dead = false
+    @vitals.health = Vitals::MAX_HEALTH
     @player.x = px + 0.5
     @player.y = 89.0
     @player.z = pz + 0.5
     @mobs << Mob.new(Mob::SKELETON, px + 12.5, 89.0, pz + 0.5, 7)
     frames = 0
-    while frames < 400 && @health == MAX_HEALTH
+    while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("skeleton arrow hurts the player", @health < MAX_HEALTH)
+    check("skeleton arrow hurts the player", @vitals.health < Vitals::MAX_HEALTH)
     @mobs.clear
     @mobs << Mob.new(Mob::ZOMBIE, px + 1.5, 89.0, pz + 0.5, 9)
-    @health = MAX_HEALTH
+    @vitals.health = Vitals::MAX_HEALTH
     frames = 0
-    while frames < 400 && @health == MAX_HEALTH
+    while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("zombie hit hurts the player", @health < MAX_HEALTH)
+    check("zombie hit hurts the player", @vitals.health < Vitals::MAX_HEALTH)
     @mobs.clear
     # Each block that the blast breaks drops by chance, so the blast gets
     # two more rows of stone to break.
@@ -405,19 +404,19 @@ class Game
       set_block(px + dx, 88, pz + 1, Block::STONE)
     end
     @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
-    @health = MAX_HEALTH
+    @vitals.health = Vitals::MAX_HEALTH
     @items.clear
     frames = 0
     while frames < 300 && @world.get(px + 2, 88, pz) == Block::STONE
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @health < MAX_HEALTH && frames > 60)
+    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @vitals.health < Vitals::MAX_HEALTH && frames > 60)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
     @items.clear
     @mobs.clear
     @time_of_day = 0.3
-    @health = MAX_HEALTH
+    @vitals.health = Vitals::MAX_HEALTH
   end
 
   # On the sky platform from test_monsters: a zombie in the sun burns with
@@ -436,21 +435,20 @@ class Game
     check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @particles.count(Particle::FLAME) > 0)
     @mobs.clear
     @survival = true
-    @health = MAX_HEALTH
-    @dead = false
+    @vitals.health = Vitals::MAX_HEALTH
     @world.set(px + 1, 89, pz, Block::LAVA)
     @player.x = px + 1.5
     update_survival(0.1)
     @world.set(px + 1, 89, pz, Block::AIR)
-    @health = MAX_HEALTH
+    @vitals.health = Vitals::MAX_HEALTH
     150.times { update_survival(1.0 / 60.0) }
-    burned = @fire_time > 0.0 && @health < MAX_HEALTH
+    burned = @vitals.fire > 0.0 && @vitals.health < Vitals::MAX_HEALTH
     @world.set(px + 1, 89, pz, Block::WATER)
     update_survival(1.0 / 60.0)
     @world.set(px + 1, 89, pz, Block::AIR)
-    check("the player burns on after lava, and water puts the fire out", burned && @fire_time == 0.0)
+    check("the player burns on after lava, and water puts the fire out", burned && @vitals.fire == 0.0)
     @time_of_day = 0.3
-    @health = MAX_HEALTH
+    @vitals.health = Vitals::MAX_HEALTH
   end
 
   # On the sky platform from test_monsters: rain stops the sun from burning a
@@ -508,7 +506,7 @@ class Game
     @furnace_heat[77] = 5
     save
     @world.set(x, ground + 1, z, Block::GLASS)
-    @health = 3
+    @vitals.health = 3
     @inv_count[1] = 0
     @items.clear
     @weather.set_now(false)
@@ -516,7 +514,7 @@ class Game
     @furnace_heat = {}
     ok = load
     apply_loaded if ok
-    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @health == MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
+    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
@@ -525,12 +523,11 @@ class Game
     @furnace_heat = {}
     @items.clear
     @weather.set_now(false)
-    @health = 0
-    @dead = true
+    @vitals.health = 0
     save
     ok = load
     apply_loaded if ok
-    check("loading a save made while dead respawns", ok && @health == MAX_HEALTH && !@dead)
+    check("loading a save made while dead respawns", ok && @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead?)
     File.write(SAVE_PATH, "NOT A SAVE\n")
     ok = load
     keep_bad_save

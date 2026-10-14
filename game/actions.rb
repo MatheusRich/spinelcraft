@@ -11,7 +11,7 @@ class Game
       @captured = false
       Gfx.in_capture(0)
     end
-    if @dead
+    if @vitals.dead?
       if Gfx.in_button_pressed(1) || Gfx.in_key_pressed(Key::R)
         respawn
         @captured = true
@@ -387,8 +387,8 @@ class Game
 
   def eat
     food = Block.food(current_block.to_i)
-    return unless @survival && @inv_count[@slot] > 0 && @hunger < MAX_HUNGER && food > 0
-    @hunger = [@hunger + food, MAX_HUNGER].min
+    return unless @survival && @inv_count[@slot] > 0 && @vitals.hungry? && food > 0
+    @vitals.eat(food)
     @inv_count[@slot] -= 1
     @inv_block[@slot] = Block::AIR if @inv_count[@slot] == 0
     play(Sfx::PLACE, 0.5)

@@ -21,7 +21,7 @@ class Game
 
   def save
     header = [WX, WY, WZ, @seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
-              @time_of_day, @survival ? 1 : 0, @health, @spawn_x, @spawn_z].map(&:to_s).join(" ")
+              @time_of_day, @survival ? 1 : 0, @vitals.health, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
     close_chest
     land_falling
@@ -47,7 +47,7 @@ class Game
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv_block + @inv_count + @hotbar + [@hunger, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
+    inv = (@inv_block + @inv_count + @hotbar + [@vitals.hunger, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
       f.write("SPINELCRAFT7 #{header} #{inv}\n")
@@ -121,7 +121,7 @@ class Game
     @player.fall_start = @player.y
     @time_of_day = f[F_TIME].to_f
     @survival = f[F_SURVIVAL] == "1"
-    @health = f[F_HEALTH].to_i
+    @vitals.health = f[F_HEALTH].to_i
     @spawn_x = f[F_SPAWN].to_f
     @spawn_z = f[F_SPAWN + 1].to_f
     i = 0
@@ -135,7 +135,7 @@ class Game
       @hotbar[i] = f[F_HOTBAR + i].to_i
       i += 1
     end
-    @hunger = f[F_HUNGER].to_i
+    @vitals.hunger = f[F_HUNGER].to_i
     @weather.set_now(f[F_WEATHER] == "1")
     @weather.timer = f[F_WEATHER + 1].to_f
     @chests = {}
@@ -180,6 +180,6 @@ class Game
       c += 1
     end
     stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
-    respawn if @health <= 0
+    respawn if @vitals.dead?
   end
 end

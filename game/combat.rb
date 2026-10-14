@@ -85,19 +85,21 @@ class Game
   end
 
   def hurt(amount)
-    return if !@survival || @dead || amount <= 0
-    @health -= amount
+    return if !@survival || @vitals.dead? || amount <= 0
+    @vitals.hurt(amount)
+    felt_hurt
+  end
+
+  # The sound and the red flash of a hit. At zero health the player dies
+  # and drops the inventory.
+  def felt_hurt
     play(Sfx::HURT, 0.8)
-    @since_damage = 0.0
     @damage_flash = 0.35
-    if @health <= 0
-      @health = 0
-      @dead = true
-      toggle_inventory if @inventory_open
-      drop_inventory
-      @captured = false
-      Gfx.in_capture(0)
-    end
+    return unless @vitals.dead?
+    toggle_inventory if @inventory_open
+    drop_inventory
+    @captured = false
+    Gfx.in_capture(0)
   end
 
   def update_mobs(dt)

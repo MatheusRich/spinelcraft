@@ -24,16 +24,12 @@ class Game
   RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
   UNIFORMS = RAIN_UNIFORMS + 4
   DAY_SECONDS = 600.0
-  MAX_HEALTH = 20
-  MAX_HUNGER = 20
   MAX_ZOMBIES = 12
   PIGS = 24
   STACK = 64
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36
   HOTBAR = 9
-  # Seconds of air under water.
-  MAX_AIR = 10.0
   CHEST_SLOTS = 27
 
   # Chunks within LOAD_R of the player's chunk are loaded, and those within

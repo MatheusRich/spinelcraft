@@ -3,6 +3,7 @@ require_relative "game/textures"
 require_relative "game/world"
 require_relative "game/mesher"
 require_relative "game/player"
+require_relative "game/vitals"
 require_relative "game/camera"
 require_relative "game/draw"
 require_relative "game/mobs"
@@ -89,7 +90,6 @@ class Game
     make_stars
     @flow_queue = []
     @flow_timer = 0.0
-    @lava_timer = 0.0
     @alive_time = 0.0
     @anim_time = 0.0
     @fullscreen = false
@@ -126,18 +126,8 @@ class Game
     @items = []
     @falling = []
     @draw_time = -1.0
-    @health = MAX_HEALTH
-    @hunger = MAX_HUNGER
-    @hunger_timer = 0.0
-    @air = MAX_AIR
-    @regen = 0.0
-    @since_damage = 0.0
+    @vitals = Vitals.new
     @damage_flash = 0.0
-    @dead = false
-    # Seconds that the player keeps burning after lava, and until the next
-    # point of fire damage.
-    @fire_time = 0.0
-    @fire_tick = 0.0
     @mining = false
     @mine_x = 0
     @mine_y = 0
@@ -285,11 +275,7 @@ class Game
     @player.vy = 0.0
     @player.vz = 0.0
     @player.fall_start = @player.y
-    @health = MAX_HEALTH
-    @hunger = MAX_HUNGER
-    @air = MAX_AIR
-    @fire_time = 0.0
-    @dead = false
+    @vitals = Vitals.new
     @alive_time = 0.0
   end
 
@@ -316,7 +302,7 @@ class Game
     jump = false
     down = false
     sprint = false
-    if @captured && !@dead
+    if @captured && !@vitals.dead?
       fwd += 1.0 if Gfx.in_key(Key::W)
       fwd -= 1.0 if Gfx.in_key(Key::S)
       strafe += 1.0 if Gfx.in_key(Key::D)
@@ -391,57 +377,19 @@ class Game
   end
 
   def update_survival(dt)
-    return unless @survival && !@dead
+    return unless @survival && !@vitals.dead?
     @alive_time += dt
-    feet = @world.get(@player.x.floor, (@player.y + 0.2).floor, @player.z.floor)
-    head = Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
-    if Block.lava?(feet) || Block.lava?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
-      @lava_timer -= dt
-      if @lava_timer <= 0.0
-        @lava_timer = 0.5
-        hurt(4)
-      end
-      # Out of the lava, the player burns on for a while.
-      @fire_time = 4.0
-      @fire_tick = 1.0
-    elsif @fire_time > 0.0
-      if head || Block.water?(feet) || (@weather.rain > 0.5 && @world.under_sky?(@player.x, @player.eye_y, @player.z))
-        @fire_time = 0.0
-        play(Sfx::FIZZ, 0.6)
-      else
-        @fire_time -= dt
-        @fire_tick -= dt
-        if @fire_tick <= 0.0
-          @fire_tick = 1.0
-          hurt(1)
-        end
-      end
+    p = @player
+    feet = @world.get(p.x.floor, (p.y + 0.2).floor, p.z.floor)
+    eyes = @world.get(p.x.floor, p.eye_y.floor, p.z.floor)
+    in_lava = Block.lava?(feet) || Block.lava?(eyes)
+    under_water = Block.water?(eyes)
+    # Water and rain put the fire out.
+    if !in_lava && @vitals.burning? && (under_water || Block.water?(feet) || (@weather.rain > 0.5 && @world.under_sky?(p.x, p.eye_y, p.z)))
+      @vitals.douse
+      play(Sfx::FIZZ, 0.6)
     end
-    if head
-      @air -= dt
-      if @air < 0.0
-        @air += 1.0
-        hurt(2)
-      end
-    else
-      @air = MAX_AIR
-    end
-    @since_damage += dt
-    speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
-    @hunger_timer += dt * (speed > 5.0 ? 2.5 : 1.0)
-    if @hunger_timer > 25.0
-      @hunger_timer = 0.0
-      @hunger -= 1 if @hunger > 0
-    end
-    @regen += dt
-    if @regen > 4.0
-      @regen = 0.0
-      if @hunger >= 15 && @health < MAX_HEALTH && @since_damage > 5.0
-        @health += 1
-      elsif @hunger == 0 && @health > 1
-        hurt(1)
-      end
-    end
+    felt_hurt if @vitals.update(dt, in_lava, under_water, Math.sqrt(p.vx * p.vx + p.vz * p.vz))
   end
 
   def daylight
@@ -503,7 +451,7 @@ class Game
     save if @save_on_quit
     elapsed = (Gfx.gfx_ns - started) / 1.0e9
     puts "gpu_wait_ms=#{Gfx.gfx_gpu_ms.round(2)}" if ENV["GPUTIME"]
-    puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(total_cpu / frames).round(3)} max_cpu_ms=#{max_cpu.round(2)} max_frame_ms=#{max_frame.round(1)} slow_frames=#{slow_frames} health=#{@health} dead=#{@dead} mobs=#{@mobs.size}"
+    puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(total_cpu / frames).round(3)} max_cpu_ms=#{max_cpu.round(2)} max_frame_ms=#{max_frame.round(1)} slow_frames=#{slow_frames} health=#{@vitals.health} dead=#{@vitals.dead?} mobs=#{@mobs.size}"
     Gfx.gfx_quit
   end
 end

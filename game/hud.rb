@@ -19,7 +19,7 @@ class Game
     draw_survival_bars(x0, y0, total, s) if @survival
     draw_messages(w, y0, s)
     draw_debug(s) if @show_debug
-    if @dead
+    if @vitals.dead?
       draw_death_screen(w, h, s)
     elsif @inventory_open && @survival
       draw_backpack(w, h, inventory_scale(w, h))
@@ -39,7 +39,7 @@ class Game
     elsif Block.lava?(eye_block)
       @ui.rect(0.0, 0.0, w, h, 0.9, 0.3, 0.05, 0.75)
     end
-    if @fire_time > 0.0 && @survival && !@dead
+    if @vitals.burning? && @survival && !@vitals.dead?
       # Two flames at the bottom corners that flicker.
       size = h * 0.42
       k = 0
@@ -90,7 +90,7 @@ class Game
     while i < 10
       hx = x0 + i * 20.0 * s
       @ui.icon(hx, hy, 18.0 * s, Tex::HEART_EMPTY, 1.0)
-      hp = @health - i * 2
+      hp = @vitals.health - i * 2
       if hp >= 2
         @ui.icon(hx, hy, 18.0 * s, Tex::HEART, 1.0)
       elsif hp == 1
@@ -101,12 +101,12 @@ class Game
     i = 0
     while i < 10
       fx = x0 + total - (i + 1) * 20.0 * s
-      full = @hunger - i * 2 >= 1
+      full = @vitals.hunger - i * 2 >= 1
       @ui.icon(fx, hy, 18.0 * s, Tex::PORKCHOP, full ? 1.0 : 0.22)
       i += 1
     end
-    if @air < MAX_AIR
-      bubbles = @air.ceil
+    if @vitals.air < Vitals::MAX_AIR
+      bubbles = @vitals.air.ceil
       i = 0
       while i < bubbles
         bx = x0 + total - (i + 1) * 20.0 * s
@@ -118,7 +118,7 @@ class Game
 
   # The first-steps hint for an empty survival inventory, and the last message.
   def draw_messages(w, y0, s)
-    if @survival && !@dead && !@inventory_open && room_for(Block::DIRT) == INV * STACK
+    if @survival && !@vitals.dead? && !@inventory_open && room_for(Block::DIRT) == INV * STACK
       hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
       @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, 1.0, 1.0, 0.7, 0.9)
     end

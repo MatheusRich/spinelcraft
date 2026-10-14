@@ -25,7 +25,7 @@ class Game
 
   # Adds the held model to @dyn, in the frame of the eye at ex, ey, ez.
   def draw_hand(ex, ey, ez)
-    return if !@captured || @dead
+    return if !@captured || @vitals.dead?
     b = @hand_block
     p = @player
     fx = p.fx

@@ -64,7 +64,7 @@ class Game
       # through the missing blocks.
       next unless @world.loaded?(item.x.floor, item.z.floor)
       if item.update(@world, dt)
-        pick_up(item) if item.ready? && !@dead && item.near?(@player)
+        pick_up(item) if item.ready? && !@vitals.dead? && item.near?(@player)
       else
         burn_item(item)
       end
