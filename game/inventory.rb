@@ -1,8 +1,11 @@
 # Items: the hotbar, the backpack, chests, crafting, and the inventory screen.
 class Game
-  RECIPE_W = 300.0
-  # The recipe list has two columns of this many rows.
-  RECIPE_ROWS = 16
+  RECIPE_W = 320.0
+  # The distance from one recipe row to the next. A row is 4 less high.
+  RECIPE_H = 44.0
+  # The recipe list shows this many rows of two recipes. The wheel scrolls
+  # the other rows into view.
+  RECIPE_ROWS = 10
   # What a furnace burns, and how many items one of each smelts. The list
   # goes from the weakest fuel to the strongest.
   FUEL_BLOCKS = [Block::PLANKS, Block::LOG, Block::COAL]
@@ -184,16 +187,61 @@ class Game
     row = i < HOTBAR ? 3 : (i - HOTBAR) / HOTBAR
     col = i < HOTBAR ? i : (i - HOTBAR) % HOTBAR
     x0 = (w - (HOTBAR * size + (HOTBAR - 1) * gap) - (RECIPE_W * 2.0 + 8.0) * s - 60.0 * s) / 2.0
-    y0 = (h - (RECIPE_ROWS * 30.0 - 4.0) * s) / 2.0 + 20.0 * s
+    y0 = (h - (RECIPE_ROWS * RECIPE_H - 4.0) * s) / 2.0 + 20.0 * s
     [x0 + col * (size + gap), y0 + row * (size + gap) + (row == 3 ? 14.0 * s : 0.0), size]
   end
 
-  # Recipe k beside the grid, in two columns: x, y, width, height.
-  def recipe_cell(k, w, h, s)
+  # Place j of the recipe list beside the grid, two to a row: x, y, width,
+  # height.
+  def recipe_cell(j, w, h, s)
     last = pack_cell(INV - 1, w, h, s)
     top = pack_cell(HOTBAR, w, h, s)
-    col = k / RECIPE_ROWS
-    [last[0] + last[2] + 60.0 * s + col * (RECIPE_W + 8.0) * s, top[1] + (k % RECIPE_ROWS) * 30.0 * s, RECIPE_W * s, 26.0 * s]
+    [last[0] + last[2] + 60.0 * s + (j % 2) * (RECIPE_W + 8.0) * s, top[1] + (j / 2) * RECIPE_H * s, RECIPE_W * s, (RECIPE_H - 4.0) * s]
+  end
+
+  # The recipes in view: RECIPE_ROWS rows of shown_recipes from row
+  # @recipe_top on.
+  def recipes_in_view
+    shown = shown_recipes
+    view = []
+    j = @recipe_top * 2
+    while j < shown.size && view.size < RECIPE_ROWS * 2
+      view << shown[j]
+      j += 1
+    end
+    view
+  end
+
+  # Scrolls the recipe list by rows. The last row does not go above the
+  # bottom of the list.
+  def scroll_recipes(rows)
+    most = (shown_recipes.size + 1) / 2 - RECIPE_ROWS
+    @recipe_top += rows
+    @recipe_top = most if @recipe_top > most
+    @recipe_top = 0 if @recipe_top < 0
+  end
+
+  # The wheel scrolls the recipe list a row for each step. A trackpad sends
+  # parts of a step, and @recipe_wheel adds them up.
+  def wheel_recipes
+    @recipe_wheel += Gfx.in_wheel
+    while @recipe_wheel >= 1.0
+      scroll_recipes(-1)
+      @recipe_wheel -= 1.0
+    end
+    while @recipe_wheel <= -1.0
+      scroll_recipes(1)
+      @recipe_wheel += 1.0
+    end
+  end
+
+  # True when the mouse is over the rows of the recipe list.
+  def over_recipes?(w, h, s)
+    mx = Gfx.in_mouse_x
+    my = Gfx.in_mouse_y
+    first = recipe_cell(0, w, h, s)
+    last = recipe_cell(RECIPE_ROWS * 2 - 1, w, h, s)
+    mx >= first[0] && my >= first[1] && mx < last[0] + last[2] && my < last[1] + last[3]
   end
 
   # Marks what is in the inventory or in the hand as seen. @seen stays
@@ -240,11 +288,11 @@ class Game
   def recipe_hover(w, h, s)
     mx = Gfx.in_mouse_x
     my = Gfx.in_mouse_y
-    shown = shown_recipes
+    view = recipes_in_view
     j = 0
-    while j < shown.size
+    while j < view.size
       c = recipe_cell(j, w, h, s)
-      return shown[j] if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[3]
+      return view[j] if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[3]
       j += 1
     end
     -1
@@ -411,6 +459,10 @@ class Game
     end
     @station = BY_HAND if @inventory_open
     @inventory_open = !@inventory_open
+    if @inventory_open
+      @recipe_top = 0
+      @recipe_wheel = 0.0
+    end
     @captured = !@inventory_open
     Gfx.in_capture(@inventory_open ? 0 : 1)
   end
@@ -420,12 +472,16 @@ class Game
       toggle_inventory
       return
     end
-    select_slot
+    w = Gfx.gfx_width.to_f
+    h = Gfx.gfx_height.to_f
+    s = inventory_scale(w, h)
+    if @survival && @chest_key < 0 && Gfx.in_wheel != 0.0 && over_recipes?(w, h, s)
+      wheel_recipes
+    else
+      select_slot
+    end
     left = Gfx.in_button_pressed(1)
     if @survival && (left || Gfx.in_button_pressed(3))
-      w = Gfx.gfx_width.to_f
-      h = Gfx.gfx_height.to_f
-      s = inventory_scale(w, h)
       shift = left && Gfx.in_key(Key::LSHIFT)
       hover = pack_hover(w, h, s)
       if hover >= 0
@@ -453,8 +509,6 @@ class Game
         craft_recipe(recipe, shift ? CRAFT_ALL : 1) if recipe >= 0 && @held_count == 0
       end
     elsif Gfx.in_button_pressed(1)
-      w = Gfx.gfx_width.to_f
-      h = Gfx.gfx_height.to_f
       hover = inventory_hover(w, h, ui_scale(h))
       if hover >= 0
         @hotbar[@slot] = PLACEABLE[hover]

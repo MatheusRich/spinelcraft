@@ -84,6 +84,9 @@ class Game
     @inv = Slots.new(INV)
     @seen = Array.new(Block::COUNT, 0)
     @recipe_new = Array.new(RECIPES.size, 0)
+    # The first recipe row in view, and the wheel steps not used yet.
+    @recipe_top = 0
+    @recipe_wheel = 0.0
     # The smelts left in each furnace, by World.key.
     @furnace_heat = {}
     # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE),

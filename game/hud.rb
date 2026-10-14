@@ -228,34 +228,42 @@ class Game
     @ui.text(x + size - @ui.text_width(t, ts) - 1.0 * s, y + size - 6.0 * ts, t, ts, 1.0, 1.0, 1.0, 1.0)
   end
 
-  # The panel grows with the shown recipes: one column, then two.
+  # The panel grows with the shown recipes, up to RECIPE_ROWS rows. A bar
+  # at the right shows where the view is when the list is longer.
   def draw_recipe_panel(w, h, s, pad)
     shown = shown_recipes
-    n = shown.size
+    view = recipes_in_view
+    rows = (shown.size + 1) / 2
     first = recipe_cell(0, w, h, s)
-    bottom = recipe_cell(n < 1 ? 0 : (n < RECIPE_ROWS ? n - 1 : RECIPE_ROWS - 1), w, h, s)
-    right = recipe_cell(n > RECIPE_ROWS ? RECIPE_ROWS : 0, w, h, s)
+    bottom = recipe_cell(rows < 1 ? 0 : ((rows < RECIPE_ROWS ? rows : RECIPE_ROWS) - 1) * 2, w, h, s)
+    right = recipe_cell(shown.size > 1 ? 1 : 0, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, bottom[1] + bottom[3] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
     @ui.text(first[0], first[1] - 36.0 * s, "CRAFTING", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     rhover = recipe_hover(w, h, s)
     if shown.empty?
       @ui.text(first[0], first[1] + 4.0 * s, "PICK UP ITEMS TO FIND RECIPES", 2.0 * s, 0.8, 0.8, 0.8, 1.0)
     end
+    if rows > RECIPE_ROWS
+      track = bottom[1] + bottom[3] - first[1]
+      bx = right[0] + right[2] + 7.0 * s
+      @ui.rect(bx, first[1], 4.0 * s, track, 0.1, 0.1, 0.12, 1.0)
+      @ui.rect(bx, first[1] + track * @recipe_top.to_f / rows.to_f, 4.0 * s, track * RECIPE_ROWS.to_f / rows.to_f, 0.6, 0.6, 0.65, 1.0)
+    end
     j = 0
-    while j < shown.size
-      k = shown[j]
+    while j < view.size
+      k = view[j]
       r = RECIPES[k]
       c = recipe_cell(j, w, h, s)
       can = @inv.total(r[0]) >= r[1]
       shade = k == rhover ? 0.5 : 0.28
       fresh = @recipe_new[k] == 1
       @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)
-      @ui.text(c[0] + c[2] - @ui.text_width("NEW", 1.5 * s) - 4.0 * s, c[1] + 3.0 * s, "NEW", 1.5 * s, 1.0, 0.85, 0.2, 1.0) if fresh
-      @ui.icon(c[0] + 2.0 * s, c[1] + 2.0 * s, 22.0 * s, Block::FRONT[r[2]], can ? 1.0 : 0.35)
+      @ui.text(c[0] + c[2] - @ui.text_width("NEW", 1.5 * s) - 8.0 * s, c[1] + 6.0 * s, "NEW", 1.5 * s, 1.0, 0.85, 0.2, 1.0) if fresh
+      @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, 28.0 * s, Block::FRONT[r[2]], can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
-      @ui.text(c[0] + 30.0 * s, c[1] + 4.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.0 * s, bright, bright, bright, 1.0)
+      @ui.text(c[0] + 42.0 * s, c[1] + 6.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.5 * s, bright, bright, bright, 1.0)
       need = "#{r[1]} #{Block::NAMES[r[0]]}"
-      @ui.text(c[0] + c[2] - @ui.text_width(need, 1.5 * s) - 4.0 * s, c[1] + 15.0 * s, need, 1.5 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
+      @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, need, 2.0 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
       j += 1
     end
   end

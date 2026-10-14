@@ -135,6 +135,7 @@ class Game
     test_crafting_limits
     test_inventory_layout
     test_seen_recipes
+    test_recipe_scroll
     test_split_and_quick_move
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
@@ -788,6 +789,35 @@ class Game
     set_block(x, y, z, old)
     check("the E screen, a crafting table and a furnace each show their own recipes", hand && table && furnace && @station == BY_HAND)
     @inv.clear
+  end
+
+  # A crafting table shows more recipes than fit. The list scrolls to its
+  # last row and no further, and it starts at the top each time it opens.
+  def test_recipe_scroll
+    seen = @seen.dup
+    RECIPES.each { |r| @seen[r[0]] = 1 }
+    x = @player.x.floor + 2
+    y = @player.y.floor
+    z = @player.z.floor
+    old = @world.get(x, y, z)
+    set_block(x, y, z, Block::CRAFTING_TABLE)
+    open_station(x, y, z, AT_TABLE)
+    shown = shown_recipes
+    rows = (shown.size + 1) / 2
+    top = recipes_in_view == shown[0, RECIPE_ROWS * 2]
+    scroll_recipes(100)
+    end_view = recipes_in_view
+    bottom = @recipe_top == rows - RECIPE_ROWS && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_top * 2]
+    scroll_recipes(-100)
+    back = @recipe_top == 0
+    scroll_recipes(2)
+    toggle_inventory
+    open_station(x, y, z, AT_TABLE)
+    reset = @recipe_top == 0
+    toggle_inventory
+    set_block(x, y, z, old)
+    @seen = seen
+    check("the recipe list scrolls to its last row, and it opens at the top", rows > RECIPE_ROWS && top && bottom && back && reset)
   end
 
   # The inventory screen fits the frame and leaves the hotbar and the health
