@@ -15,8 +15,8 @@ class Game
       end
       dx += 1
     end
-    set_block(bx - 3, y + 1, bz + 2, Block::BED)
-    set_block(bx - 2, y + 1, bz + 2, Block::BED_HEAD)
+    set_block(bx - 3, y + 1, bz + 2, Block.bed_id(1, false))
+    set_block(bx - 2, y + 1, bz + 2, Block.bed_id(0, true))
     set_block(bx + 3, y + 1, bz + 2, Block::TORCH)
     [Mob::PIG, Mob::SHEEP, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
       m = Mob.new(kind, bx - 4.0 + i * 2.0, y + 1.0, bz + 0.5, 1)
@@ -58,15 +58,19 @@ class Game
     set_block(bx - 2, y + 2, bz - 2, Block.door_id(2, true, false))
     set_block(bx, y + 1, bz - 2, Block.door_id(2, false, true))
     set_block(bx, y + 2, bz - 2, Block.door_id(2, true, true))
-    # The furnace faces the player.
-    set_block(bx + 2, y + 1, bz - 2, Block.facing_id(Block::FURNACE, 2))
+    # A chest and a lit furnace face the player.
+    set_block(bx - 4, y + 1, bz - 2, Block.facing_id(Block::CHEST, 2))
+    set_block(bx + 2, y + 1, bz - 2, Block.furnace_id(2, true))
     set_block(bx + 4, y + 1, bz - 2, Block::CRAFTING_TABLE)
-    set_block(bx + 5, y + 1, bz - 2, Block::SAPLING)
-    # Wall torches on the front of the furnace and on the side of the table.
-    set_block(bx + 2, y + 1, bz - 1, Block.facing_id(Block::TORCH, 2))
+    # A wall torch on the side of the table, and a ladder on a wall.
     set_block(bx + 3, y + 1, bz - 2, Block.facing_id(Block::TORCH, 1))
-    set_block(bx + 1, y + 1, bz - 2, Block::LADDER)
-    set_block(bx + 1, y + 2, bz - 2, Block::LADDER)
+    set_block(bx + 1, y + 1, bz - 3, Block::STONE)
+    set_block(bx + 1, y + 2, bz - 3, Block::STONE)
+    set_block(bx + 1, y + 1, bz - 2, Block.facing_id(Block::LADDER, 2))
+    set_block(bx + 1, y + 2, bz - 2, Block.facing_id(Block::LADDER, 2))
+    # A bed in front of the table, with its head to the right.
+    set_block(bx + 3, y + 1, bz - 1, Block.bed_id(1, false))
+    set_block(bx + 4, y + 1, bz - 1, Block.bed_id(0, true))
     [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |b, i|
       set_block(bx - 4 + i, y + 1, bz - 1, b)
     end
@@ -143,6 +147,8 @@ class Game
     test_door_rules
     test_door_board
     test_ladder
+    test_ladder_wall
+    test_low_blocks
     test_plant_box
     test_bed
     test_buckets
@@ -945,7 +951,7 @@ class Game
     @player.on_ground = true
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, true, false) }
     @mobs.clear
-    set_block(bx + 6, 89, bz, Block::BED)
+    set_block(bx + 6, 89, bz, Block.bed_id(0, true))
     @time_of_day = 0.75
     use_bed(bx + 6, 89, bz)
     check("sleeping in a bed skips the night and sets spawn", daylight > 0.35 && @spawn_x == bx + 6.5)
@@ -1143,6 +1149,7 @@ class Game
     # A click smelts one item, and the weakest fuel (a plank) covers it.
     craft_recipe(smelt)
     one = @inv.total(Block::IRON) == 8 && @inv.total(Block::IRON_INGOT) == 1 && @inv.total(Block::PLANKS) == 1 && @inv.total(Block::COAL) == 1 && furnace_heat(furnace) == 0
+    dark = @world.get(x + 2, y, z + 3) == Block::FURNACE
     # A Shift-click smelts all 8 others, and the coal covers them.
     craft_recipe(smelt, CRAFT_ALL)
     all = @inv.total(Block::IRON) == 0 && @inv.total(Block::IRON_INGOT) == 9 && @inv.total(Block::COAL) == 0
@@ -1152,6 +1159,7 @@ class Game
     @inv.remove(Block::PLANKS, 1)
     craft_recipe(smelt)
     kept = @inv.total(Block::COAL) == 0 && furnace_heat(furnace) == 7
+    lit = @world.get(x + 2, y, z + 3) == Block.furnace_id(0, true)
     @inv.add(Block::SAND)
     craft_recipe(recipe_for(Block::GLASS))
     used = @inv.total(Block::GLASS) == 1 && furnace_heat(furnace) == 6
@@ -1163,6 +1171,7 @@ class Game
     no_fuel = @inv.total(Block::SAND) == 1 && @inv.total(Block::GLASS) == 1
     set_block(x + 2, y, z + 3, Block::AIR)
     check("a furnace keeps the heat of its fuel, and smelting needs fuel", one && all && kept && used && no_fuel)
+    check("a furnace with heat is lit, and a furnace with none is not", dark && lit)
     set_block(x, y, z, Block::SAPLING)
     # The crop stands out of reach of the tree's leaves, on top of its column.
     cy = @world.height_at(x + 4, z)
@@ -1210,7 +1219,7 @@ class Game
     set_block(x + 1, g, z, Block::AIR)
     @player.raycast(@world)
     place
-    two = @world.get(x, g, z) == Block::BED && @world.get(x + 1, g, z) == Block::BED_HEAD && @inv.count(0) == 1
+    two = @world.get(x, g, z) == Block.bed_id(1, false) && @world.get(x + 1, g, z) == Block.bed_id(0, true) && @inv.count(0) == 1
     set_block(x + 1, g, z, Block::AIR)
     gone = @world.get(x, g, z) == Block::AIR
     @inv.clear
@@ -1302,7 +1311,7 @@ class Game
     y = @world.height_at(x, z)
     i = 0
     while i < 6
-      set_block(x, y + i, z, Block::LADDER)
+      set_block(x, y + i, z, Block.facing_id(Block::LADDER, 1))
       set_block(x + 1, y + i, z, Block::STONE)
       i += 1
     end
@@ -1331,6 +1340,82 @@ class Game
     end
     check("a ladder climbs on jump, holds on Shift, and slides down slowly", up && held && slid)
     check("forward on a ladder climbs onto the block at its top", top)
+  end
+
+  # A ladder hangs only on the side of a solid block, as a thin board on
+  # that side, and it falls with the block.
+  def test_ladder_wall
+    x = @spawn_x.floor + 44
+    z = @spawn_z.floor - 40
+    g = @world.height_at(x, z) + 3
+    [-2, -1, 0, 1].each do |dx|
+      set_block(x + dx, g - 1, z, Block::STONE)
+      set_block(x + dx, g, z, Block::AIR)
+      set_block(x + dx, g + 1, z, Block::AIR)
+    end
+    set_block(x + 1, g, z, Block::STONE)
+    survival = @survival
+    @survival = true
+    @inv.clear
+    @inv.add(Block::LADDER)
+    @inv.add(Block::LADDER)
+    @slot = 0
+    # The player looks at the -x side of the stone.
+    @player.x = x - 1.5
+    @player.y = g.to_f
+    @player.z = z + 0.5
+    @player.yaw = Math::PI / 2.0
+    @player.pitch = -0.45
+    @player.raycast(@world)
+    place
+    hung = @world.get(x, g, z) == Block.facing_id(Block::LADDER, 1)
+    # A view ray across the middle of the cell misses the board.
+    @player.x = x + 0.5
+    @player.z = z - 1.5
+    @player.yaw = Math::PI
+    @player.raycast(@world)
+    thin = !(@player.hit && @player.hx == x && @player.hy == g && @player.hz == z)
+    set_block(x + 1, g, z, Block::AIR)
+    fell = @world.get(x, g, z) == Block::AIR
+    # On the top of a block, a ladder does not hang.
+    @player.x = x - 1.5
+    @player.z = z + 0.5
+    @player.yaw = Math::PI / 2.0
+    @player.pitch = -1.2
+    @player.raycast(@world)
+    place
+    floor = @player.hy == g - 1 && @world.get(x - 1, g, z) == Block::AIR && @inv.count(0) == 1
+    @survival = survival
+    @inv.clear
+    check("a ladder hangs on the side of a solid block as a thin board, and falls with it", hung && thin && fell && floor)
+  end
+
+  # The player and a mob land on the top of a bed (9/16 high) and of a chest
+  # (14/16 high), as in Minecraft.
+  def test_low_blocks
+    x = @spawn_x.floor + 48
+    z = @spawn_z.floor - 40
+    g = @world.height_at(x, z) + 3
+    [0, 1, 2].each do |dx|
+      set_block(x + dx, g - 1, z, Block::STONE)
+      set_block(x + dx, g, z, Block::AIR)
+      set_block(x + dx, g + 1, z, Block::AIR)
+      set_block(x + dx, g + 2, z, Block::AIR)
+    end
+    set_block(x, g, z, Block.bed_id(0, true))
+    set_block(x + 2, g, z, Block.facing_id(Block::CHEST, 3))
+    p = Player.new(x + 0.5, g + 1.5, z + 0.5)
+    60.times { p.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false) }
+    bed = (p.y - (g + 0.5625)).abs < 0.001 && p.on_ground
+    p = Player.new(x + 2.5, g + 1.5, z + 0.5)
+    60.times { p.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false) }
+    chest = (p.y - (g + 0.875)).abs < 0.001
+    m = Mob.new(Mob::PIG, x + 0.5, g + 1.5, z + 0.5, 1)
+    m.move(@world, 0.0, -1.0, 0.0)
+    pig = (m.y - (g + 0.5625)).abs < 0.001
+    set_block(x, g, z, Block::AIR)
+    set_block(x + 2, g, z, Block::AIR)
+    check("the player and a mob land on the top of a bed and of a chest", bed && chest && pig)
   end
 
   # Water spreads 7 blocks over a floor and drains without its source.

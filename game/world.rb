@@ -140,8 +140,7 @@ class World
       while by <= y1
         bz = (z - half).floor
         while bz <= z1
-          b = get(bx, by, bz)
-          return true if Block.solid?(b) && (!Block.door?(b) || door_in_box?(b, bx, bz, x, z, half))
+          return true if block_in_box?(get(bx, by, bz), bx, by, bz, x, y, z, half, tall)
           bz += 1
         end
         by += 1
@@ -151,16 +150,19 @@ class World
     false
   end
 
-  # True when the board of the door b in the cell bx, bz overlaps the box of
-  # half width half around x, z.
-  def door_in_box?(b, bx, bz, x, z, half)
-    (bx + 0.5 + Block.box_dx(b) - x).abs < Block.box_hx(b) + half && (bz + 0.5 + Block.box_dz(b) - z).abs < Block.box_hz(b) + half
+  # True when b is solid and its box (Block.box_hx and the others) in the
+  # cell bx, by, bz overlaps the box of solid_in_box?.
+  def block_in_box?(b, bx, by, bz, x, y, z, half, tall)
+    return false unless Block.solid?(b)
+    y0 = by + Block.box_dy(b)
+    (bx + 0.5 + Block.box_dx(b) - x).abs < Block.box_hx(b) + half && (bz + 0.5 + Block.box_dz(b) - z).abs < Block.box_hz(b) + half &&
+      y0 < y + tall && y0 + Block.box_top(b) > y
   end
 
   # The nearest face of the solid blocks that overlap the box of
-  # solid_in_box?, on the x axis (axis 0) or the z axis (axis 2): the lowest
-  # face when dir is 1, and the highest when dir is -1. A move along that
-  # axis stops at this face.
+  # solid_in_box?, on the x axis (axis 0), the y axis (axis 1) or the z axis
+  # (axis 2): the lowest face when dir is 1, and the highest when dir is -1.
+  # A move along that axis stops at this face.
   def box_edge(x, y, z, half, tall, axis, dir)
     edge = dir > 0 ? 1.0e9 : -1.0e9
     x1 = (x + half).floor
@@ -173,13 +175,13 @@ class World
         bz = (z - half).floor
         while bz <= z1
           b = get(bx, by, bz)
-          if Block.solid?(b) && (!Block.door?(b) || door_in_box?(b, bx, bz, x, z, half))
-            c = axis == 0 ? bx + 0.5 + Block.box_dx(b) : bz + 0.5 + Block.box_dz(b)
-            h = axis == 0 ? Block.box_hx(b) : Block.box_hz(b)
+          if block_in_box?(b, bx, by, bz, x, y, z, half, tall)
+            lo = axis == 0 ? bx + 0.5 + Block.box_dx(b) - Block.box_hx(b) : (axis == 1 ? by + Block.box_dy(b) : bz + 0.5 + Block.box_dz(b) - Block.box_hz(b))
+            hi = axis == 0 ? bx + 0.5 + Block.box_dx(b) + Block.box_hx(b) : (axis == 1 ? by + Block.box_dy(b) + Block.box_top(b) : bz + 0.5 + Block.box_dz(b) + Block.box_hz(b))
             if dir > 0
-              edge = c - h if c - h < edge
-            elsif c + h > edge
-              edge = c + h
+              edge = lo if lo < edge
+            elsif hi > edge
+              edge = hi
             end
           end
           bz += 1

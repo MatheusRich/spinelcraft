@@ -42,7 +42,7 @@ class Game
       return
     end
     smelt = r[4] == AT_FURNACE
-    key = @station_key
+    key = smelt ? World.key(@station_x, @station_y, @station_z) : 0
     if smelt && furnace_heat(key) == 0 && pick_fuel(1) < 0
       say("NEED FUEL: PLANKS, LOGS OR COAL ORE")
       return
@@ -74,7 +74,7 @@ class Game
     n = r[3] * times
     n.times { @inv.add(r[2]) }
     if smelt
-      set_furnace_heat(key, heat - times)
+      set_furnace_heat(@station_x, @station_y, @station_z, heat - times)
       say("SMELTED #{n} #{Block::NAMES[r[2]]}  #{heat - times} HEAT LEFT")
     else
       say("CRAFTED #{n} #{Block::NAMES[r[2]]}")
@@ -91,12 +91,17 @@ class Game
     heat.nil? ? 0 : heat
   end
 
-  def set_furnace_heat(key, heat)
+  # A furnace with heat is lit.
+  def set_furnace_heat(x, y, z, heat)
+    key = World.key(x, y, z)
     if heat > 0
       @furnace_heat[key] = heat
     else
       @furnace_heat.delete(key)
     end
+    b = @world.get(x, y, z)
+    lit = Block.furnace_id(Block::FACING[b], heat > 0)
+    set_block(x, y, z, lit) if lit != b
   end
 
   # The fuel to burn for want smelts: the weakest fuel in the inventory that
@@ -116,7 +121,8 @@ class Game
 
   # True when the recipes for where (BY_HAND, AT_TABLE or AT_FURNACE) work.
   # A crafting table or a furnace must be within STATION_REACH blocks of the
-  # player on each axis. @station_key keeps the World.key of the one found.
+  # player on each axis. @station_x, @station_y and @station_z keep the
+  # cell of the one found.
   def station_near?(where)
     return true if where == BY_HAND
     b = where == AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
@@ -130,7 +136,9 @@ class Game
         z = pz - STATION_REACH
         while z <= pz + STATION_REACH
           if Block::BASE[@world.get(x, y, z)] == b
-            @station_key = World.key(x, y, z)
+            @station_x = x
+            @station_y = y
+            @station_z = z
             return true
           end
           z += 1

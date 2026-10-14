@@ -87,7 +87,14 @@ module Tex
   FURNACE_SIDE = 87
   FURNACE_TOP = 88
   DOOR_ITEM = 89
-  FONT = 90
+  CHEST_FRONT = 90
+  BED_HEAD_SIDE = 91
+  # The ends of a bed: the foot of the foot half, and the head of the head half.
+  BED_FOOT_END = 92
+  BED_HEAD_END = 93
+  BED_ITEM = 94
+  FURNACE_LIT = 95
+  FONT = 96
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -149,14 +156,16 @@ module Tex
                   COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL,
                   DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
                   BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP,
-                  DOOR_LOWER, DOOR_UPPER, DOOR_ITEM]
+                  DOOR_LOWER, DOOR_UPPER, DOOR_ITEM, CHEST_TOP, CHEST_SIDE, CHEST_FRONT, BED_TOP, BED_HEAD_TOP,
+                  BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT]
   IMAGE_FILES = %w[grass_top grass_side dirt stone sand water log_side log_top leaves planks cobble glass snow
                    snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
                    torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire sapling apple
                    wood_sword stone_sword iron_sword diamond_sword iron_ingot furnace cooked_porkchop wood_axe
                    stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
                    wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket
-                   furnace_side furnace_top door_lower door_upper door_item]
+                   furnace_side furnace_top door_lower door_upper door_item chest_top chest_side chest_front bed_top
+                   bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit]
 
   def self.images(px)
     s = 0
@@ -180,8 +189,6 @@ module Tex
       i += 1
     end
     noisy(px, SKIN, 220, 220, 220, 25, 9)
-    bed(px)
-    chest(px)
     puff(px)
     rain(px)
     heart(px, HEART, 220, 30, 40)
@@ -202,6 +209,13 @@ module Tex
     bleed(px, WHEAT_1)
     bleed(px, WHEAT_2)
     bleed(px, WHEAT_RIPE)
+    bleed(px, CHEST_TOP)
+    bleed(px, CHEST_SIDE)
+    bleed(px, CHEST_FRONT)
+    bleed(px, BED_SIDE)
+    bleed(px, BED_HEAD_SIDE)
+    bleed(px, BED_FOOT_END)
+    bleed(px, BED_HEAD_END)
     px
   end
 
@@ -301,82 +315,6 @@ module Tex
       i += 1
     end
   end
-
-
-  # Chest: wood with a dark rim, and a band and a metal latch on the sides.
-  def self.chest(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        v = rnd(x / 4, y, 91) / 12 + (rnd(x, y, 92) - 128) / 20
-        edge = x == 0 || y == 0 || x == 15 || y == 15
-        c = edge ? 85 : 150 + v
-        set(px, CHEST_TOP, x, y, c, (c * 0.68).to_i, (c * 0.38).to_i, 255)
-        band = y == 5 || y == 6
-        side = edge || band ? 85 : 150 + v
-        set(px, CHEST_SIDE, x, y, side, (side * 0.68).to_i, (side * 0.38).to_i, 255)
-        x += 1
-      end
-      y += 1
-    end
-    set(px, CHEST_SIDE, 7, 6, 200, 200, 210, 255)
-    set(px, CHEST_SIDE, 8, 6, 200, 200, 210, 255)
-    set(px, CHEST_SIDE, 7, 7, 160, 160, 170, 255)
-    set(px, CHEST_SIDE, 8, 7, 160, 160, 170, 255)
-  end
-
-  # Bed: a red blanket on top of the foot, a white pillow on top of the
-  # head, and a wooden frame on the sides. The pillow sits in the middle,
-  # so it looks right for each direction of the bed.
-  def self.bed(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        v = (rnd(x, y, 81) - 128) / 12
-        fold = y == 0 || y == 15 || x == 0 || x == 15 ? 25 : 0
-        set(px, BED_TOP, x, y, 180 + v - fold, 35 + v, 40 + v, 255)
-        if y > 2 && y < 13 && x > 2 && x < 13
-          set(px, BED_HEAD_TOP, x, y, 235 + v, 235 + v, 230 + v, 255)
-        else
-          set(px, BED_HEAD_TOP, x, y, 180 + v - fold, 35 + v, 40 + v, 255)
-        end
-        if y < 6
-          set(px, BED_SIDE, x, y, 180 + v, 35 + v, 40 + v, 255)
-        elsif y < 11
-          set(px, BED_SIDE, x, y, 160 + v, 120 + v, 75 + v, 255)
-        else
-          set(px, BED_SIDE, x, y, 0, 0, 0, (x < 3 || x > 12) ? 255 : 0)
-          set(px, BED_SIDE, x, y, 120, 85, 50, 255) if x < 3 || x > 12
-        end
-        x += 1
-      end
-      y += 1
-    end
-  end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   HEART_ROWS = [
     "................", "................", "..####....####..", ".######..######.",

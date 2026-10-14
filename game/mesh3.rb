@@ -119,6 +119,12 @@ class Mesh3
   # draws the faces in mask (see aabb_faces), with the top layer on the +y
   # face, the bottom layer on the -y face, and the side layer on the others.
   def frame_box(x0, y0, z0, x1, y1, z1, mask, top, side, bottom, r, g, b, a)
+    frame_corners(x0, y0, z0, x1, y1, z1)
+    corner_faces(mask, top, side, bottom, r, g, b, a)
+  end
+
+  # Puts the corners of the box of frame_box in @cx, @cy and @cz.
+  def frame_corners(x0, y0, z0, x1, y1, z1)
     f = @frame
     i = 0
     while i < 8
@@ -130,7 +136,6 @@ class Mesh3
       @cz[i] = f[2] + lx * f[5] + ly * f[8] + lz * f[11]
       i += 1
     end
-    corner_faces(mask, top, side, bottom, r, g, b, a)
   end
 
   # Block or item b as a unit model around the origin of the frame of set_frame.
@@ -138,6 +143,8 @@ class Mesh3
     if Block.flat?(b)
       layer = Block::SIDE[b]
       frame_box(-0.5, -0.5, 0.0, 0.5, 0.5, 0.0, 16, layer, layer, layer, 1.0, 1.0, 1.0, 1.0)
+    elsif Block::SHAPE[b] > 0
+      shape_model(b)
     elsif Block::FACING[b] >= 0
       # The front is on the -x face, which faces the view in the hand.
       frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
@@ -147,27 +154,52 @@ class Mesh3
     end
   end
 
+  # Block b with a shape (a chest) as the box of its shape, with the front
+  # on the -x face. Each face takes the part of its texture that it covers
+  # on the block in the world (see vchunk in gfx.rb). The box is the same
+  # on both sides of its middle, so it needs no turn.
+  def shape_model(b)
+    s = Block::SHAPE[b] * 6
+    x0 = Block::SHAPE_BOX[s] / 16.0
+    y0 = Block::SHAPE_BOX[s + 1] / 16.0
+    z0 = Block::SHAPE_BOX[s + 2] / 16.0
+    x1 = Block::SHAPE_BOX[s + 3] / 16.0
+    y1 = Block::SHAPE_BOX[s + 4] / 16.0
+    z1 = Block::SHAPE_BOX[s + 5] / 16.0
+    frame_corners(x0 - 0.5, y0 - 0.5, z0 - 0.5, x1 - 0.5, y1 - 0.5, z1 - 0.5)
+    face_quad(0, Block::SIDE[b], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(1, Block::FRONT[b], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(2, Block::TOP[b], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
+    face_quad(3, Block::BOTTOM[b], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
+    face_quad(4, Block::SIDE[b], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(5, Block::SIDE[b], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+  end
+
   # The faces in mask of the box with the corners in @cx, @cy and @cz.
   def corner_faces(mask, top, side, bottom, r, g, b, a)
     f = 0
     while f < 6
-      if ((mask >> f) & 1) == 1
-        l = (f == 2 ? top : (f == 3 ? bottom : side)).to_f
-        face = FACES[f]
-        s = SHADE[f]
-        a0 = face[0]
-        a1 = face[1]
-        a2 = face[2]
-        a3 = face[3]
-        vert(@cx[a0], @cy[a0], @cz[a0], 0.0, 1.0, l, r * s, g * s, b * s, a)
-        vert(@cx[a1], @cy[a1], @cz[a1], 1.0, 1.0, l, r * s, g * s, b * s, a)
-        vert(@cx[a2], @cy[a2], @cz[a2], 1.0, 0.0, l, r * s, g * s, b * s, a)
-        vert(@cx[a0], @cy[a0], @cz[a0], 0.0, 1.0, l, r * s, g * s, b * s, a)
-        vert(@cx[a2], @cy[a2], @cz[a2], 1.0, 0.0, l, r * s, g * s, b * s, a)
-        vert(@cx[a3], @cy[a3], @cz[a3], 0.0, 0.0, l, r * s, g * s, b * s, a)
-      end
+      face_quad(f, f == 2 ? top : (f == 3 ? bottom : side), 0.0, 1.0, 0.0, 1.0, r, g, b, a) if ((mask >> f) & 1) == 1
       f += 1
     end
+  end
+
+  # Face f of the box with the corners in @cx, @cy and @cz. The texture runs
+  # from u0 to u1 across, and from v0 at the top to v1 at the bottom.
+  def face_quad(f, layer, u0, u1, v0, v1, r, g, b, a)
+    l = layer.to_f
+    face = FACES[f]
+    s = SHADE[f]
+    a0 = face[0]
+    a1 = face[1]
+    a2 = face[2]
+    a3 = face[3]
+    vert(@cx[a0], @cy[a0], @cz[a0], u0, v1, l, r * s, g * s, b * s, a)
+    vert(@cx[a1], @cy[a1], @cz[a1], u1, v1, l, r * s, g * s, b * s, a)
+    vert(@cx[a2], @cy[a2], @cz[a2], u1, v0, l, r * s, g * s, b * s, a)
+    vert(@cx[a0], @cy[a0], @cz[a0], u0, v1, l, r * s, g * s, b * s, a)
+    vert(@cx[a2], @cy[a2], @cz[a2], u1, v0, l, r * s, g * s, b * s, a)
+    vert(@cx[a3], @cy[a3], @cz[a3], u0, v0, l, r * s, g * s, b * s, a)
   end
 
   # Dark edges around the box of a block in the cell x, y, z: hx and hz

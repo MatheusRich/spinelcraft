@@ -30,7 +30,8 @@ These files are copies with no changes.
 | `seeds.png`, `wheat_1.png`, `wheat_2.png`, `wheat_ripe.png` | `mcl_farming_wheat_stage_1.png`, `mcl_farming_wheat_stage_3.png`, `mcl_farming_wheat_stage_5.png`, `mcl_farming_wheat_stage_7.png` |
 | `craft_top.png`, `craft_side.png` | `crafting_workbench_top.png`, `crafting_workbench_front.png` (VoxeLibre has no other side for the crafting table) |
 | `door_lower.png`, `door_upper.png`, `door_item.png` | `mcl_doors_door_wood_lower.png`, `mcl_doors_door_wood_upper.png`, `doors_item_wood.png` |
-| `furnace.png`, `furnace_side.png`, `furnace_top.png` | `default_furnace_front.png`, `default_furnace_side.png`, `default_furnace_top.png` |
+| `furnace.png`, `furnace_side.png`, `furnace_top.png`, `furnace_lit.png` | `default_furnace_front.png`, `default_furnace_side.png`, `default_furnace_top.png`, `default_furnace_front_active.png` |
+| `bed_item.png` | `mcl_beds_bed_red_inv.png` |
 | `torch.png`, `ladder.png`, `fire.png` | `default_torch_on_floor.png`, `default_ladder.png`, `fire_basic_flame.png` |
 | `apple.png`, `bread.png`, `wheat.png` | `default_apple.png`, `farming_bread.png`, `farming_wheat_harvested.png` |
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
@@ -48,6 +49,17 @@ In Minecraft, grass, leaves and water are gray, and the biome gives them their c
 | `leaves.png` | `default_leaves.png` with the foliage tint |
 | `water.png` | The first frame of `mcl_core_water_source_animation.png` with the water tint. The alpha is 170 at most. |
 | `lava.png` | The first frame of `mcl_core_lava_source_animation.png` |
+
+The chest and the bed are not blocks in VoxeLibre. They are models with one 64x64 image for all their faces: `mcl_chests_normal.png` and `mcl_beds_bed_red.png`. These images are parts of those two images, cut out and put together in a 16x16 image. A face takes the part of its image that it covers on the block, so the parts sit where the face is in its cell. The other pixels are clear.
+
+| File | Change |
+| --- | --- |
+| `chest_front.png` | The front of the lid (5 rows) over the front of the base (its lower 9 rows), 1 pixel in from the left and the right, with the front of the latch in the middle |
+| `chest_side.png` | The side of the lid over the side of the base, in the same way |
+| `chest_top.png` | The top of the lid, turned a quarter turn, 1 pixel in from each edge |
+| `bed_head_top.png`, `bed_top.png` | The top of the head half and of the foot half, turned so that the outer end of the half is on the right |
+| `bed_head_side.png`, `bed_side.png` | The side of each half in rows 7-12, with the outer end on the right, and a leg in rows 13-15 at the outer end |
+| `bed_head_end.png`, `bed_foot_end.png` | The outer end of each half in rows 7-12, with a leg in rows 13-15 at each corner |
 
 ## Add an image
 

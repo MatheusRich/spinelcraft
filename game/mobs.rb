@@ -95,7 +95,7 @@ class Mob
     @on_ground = false
     if blocked?(world)
       if dy < 0.0
-        @y = @y.floor + 1.0
+        @y = world.box_edge(@x, @y, @z, @half, @tall, 1, -1)
         @on_ground = true
       else
         @y -= dy

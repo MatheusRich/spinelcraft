@@ -61,8 +61,8 @@ class Player
     feet = world.get(@x.floor, (@y + 0.4).floor, @z.floor)
     @in_water = Block.water?(feet) || Block.lava?(feet)
     # The feet or the body in a ladder cell: the player climbs to the top.
-    climbing = !@flying && (world.get(@x.floor, @y.floor, @z.floor) == Block::LADDER ||
-                            world.get(@x.floor, (@y + 1.0).floor, @z.floor) == Block::LADDER)
+    climbing = !@flying && (Block::BASE[world.get(@x.floor, @y.floor, @z.floor)] == Block::LADDER ||
+                            Block::BASE[world.get(@x.floor, (@y + 1.0).floor, @z.floor)] == Block::LADDER)
     @sneaking = down && !@flying && @on_ground
     @jumped = false
     # Walk and sprint speeds: minecraft.wiki/w/Sprinting
@@ -158,10 +158,10 @@ class Player
     @y += dy
     if blocked?(world)
       if dy < 0.0
-        @y = @y.floor + 1.0
+        @y = world.box_edge(@x, @y, @z, HALF, TALL, 1, -1)
         @on_ground = true
       else
-        @y = (@y + TALL).floor - TALL - 0.001
+        @y = world.box_edge(@x, @y, @z, HALF, TALL, 1, 1) - TALL - 0.001
       end
       @vy = 0.0
     end
@@ -227,7 +227,7 @@ class Player
     t = 0.0
     while t <= REACH
       b = world.get(ix, iy, iz)
-      if b != Block::AIR && !Block.water?(b) && !Block.lava?(b) && (!(Block.plant?(b) || Block.door?(b)) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b))
+      if b != Block::AIR && !Block.water?(b) && !Block.lava?(b) && (!(Block.plant?(b) || Block::SHAPE[b] > 0) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b))
         @hit = true
         @hit_t = t
         @hx = ix

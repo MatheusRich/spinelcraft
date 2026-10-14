@@ -2,8 +2,8 @@
 class Game
   def set_block(x, y, z, b)
     @changed = true
-    drop_chest(x, y, z) if b != Block::CHEST && @world.get(x, y, z) == Block::CHEST
     old = @world.get(x, y, z)
+    drop_chest(x, y, z) if Block::BASE[b] != Block::CHEST && Block::BASE[old] == Block::CHEST
     @furnace_heat.delete(World.key(x, y, z)) if Block::BASE[old] == Block::FURNACE && Block::BASE[b] != Block::FURNACE
     # A door goes as a whole: removing one half removes the other.
     if Block.door?(old) && !Block.door?(b)
@@ -11,11 +11,11 @@ class Game
       other = door_partner(x, y, z)
       set_block(x, other, z, Block::AIR) if Block.door?(@world.get(x, other, z))
     end
-    # A bed also goes as a whole.
+    # A bed also goes as a whole. Each half faces away from the other.
     if Block.bed?(old) && !Block.bed?(b)
       @world.set(x, y, z, b)
-      d = bed_partner(x, y, z)
-      set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::AIR) if d >= 0
+      d = Block::FACING[old] ^ 1
+      set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::AIR) if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
     end
     if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && near_lava?(x, y, z))
       mark_light_area(x, z)
@@ -25,12 +25,13 @@ class Game
     if b == Block::AIR
       above = @world.get(x, y + 1, z)
       set_block(x, y + 1, z, Block::AIR) if Block.plant?(above) && !Block.wall_torch?(above)
-      # A wall torch falls with the block that holds it.
+      # A wall torch or a ladder falls with the block that holds it.
       d = 0
       while d < 4
         tx = x + Block::DIR_DX[d]
         tz = z + Block::DIR_DZ[d]
-        set_block(tx, y, tz, Block::AIR) if @world.get(tx, y, tz) == Block.facing_id(Block::TORCH, d)
+        t = @world.get(tx, y, tz)
+        set_block(tx, y, tz, Block::AIR) if t == Block.facing_id(Block::TORCH, d) || t == Block.facing_id(Block::LADDER, d)
         d += 1
       end
     end

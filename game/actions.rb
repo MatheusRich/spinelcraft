@@ -144,7 +144,7 @@ class Game
   # places a block.
   def right_button(dt, held)
     target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
-    if current_block == Block::BOW && target != Block::CHEST && !Block.bed?(target) && !Block.door?(target)
+    if current_block == Block::BOW && Block::BASE[target] != Block::CHEST && !Block.bed?(target) && !Block.door?(target)
       if held
         @draw_time = 0.0 if @draw_time < 0.0
         @draw_time += dt
@@ -156,7 +156,7 @@ class Game
     end
     @draw_time = -1.0
     if held && @action_cooldown <= 0.0
-      if @survival && @player.hit && @world.get(@player.hx, @player.hy, @player.hz) == Block::CHEST
+      if @survival && @player.hit && Block::BASE[target] == Block::CHEST
         open_chest(@player.hx, @player.hy, @player.hz)
         return
       elsif @survival && (Block::BASE[target] == Block::CRAFTING_TABLE || Block::BASE[target] == Block::FURNACE)
@@ -304,7 +304,7 @@ class Game
     b = Block::BASE[b]
     return Sfx::DIG_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::GLASS || b == Block::BEDROCK
     return Sfx::DIG_STONE if b == Block::FURNACE
-    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || Block.bed?(b) || Block.door?(b) || b == Block::CRAFTING_TABLE || b == Block::LADDER
+    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
     Sfx::DIG_SOFT
   end
 
@@ -389,30 +389,12 @@ class Game
   end
 
   # A bed has its foot at x, y, z and its head at hx, y, hz. Both stand on
-  # solid blocks. No other bed may touch either half, so that each half has
-  # one partner.
+  # solid blocks.
   def bed_fits?(x, y, z, hx, hz)
     head = @world.get(hx, y, hz)
     return false unless head == Block::AIR || head == Block::TALL_GRASS
     return false unless Block.solid?(@world.get(x, y - 1, z)) && Block.solid?(@world.get(hx, y - 1, hz))
-    return false if @player.overlaps?(hx, y, hz) || mob_in?(hx, y, hz, 1)
-    d = 0
-    while d < 4
-      return false if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
-      return false if Block.bed?(@world.get(hx + Block::DIR_DX[d], y, hz + Block::DIR_DZ[d]))
-      d += 1
-    end
-    true
-  end
-
-  # The direction from the bed half at x, y, z to its other half, or -1.
-  def bed_partner(x, y, z)
-    d = 0
-    while d < 4
-      return d if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
-      d += 1
-    end
-    -1
+    !@player.overlaps?(hx, y, hz) && !mob_in?(hx, y, hz, 1)
   end
 
   # The y of the other half of the door at x, y, z.
@@ -443,15 +425,24 @@ class Game
       z = @player.hz
     end
     return unless @world.inside?(x, y, z)
-    # A torch on the side of a block hangs on that block, and faces away from it.
-    if b == Block::TORCH && y == @player.hy && (x != @player.hx || z != @player.hz)
+    # A torch or a ladder on the side of a block hangs on that block, and
+    # faces away from it. A ladder hangs only on the side of a solid block.
+    side = y == @player.hy && (x != @player.hx || z != @player.hz)
+    if (b == Block::TORCH || b == Block::LADDER) && side
       wall = @player.hx > x ? 0 : (@player.hx < x ? 1 : (@player.hz > z ? 2 : 3))
-      b = Block.facing_id(Block::TORCH, wall ^ 1)
+      return if b == Block::LADDER && !Block.solid?(@world.get(@player.hx, @player.hy, @player.hz))
+      b = Block.facing_id(b, wall ^ 1)
+    elsif b == Block::LADDER
+      return
     elsif Block::FACING[b] >= 0
       b = Block.facing_id(b, look_direction ^ 1)
     elsif b == Block::DOOR
       # A closed door stands on the edge of its cell next to the player.
       b = Block.door_id(look_direction ^ 1, false, false)
+    elsif b == Block::BED
+      # The head goes the way that the player looks, and each half faces
+      # away from the other.
+      b = Block.bed_id(look_direction ^ 1, false)
     end
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
     if Block.plant?(b)
@@ -471,10 +462,10 @@ class Game
       return if @player.overlaps?(x, y + 1, z)
       set_block(x, y + 1, z, Block.door_id(Block::FACING[b], true, false))
     end
-    if b == Block::BED
-      d = look_direction
+    if Block.bed?(b)
+      d = Block::FACING[b] ^ 1
       return unless bed_fits?(x, y, z, x + Block::DIR_DX[d], z + Block::DIR_DZ[d])
-      set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::BED_HEAD)
+      set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block.bed_id(d, true))
     end
     set_block(x, y, z, b)
     play(Sfx::PLACE, 0.7)

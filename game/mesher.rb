@@ -178,8 +178,8 @@ class Mesher
           elsif id != Block::AIR && (opaque[above] + opaque[below] + opaque[World.byte(blocks, i + py)] + opaque[World.byte(blocks, i - py)] + opaque[World.byte(blocks, i + dx)] + opaque[World.byte(blocks, i - dx)] < 6 || water_level[id] > 0)
             water = water_level[id] > 0
             front = facing[id] >= 0 ? Block::DIR_FACE[facing[id]] : -1
-            # A door is a thin board on edge door of its cell, so all its faces show.
-            door = Block.door_edge(id)
+            # A block with a shape is smaller than its cell, so all its faces show.
+            shape = Block::SHAPE[id]
             f = 0
             while f < 6
               nb = World.byte(blocks, i + @delta[f])
@@ -188,7 +188,7 @@ class Mesher
               else
                 opaque[nb] == 0 && !(nb == id && id == Block::GLASS)
               end
-              visible = true if door >= 0
+              visible = true if shape > 0
               visible = false if f == 3 && y == 0
               if visible
                 tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : (f == front ? front_tex[id] : side_tex[id]))
@@ -214,8 +214,9 @@ class Mesher
                   w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | (Tex.scroll(tex) << 23)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
                   w1 = (w1 & ~(15 << 19)) | (LIGHT_MAX << 19) if Block.lava?(id)
-                  # Bits 25-27 hold 1 + the edge of a door, and a door has no AO.
-                  w1 |= (255 << 8) | ((door + 1) << 25) if door >= 0
+                  # Bits 25-27 hold 1 + the facing and bits 28-30 the shape of a
+                  # block with a shape, which has no AO.
+                  w1 |= (255 << 8) | ((facing[id] + 1) << 25) | (shape << 28) if shape > 0
                   list = @lists[f]
                   list << w0
                   list << w1
