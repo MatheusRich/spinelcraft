@@ -4,6 +4,7 @@ class Game
     @changed = true
     drop_chest(x, y, z) if b != Block::CHEST && @world.get(x, y, z) == Block::CHEST
     old = @world.get(x, y, z)
+    @furnace_heat.delete(World.key(x, y, z)) if old == Block::FURNACE && b != Block::FURNACE
     # A door goes as a whole: removing one half removes the other.
     if Block.door?(old) && !Block.door?(b)
       @world.set(x, y, z, b)

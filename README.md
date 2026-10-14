@@ -85,7 +85,7 @@ These recipes need a furnace within 4 blocks and fuel:
 - 1 sand gives 1 glass.
 - 1 cobblestone gives 1 stone.
 
-A click on one of these recipes burns one fuel item, and it smelts as many items as that fuel can. A plank smelts 1 item, a log 2 and coal 8. The game burns the weakest fuel that smelts all the items you have, or else the strongest fuel.
+A click on a recipe makes it once, and a Shift-click makes it as many times as your inventory allows. A smelt takes heat from the furnace. When the heat runs out, the furnace burns fuel from your inventory: a plank gives 1 smelt of heat, a log 2 and coal 8. It burns the weakest fuel that covers the smelts, or else the strongest fuel. The furnace keeps the heat that is left for later, and it loses the heat when you break it.
 
 Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the right tier. Iron ore needs a stone pickaxe or better, and diamond ore needs an iron one. A better pickaxe also mines faster. An axe chops wood, planks, chests, beds and doors faster, and a shovel digs grass, dirt, sand, gravel and snow faster. A better tier is faster. Tools wear out: a wooden, stone, iron or diamond tool breaks after 60, 130, 250 or 1560 uses, and a bow after 380 shots. A bar under the icon shows the uses that are left. Logs, dirt, sand and gravel need no tool, so start by punching a tree.
 

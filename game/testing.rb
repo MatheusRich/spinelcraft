@@ -456,6 +456,8 @@ class Game
     @weather_timer = 77.5
     @seen.fill(0)
     @seen[Block::DIAMOND] = 1
+    @furnace_heat = {}
+    @furnace_heat[77] = 5
     save
     @world.set(x, ground + 1, z, Block::GLASS)
     @health = 3
@@ -464,6 +466,7 @@ class Game
     set_raining(false)
     @rain = 0.0
     @seen.fill(0)
+    @furnace_heat = {}
     ok = load
     apply_loaded if ok
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @health == MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
@@ -471,7 +474,8 @@ class Game
           @it_count.size == 1 && @it_block[0] == Block::STONE_SWORD && @it_count[0] == 17 &&
           @it_x[0] == x + 0.25 && @it_y[0] == ground + 1.0 && @it_z[0] == z + 0.75 &&
           @raining && @rain == 1.0 && @weather_timer == 77.5)
-    check("the save keeps the seen items", @seen[Block::DIAMOND] == 1)
+    check("the save keeps the seen items and the heat in furnaces", @seen[Block::DIAMOND] == 1 && furnace_heat(77) == 5)
+    @furnace_heat = {}
     clear_items
     set_raining(false)
     @rain = 0.0
@@ -975,17 +979,30 @@ class Game
     far = count_items(Block::IRON) == 9
     check("smelting needs a furnace nearby", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
+    furnace = World.key(x + 2, y, z + 3)
+    # A click smelts one item, and the weakest fuel (a plank) covers it.
     craft_recipe(smelt)
-    # No fuel covers 9 smelts, so the coal burns for 8.
-    coal = count_items(Block::IRON) == 1 && count_items(Block::IRON_INGOT) == 8 && count_items(Block::COAL) == 0 && count_items(Block::PLANKS) == 2
-    craft_recipe(smelt)
-    plank = count_items(Block::IRON) == 0 && count_items(Block::IRON_INGOT) == 9 && count_items(Block::PLANKS) == 1
-    give(Block::SAND)
+    one = count_items(Block::IRON) == 8 && count_items(Block::IRON_INGOT) == 1 && count_items(Block::PLANKS) == 1 && count_items(Block::COAL) == 1 && furnace_heat(furnace) == 0
+    # A Shift-click smelts all 8 others, and the coal covers them.
+    craft_recipe(smelt, CRAFT_ALL)
+    all = count_items(Block::IRON) == 0 && count_items(Block::IRON_INGOT) == 9 && count_items(Block::COAL) == 0
+    # Coal for one item leaves 7 smelts of heat in the furnace.
+    give(Block::IRON)
+    give(Block::COAL)
     remove_items(Block::PLANKS, 1)
+    craft_recipe(smelt)
+    kept = count_items(Block::COAL) == 0 && furnace_heat(furnace) == 7
+    give(Block::SAND)
     craft_recipe(recipe_for(Block::GLASS))
-    no_fuel = count_items(Block::SAND) == 1 && count_items(Block::GLASS) == 0
+    used = count_items(Block::GLASS) == 1 && furnace_heat(furnace) == 6
+    # A broken furnace loses its heat, and with no fuel nothing smelts.
     set_block(x + 2, y, z + 3, Block::AIR)
-    check("a smelt burns the smallest fuel that covers it, and needs fuel", coal && plank && no_fuel)
+    set_block(x + 2, y, z + 3, Block::FURNACE)
+    give(Block::SAND)
+    craft_recipe(recipe_for(Block::GLASS))
+    no_fuel = count_items(Block::SAND) == 1 && count_items(Block::GLASS) == 1
+    set_block(x + 2, y, z + 3, Block::AIR)
+    check("a furnace keeps the heat of its fuel, and smelting needs fuel", one && all && kept && used && no_fuel)
     set_block(x, y, z, Block::SAPLING)
     # The crop stands out of reach of the tree's leaves, on top of its column.
     cy = @world.height_at(x + 4, z)

@@ -178,7 +178,7 @@ class Game
     else
       draw_recipe_panel(w, h, s, pad)
     end
-    tip = @chest_key >= 0 ? "SHIFT-CLICK MOVES A STACK ACROSS  RIGHT-CLICK TAKES HALF" : "CLICK A RECIPE TO CRAFT  RIGHT-CLICK TAKES HALF  SHIFT-CLICK MOVES"
+    tip = @chest_key >= 0 ? "SHIFT-CLICK MOVES A STACK ACROSS  RIGHT-CLICK TAKES HALF" : "SHIFT-CLICK MOVES A STACK OR CRAFTS ALL  RIGHT-CLICK TAKES HALF"
     label = hover >= 0 && @inv_count[hover] > 0 ? Block::NAMES[@inv_block[hover]] : tip
     mid = (top[0] + bottom[0] + bottom[2]) / 2.0
     @ui.text(mid - @ui.text_width(label, 2.0 * s) / 2.0, bottom[1] + bottom[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)

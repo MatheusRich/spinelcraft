@@ -14,7 +14,8 @@ class Game
   F_WEATHER = F_HUNGER + 1 # raining (1 or 0), seconds to the next change
   # The chest count, then the key and the contents of each chest. Then the
   # item count and ITEM_FIELDS for each item on the ground. Then the count
-  # of seen blocks, and their ids.
+  # of seen blocks, and their ids. Then the count of furnaces with heat, and
+  # the key and the heat of each.
   F_CHESTS = F_WEATHER + 2
   ITEM_FIELDS = 6 # block, count, x, y, z, age
 
@@ -34,6 +35,11 @@ class Game
       seen << b if @seen[b] == 1
       b += 1
     end
+    furnace_fields = [@furnace_heat.size]
+    @furnace_heat.each do |key, heat|
+      furnace_fields << key
+      furnace_fields << heat
+    end
     item_fields = [@it_count.size]
     i = 0
     while i < @it_count.size
@@ -45,9 +51,9 @@ class Game
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
     inv = (@inv_block + @inv_count + @hotbar + [@hunger, @raining ? 1 : 0, @weather_timer] + chest_fields +
-           item_fields + [seen.size] + seen + chunk_fields).map(&:to_s).join(" ")
+           item_fields + [seen.size] + seen + furnace_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
-      f.write("SPINELCRAFT6 #{header} #{inv}\n")
+      f.write("SPINELCRAFT7 #{header} #{inv}\n")
       keys.each { |k| f.write(chunks[k]) }
     end
     @changed = false
@@ -64,11 +70,12 @@ class Game
     return false if nl.nil?
     f = data[0, nl].split(" ")
     return false if f.size <= F_CHESTS
-    return false unless f[0] == "SPINELCRAFT6"
+    return false unless f[0] == "SPINELCRAFT7"
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
     at += 1 + f[at].to_i
+    at += 1 + f[at].to_i * 2
     n = f[at].to_i
     return false if data.bytesize - nl - 1 != n * CHUNK_BYTES
     @seed = f[F_SEED].to_i
@@ -166,6 +173,14 @@ class Game
     c = 0
     while c < seen
       @seen[f[at + 1 + c].to_i] = 1
+      c += 1
+    end
+    at += 1 + seen
+    @furnace_heat = {}
+    furnaces = f[at].to_i
+    c = 0
+    while c < furnaces
+      @furnace_heat[f[at + 1 + c * 2].to_i] = f[at + 2 + c * 2].to_i
       c += 1
     end
     stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)

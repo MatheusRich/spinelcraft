@@ -105,9 +105,11 @@ class Game
   end
 
   # Crafts recipe k from items anywhere in the inventory.
-  # A smelt burns one fuel item and makes the recipe as many times as that
-  # fuel smelts.
-  def craft_recipe(k)
+  # Crafts recipe k up to want times from items anywhere in the inventory.
+  # A click asks for 1, and a Shift-click for CRAFT_ALL. A smelt takes heat
+  # from the furnace. When the heat runs out, the furnace burns fuel from
+  # the inventory, and it keeps the heat that is left.
+  def craft_recipe(k, want = 1)
     r = RECIPES[k]
     have = count_items(r[0]) / r[1]
     if have == 0
@@ -118,31 +120,65 @@ class Game
       say(r[4] == AT_TABLE ? "NEED A CRAFTING TABLE NEARBY" : "NEED A FURNACE NEARBY")
       return
     end
-    times = 1
-    fuel = -1
-    if r[4] == AT_FURNACE
-      fuel = pick_fuel(have)
-      if fuel < 0
-        say("NEED FUEL: PLANKS, LOGS OR COAL ORE")
-        return
-      end
-      times = FUEL_SMELTS[fuel] < have ? FUEL_SMELTS[fuel] : have
+    smelt = r[4] == AT_FURNACE
+    key = @station_key
+    if smelt && furnace_heat(key) == 0 && pick_fuel(1) < 0
+      say("NEED FUEL: PLANKS, LOGS OR COAL ORE")
+      return
     end
-    # Take the ingredients first: a slot that they empty is room for the result.
+    times = want < have ? want : have
+    heat = 0
     blocks = @inv_block.dup
     counts = @inv_count.dup
-    remove_items(FUEL_BLOCKS[fuel], 1) if fuel >= 0
-    remove_items(r[0], r[1] * times)
-    n = r[3] * times
-    if room_for(r[2]) < n
+    # Fewer times when the results do not fit.
+    while times > 0
+      @inv_block = blocks.dup
+      @inv_count = counts.dup
+      heat = smelt ? furnace_heat(key) : 0
+      while smelt && heat < times
+        fuel = pick_fuel(times - heat)
+        break if fuel < 0
+        remove_items(FUEL_BLOCKS[fuel], 1)
+        heat += FUEL_SMELTS[fuel]
+      end
+      times = heat if smelt && heat < times
+      # Take the ingredients first: a slot that they empty is room for the result.
+      remove_items(r[0], r[1] * times)
+      break if room_for(r[2]) >= r[3] * times
+      times -= 1
+    end
+    if times == 0
       @inv_block = blocks
       @inv_count = counts
       say("INVENTORY FULL")
       return
     end
+    n = r[3] * times
     n.times { give(r[2]) }
-    say("#{fuel >= 0 ? "SMELTED" : "CRAFTED"} #{n} #{Block::NAMES[r[2]]}")
+    if smelt
+      set_furnace_heat(key, heat - times)
+      say("SMELTED #{n} #{Block::NAMES[r[2]]}  #{heat - times} HEAT LEFT")
+    else
+      say("CRAFTED #{n} #{Block::NAMES[r[2]]}")
+    end
     play(Sfx::PLACE, 0.6)
+  end
+
+  # What a Shift-click on a recipe asks for: all that the inventory holds.
+  CRAFT_ALL = STACK * INV
+
+  # The smelts left in the furnace with the World.key key.
+  def furnace_heat(key)
+    heat = @furnace_heat[key]
+    heat.nil? ? 0 : heat
+  end
+
+  def set_furnace_heat(key, heat)
+    if heat > 0
+      @furnace_heat[key] = heat
+    else
+      @furnace_heat.delete(key)
+    end
   end
 
   # The fuel to burn for want smelts: the weakest fuel in the inventory that
@@ -162,7 +198,7 @@ class Game
 
   # True when the recipes for where (BY_HAND, AT_TABLE or AT_FURNACE) work.
   # A crafting table or a furnace must be within STATION_REACH blocks of the
-  # player on each axis.
+  # player on each axis. @station_key keeps the World.key of the one found.
   def station_near?(where)
     return true if where == BY_HAND
     b = where == AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
@@ -175,7 +211,10 @@ class Game
       while y <= py + STATION_REACH
         z = pz - STATION_REACH
         while z <= pz + STATION_REACH
-          return true if @world.get(x, y, z) == b
+          if @world.get(x, y, z) == b
+            @station_key = World.key(x, y, z)
+            return true
+          end
           z += 1
         end
         y += 1
@@ -546,7 +585,7 @@ class Game
         end
       elsif left
         recipe = recipe_hover(w, h, s)
-        craft_recipe(recipe) if recipe >= 0 && @held_count == 0
+        craft_recipe(recipe, shift ? CRAFT_ALL : 1) if recipe >= 0 && @held_count == 0
       end
     elsif Gfx.in_button_pressed(1)
       w = Gfx.gfx_width.to_f

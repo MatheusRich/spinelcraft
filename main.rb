@@ -69,6 +69,9 @@ class Game
     @inv_count = Array.new(INV, 0)
     @seen = Array.new(Block::COUNT, 0)
     @recipe_new = Array.new(RECIPES.size, 0)
+    # The smelts left in each furnace, by World.key.
+    @furnace_heat = {}
+    @station_key = 0
     # The cell that fluid_in_view found.
     @fluid_x = 0
     @fluid_y = 0
@@ -264,6 +267,7 @@ class Game
     @chests = {}
     @seen.fill(0)
     @recipe_new.fill(0)
+    @furnace_heat = {}
     @mobs.clear
     clear_arrows
     clear_items
