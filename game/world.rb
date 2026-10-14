@@ -86,6 +86,12 @@ class World
     # The log and the leaves of the tree that the generator grows (see use_wood).
     @log = Block::OAK_LOG
     @leaves = Block::OAK_LEAVES
+    # A tree that grows from a sapling (see plan_tree): its changes as x, y,
+    # z, block quads, and the keys of the cells that they change.
+    @planning = false
+    @plan = Array.new(0, 0)
+    @plan_cells = {}
+    @plan_blocked = false
   end
 
   # Spinel cannot type the positions that the game code gives World (from
@@ -715,15 +721,64 @@ class World
     end
   end
 
-  # Writes a generated block when it is inside chunk x0, z0.
+  # Writes a generated block when it is inside chunk x0, z0. While
+  # plan_tree plans a tree, it adds the block to the plan instead, and
+  # air_in? looks at the loaded world and at the plan.
   def put(x, y, z, b, x0, z0)
+    return plan(x, y, z, b) if @planning
     return if x < x0 || z < z0 || x >= x0 + CHUNK || z >= z0 + CHUNK || y < 0 || y >= WY
     put_block(World.index(x, y, z), b)
   end
 
   def air_in?(x, y, z, x0, z0)
+    return !@plan_cells.key?(World.key(x, y, z)) && get(x, y, z) == Block::AIR if @planning
     return false if x < x0 || z < z0 || x >= x0 + CHUNK || z >= z0 + CHUNK || y < 0 || y >= WY
     block(World.index(x, y, z)) == Block::AIR
+  end
+
+  # The changes of a tree of wood (Block::OAK_WOOD and so on) that grows
+  # from the sapling at x, y, z, as x, y, z, block quads. The tree has the
+  # shape of the generator's tree of its wood. Unlike the generator, it
+  # only replaces air, leaves and plants, so it does not break what the
+  # player built. The list is empty when something else is in the way of
+  # a log. An oak grows as a large oak 1 time in 10 (minecraft.wiki/w/Oak
+  # gives this chance for Alpha, "including from saplings").
+  def plan_tree(gx, gy, gz, wood)
+    # The shapes keep Integer positions, as get does (see World.index).
+    x = gx.to_i
+    y = gy.to_i
+    z = gz.to_i
+    @planning = true
+    @plan = Array.new(0, 0)
+    @plan_cells = {}
+    @plan_blocked = false
+    use_wood(wood)
+    if wood == Block::SPRUCE_WOOD
+      spruce(x, y, z, 0, 0)
+    elsif wood == Block::BIRCH_WOOD
+      oak(x, y, z, 5 + Noise.hash3(x, y, z, 23) % 3, 0, 0)
+    elsif Noise.hash3(x, y, z, 28) < 6554
+      large_oak(x, y, z, 0, 0)
+    else
+      oak(x, y, z, TRUNK[Biome::OAK] + Noise.hash3(x, y, z, 23) % 3, 0, 0)
+    end
+    @planning = false
+    @plan_blocked ? Array.new(0, 0) : @plan
+  end
+
+  # Adds block b at x, y, z to the tree that plan_tree grows. A log blocks
+  # the tree when the cell holds something other than air, leaves or a
+  # plant, and dirt only replaces grass.
+  def plan(x, y, z, b)
+    old = get(x, y, z)
+    if b == Block::DIRT
+      return unless old == Block::GRASS || old == Block::SNOW_GRASS
+    elsif Block.log?(b) && !(old == Block::AIR || Block.leaves?(old) || Block.plant?(old))
+      @plan_blocked = true
+      return
+    end
+    @plan_cells[World.key(x, y, z)] = b
+    @plan << x << y << z << b
   end
 
   # A tree of the biome on the ground below x, y, z. The biome picks the
