@@ -267,6 +267,20 @@ class Game
     pig = Mob.new(Mob::PIG, @player.x, @player.y, @player.z, 5)
     pig.wound(1.0)
     check("a hit makes a mob cry out", pig.ouch)
+    # The zombie walks toward the player on a strip of stone in the sky.
+    px = @player.x.floor
+    zz = @player.z.floor
+    y = WY - 4
+    (0..9).each { |dx| set_block(px + dx, y, zz, Block::STONE) }
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, y + 1.0, zz + 0.5, 3)
+    steps = 0
+    120.times do
+      zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0)
+      steps += 1 if zombie.step
+      zombie.step = false
+    end
+    (0..9).each { |dx| set_block(px + dx, y, zz, Block::AIR) }
+    check("a walking mob makes step sounds", steps >= 1)
     test_sound_position
     test_arrow_lands
     test_cave_sound

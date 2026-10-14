@@ -439,7 +439,7 @@ class Game
     @player.raycast(@world)
     if (@player.on_ground || @player.in_water) && !@player.flying
       @step_dist += Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * dt
-      if @step_dist > 2.1
+      if @step_dist > Player::STEP
         @step_dist = 0.0
         ground = MATERIAL_STEP[material(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))]
         play(@player.in_water ? Sfx::STEP_WATER : ground, 0.35)

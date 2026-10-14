@@ -7,6 +7,8 @@ class Player
   # minecraft.wiki/w/Player
   REACH = 4.5
   MOB_REACH = 3.0
+  # A step sound plays each time the player or a mob walks this far.
+  STEP = 2.1
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water, :fall_start, :sneaking
   attr_reader :hit, :hx, :hy, :hz, :px, :py, :pz, :hit_t

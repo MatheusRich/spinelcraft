@@ -297,6 +297,14 @@ class Game
       if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
         play_at(MOB_SOUND[m.kind], m.x, m.y + m.tall * 0.5, m.z, 0.8, SOUND_RANGE)
       end
+      if m.step
+        # A mob steps with the sound of the block under it, as the player
+        # does. A creeper has no step sound of its own
+        # (minecraft.wiki/w/Creeper), and VoxeLibre has none for the others.
+        m.step = false
+        ground = MATERIAL_STEP[material(@world.get(m.x.floor, (m.y - 0.1).floor, m.z.floor))]
+        play_at(ground, m.x, m.y, m.z, 0.35, SOUND_RANGE)
+      end
       if m.hiss
         m.hiss = false
         play_at(Sfx::FUSE, m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)

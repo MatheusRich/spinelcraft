@@ -36,6 +36,8 @@ class Mob
   attr_accessor :hiss
   # True after a hit, until Game#update_mobs plays the hurt sound.
   attr_accessor :ouch
+  # True after a step on the ground, until Game#update_mobs plays it.
+  attr_accessor :step
   attr_reader :fuse
   # Seconds that the mob still burns.
   attr_reader :fire
@@ -59,6 +61,8 @@ class Mob
     @explode = false
     @hiss = false
     @ouch = false
+    @step = false
+    @step_dist = 0.0
     @by_player = false
     @fuse = 0.0
     @hurt = 0.0
@@ -227,6 +231,13 @@ class Mob
     @vy = 8.2 if bumped && @on_ground && !dying?
     moving = Math.sqrt(@vx * @vx + @vz * @vz)
     @phase += moving * dt * 3.5
+    if @on_ground && !dying?
+      @step_dist += moving * dt
+      if @step_dist > Player::STEP
+        @step_dist = 0.0
+        @step = true
+      end
+    end
     @alive = false if @death >= DEATH_TIME || @y < -10.0
     damage
   end
