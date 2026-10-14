@@ -83,7 +83,8 @@ module Tex
   BUCKET = 83
   WATER_BUCKET = 84
   LAVA_BUCKET = 85
-  FONT = 86
+  BED_HEAD_TOP = 86
+  FONT = 87
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -506,17 +507,21 @@ module Tex
     set(px, CHEST_SIDE, 8, 7, 160, 160, 170, 255)
   end
 
-  # Bed: a red blanket with a white pillow on top, a wooden frame on the sides.
+  # Bed: a red blanket on top of the foot, a white pillow on top of the
+  # head, and a wooden frame on the sides. The pillow sits in the middle,
+  # so it looks right for each direction of the bed.
   def self.bed(px)
     y = 0
     while y < 16
       x = 0
       while x < 16
         v = (rnd(x, y, 81) - 128) / 12
-        if y < 5 && x > 1 && x < 14
-          set(px, BED_TOP, x, y, 235 + v, 235 + v, 230 + v, 255)
+        fold = y == 0 || y == 15 || x == 0 || x == 15 ? 25 : 0
+        set(px, BED_TOP, x, y, 180 + v - fold, 35 + v, 40 + v, 255)
+        if y > 2 && y < 13 && x > 2 && x < 13
+          set(px, BED_HEAD_TOP, x, y, 235 + v, 235 + v, 230 + v, 255)
         else
-          set(px, BED_TOP, x, y, 180 + v, 35 + v, 40 + v, 255)
+          set(px, BED_HEAD_TOP, x, y, 180 + v - fold, 35 + v, 40 + v, 255)
         end
         if y < 6
           set(px, BED_SIDE, x, y, 180 + v, 35 + v, 40 + v, 255)

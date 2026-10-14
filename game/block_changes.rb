@@ -10,6 +10,12 @@ class Game
       other = door_partner(x, y, z)
       set_block(x, other, z, Block::AIR) if Block.door?(@world.get(x, other, z))
     end
+    # A bed also goes as a whole.
+    if Block.bed?(old) && !Block.bed?(b)
+      @world.set(x, y, z, b)
+      d = bed_partner(x, y, z)
+      set_block(x + BED_DX[d], y, z + BED_DZ[d], Block::AIR) if d >= 0
+    end
     if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && near_lava?(x, y, z))
       mark_light_area(x, z)
     end

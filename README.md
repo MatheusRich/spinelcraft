@@ -65,7 +65,7 @@ These recipes need a crafting table within 4 blocks:
 
 - 1 gravel gives 4 arrows.
 - 2 stone give 1 brick.
-- 3 wool give a bed.
+- 3 wool give a bed. A bed is two blocks long, and its head goes the way you look.
 - 5 planks give a bow.
 - 6 planks give 3 doors.
 - 3 planks give 4 ladders.
@@ -207,7 +207,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 83 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 84 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 

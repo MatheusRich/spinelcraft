@@ -131,7 +131,7 @@ class Game
   # places a block.
   def right_button(dt, held)
     target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
-    if current_block == Block::BOW && target != Block::CHEST && target != Block::BED && !Block.door?(target)
+    if current_block == Block::BOW && target != Block::CHEST && !Block.bed?(target) && !Block.door?(target)
       if held
         @draw_time = 0.0 if @draw_time < 0.0
         @draw_time += dt
@@ -149,7 +149,7 @@ class Game
       elsif @survival && (target == Block::CRAFTING_TABLE || target == Block::FURNACE)
         toggle_inventory
         return
-      elsif @player.hit && @world.get(@player.hx, @player.hy, @player.hz) == Block::BED
+      elsif Block.bed?(target)
         use_bed(@player.hx, @player.hy, @player.hz)
       elsif Block.door?(target)
         toggle_door(@player.hx, @player.hy, @player.hz)
@@ -269,7 +269,7 @@ class Game
   def dig_sound(b)
     return Sfx::DIG_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::GLASS || b == Block::BEDROCK
     return Sfx::DIG_STONE if b == Block::FURNACE
-    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || b == Block::BED || Block.door?(b) || b == Block::CRAFTING_TABLE || b == Block::LADDER
+    return Sfx::DIG_WOOD if b == Block::LOG || b == Block::PLANKS || b == Block::CHEST || Block.bed?(b) || Block.door?(b) || b == Block::CRAFTING_TABLE || b == Block::LADDER
     Sfx::DIG_SOFT
   end
 
@@ -339,6 +339,49 @@ class Game
     Block.solid?(below) && !Block.door?(below) && @world.get(x, y + 1, z) == Block::AIR && !Block.door?(@world.get(x, y + 2, z))
   end
 
+  # The four directions on the ground, for the two halves of a bed.
+  BED_DX = [1, -1, 0, 0]
+  BED_DZ = [0, 0, 1, -1]
+
+  # The direction from the foot of a new bed to its head: the direction on
+  # the ground that the player looks in most.
+  def bed_direction
+    fx = @player.fx
+    fz = @player.fz
+    if fx.abs > fz.abs
+      fx > 0.0 ? 0 : 1
+    else
+      fz > 0.0 ? 2 : 3
+    end
+  end
+
+  # A bed has its foot at x, y, z and its head at hx, y, hz. Both stand on
+  # solid blocks. No other bed may touch either half, so that each half has
+  # one partner.
+  def bed_fits?(x, y, z, hx, hz)
+    head = @world.get(hx, y, hz)
+    return false unless head == Block::AIR || head == Block::TALL_GRASS
+    return false unless Block.solid?(@world.get(x, y - 1, z)) && Block.solid?(@world.get(hx, y - 1, hz))
+    return false if @player.overlaps?(hx, y, hz) || mob_in?(hx, y, hz, 1)
+    d = 0
+    while d < 4
+      return false if Block.bed?(@world.get(x + BED_DX[d], y, z + BED_DZ[d]))
+      return false if Block.bed?(@world.get(hx + BED_DX[d], y, hz + BED_DZ[d]))
+      d += 1
+    end
+    true
+  end
+
+  # The direction from the bed half at x, y, z to its other half, or -1.
+  def bed_partner(x, y, z)
+    d = 0
+    while d < 4
+      return d if Block.bed?(@world.get(x + BED_DX[d], y, z + BED_DZ[d]))
+      d += 1
+    end
+    -1
+  end
+
   # The y of the other half of the door at x, y, z.
   def door_partner(x, y, z) = Block.door?(@world.get(x, y + 1, z)) ? y + 1 : y - 1
 
@@ -378,6 +421,11 @@ class Game
       return unless door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)
       set_block(x, y + 1, z, b)
+    end
+    if b == Block::BED
+      d = bed_direction
+      return unless bed_fits?(x, y, z, x + BED_DX[d], z + BED_DZ[d])
+      set_block(x + BED_DX[d], y, z + BED_DZ[d], Block::BED_HEAD)
     end
     set_block(x, y, z, b)
     play(Sfx::PLACE, 0.7)

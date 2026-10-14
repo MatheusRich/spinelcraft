@@ -16,6 +16,7 @@ class Game
       dx += 1
     end
     set_block(bx - 3, y + 1, bz + 2, Block::BED)
+    set_block(bx - 2, y + 1, bz + 2, Block::BED_HEAD)
     set_block(bx + 3, y + 1, bz + 2, Block::TORCH)
     [Mob::PIG, Mob::SHEEP, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
       m = Mob.new(kind, bx - 4.0 + i * 2.0, y + 1.0, bz + 0.5, 1)
@@ -126,6 +127,7 @@ class Game
     test_door_rules
     test_ladder
     test_plant_box
+    test_bed
     test_buckets
     test_far_items
     bx = @spawn_x.floor
@@ -993,6 +995,52 @@ class Game
     check("a sapling grows into a tree", @world.get(x, y, z) == Block::LOG && @world.get(x, y + 3, z) == Block::LOG)
     check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)
     set_block(x + 4, cy, z, Block::AIR)
+  end
+
+  # A bed takes two blocks along the view, needs room for both, and breaks
+  # as a whole.
+  def test_bed
+    x = @spawn_x.floor + 20
+    z = @spawn_z.floor - 70
+    g = @world.height_at(x, z) + 2
+    dx = -3
+    while dx <= 3
+      dz = -2
+      while dz <= 2
+        set_block(x + dx, g - 1, z + dz, Block::STONE)
+        set_block(x + dx, g, z + dz, Block::AIR)
+        set_block(x + dx, g + 1, z + dz, Block::AIR)
+        set_block(x + dx, g + 2, z + dz, Block::AIR)
+        dz += 1
+      end
+      dx += 1
+    end
+    survival = @survival
+    @survival = true
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    give(Block::BED)
+    give(Block::BED)
+    @slot = 0
+    @player.x = x - 1.5
+    @player.y = g.to_f
+    @player.z = z + 0.5
+    @player.yaw = Math::PI / 2.0
+    @player.pitch = -Math.atan(Player::EYE / 2.0)
+    set_block(x + 1, g, z, Block::STONE)
+    @player.raycast(@world)
+    place
+    blocked = @world.get(x, g, z) == Block::AIR && @inv_count[0] == 2
+    set_block(x + 1, g, z, Block::AIR)
+    @player.raycast(@world)
+    place
+    two = @world.get(x, g, z) == Block::BED && @world.get(x + 1, g, z) == Block::BED_HEAD && @inv_count[0] == 1
+    set_block(x + 1, g, z, Block::AIR)
+    gone = @world.get(x, g, z) == Block::AIR
+    @survival = survival
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    check("a bed takes two blocks along the view and breaks as a whole", blocked && two && gone)
   end
 
   # The view ray hits a plant only in its small box, and goes on past it.
