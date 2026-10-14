@@ -10,7 +10,10 @@ class Camera
   end
 
   # Builds the view-projection matrix (row-major in @vp) for Metal's 0..1 depth.
-  def update(ex, ey, ez, yaw, pitch, aspect, far, fov)
+  # TODO: Rename back to update when Spinel types the parameters of each
+  # method on its own. Now all methods named update share one type for each
+  # parameter, and this one made the others untyped.
+  def update_camera(ex, ey, ez, yaw, pitch, aspect, far, fov)
     fx = Math.sin(yaw) * Math.cos(pitch)
     fy = Math.sin(pitch)
     fz = -Math.cos(yaw) * Math.cos(pitch)

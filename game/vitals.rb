@@ -49,7 +49,10 @@ class Vitals
   # the player touches lava, and under_water when the head is in water.
   # speed is the speed on the ground. Returns true when the player took
   # damage.
-  def update(dt, in_lava, under_water, speed)
+  # TODO: Rename back to update when Spinel types the parameters of each
+  # method on its own. Now all methods named update share one type for each
+  # parameter, and this one made the others untyped.
+  def update_vitals(dt, in_lava, under_water, speed)
     health = @health
     if in_lava
       @lava_tick -= dt

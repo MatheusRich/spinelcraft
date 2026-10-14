@@ -296,7 +296,10 @@ class Game
     @message_time = 2.0
   end
 
-  def update(dt)
+  # TODO: Rename back to update when Spinel types the parameters of each
+  # method on its own. Now all methods named update share one type for each
+  # parameter, and this one made the others untyped.
+  def update_game(dt)
     fwd = 0.0
     strafe = 0.0
     jump = false
@@ -348,7 +351,7 @@ class Game
     update_items(dt)
     update_falling(dt)
     note_seen if @survival
-    @weather.update(dt)
+    @weather.update_weather(dt)
     if @weather.rain > 0.0
       @weather.splash(@particles, @world, @player, dt)
       volume = @weather.sound(@world, @player, dt)
@@ -389,7 +392,7 @@ class Game
       @vitals.douse
       play(Sfx::FIZZ, 0.6)
     end
-    felt_hurt if @vitals.update(dt, in_lava, under_water, Math.sqrt(p.vx * p.vx + p.vz * p.vz))
+    felt_hurt if @vitals.update_vitals(dt, in_lava, under_water, Math.sqrt(p.vx * p.vx + p.vz * p.vz))
   end
 
   def daylight
@@ -421,7 +424,7 @@ class Game
       last = now
       handle_input(dt)
       demo(frames) if @demo
-      update(dt)
+      update_game(dt)
       t_stream = Gfx.gfx_ns
       stream_around(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
       left = STREAM_BUDGET_NS - (Gfx.gfx_ns - t_stream)

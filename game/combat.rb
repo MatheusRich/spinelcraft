@@ -134,7 +134,7 @@ class Game
       sdt = dt / steps
       k = 0
       while k < steps
-        damage = m.update(@world, sdt, @player, day)
+        damage = m.update_mob(@world, sdt, @player, day)
         if damage > 0
           hurt(damage)
           if @survival

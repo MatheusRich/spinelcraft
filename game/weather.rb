@@ -45,7 +45,10 @@ class Weather
     @rain = on ? 1.0 : 0.0
   end
 
-  def update(dt)
+  # TODO: Rename back to update when Spinel types the parameters of each
+  # method on its own. Now all methods named update share one type for each
+  # parameter, and this one made the others untyped.
+  def update_weather(dt)
     @timer -= dt
     set(!@raining) if @timer <= 0.0
     step = dt / FADE

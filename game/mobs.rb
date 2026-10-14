@@ -116,7 +116,10 @@ class Mob
   end
 
   # Returns damage dealt to the player this step.
-  def update(world, dt, player, day)
+  # TODO: Rename back to update when Spinel types the parameters of each
+  # method on its own. Now all methods named update share one type for each
+  # parameter, and this one made the others untyped.
+  def update_mob(world, dt, player, day)
     @hurt -= dt
     @attack_wait -= dt
     speed = 0.0

@@ -11,7 +11,7 @@ class Game
     walking = @player.on_ground && !@player.flying
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
     ey += Math.sin(@bob) * 0.05 * (speed / 4.3).clamp(0.0, 1.0) if walking
-    @camera.update(ex, ey, ez, @player.yaw, @player.pitch, w / h, @fog_end + 40.0, @fov)
+    @camera.update_camera(ex, ey, ez, @player.yaw, @player.pitch, w / h, @fog_end + 40.0, @fov)
     @camera.write_column_major(@uniforms)
     Gfx.gfx_cloud_boxes(@clouds.mesh.v, @clouds.mesh.count) if @clouds.build(ex, ez, @cloud_drift)
     set_uniforms(ex, ey, ez, w, h)
