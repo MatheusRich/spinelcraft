@@ -40,6 +40,9 @@ class Game
     uz = rx * fy
     flat = b != Block::AIR && Block.flat?(b)
     # The place (right, up, back) and the turn of the model in view space.
+    # Items and blocks copy Minecraft: ItemInHandRenderer puts the arm at
+    # (0.56, -0.52, -0.72), and the firstperson_righthand display of the
+    # models item/generated and block/block moves, turns and scales the model.
     if b == Block::AIR
       ox = 0.6
       oy = -0.62
@@ -49,21 +52,25 @@ class Game
       roll = 0.0
       size = 0.16
     elsif flat
-      ox = 0.44
-      oy = -0.36
-      oz = -0.72
-      yaw = -1.0
-      pitch = 0.1
-      roll = 0.1
-      size = 0.36
+      # item/generated: translation (1.13, 3.2, 1.13) / 16, rotation
+      # (0, -90, 25) and scale 0.68. The texture of the sprite goes along -x,
+      # not +x as in Minecraft, so the roll has the other sign.
+      ox = 0.56 + 1.13 / 16.0
+      oy = -0.52 + 3.2 / 16.0
+      oz = -0.72 + 1.13 / 16.0
+      yaw = -Math::PI / 2.0
+      pitch = 0.0
+      roll = -25.0 * Math::PI / 180.0
+      size = 0.68
     else
-      ox = 0.42
-      oy = -0.4
-      oz = -0.75
-      yaw = 0.6
+      # block/block: rotation (0, 45, 0) and scale 0.4.
+      ox = 0.56
+      oy = -0.52
+      oz = -0.72
+      yaw = Math::PI / 4.0
       pitch = 0.0
       roll = 0.0
-      size = 0.24
+      size = 0.4
     end
     if @swing > 0.0
       t = 1.0 - @swing / SWING
@@ -81,21 +88,21 @@ class Game
     oy -= @equip * 0.45
     ox += @hand_dx
     oy += @hand_dy
-    # The turn: yaw around up, then pitch around right, then roll around back.
+    # The turn: roll around back, then yaw around up, then pitch around right.
     cy = Math.cos(yaw)
     sy = Math.sin(yaw)
     cp = Math.cos(pitch)
     sp = Math.sin(pitch)
     cr = Math.cos(roll)
     sr = Math.sin(roll)
-    m00 = cr * cy - sr * sp * sy
-    m01 = -sr * cp
-    m02 = cr * sy + sr * sp * cy
-    m10 = sr * cy + cr * sp * sy
-    m11 = cr * cp
-    m12 = sr * sy - cr * sp * cy
-    m20 = -cp * sy
-    m21 = sp
+    m00 = cy * cr
+    m01 = -cy * sr
+    m02 = sy
+    m10 = cp * sr + sp * sy * cr
+    m11 = cp * cr - sp * sy * sr
+    m12 = -sp * cy
+    m20 = sp * sr - cp * sy * cr
+    m21 = sp * cr + cp * sy * sr
     m22 = cp * cy
     # The view sees the back of the sprite, so a blade or a bow string above
     # the handle faces the player. A tool mirrors across its handle, so that
