@@ -234,11 +234,36 @@ class Game
     say("NEW WORLD  SEED #{@seed}")
   end
 
-  # Finds dry land near x = z = 0 and puts a new player there.
+  # Finds dry land near x = z = 0 and puts a new player there. The origin
+  # can be at sea, so the noise first finds land on squares around it, 64
+  # blocks apart. Then the loaded blocks give dry land near that point.
   def spawn
-    stream_around(0, 0, -1, SYNC_R)
-    best_x = 0
-    best_z = 0
+    ox = 0
+    oz = 0
+    r = 0
+    while !land?(ox, oz) && r < 4096
+      r += 64
+      k = -r
+      while k <= r && !land?(ox, oz)
+        if land?(k, -r)
+          ox = k
+          oz = -r
+        elsif land?(k, r)
+          ox = k
+          oz = r
+        elsif land?(-r, k)
+          ox = -r
+          oz = k
+        elsif land?(r, k)
+          ox = r
+          oz = k
+        end
+        k += 64
+      end
+    end
+    stream_around(ox >> 4, oz >> 4, -1, SYNC_R)
+    best_x = ox
+    best_z = oz
     r = 0
     found = false
     while r < (SYNC_R - 1) * CHUNK && !found
@@ -246,9 +271,11 @@ class Game
       while dx <= r && !found
         dz = -r
         while dz <= r && !found
-          if dry_land?(dx, dz) && dry_land?(dx + 3, dz) && dry_land?(dx - 3, dz) && dry_land?(dx, dz + 3) && dry_land?(dx, dz - 3)
-            best_x = dx
-            best_z = dz
+          x = ox + dx
+          z = oz + dz
+          if dry_land?(x, z) && dry_land?(x + 3, z) && dry_land?(x - 3, z) && dry_land?(x, z + 3) && dry_land?(x, z - 3)
+            best_x = x
+            best_z = z
             found = true
           end
           dz += 1
@@ -262,6 +289,9 @@ class Game
     @spawn_z = best_z + 0.5
     @player = Player.new(@spawn_x, h + 0.01, @spawn_z)
   end
+
+  # Land well above the sea, from the noise alone.
+  def land?(x, z) = @world.surface_height(x, z) > SEA + 4
 
   # Ground above the beach with no tree or water on top.
   def dry_land?(x, z)

@@ -7,8 +7,6 @@ class Lod
   # Tiles live in a ring like chunks do; the shader wraps Mesher::COLUMNS cells.
   TRING = Mesher::COLUMNS / CELLS
   TMASK = TRING - 1
-  # Forest canopy height above the ground.
-  CANOPY = 5
 
   attr_reader :tile_x, :tile_z, :built, :faces, :tile, :tile_shift
 
@@ -57,7 +55,8 @@ class Lod
     @side[k] = Block::SIDE[b]
     @h[k] = h
     if (b == Block::GRASS || b == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome]
-      @h[k] = h + CANOPY
+      # About the height of the biome's trees: the trunk, plus the leaves above it.
+      @h[k] = h + World::TRUNK[Biome::TREE[biome]] + 2
       @top[k] = Tex::LEAVES
       @side[k] = Tex::LEAVES
     end

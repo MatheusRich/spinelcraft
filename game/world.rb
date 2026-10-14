@@ -39,7 +39,14 @@ class World
   # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
   # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
-  RIVER_VALLEY = 0.07
+  RIVER_VALLEY = 0.045
+  # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
+  # every scale. This shift moves the terrain off them, so each seed gets
+  # its own land at spawn.
+  SHIFT = 5000.5
+  # Land never reaches TOP, and heights above PEAK squeeze toward it.
+  TOP = WY - 14.0
+  PEAK = SEA + 34.0
   # The shortest trunk of each tree kind (Biome::OAK and so on), one
   # entry for each of Biome::TREE_KINDS.
   TRUNK = [4, 6, 4, 8]
@@ -365,14 +372,14 @@ class World
   # rugged land, and only rugged land inland gets high hills and ridges.
   # Rivers cut valleys down to the sea where the river noise is near zero.
   def surface_height(x, z)
-    nx = x / 1.0
-    nz = z / 1.0
+    nx = x + SHIFT
+    nz = z + SHIFT
     wx = warp_x(nx, nz)
     wz = warp_z(nx, nz)
     continent = @noise.fbm2(wx / 700.0, wz / 700.0, 3)
     erosion = @noise4.fbm2(wx / 340.0 + 30.0, wz / 340.0, 2)
-    rugged = smooth((0.06 - erosion) / 0.22)
-    inland = smooth((continent + 0.1) / 0.2)
+    rugged = World.smooth((0.06 - erosion) / 0.22)
+    inland = World.smooth((continent + 0.1) / 0.2)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
     ridge = 1.0 - @noise2.noise2(wx / 90.0, wz / 90.0).abs * 1.6
     ridge = ridge < 0.0 ? 0.0 : ridge
@@ -380,14 +387,20 @@ class World
         ridge * ridge * 46.0 * rugged * inland
     river = @noise3.fbm2(wx / 420.0 + 90.0, wz / 420.0, 2).abs
     if river < RIVER_VALLEY && h > SEA - 3.0
-      bed = SEA - 3.0 + (h - SEA + 3.0) * smooth(river / RIVER_VALLEY)
+      bed = SEA - 3.0 + (h - SEA + 3.0) * World.smooth(river / RIVER_VALLEY)
       h = bed if bed < h
     end
-    h.to_i.clamp(4, WY - 14)
+    # Above PEAK, heights squeeze toward the top limit and never reach it,
+    # so the highest peaks stay pointed instead of flat.
+    if h > PEAK
+      over = h - PEAK
+      h = PEAK + over * (TOP - PEAK) / (over + TOP - PEAK)
+    end
+    h.to_i.clamp(4, TOP.to_i)
   end
 
   # 0 below 0, 1 above 1, and an S curve between.
-  def smooth(t)
+  def self.smooth(t)
     t = t.clamp(0.0, 1.0)
     t * t * (3.0 - 2.0 * t)
   end
@@ -406,8 +419,8 @@ class World
   # The biome of a column with height h. The air gets colder up high, so
   # mountains get snow.
   def biome(x, z, h)
-    nx = x / 1.0
-    nz = z / 1.0
+    nx = x + SHIFT
+    nz = z + SHIFT
     wx = warp_x(nx, nz)
     wz = warp_z(nx, nz)
     t = @noise3.fbm2(wx / 480.0 + 300.0, wz / 480.0, 2) * 2.2
@@ -419,9 +432,7 @@ class World
   # Height bands. top is the y of the column's top block.
   def beach?(top) = top <= SEA + 1
   # High peaks are bare stone at the top and below it.
-  def bare_rock?(top) = top > SEA + 40
-  # The top block and the blocks below it are sand.
-  def sandy?(top, biome) = biome == Biome::DESERT || (beach?(top) && biome != Biome::SWAMP)
+  def bare_rock?(top) = top > SEA + 37
 
   # The block at the top of a column before caves and plants. Swamps hold
   # pools at sea level.
@@ -436,7 +447,7 @@ class World
     end
     b = Block::GRAVEL if top < SEA - 2 && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
     b = Block::STONE if bare_rock?(top)
-    b = Block::SNOW if top > SEA + 44
+    b = Block::SNOW if top > SEA + 39
     b
   end
 
@@ -535,7 +546,6 @@ class World
         h = @col_h[lx * CHUNK + lz]
         biome = @col_b[lx * CHUNK + lz]
         top = h - 1
-        sandy = sandy?(top, biome)
         surface = top_block(x, z, h, biome)
         base = World.index(x, 0, z)
         y = 0
@@ -546,7 +556,7 @@ class World
           elsif y == top
             b = surface
           elsif y > top - 4
-            b = sandy ? Block::SAND : Block::DIRT
+            b = surface == Block::SAND ? Block::SAND : Block::DIRT
             b = Block::STONE if bare_rock?(top)
           end
           if b == Block::STONE

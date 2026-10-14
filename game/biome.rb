@@ -18,8 +18,8 @@ module Biome
   GRASS = [9000, 5000, 3000, 0, 0, 0, 26000, 22000, 12000]
   # Flowers per 65536 columns of grass.
   FLOWERS = [2400, 600, 0, 0, 0, 0, 300, 0, 0]
-  # More trees than any biome has, so a roll above it needs no biome.
-  MAX_TREES = 4200
+  # The most trees of any biome, so a roll at or above it needs no biome.
+  MAX_TREES = TREES.max
 
   # The biome for temperature t and humidity w. Cold land is tundra or
   # snowy taiga, cool land plains or taiga, mild land plains, forest or
