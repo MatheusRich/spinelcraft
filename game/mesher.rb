@@ -57,6 +57,14 @@ class Mesher
     @step_x = [1, -1, 0, 0, 0, 0]
     @step_y = [0, 0, 0, 0, 1, -1]
     @step_z = [0, 0, 1, -1, 0, 0]
+    # 1 when block b fills its cell, so the faces next to it do not show.
+    # Lava does not: its surface sinks (fluid_corners).
+    @cover = Array.new(Block::COUNT, 0)
+    b = 0
+    while b < Block::COUNT
+      @cover[b] = Block.lava?(b) ? 0 : Block::OPAQUE[b]
+      b += 1
+    end
     @ao = Array.new(72, 0)
     @nx = Array.new(6, 0)
     @nz = Array.new(6, 0)
@@ -98,10 +106,72 @@ class Mesher
 
   def offset(dx, dy, dz) = (dx * PZ + dz) * PY + dy
 
-  # How far the surface of water b sinks below the top of its cell, in steps
-  # of 0.11 after the first 0.01 (see vchunk in gfx.rb). over is the block
-  # above it; water under water fills its cell.
-  def water_drop(b, over) = Block::WATER_LEVEL[over] > 0 ? 0 : 9 - Block::WATER_LEVEL[b]
+  # The fluid kind of block b: 1 water, 2 lava, 0 not a fluid.
+  def self.fluid(b) = Block::WATER_LEVEL[b] > 0 ? 1 : (Block.lava?(b) ? 2 : 0)
+
+  # The 16 bits of the corner heights of a fluid face (fluid_corners) go to
+  # bits 8-16 and 25-31 of the second word, which a fluid face does not
+  # use for AO, shape or tint. vchunk in gfx.rb reads them back.
+  def self.fluid_w1(h) = ((h & 511) << 8) | ((h >> 9) << 25)
+
+  # The height of the surface of fluid kind k in the cell of block b, with
+  # block over above it, as the fluid renderer of Minecraft reads it: 1
+  # under the same fluid, else the level in ninths (lava drops 2 ninths
+  # each step, as it spreads 3 blocks); 0 in a cell that the fluid could
+  # flow into, and -1 in a solid block, which the average skips.
+  def fluid_height(k, b, over)
+    if Mesher.fluid(b) == k
+      return 1.0 if Mesher.fluid(over) == k
+      return k == 1 ? Block::WATER_LEVEL[b] / 9.0 : Block.lava_level(b) * 2 / 9.0
+    end
+    Block.solid?(b) ? -1.0 : 0.0
+  end
+
+  def cell_fluid_height(k, i)
+    blocks = @world.blocks
+    fluid_height(k, World.byte(blocks, i), World.byte(blocks, i + 1))
+  end
+
+  # A height of 0.8 or more counts 10 times in a corner, so the surface
+  # stays high next to a source.
+  def fluid_weight(h) = h >= 0.8 ? 10.0 : (h >= 0.0 ? 1.0 : 0.0)
+
+  # The height of a top corner: the weighted average of the heights of the
+  # cell (h), the two cells beside the corner (ha, hb) and the cell across
+  # the corner (hd). The cell across counts only when a cell beside holds
+  # fluid. A cell beside under the same fluid lifts the corner to the top.
+  def corner_height(h, ha, hb, hd)
+    return 1.0 if ha >= 1.0 || hb >= 1.0
+    hd = -1.0 unless ha > 0.0 || hb > 0.0
+    return 1.0 if hd >= 1.0
+    sum = h * fluid_weight(h) + ha * fluid_weight(ha) + hb * fluid_weight(hb) + hd * fluid_weight(hd)
+    sum / (fluid_weight(h) + fluid_weight(ha) + fluid_weight(hb) + fluid_weight(hd))
+  end
+
+  # The heights of the 4 top corners of fluid cell i of kind k, in
+  # fifteenths, 4 bits each: corner (x, z) at bit 4 * (x + 2 z). Two cells
+  # that share a corner give it the same height, so the surface has no
+  # gaps. Each corner is at least 1, above the floor of the cell.
+  def fluid_corners(i, k)
+    h = cell_fluid_height(k, i)
+    return 0xFFFF if h >= 1.0
+    q = 0
+    cz = 0
+    while cz < 2
+      cx = 0
+      while cx < 2
+        sx = @delta[cx == 1 ? 0 : 1]
+        sz = @delta[cz == 1 ? 4 : 5]
+        top = corner_height(h, cell_fluid_height(k, i + sx), cell_fluid_height(k, i + sz), cell_fluid_height(k, i + sx + sz))
+        v = (top * 15.0 + 0.5).to_i
+        v = 1 if v < 1
+        q |= v << (4 * (cx + 2 * cz))
+        cx += 1
+      end
+      cz += 1
+    end
+    q
+  end
 
   # Meshes world chunk (cx, cz). It and the 8 chunks around it must be loaded.
   def build(cx, cz)
@@ -110,9 +180,8 @@ class Mesher
     @lists.each { |l| l.clear }
     blocks = @world.blocks
     height = @world.height
-    opaque = Block::OPAQUE
+    cover = @cover
     occludes = Block::OCCLUDES
-    water_level = Block::WATER_LEVEL
     py = PY
     dx = PZ * PY
     top_tex = Block::TOP
@@ -185,41 +254,45 @@ class Mesher
               plants << w1
               f += 1
             end
-          elsif id != Block::AIR && (opaque[above] + opaque[below] + opaque[World.byte(blocks, i + py)] + opaque[World.byte(blocks, i - py)] + opaque[World.byte(blocks, i + dx)] + opaque[World.byte(blocks, i - dx)] < 6 || water_level[id] > 0)
-            water = water_level[id] > 0
+          elsif id != Block::AIR && (cover[above] + cover[below] + cover[World.byte(blocks, i + py)] + cover[World.byte(blocks, i - py)] + cover[World.byte(blocks, i + dx)] + cover[World.byte(blocks, i - dx)] < 6 || Mesher.fluid(id) > 0)
+            kind = Mesher.fluid(id)
+            corners = kind > 0 ? fluid_corners(i, kind) : 0
             front = facing[id] >= 0 ? Block::DIR_FACE[facing[id]] : -1
             # A block with a shape is smaller than its cell, so all its faces show.
             shape = Block::SHAPE[id]
             f = 0
             while f < 6
               nb = World.byte(blocks, i + @delta[f])
-              lift = 0
-              visible = if water
-                # A side next to lower water shows the step down to its surface.
-                lift = water_drop(nb, World.byte(blocks, i + @delta[f] + 1)) if f != 2 && f != 3 && water_level[nb] > 0
-                opaque[nb] == 0 && (water_level[nb] == 0 || lift > water_drop(id, above))
+              visible = if kind > 0
+                # A fluid shows no face to the same fluid. Its top shows
+                # under a block unless the surface is at the top of the cell.
+                Mesher.fluid(nb) != kind && (cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
               else
-                opaque[nb] == 0 && !(nb == id && id == Block::GLASS)
+                # Lava under lava fills its cell.
+                cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(World.byte(blocks, i + @delta[f] + 1)))
               end
               visible = true if shape > 0
               visible = false if f == 3 && y == 0
               if visible
                 tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : (f == front ? front_tex[id] : side_tex[id]))
                 ny = y + (f == 2 ? 1 : (f == 3 ? -1 : 0))
-                # A step down to lower water takes the light above that water.
-                ny += 1 if lift > 0
                 sx = x + @nx[f]
                 sz = z + @nz[f]
                 sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
                 w0 = Mesher.pack(lx, y, lz, f) | Mesher.tint_w0(tex)
-                if water
-                  low = water_level[above] > 0 ? 0 : 1
-                  # Water has no AO. A sunk surface keeps 8 - level in bits 8-10,
-                  # and a side next to lower water keeps its drop in bits 11-14.
-                  w1 = tex | (low == 1 ? (8 - water_level[id]) << 8 : 0) | (lift << 11) | (sky << 17) | (low << 18) | (Tex.scroll(tex) << 23)
+                if kind > 0
+                  # A fluid face has no AO: it holds the heights of its corners.
+                  w1 = tex | Mesher.fluid_w1(corners) | (sky << 17) | (Tex.scroll(tex) << 23)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
-                  @water << w0
-                  @water << w1
+                  if kind == 1
+                    @water << w0
+                    @water << w1
+                  else
+                    w1 = (w1 & ~(15 << 19)) | (LIGHT_MAX << 19)
+                    list = @lists[f]
+                    list << w0
+                    list << w1
+                  end
                 else
                   a = f * 12
                   ao0 = ao_value(occludes[World.byte(blocks, i + @ao[a])], occludes[World.byte(blocks, i + @ao[a + 1])], occludes[World.byte(blocks, i + @ao[a + 2])])
@@ -227,9 +300,8 @@ class Mesher
                   ao2 = ao_value(occludes[World.byte(blocks, i + @ao[a + 6])], occludes[World.byte(blocks, i + @ao[a + 7])], occludes[World.byte(blocks, i + @ao[a + 8])])
                   ao3 = ao_value(occludes[World.byte(blocks, i + @ao[a + 9])], occludes[World.byte(blocks, i + @ao[a + 10])], occludes[World.byte(blocks, i + @ao[a + 11])])
                   flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
-                  w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | (Tex.scroll(tex) << 23) | Mesher.tint_w1(tex)
+                  w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | Mesher.tint_w1(tex)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
-                  w1 = (w1 & ~(15 << 19)) | (LIGHT_MAX << 19) if Block.lava?(id)
                   # Bits 25-27 hold 1 + the facing and bits 28-30 the shape of a
                   # block with a shape, which has no AO. A shape without a
                   # facing (a cactus) draws as if it faces +x.
