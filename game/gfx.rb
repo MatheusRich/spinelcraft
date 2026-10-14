@@ -404,9 +404,13 @@ module Gfx
       }
     }
 
-    /* quiet opens the window behind the other windows, so it does not take the keyboard. */
+    /* quiet runs the game as a background app, and opens the window behind the
+       other windows, so the game does not take the keyboard from the active app. */
     bool gfx_init(long w, long h, long vsync, long quiet) {
-      if (quiet) SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
+      if (quiet) {
+        SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "1");
+        SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
+      }
       if (!SDL_Init(SDL_INIT_VIDEO)) return fail("SDL_Init");
       win = SDL_CreateWindow("Spinelcraft", (int)w, (int)h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
       if (!win) return fail("SDL_CreateWindow");
