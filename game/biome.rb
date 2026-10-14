@@ -18,6 +18,10 @@ module Biome
   # minecraft.wiki/w/Oak gives for Alpha; the wiki does not confirm it
   # for today. Swamps grow no large oaks (minecraft.wiki/w/Oak).
   LARGE_OAKS = [21845, 6554, 0, 0, 0, 0, 0, 0, 0]
+  # Pines per 65536 spruces. Taigas grow pines, and tundras do not
+  # (minecraft.wiki/w/Spruce). The wiki does not confirm the share of a
+  # third: it copies the taiga trees in the game code.
+  PINES = [0, 0, 21845, 21845, 0, 0, 0, 0, 0]
   # Tall grass per 65536 columns of grass, before the meadow noise.
   GRASS = [9000, 5000, 3000, 0, 0, 0, 26000, 22000, 12000]
   # Flowers per 65536 columns of grass.

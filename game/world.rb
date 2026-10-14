@@ -49,7 +49,7 @@ class World
   PEAK = SEA + 34.0
   # The shortest trunk of each tree kind (Biome::OAK and so on), one
   # entry for each of Biome::TREE_KINDS.
-  TRUNK = [4, 6, 5, 8]
+  TRUNK = [4, 5, 5, 8]
   # How far leaves reach from the root of a tree: a large oak grows a
   # branch 5 blocks long, and the leaves at its end reach 2 more.
   TREE_REACH = 7
@@ -727,10 +727,13 @@ class World
     kind = Biome::TREE[biome]
     return acacia(x, y, z, x0, z0) if kind == Biome::ACACIA
     return large_oak(x, y, z, x0, z0) if kind == Biome::OAK && Noise.hash3(x, y, z, 28) < Biome::LARGE_OAKS[biome]
+    if kind == Biome::SPRUCE
+      return Noise.hash3(x, y, z, 31) < Biome::PINES[biome] ? pine(x, y, z, x0, z0) : spruce(x, y, z, x0, z0)
+    end
     tall = TRUNK[kind] + Noise.hash3(x, y, z, 23) % 3
     return if y + tall + 2 >= WY
     top = y + tall
-    ly = kind == Biome::SPRUCE ? y + 2 : top - 2
+    ly = top - 2
     while ly <= top + 1
       radius = leaf_radius(kind, top + 1 - ly)
       dx = -radius
@@ -753,6 +756,86 @@ class World
       i += 1
     end
     put(x, y - 1, z, Block::DIRT, x0, z0)
+  end
+
+  # A spruce on the ground below x, y, z: a trunk of 5 to 8 logs with 1
+  # or 2 bare logs at the bottom. From the top down, the layers of leaves
+  # grow wider and then narrow again, and each narrow layer is wider than
+  # the narrow layer above it, up to a widest reach of 2 or 3. The top
+  # layer is 0 to 2 blocks above the trunk. minecraft.wiki/w/Spruce says
+  # that "the leaves tend to grow in discrete rows". The wiki does not
+  # confirm the numbers: they copy the spruce feature in the game code.
+  def spruce(x, y, z, x0, z0)
+    r = Noise.hash3(x, y, z, 23)
+    tall = TRUNK[Biome::SPRUCE] + r % 3 + r / 3 % 2
+    r /= 6
+    bare = 1 + r % 2
+    widest = 2 + r / 2 % 2
+    above = r / 4 % 3
+    reach = r / 12 % 2
+    return if y + tall + above >= WY
+    logs(x, y, z, tall, x0, z0)
+    top = y + tall
+    low = top - [4, tall - bare].max
+    step = 1
+    narrow = 0
+    ly = top + above
+    while ly >= low
+      leaf_row(x, ly, z, reach, x0, z0)
+      if reach >= step
+        reach = narrow
+        narrow = 1
+        step = [step + 1, widest].min
+      else
+        reach += 1
+      end
+      ly -= 1
+    end
+  end
+
+  # A pine on the ground below x, y, z: a tall bare trunk of 6 to 10 logs
+  # with a few small layers of leaves at the top. minecraft.wiki/w/Spruce
+  # says that pines are "a fairly tall variant of spruces" "with only a
+  # few leaves at the top". The wiki does not confirm the numbers: they
+  # copy the pine feature in the game code.
+  def pine(x, y, z, x0, z0)
+    r = Noise.hash3(x, y, z, 23)
+    tall = 6 + r % 5
+    layers = 4 + r / 5 % 2
+    return if y + tall + 1 >= WY
+    logs(x, y, z, tall, x0, z0)
+    top = y + tall
+    i = 0
+    while i < layers
+      leaf_row(x, top + 1 - i, z, i == 0 || i == layers - 1 ? 0 : 1, x0, z0)
+      i += 1
+    end
+  end
+
+  # A trunk of tall logs up from x, y, z, on dirt.
+  def logs(x, y, z, tall, x0, z0)
+    i = 0
+    while i < tall
+      put(x, y + i, z, Block::LOG, x0, z0)
+      i += 1
+    end
+    put(x, y - 1, z, Block::DIRT, x0, z0)
+  end
+
+  # A square layer of leaves around x, y, z that reaches out r blocks,
+  # without its corners.
+  def leaf_row(x, y, z, r, x0, z0)
+    dx = -r
+    while dx <= r
+      dz = -r
+      while dz <= r
+        if (dx.abs < r || dz.abs < r || r == 0) && air_in?(x + dx, y, z + dz, x0, z0)
+          put(x + dx, y, z + dz, Block::LEAVES, x0, z0)
+        end
+        dz += 1
+      end
+      dx += 1
+    end
   end
 
   # A large oak on the ground below x, y, z: a tall trunk with a branch on
@@ -896,15 +979,13 @@ class World
   # layer above, they cover the 3 x 3 blocks over the log, and a crown
   # that reaches 3 adds one block at the middle of each side.
   def acacia_crown(x, y, z, reach, x0, z0)
+    leaf_row(x, y, z, reach, x0, z0)
     dx = -reach
     while dx <= reach
       dz = -reach
       while dz <= reach
         ax = dx.abs
         az = dz.abs
-        if (ax < reach || az < reach) && air_in?(x + dx, y, z + dz, x0, z0)
-          put(x + dx, y, z + dz, Block::LEAVES, x0, z0)
-        end
         if ((ax <= 1 && az <= 1) || ax + az < reach) && air_in?(x + dx, y + 1, z + dz, x0, z0)
           put(x + dx, y + 1, z + dz, Block::LEAVES, x0, z0)
         end
@@ -917,7 +998,6 @@ class World
   # The radius of the leaves d layers below the top layer of a tree.
   def leaf_radius(kind, d)
     case kind
-    when Biome::SPRUCE then d == 0 ? 0 : (d.odd? ? 1 : 2)
     when Biome::JUNGLE_TREE then d < 2 ? d + 1 : 3
     else d < 2 ? 1 : 2
     end
