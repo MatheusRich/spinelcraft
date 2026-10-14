@@ -143,7 +143,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 
 `SELFTEST=1` writes and deletes `world.sav` and `world-bad.sav` in the current directory, so run it in a folder without a save that you want to keep.
 
-`tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby.
+`tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby. `ruby tools/map.rb [OUT]` draws the generated world without the game: `OUT-top.png` from above and `OUT-tilt.png` at a slant, with biome colors, water depth and spawn. `SEED`, `SIZE`, `STEP` and `LIFT` change the map.
 
 ## Credits
 
