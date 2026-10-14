@@ -313,7 +313,7 @@ class Game
     i = 0
     while i < @mobs.size
       m = @mobs[i]
-      # Mob#ray allocates; skip the mobs that are out of reach.
+      # Skip the mobs that are out of reach.
       if (m.x - ox) ** 2 + (m.z - oz) ** 2 < 25.0
         t = m.ray(ox, oy, oz, dx, dy, dz)
         if t >= 0.0 && t < best

@@ -256,6 +256,28 @@ class World
     block(World.index(x, y, z))
   end
 
+  # True when a solid block overlaps the box of half width half and height
+  # tall that stands on x, y, z.
+  def solid_in_box?(x, y, z, half, tall)
+    x1 = (x + half).floor
+    y1 = (y + tall).floor
+    z1 = (z + half).floor
+    bx = (x - half).floor
+    while bx <= x1
+      by = y.floor
+      while by <= y1
+        bz = (z - half).floor
+        while bz <= z1
+          return true if Block.solid?(get(bx, by, bz))
+          bz += 1
+        end
+        by += 1
+      end
+      bx += 1
+    end
+    false
+  end
+
   def set(x, y, z, b)
     return unless inside?(x, y, z)
     # Spinel widens b (it comes from the inventory); to_i gives the writers

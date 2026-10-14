@@ -54,28 +54,7 @@ class Mob
     @fire = 0.0
   end
 
-  def blocked?(world)
-    x0 = (@x - @half).floor
-    x1 = (@x + @half).floor
-    y0 = @y.floor
-    y1 = (@y + @tall).floor
-    z0 = (@z - @half).floor
-    z1 = (@z + @half).floor
-    x = x0
-    while x <= x1
-      y = y0
-      while y <= y1
-        z = z0
-        while z <= z1
-          return true if Block.solid?(world.get(x, y, z))
-          z += 1
-        end
-        y += 1
-      end
-      x += 1
-    end
-    false
-  end
+  def blocked?(world) = world.solid_in_box?(@x, @y, @z, @half, @tall)
 
   # Moves and returns true when a wall stopped the horizontal motion.
   def move(world, dx, dy, dz)
@@ -241,31 +220,7 @@ class Mob
 
   # Distance along the ray to this mob's box, or -1.0 when the ray misses it.
   def ray(ox, oy, oz, dx, dy, dz)
-    tmin = 0.0
-    tmax = 1.0e9
-    lo = [@x - @half, @y, @z - @half]
-    hi = [@x + @half, @y + @tall, @z + @half]
-    o = [ox, oy, oz]
-    d = [dx, dy, dz]
-    a = 0
-    while a < 3
-      if d[a].abs < 1.0e-9
-        return -1.0 if o[a] < lo[a] || o[a] > hi[a]
-      else
-        t1 = (lo[a] - o[a]) / d[a]
-        t2 = (hi[a] - o[a]) / d[a]
-        if t1 > t2
-          t = t1
-          t1 = t2
-          t2 = t
-        end
-        tmin = t1 if t1 > tmin
-        tmax = t2 if t2 < tmax
-        return -1.0 if tmin > tmax
-      end
-      a += 1
-    end
-    tmin
+    Ray.box_distance(ox, oy, oz, dx, dy, dz, @x - @half, @y, @z - @half, @x + @half, @y + @tall, @z + @half)
   end
 
   def draw(mesh)

@@ -110,28 +110,7 @@ class Player
     landed
   end
 
-  def blocked?(world)
-    x0 = (@x - HALF).floor
-    x1 = (@x + HALF).floor
-    y0 = @y.floor
-    y1 = (@y + TALL).floor
-    z0 = (@z - HALF).floor
-    z1 = (@z + HALF).floor
-    x = x0
-    while x <= x1
-      y = y0
-      while y <= y1
-        z = z0
-        while z <= z1
-          return true if Block.solid?(world.get(x, y, z))
-          z += 1
-        end
-        y += 1
-      end
-      x += 1
-    end
-    false
-  end
+  def blocked?(world) = world.solid_in_box?(@x, @y, @z, HALF, TALL)
 
   def move(world, dx, dy, dz)
     # Inside a block (placed on us, or spawned in one): climb out instead of sliding.
@@ -199,42 +178,11 @@ class Player
   end
 
   # True when the ray from o along d meets the box of b (Block.box_half and
-  # box_top) in the cell ix, iy, iz within reach. This is the slab test.
+  # box_top) in the cell ix, iy, iz within reach.
   def hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b)
     h = Block.box_half(b)
-    near = 0.0
-    far = REACH
-    lo = ix + 0.5 - h
-    hi = ix + 0.5 + h
-    if dx == 0.0
-      return false if ox < lo || ox > hi
-    else
-      t0 = (lo - ox) / dx
-      t1 = (hi - ox) / dx
-      near = t0 < t1 ? (t0 > near ? t0 : near) : (t1 > near ? t1 : near)
-      far = t0 < t1 ? (t1 < far ? t1 : far) : (t0 < far ? t0 : far)
-    end
-    lo = iy.to_f
-    hi = iy + Block.box_top(b)
-    if dy == 0.0
-      return false if oy < lo || oy > hi
-    else
-      t0 = (lo - oy) / dy
-      t1 = (hi - oy) / dy
-      near = t0 < t1 ? (t0 > near ? t0 : near) : (t1 > near ? t1 : near)
-      far = t0 < t1 ? (t1 < far ? t1 : far) : (t0 < far ? t0 : far)
-    end
-    lo = iz + 0.5 - h
-    hi = iz + 0.5 + h
-    if dz == 0.0
-      return false if oz < lo || oz > hi
-    else
-      t0 = (lo - oz) / dz
-      t1 = (hi - oz) / dz
-      near = t0 < t1 ? (t0 > near ? t0 : near) : (t1 > near ? t1 : near)
-      far = t0 < t1 ? (t1 < far ? t1 : far) : (t0 < far ? t0 : far)
-    end
-    near <= far
+    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, ix + 0.5 - h, iy.to_f, iz + 0.5 - h, ix + 0.5 + h, iy + Block.box_top(b), iz + 0.5 + h)
+    t >= 0.0 && t <= REACH
   end
 
   # Voxel walk along the view ray. Sets hit, the hit cell, and the empty

@@ -139,6 +139,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/mesher.rb` | Chunk meshing: one packed record for each visible face |
 | `game/lod.rb` | Far terrain: coarse tiles past the full-detail chunks |
 | `game/player.rb` | Player physics and the block raycast |
+| `game/ray.rb` | The test of a ray against a box |
 | `game/vitals.rb` | Health, hunger, air and fire in survival |
 | `game/slots.rb` | A row of item slots: the inventory or a chest |
 | `game/camera.rb` | The camera matrix, the frustum, and screen projection |
