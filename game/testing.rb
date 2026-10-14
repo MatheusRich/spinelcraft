@@ -58,8 +58,11 @@ class Game
     set_block(bx, y + 1, bz - 2, Block::DOOR_OPEN)
     set_block(bx, y + 2, bz - 2, Block::DOOR_OPEN)
     set_block(bx + 2, y + 1, bz - 2, Block::FURNACE)
-    set_block(bx + 3, y + 1, bz - 2, Block::SAPLING)
     set_block(bx + 4, y + 1, bz - 2, Block::CRAFTING_TABLE)
+    set_block(bx + 5, y + 1, bz - 2, Block::SAPLING)
+    # Wall torches on the front of the furnace and on the side of the table.
+    set_block(bx + 2, y + 1, bz - 1, Block::WALL_TORCH + 3)
+    set_block(bx + 3, y + 1, bz - 2, Block::WALL_TORCH)
     set_block(bx + 1, y + 1, bz - 2, Block::LADDER)
     set_block(bx + 1, y + 2, bz - 2, Block::LADDER)
     [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |b, i|
@@ -235,6 +238,15 @@ class Game
     set_block(x, ground, z, Block::AIR)
     check("breaking the block under a torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
     set_block(x, ground, z, Block::DIRT)
+    # A wall torch on the -x side of a stone.
+    set_block(x + 1, ground + 1, z, Block::STONE)
+    set_block(x, ground + 1, z, Block::WALL_TORCH)
+    check("wall torch is listed", torches.size == lights + 3)
+    set_block(x, ground, z, Block::AIR)
+    check("breaking the block under a wall torch keeps it", @world.get(x, ground + 1, z) == Block::WALL_TORCH)
+    set_block(x, ground, z, Block::DIRT)
+    set_block(x + 1, ground + 1, z, Block::AIR)
+    check("breaking the block that holds a wall torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
     # A torch sealed in a stone box lights nothing outside the box.
     dx = -1
     while dx <= 1

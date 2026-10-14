@@ -164,6 +164,8 @@ class Mesher
             sky = y >= height[lx * WZ + lz] ? 1 : 0
             w1 = top_tex[id] | (255 << 8) | (sky << 17)
             w1 |= torch_light(x, y, z) << 19 if lit
+            # Bits 25-27 hold 1 + the wall direction of a wall torch.
+            w1 |= (id - Block::WALL_TORCH + 1) << 25 if Block.wall_torch?(id)
             plants = @lists[6]
             f = 6
             while f < 10

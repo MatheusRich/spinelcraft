@@ -167,7 +167,8 @@ class Mesh3
   end
 
   # Dark edges around the box of a block in the cell x, y, z: half wide
-  # around the center, and top high.
+  # around the center, and top high. A box that is not in the middle of its
+  # cell (see Block.box_dx) moves x, y and z.
   def outline(x, y, z, half, top)
     t = 0.012
     e = 0.004

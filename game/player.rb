@@ -182,7 +182,10 @@ class Player
   # box_top) in the cell ix, iy, iz within reach.
   def hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b)
     h = Block.box_half(b)
-    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, ix + 0.5 - h, iy.to_f, iz + 0.5 - h, ix + 0.5 + h, iy + Block.box_top(b), iz + 0.5 + h)
+    x = ix + 0.5 + Block.box_dx(b)
+    y = iy + Block.box_dy(b)
+    z = iz + 0.5 + Block.box_dz(b)
+    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, x - h, y, z - h, x + h, y + Block.box_top(b), z + h)
     t >= 0.0 && t <= REACH
   end
 

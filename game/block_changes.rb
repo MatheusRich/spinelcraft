@@ -22,7 +22,18 @@ class Game
     end
     @world.set(x, y, z, b)
     mark_dirty(x, z)
-    set_block(x, y + 1, z, Block::AIR) if b == Block::AIR && Block.plant?(@world.get(x, y + 1, z))
+    if b == Block::AIR
+      above = @world.get(x, y + 1, z)
+      set_block(x, y + 1, z, Block::AIR) if Block.plant?(above) && !Block.wall_torch?(above)
+      # A wall torch falls with the block that holds it.
+      d = 0
+      while d < 4
+        tx = x - Block::WALL_DX[d]
+        tz = z - Block::WALL_DZ[d]
+        set_block(tx, y, tz, Block::AIR) if @world.get(tx, y, tz) == Block::WALL_TORCH + d
+        d += 1
+      end
+    end
     settle_column(x, z)
     wake_water(x, y, z)
   end

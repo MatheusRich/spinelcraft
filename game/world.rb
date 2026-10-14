@@ -355,7 +355,7 @@ class World
         y = 0
         while y < top
           b = block(base + y)
-          add_torch(x, y, z) if b == Block::TORCH || (b == Block::LAVA && exposed?(base + y))
+          add_torch(x, y, z) if Block.torch?(b) || (b == Block::LAVA && exposed?(base + y))
           y += 1
         end
         z += 1

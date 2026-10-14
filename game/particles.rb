@@ -138,10 +138,24 @@ class Particles
       by = sy + (@rng.rand01 * span).to_i
       bz = sz + (@rng.rand01 * span).to_i
       b = world.get(bx, by, bz)
-      if b == Block::TORCH
-        add(Particle::FLAME, bx + 0.5, by + 0.75, bz + 0.5, 0.0, 0.25, 0.0, 0.3 + @rng.rand01 * 0.2, Tex::FIRE)
+      if Block.torch?(b)
+        # The flame is at height 0.75 of the torch, and the smoke starts at 0.9.
+        fx = bx + 0.5
+        fy = by.to_f
+        fz = bz + 0.5
+        sx = fx
+        sz = fz
+        if Block.wall_torch?(b)
+          w = b - Block::WALL_TORCH
+          fx += Block::WALL_DX[w] * Block.wall_lean(0.75)
+          fz += Block::WALL_DZ[w] * Block.wall_lean(0.75)
+          sx += Block::WALL_DX[w] * Block.wall_lean(0.9)
+          sz += Block::WALL_DZ[w] * Block.wall_lean(0.9)
+          fy += Block::WALL_LIFT
+        end
+        add(Particle::FLAME, fx, fy + 0.75, fz, 0.0, 0.25, 0.0, 0.3 + @rng.rand01 * 0.2, Tex::FIRE)
         if @rng.rand01 < 0.5
-          add(Particle::SMOKE, bx + 0.5, by + 0.9, bz + 0.5, (@rng.rand01 - 0.5) * 0.1, 0.5, (@rng.rand01 - 0.5) * 0.1, 0.8 + @rng.rand01 * 0.6, Tex::PUFF)
+          add(Particle::SMOKE, sx, fy + 0.9, sz, (@rng.rand01 - 0.5) * 0.1, 0.5, (@rng.rand01 - 0.5) * 0.1, 0.8 + @rng.rand01 * 0.6, Tex::PUFF)
         end
       elsif b == Block::LAVA && @rng.rand01 < 0.05 && world.get(bx, by + 1, bz) == Block::AIR
         add(Particle::EMBER, bx + @rng.rand01, by + 1.0, bz + @rng.rand01, (@rng.rand01 - 0.5) * 2.0, 3.0 + @rng.rand01 * 2.0, (@rng.rand01 - 0.5) * 2.0, 1.2, Tex::WHITE)

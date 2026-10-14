@@ -43,6 +43,7 @@ class Game
     @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3)
     if Gfx.in_button_pressed(2) && @player.hit && !@survival
       picked = @world.get(@player.hx, @player.hy, @player.hz)
+      picked = Block::TORCH if Block.wall_torch?(picked)
       @hotbar[@slot] = picked if picked != Block::BEDROCK
       say(Block::NAMES[@hotbar[@slot]])
     end
@@ -411,8 +412,19 @@ class Game
       z = @player.hz
     end
     return unless @world.inside?(x, y, z)
+    # A torch on the side of a block hangs on that block.
+    if b == Block::TORCH && y == @player.hy && (x != @player.hx || z != @player.hz)
+      b = Block::WALL_TORCH + (@player.hx > x ? 0 : (@player.hx < x ? 1 : (@player.hz > z ? 2 : 3)))
+    end
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
-    return if Block.plant?(b) && (!Block.solid?(@world.get(x, y - 1, z)) || Block.water?(@world.get(x, y, z)))
+    if Block.plant?(b)
+      held = if Block.wall_torch?(b)
+        @world.get(x + Block::WALL_DX[b - Block::WALL_TORCH], y, z + Block::WALL_DZ[b - Block::WALL_TORCH])
+      else
+        @world.get(x, y - 1, z)
+      end
+      return if !Block.solid?(held) || Block.water?(@world.get(x, y, z))
+    end
     return if Block.solid?(b) && mob_in?(x, y, z, b == Block::DOOR ? 2 : 1)
     current = @world.get(x, y, z)
     # The view ray can pass a flower, so a block only replaces tall grass.
