@@ -108,7 +108,8 @@ module Block
   PLANT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1]
   # The hardness of each block, as in Minecraft; negative never breaks.
-  # Game#mine turns it into seconds.
+  # Game#mine turns it into seconds. minecraft.wiki/w/Breaking, and
+  # /w/Leaves, /w/Snow_Block and /w/Bed for those blocks.
   HARDNESS = [0.0, 0.6, 0.5, 1.5, 0.5, -1.0, 2.0, 0.2, 2.0, 2.0, 0.3, 0.6, -1.0, 2.0, 3.0, 3.0, 0.6, 3.0, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.8, 0.2, 2.5, 3.0, 3.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 3.5, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, 2.5, 0.4, -1.0, -1.0, -1.0, 0.2, 0.0, 0.0, 0.0, 0.0]
   # What breaking the block gives in survival.
   DROPS = [0, DIRT, DIRT, COBBLE, SAND, 0, LOG, 0, PLANKS, COBBLE, 0, DIRT, 0, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS, SNOW, 0, ROSE, DANDELION, TORCH, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, WOOL, BED, CHEST, DOOR, DOOR, SAPLING, 0, 0, 0, 0, 0, 0, FURNACE, 0, 0, 0, 0, 0, 0, 0, 0, 0, SEEDS, SEEDS, SEEDS, WHEAT, 0, 0, CRAFTING_TABLE, LADDER, 0, 0, 0, BED, TORCH, TORCH, TORCH, TORCH]
@@ -147,6 +148,7 @@ module Block
   def self.box_dz(b) = wall_torch?(b) ? WALL_DZ[b - WALL_TORCH] * wall_lean(0.3) : 0.0
   def self.box_dy(b) = wall_torch?(b) ? WALL_LIFT : 0.0
   # Hunger points that eating b gives back; 0 for what is not food.
+  # minecraft.wiki/w/Apple, /w/Bread, /w/Raw_Porkchop, /w/Food
   def self.food(b) = b == COOKED_PORKCHOP ? 8 : (b == BREAD ? 5 : (b == APPLE ? 4 : (b == PORKCHOP ? 3 : 0)))
   # Saturation points that eating b gives back.
   def self.saturation(b) = b == COOKED_PORKCHOP ? 12.8 : (b == BREAD ? 6.0 : (b == APPLE ? 2.4 : (b == PORKCHOP ? 1.8 : 0.0)))
@@ -156,7 +158,8 @@ module Block
   # The damage of a hit with b, as in Minecraft 1.8, which has no attack
   # cooldown: a hand does 1, and a wooden tool does 1 more than the hand
   # with a shovel, 2 with a pickaxe, 3 with an axe and 4 with a sword. Each
-  # tier above wood adds 1.
+  # tier above wood adds 1. NOT CONFIRMED on the wiki: minecraft.wiki/w/Melee_attack
+  # gives only the values after 1.9, which has an attack cooldown.
   def self.damage(b)
     return 5 + b - WOOD_SWORD if sword?(b)
     tool_kind(b) > 0 ? TOOL_DAMAGE[tool_kind(b)] + tool_tier(b) - 1 : 1
@@ -165,13 +168,14 @@ module Block
   TOOL_DAMAGE = [1, 3, 4, 2]
   # The uses that one hit (attack true) or one broken block takes from b:
   # a sword is for hits and a digging tool for blocks, and each loses 2 for
-  # the other job.
+  # the other job. minecraft.wiki/w/Item_durability
   def self.wear(b, attack)
     return attack ? 1 : 2 if sword?(b)
     return attack ? 2 : 1 if tool_kind(b) > 0
     0
   end
-  # Uses before a wooden, stone, iron or diamond tool breaks.
+  # Uses before a wooden, stone, iron or diamond tool breaks, and a bow.
+  # minecraft.wiki/w/Item_durability
   TOOL_USES = [59, 131, 250, 1561]
   # The uses of a new tool b; 0 for what is not a tool. A tool never
   # stacks: the count of its stack is the uses that it has left.

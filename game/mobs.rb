@@ -5,22 +5,26 @@ class Mob
   SKELETON = 2
   SHEEP = 3
   CREEPER = 4
+  # Seconds of a creeper's fuse. minecraft.wiki/w/Creeper
   FUSE = 1.5
   # A creeper lights its fuse when the player is this near, and the fuse
   # burns until the player is this far, as in Minecraft.
+  # minecraft.wiki/w/Creeper
   LIGHT_REACH = 3.0
   FUSE_REACH = 7.0
   # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper.
   # MOB_SOUND in game/combat.rb has the sounds.
+  # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep and /w/Creeper
   HP = [10, 20, 20, 8, 20]
   HALF = [0.45, 0.3, 0.3, 0.45, 0.3]
   TALL = [0.95, 1.9, 1.9, 1.2, 1.7]
   # Passive mobs wander, never attack, and do not count as monsters.
   PASSIVE = [1, 0, 0, 1, 0]
   # After a hit, the mob takes for this many seconds only the part of a new
-  # hit that is above the last one, as in Minecraft.
+  # hit that is above the last one, as in Minecraft. minecraft.wiki/w/Damage
   IMMUNE = 0.5
-  # Seconds of fire from the sun, and from lava.
+  # Seconds of fire from the sun, and from lava. minecraft.wiki/w/Fire and
+  # /w/Lava
   SUN_FIRE = 8.0
   LAVA_FIRE = 15.0
 
@@ -131,7 +135,8 @@ class Mob
           face(dx, dz)
           speed = dist > 12.0 ? 2.0 : (dist < 7.0 ? -1.6 : 0.0)
           if @attack_wait <= 0.0 && dist < 18.0 && sees?(world, player)
-            @attack_wait = 2.2 + @rng.rand01
+            # About one shot each 3 seconds. minecraft.wiki/w/Skeleton
+            @attack_wait = 3.0
             @shoot = true
           end
         end
@@ -156,6 +161,7 @@ class Mob
         end
         if dist < 1.4 && (player.y - @y).abs < 1.8 && @attack_wait <= 0.0
           @attack_wait = 1.0
+          # minecraft.wiki/w/Zombie
           damage = 3
         end
       end
@@ -171,7 +177,7 @@ class Mob
     in_water = Block.water?(feet) || Block.lava?(feet)
     # A mob burns on for a while after the sun or the lava, and water puts
     # the fire out. Fire takes 1 health each second, and lava 4 each half
-    # second (IMMUNE stops the hits in between).
+    # second (IMMUNE stops the hits in between). minecraft.wiki/w/Damage
     @fire = LAVA_FIRE if Block.lava?(feet)
     @fire = 0.0 if Block.water?(feet)
     take(4) if Block.lava?(feet)

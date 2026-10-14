@@ -165,7 +165,7 @@ class Game
 
   # What a mob that the player killed drops, as in Minecraft: a skeleton 0
   # to 2 arrows and now and then its bow, a sheep its wool, and a pig 1 to 3
-  # porkchops.
+  # porkchops. minecraft.wiki/w/Skeleton, /w/Sheep and /w/Pig
   def drop_loot(m)
     if m.kind == Mob::SKELETON
       loot(m, Block::ARROW, (@rng.rand01 * 3.0).to_i)
@@ -193,8 +193,9 @@ class Game
   end
 
   # Draw time (seconds) sets speed and damage; a full draw takes one second.
-  # The damage is as in Minecraft: up to 6 from the power of the draw, and
-  # a full draw is a critical hit that adds 0 to 4.
+  # The damage is as in Minecraft: 1 for a short draw, 5 for a medium draw,
+  # 6 for a draw of 0.9 seconds, and 6 to 11 for a full draw, which is a
+  # critical hit. minecraft.wiki/w/Bow
   def shoot_bow(held)
     pull = held > 1.0 ? 1.0 : held
     return if pull < 0.1
@@ -206,9 +207,8 @@ class Game
       @inv.remove(Block::ARROW, 1)
     end
     speed = 12.0 + pull * 30.0
-    power = (pull * pull + 2.0 * pull) / 3.0
-    damage = (power * 6.0).ceil
-    damage += (@rng.rand01 * (damage / 2 + 2)).to_i if pull >= 1.0
+    damage = pull < 0.2 ? 1 : (pull < 0.9 ? 5 : 6)
+    damage += (@rng.rand01 * 6.0).to_i if pull >= 1.0
     @arrows << Arrow.new(@player.x, @player.eye_y - 0.1, @player.z,
                          @player.fx * speed, @player.fy * speed, @player.fz * speed, 5.0, damage)
     @swing = 0.25
@@ -218,12 +218,14 @@ class Game
 
   # Removes blocks within the radius and hurts what is near, less with distance.
   # In survival, each block that an explosion breaks drops with this chance.
+  # minecraft.wiki/w/Explosion
   BLAST_DROP = 1.0 / 3.0
   # A creeper's blast hurts what is this near, as in Minecraft.
+  # minecraft.wiki/w/Explosion
   BLAST_REACH = 6.0
 
   # The damage of a creeper's blast at dist blocks, as in Minecraft:
-  # 43 at the center, and 1 at the edge.
+  # 43 at the center, and 1 at the edge. minecraft.wiki/w/Explosion
   def blast_damage(dist)
     impact = 1.0 - dist / BLAST_REACH
     ((impact * impact + impact) / 2.0 * 7.0 * BLAST_REACH + 1.0).to_i
@@ -302,7 +304,8 @@ class Game
           a.vanish
         end
       elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)
-        hurt(3)
+        # A skeleton's arrow does 3 to 5. minecraft.wiki/w/Skeleton
+        hurt(3 + (@rng.rand01 * 3.0).to_i)
         if @survival
           len = Math.sqrt(a.vx * a.vx + a.vz * a.vz)
           len = 1.0 if len < 0.001

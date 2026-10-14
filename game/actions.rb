@@ -231,16 +231,17 @@ class Game
 
   # The speed of a wooden, stone, iron and diamond tool on the blocks that
   # it digs fast, as in Minecraft. A hand has speed 1.
+  # minecraft.wiki/w/Breaking
   TOOL_SPEED = [2.0, 4.0, 6.0, 8.0]
   # Seconds before the next block starts to break, after a block that did
-  # not break at once.
-  MINE_DELAY = 0.25
+  # not break at once: 6 ticks. minecraft.wiki/w/Breaking
+  MINE_DELAY = 0.3
 
   # As in Minecraft, a block takes 1.5 seconds for each point of hardness,
   # divided by the speed of the tool. Without the pickaxe tier that the
   # block needs, it takes 5 seconds for each point and drops nothing. It
   # takes 5 times as long with the head under water, and again 5 times as
-  # long off the ground.
+  # long off the ground. minecraft.wiki/w/Breaking
   def mine(dt)
     @mine_delay -= dt
     return if @mine_delay > 0.0

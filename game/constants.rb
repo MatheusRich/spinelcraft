@@ -24,6 +24,7 @@ class Game
   RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
   UNIFORMS = RAIN_UNIFORMS + 4
   # A day and a night last 20 minutes, as in Minecraft.
+  # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0
   MAX_ZOMBIES = 12
   PIGS = 24

@@ -3,7 +3,8 @@ class Player
   HALF = 0.3
   TALL = 1.8
   EYE = 1.62
-  # How far the player reaches blocks, and mobs.
+  # How far the player reaches blocks, and mobs, in survival.
+  # minecraft.wiki/w/Player
   REACH = 4.5
   MOB_REACH = 3.0
 
@@ -64,6 +65,7 @@ class Player
                             world.get(@x.floor, (@y + 1.0).floor, @z.floor) == Block::LADDER)
     @sneaking = down && !@flying && @on_ground
     @jumped = false
+    # Walk and sprint speeds: minecraft.wiki/w/Sprinting
     speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking ? 1.3 : (sprint ? 5.6 : 4.3))
     speed *= 0.55 if @in_water && !@flying
     sy = Math.sin(@yaw)

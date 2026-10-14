@@ -2,17 +2,19 @@
 # values of Minecraft on Normal difficulty. Lava sets the player on fire,
 # air runs out under water, and a full stomach heals.
 #
-# Hunger works as in Minecraft. Actions add exhaustion. Each 4 points of
-# exhaustion take 1 point of saturation, or 1 point of hunger when the
-# saturation is empty. Food gives back hunger and saturation.
+# Hunger works as in Minecraft (minecraft.wiki/w/Hunger). Actions add
+# exhaustion. Each 4 points of exhaustion take 1 point of saturation, or 1
+# point of hunger when the saturation is empty. Food gives back hunger and
+# saturation.
 class Vitals
   MAX_HEALTH = 20
   MAX_HUNGER = 20
-  # Seconds of air under water.
+  # Seconds of air under water. minecraft.wiki/w/Damage (Drowning)
   MAX_AIR = 15.0
-  # Air comes back 4 times as fast as it goes.
-  AIR_REFILL = 4.0
-  # Seconds that lava sets the player on fire for.
+  # Seconds of air that come back each second: 1 of the 10 bubbles each 0.2
+  # seconds. minecraft.wiki/w/Damage (Drowning)
+  AIR_REFILL = MAX_AIR / 10.0 / 0.2
+  # Seconds that lava sets the player on fire for. minecraft.wiki/w/Lava
   LAVA_FIRE = 15.0
   # Exhaustion for one point of saturation or hunger.
   EXHAUSTION_STEP = 4.0
@@ -28,6 +30,7 @@ class Vitals
   # Exhaustion for each point of health that comes back.
   HEAL_COST = 6.0
   # The player cannot sprint with this much hunger or less.
+  # minecraft.wiki/w/Sprinting
   SPRINT_HUNGER = 6
 
   attr_accessor :health, :hunger, :saturation, :exhaustion
@@ -93,6 +96,8 @@ class Vitals
   # parameter, and this one made the others untyped.
   def update_vitals(dt, in_lava, under_water)
     health = @health
+    # Lava does 4 each half second, and fire 1 each second, and drowning 2
+    # each second. minecraft.wiki/w/Damage
     if in_lava
       @lava_tick -= dt
       if @lava_tick <= 0.0
