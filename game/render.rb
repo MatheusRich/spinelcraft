@@ -185,7 +185,8 @@ class Game
     rz = Math.sin(@player.yaw)
     draw_particles(rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
     if @player.hit && @captured && @target_mob < 0
-      @dyn.outline(@player.hx, @player.hy, @player.hz)
+      aimed = @world.get(@player.hx, @player.hy, @player.hz)
+      @dyn.outline(@player.hx, @player.hy, @player.hz, Block.box_half(aimed), Block.box_top(aimed))
       if @mining && @mine_progress > 0.0
         e = 0.003
         x = @mine_x.to_f

@@ -200,16 +200,17 @@ class Mesh3
     end
   end
 
-  # Dark edges around a block cell.
-  def outline(x, y, z)
+  # Dark edges around the box of a block in the cell x, y, z: half wide
+  # around the center, and top high.
+  def outline(x, y, z, half, top)
     t = 0.012
     e = 0.004
-    x0 = x - e
+    x0 = x + 0.5 - half - e
     y0 = y - e
-    z0 = z - e
-    x1 = x + 1.0 + e
-    y1 = y + 1.0 + e
-    z1 = z + 1.0 + e
+    z0 = z + 0.5 - half - e
+    x1 = x + 0.5 + half + e
+    y1 = y + top + e
+    z1 = z + 0.5 + half + e
     i = 0
     while i < 4
       ya = i % 2 == 0 ? y0 : y1

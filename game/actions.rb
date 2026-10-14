@@ -372,7 +372,8 @@ class Game
     return if Block.plant?(b) && (!Block.solid?(@world.get(x, y - 1, z)) || Block.water?(@world.get(x, y, z)))
     return if Block.solid?(b) && mob_in?(x, y, z, b == Block::DOOR ? 2 : 1)
     current = @world.get(x, y, z)
-    return unless current == Block::AIR || Block.water?(current) || Block.plant?(current)
+    # The view ray can pass a flower, so a block only replaces tall grass.
+    return unless current == Block::AIR || Block.water?(current) || current == Block::TALL_GRASS
     if b == Block::DOOR
       return unless door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)

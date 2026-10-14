@@ -198,8 +198,47 @@ class Player
     bx + 1 > @x - HALF && bx < @x + HALF && by + 1 > @y && by < @y + TALL && bz + 1 > @z - HALF && bz < @z + HALF
   end
 
+  # True when the ray from o along d meets the box of b (Block.box_half and
+  # box_top) in the cell ix, iy, iz within reach. This is the slab test.
+  def hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b)
+    h = Block.box_half(b)
+    near = 0.0
+    far = REACH
+    lo = ix + 0.5 - h
+    hi = ix + 0.5 + h
+    if dx == 0.0
+      return false if ox < lo || ox > hi
+    else
+      t0 = (lo - ox) / dx
+      t1 = (hi - ox) / dx
+      near = t0 < t1 ? (t0 > near ? t0 : near) : (t1 > near ? t1 : near)
+      far = t0 < t1 ? (t1 < far ? t1 : far) : (t0 < far ? t0 : far)
+    end
+    lo = iy.to_f
+    hi = iy + Block.box_top(b)
+    if dy == 0.0
+      return false if oy < lo || oy > hi
+    else
+      t0 = (lo - oy) / dy
+      t1 = (hi - oy) / dy
+      near = t0 < t1 ? (t0 > near ? t0 : near) : (t1 > near ? t1 : near)
+      far = t0 < t1 ? (t1 < far ? t1 : far) : (t0 < far ? t0 : far)
+    end
+    lo = iz + 0.5 - h
+    hi = iz + 0.5 + h
+    if dz == 0.0
+      return false if oz < lo || oz > hi
+    else
+      t0 = (lo - oz) / dz
+      t1 = (hi - oz) / dz
+      near = t0 < t1 ? (t0 > near ? t0 : near) : (t1 > near ? t1 : near)
+      far = t0 < t1 ? (t1 < far ? t1 : far) : (t0 < far ? t0 : far)
+    end
+    near <= far
+  end
+
   # Voxel walk along the view ray. Sets hit, the hit cell, and the empty
-  # cell in front of it.
+  # cell in front of it. The ray passes a plant when it misses its box.
   def raycast(world)
     ox = @x
     oy = eye_y
@@ -226,7 +265,7 @@ class Player
     t = 0.0
     while t <= REACH
       b = world.get(ix, iy, iz)
-      if b != Block::AIR && !Block.water?(b) && !Block.lava?(b)
+      if b != Block::AIR && !Block.water?(b) && !Block.lava?(b) && (!Block.plant?(b) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b))
         @hit = true
         @hit_t = t
         @hx = ix

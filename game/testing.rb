@@ -125,6 +125,7 @@ class Game
     test_door_furnace_sapling
     test_door_rules
     test_ladder
+    test_plant_box
     test_buckets
     test_far_items
     bx = @spawn_x.floor
@@ -992,6 +993,30 @@ class Game
     check("a sapling grows into a tree", @world.get(x, y, z) == Block::LOG && @world.get(x, y + 3, z) == Block::LOG)
     check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)
     set_block(x + 4, cy, z, Block::AIR)
+  end
+
+  # The view ray hits a plant only in its small box, and goes on past it.
+  def test_plant_box
+    x = @spawn_x.floor + 30
+    z = @spawn_z.floor - 60
+    g = @world.height_at(x, z) + 2
+    dx = -2
+    while dx <= 2
+      set_block(x + dx, g, z, Block::STONE)
+      set_block(x + dx, g + 1, z, dx == 2 ? Block::STONE : Block::AIR)
+      set_block(x + dx, g + 2, z, Block::AIR)
+      dx += 1
+    end
+    set_block(x, g + 1, z, Block::ROSE)
+    p = Player.new(x - 1.5, g + 1.5 - Player::EYE, z + 0.1)
+    p.yaw = Math::PI / 2.0
+    p.raycast(@world)
+    past = p.hit && p.hx == x + 2
+    p.z = z + 0.5
+    p.raycast(@world)
+    on = p.hit && p.hx == x
+    set_block(x, g + 1, z, Block::AIR)
+    check("the view ray hits a flower only in its small box", past && on)
   end
 
   # An empty bucket takes a water or lava source that the player looks at,

@@ -118,6 +118,10 @@ module Block
     (b >= COOKED_PORKCHOP && b <= DIAMOND_SHOVEL) || b == WHEAT || b == BREAD || bucket?(b)
   def self.bucket?(b) = b >= BUCKET && b <= LAVA_BUCKET
   def self.door?(b) = b == DOOR || b == DOOR_OPEN
+  # The box of a block in its cell: half its width around the center, and
+  # its height. A plant is smaller than its cell, and a torch is thin.
+  def self.box_half(b) = b == TORCH ? 0.1 : (plant?(b) ? 0.3 : 0.5)
+  def self.box_top(b) = b == TORCH ? 0.6 : (plant?(b) ? 0.8 : 1.0)
   # Hunger points that eating b gives back; 0 for what is not food.
   def self.food(b) = b == COOKED_PORKCHOP ? 10 : (b == BREAD ? 8 : (b == PORKCHOP || b == APPLE ? 4 : 0))
   # A crop that has not ripened yet.
