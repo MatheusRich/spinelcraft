@@ -3,10 +3,10 @@ class Game
   # The sound that each mob kind makes now and then, indexed by kind.
   # The sounds of a mob by kind: pig, zombie, skeleton, sheep and creeper.
   # They follow VoxeLibre. MOB_SOUND plays now and then, MOB_HURT after a
-  # hit, and MOB_DEATH when the mob dies. A creeper is silent until its fuse
-  # hisses, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
+  # hit, and MOB_DEATH when the mob dies. A creeper makes no sound now and
+  # then, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
   MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1]
-  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, -1]
+  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT]
   MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH]
 
   # Light in Minecraft: a torch has 14, lava 15, and a cell under the open
@@ -295,11 +295,19 @@ class Game
     end
     @mobs.each do |m|
       if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
-        play(MOB_SOUND[m.kind], near_volume(m.x, m.z, 0.8))
+        play_at(MOB_SOUND[m.kind], m.x, m.y + m.tall * 0.5, m.z, 0.8, SOUND_RANGE)
+      end
+      if m.step
+        # A mob steps with the sound of the block under it, as the player
+        # does. A creeper has no step sound of its own
+        # (minecraft.wiki/w/Creeper), and VoxeLibre has none for the others.
+        m.step = false
+        ground = MATERIAL_STEP[material(@world.get(m.x.floor, (m.y - 0.1).floor, m.z.floor))]
+        play_at(ground, m.x, m.y, m.z, 0.35, SOUND_RANGE)
       end
       if m.hiss
         m.hiss = false
-        play(Sfx::FUSE, near_volume(m.x, m.z, 1.0))
+        play_at(Sfx::FUSE, m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
       end
       if m.shoot
         m.shoot = false
@@ -336,9 +344,9 @@ class Game
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player
       if lived && m.dying?
-        play(MOB_DEATH[m.kind], near_volume(m.x, m.z, 1.0))
-      elsif m.ouch && MOB_HURT[m.kind] >= 0
-        play(MOB_HURT[m.kind], near_volume(m.x, m.z, 1.0))
+        play_at(MOB_DEATH[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
+      elsif m.ouch
+        play_at(MOB_HURT[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
       end
       m.ouch = false
       @particles.smoke(m.x, m.y + m.tall * 0.3, m.z, 12, m.tall * 0.6) if !m.alive && m.dying?
@@ -444,7 +452,7 @@ class Game
       x += 1
     end
     @particles.smoke(cx, cy, cz, 40, 3.0)
-    play(Sfx::EXPLODE, 1.0)
+    play_at(Sfx::EXPLODE, cx, cy, cz, 1.0, EXPLOSION_RANGE)
     pdx = @player.x - cx
     pdy = @player.y + 0.9 - cy
     pdz = @player.z - cz
@@ -477,18 +485,26 @@ class Game
     speed = 22.0
     t = dist / speed
     @arrows << Arrow.new(sx, sy, sz, dx / t, dy / t + 9.0 * t, dz / t, 4.0, 0)
-    play(Sfx::SHOOT, near_volume(sx, sz, 0.9))
+    play_at(Sfx::SHOOT, sx, sy, sz, 0.9, SOUND_RANGE)
   end
 
   def update_arrows(dt)
     @arrows.each do |a|
-      next unless a.fly(@world, dt)
+      unless a.fly(@world, dt)
+        # An arrow makes the same sound when it hits a block as when it
+        # hits a mob. minecraft.wiki/w/Arrow
+        if a.landed
+          a.landed = false
+          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8, SOUND_RANGE)
+        end
+        next
+      end
       if a.damage > 0
         m = @mobs.find { |mob| !mob.dying? && a.in_box?(mob.x, mob.y, mob.z, mob.half, mob.tall) }
         if m
           m.hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
           m.by_player = true
-          play(Sfx::HIT, near_volume(a.x, a.z, 0.8))
+          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8, SOUND_RANGE)
           a.vanish
         end
       elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)

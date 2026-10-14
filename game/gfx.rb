@@ -1034,8 +1034,9 @@ module Gfx
 
     void gfx_screenshot(const char *path) { SDL_strlcpy(shot_path, path, sizeof shot_path); }
 
-    /* Audio: a few voices bound to one device; SDL mixes them. */
-    #define VOICES 8
+    /* Audio: a few stereo voices bound to one device; SDL mixes them. The
+       sounds are mono, and au_play pans each one into the two channels. */
+    #define VOICES 16
     #define SOUNDS 64
     #define AU_RATE 44100
     static SDL_AudioDeviceID audio_dev;
@@ -1046,7 +1047,7 @@ module Gfx
 
     bool au_init(void) {
       if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) return fail("SDL_InitSubSystem(audio)");
-      SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, AU_RATE};
+      SDL_AudioSpec spec = {SDL_AUDIO_F32, 2, AU_RATE};
       audio_dev = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
       if (!audio_dev) return fail("SDL_OpenAudioDevice");
       for (int i = 0; i < VOICES; i++) {
@@ -1107,14 +1108,28 @@ module Gfx
 
     double au_seconds(long id) { return id < 0 || id >= SOUNDS ? 0.0 : sound_len[id] / (double)AU_RATE; }
 
-    void au_play(long id, double volume) {
+    /* Plays sound id. Pan goes from -1.0 (left) to 1.0 (right). The near
+       ear stays at full volume, and the far ear drops by up to FAR_EAR. */
+    #define FAR_EAR 0.7f
+    void au_play(long id, double volume, double pan) {
       if (!audio_dev || id < 0 || id >= SOUNDS || !sound_data[id] || volume <= 0.01) return;
+      int n = sound_len[id];
+      float *lr = SDL_malloc(n * 2 * sizeof(float));
+      if (!lr) return;
+      float p = SDL_clamp((float)pan, -1.0f, 1.0f);
+      float l = p > 0.0f ? 1.0f - FAR_EAR * p : 1.0f;
+      float r = p < 0.0f ? 1.0f + FAR_EAR * p : 1.0f;
+      for (int i = 0; i < n; i++) {
+        lr[i * 2] = sound_data[id][i] * l;
+        lr[i * 2 + 1] = sound_data[id][i] * r;
+      }
       SDL_AudioStream *v = NULL;
       for (int i = 0; i < VOICES; i++)
         if (SDL_GetAudioStreamQueued(voice[i]) == 0) { v = voice[i]; break; }
       if (!v) { v = voice[next_voice]; next_voice = (next_voice + 1) % VOICES; SDL_ClearAudioStream(v); }
       SDL_SetAudioStreamGain(v, (float)volume);
-      SDL_PutAudioStreamData(v, sound_data[id], sound_len[id] * (int)sizeof(float));
+      SDL_PutAudioStreamData(v, lr, n * 2 * (int)sizeof(float));
+      SDL_free(lr);
     }
 
     long gfx_width(void) { return swap_w; }
@@ -1185,7 +1200,7 @@ module Gfx
   ffi_func :au_init, [], :bool
   ffi_func :au_load_ogg, [:long, :str, :double], :long
   ffi_func :au_seconds, [:long], :double
-  ffi_func :au_play, [:long, :double], :void
+  ffi_func :au_play, [:long, :double, :double], :void
   ffi_func :gfx_width, [], :long
   ffi_func :gfx_height, [], :long
   ffi_func :gfx_ns, [], :long

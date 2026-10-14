@@ -7,9 +7,17 @@ class Player
   # minecraft.wiki/w/Player
   REACH = 4.5
   MOB_REACH = 3.0
+  # A step sound plays each time the player or a mob walks this far.
+  STEP = 2.1
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water, :fall_start, :sneaking
   attr_reader :hit, :hx, :hy, :hz, :px, :py, :pz, :hit_t
+  # True when the feet are in lava. in_water is true then too, because the
+  # player moves the same way in both.
+  attr_reader :in_lava
+  # True while the player eats. The player then moves at sneaking speed and
+  # cannot sprint.
+  attr_accessor :slowed
   # True when the last step started a jump.
   attr_reader :jumped
 
@@ -26,6 +34,8 @@ class Player
     @sneaking = false
     @on_ground = false
     @in_water = false
+    @in_lava = false
+    @slowed = false
     # True when the last step ran into a wall in x or z.
     @against_wall = false
     @jumped = false
@@ -59,14 +69,17 @@ class Player
   # distance when it lands (0.0 otherwise).
   def update(world, dt, fwd, strafe, jump, down, sprint)
     feet = world.get(@x.floor, (@y + 0.4).floor, @z.floor)
-    @in_water = Block.water?(feet) || Block.lava?(feet)
+    @in_lava = Block.lava?(feet)
+    @in_water = Block.water?(feet) || @in_lava
     # The feet or the body in a ladder cell: the player climbs to the top.
     climbing = !@flying && (Block::BASE[world.get(@x.floor, @y.floor, @z.floor)] == Block::LADDER ||
                             Block::BASE[world.get(@x.floor, (@y + 1.0).floor, @z.floor)] == Block::LADDER)
     @sneaking = down && !@flying && @on_ground
     @jumped = false
-    # Walk and sprint speeds: minecraft.wiki/w/Sprinting
-    speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking ? 1.3 : (sprint ? 5.6 : 4.3))
+    # Walk and sprint speeds: minecraft.wiki/w/Sprinting. The wiki gives
+    # sneaking speed for a player who draws a bow (minecraft.wiki/w/Bow).
+    # It does not give the speed for eating, so eating uses the same.
+    speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking || @slowed ? 1.3 : (sprint ? 5.6 : 4.3))
     speed *= 0.55 if @in_water && !@flying
     sy = Math.sin(@yaw)
     cy = Math.cos(@yaw)

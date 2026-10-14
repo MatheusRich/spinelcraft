@@ -135,6 +135,7 @@ class Game
     test_crafting_limits
     test_inventory_layout
     test_seen_recipes
+    test_recipe_scroll
     test_split_and_quick_move
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
@@ -253,7 +254,8 @@ class Game
           MATERIAL_STEP[material(Block::GRASS)] == Sfx::STEP_GRASS && MATERIAL_STEP[material(Block::STONE)] == Sfx::STEP_HARD &&
           MATERIAL_STEP[material(Block::PLANKS)] == Sfx::STEP_WOOD && MATERIAL_STEP[material(Block::SAND)] == Sfx::STEP_SAND &&
           MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::LEAVES)] == Sfx::DIG_LEAVES &&
-          MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD)
+          MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD &&
+          MATERIAL_STEP[material(Block::WOOL)] == Sfx::CLOTH && MATERIAL_STEP[material(Block::SNOW)] == Sfx::SNOW)
     creeper = Mob.new(Mob::CREEPER, @player.x + 1.5, @player.y, @player.z, 11)
     hisses = 0
     20.times do
@@ -265,7 +267,144 @@ class Game
     pig = Mob.new(Mob::PIG, @player.x, @player.y, @player.z, 5)
     pig.wound(1.0)
     check("a hit makes a mob cry out", pig.ouch)
+    # The zombie walks toward the player on a strip of stone in the sky.
+    px = @player.x.floor
+    zz = @player.z.floor
+    y = WY - 4
+    (0..9).each { |dx| set_block(px + dx, y, zz, Block::STONE) }
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, y + 1.0, zz + 0.5, 3)
+    steps = 0
+    120.times do
+      zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0)
+      steps += 1 if zombie.step
+      zombie.step = false
+    end
+    (0..9).each { |dx| set_block(px + dx, y, zz, Block::AIR) }
+    check("a walking mob makes step sounds", steps >= 1)
+    test_sound_position
+    test_arrow_lands
+    test_block_sounds
+    test_lava_swim
+    test_eat_slowdown
     test_cave_sound
+  end
+
+  # A player who eats walks at sneaking speed.
+  def test_eat_slowdown
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    yaw = @player.yaw
+    flying = @player.flying
+    x = px.floor
+    z = pz.floor
+    y = WY - 4
+    (0..30).each { |d| set_block(x, y, z - d, Block::STONE) }
+    @player.flying = false
+    @player.yaw = 0.0
+    speeds = [false, true].map do |slowed|
+      @player.x = x + 0.5
+      @player.y = y + 1.0
+      @player.z = z + 0.5
+      @player.vx = 0.0
+      @player.vz = 0.0
+      @player.slowed = slowed
+      40.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, true) }
+      Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
+    end
+    (0..30).each { |d| set_block(x, y, z - d, Block::AIR) }
+    @player.slowed = false
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.yaw = yaw
+    @player.flying = flying
+    check("a player who eats walks at sneaking speed, not a sprint", speeds[0] > 5.0 && speeds[1] < 1.5)
+  end
+
+  # The player swims in lava as in water, but only water counts for the
+  # splash and the swim sound.
+  def test_lava_swim
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    flying = @player.flying
+    x = px.floor
+    z = pz.floor
+    y = WY - 4
+    @player.flying = false
+    @player.x = x + 0.5
+    @player.y = y.to_f
+    @player.z = z + 0.5
+    set_block(x, y, z, Block::LAVA)
+    @player.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false)
+    lava = @player.in_water && @player.in_lava
+    set_block(x, y, z, Block::WATER)
+    @player.y = y.to_f
+    @player.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false)
+    water = @player.in_water && !@player.in_lava
+    set_block(x, y, z, Block::AIR)
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.flying = flying
+    check("lava is not water for the swim sounds", lava && water)
+  end
+
+  # Lava under air, flowing water and a lit furnace make sounds, but
+  # covered lava and still water do not.
+  def test_block_sounds
+    x = @player.x.floor
+    z = @player.z.floor
+    y = WY - 4
+    set_block(x, y, z, Block::LAVA)
+    open_lava = block_sound(x, y, z)
+    set_block(x, y + 1, z, Block::STONE)
+    covered_lava = block_sound(x, y, z)
+    set_block(x, y, z, Block::FLOW)
+    flowing = block_sound(x, y, z)
+    set_block(x, y, z, Block::WATER)
+    still = block_sound(x, y, z)
+    set_block(x, y, z, Block.furnace_id(0, true))
+    furnace = block_sound(x, y, z)
+    set_block(x, y, z, Block::AIR)
+    set_block(x, y + 1, z, Block::AIR)
+    check("lava, flowing water and a lit furnace make sounds",
+          AMBIENT[open_lava] == Sfx::LAVA && covered_lava < 0 && AMBIENT[flowing] == Sfx::FLOWING &&
+          still < 0 && AMBIENT[furnace] == Sfx::CRACKLE)
+  end
+
+  # An arrow that sticks in the ground lands once, so its sound plays once.
+  def test_arrow_lands
+    x = @spawn_x.floor + 0.5
+    z = @spawn_z.floor + 0.5
+    arrow = Arrow.new(x, @world.height_at(x.floor, z.floor) + 2.0, z, 0.0, -10.0, 0.0, 5.0, 0)
+    steps = 0
+    steps += 1 while arrow.fly(@world, 1.0 / 60.0) && steps < 120
+    landed = arrow.landed
+    arrow.landed = false
+    arrow.fly(@world, 1.0 / 60.0)
+    check("an arrow lands once when it sticks in a block", landed && !arrow.landed)
+  end
+
+  # A sound to the side pans to that side, a sound far below is quiet,
+  # and an explosion reaches farther. At yaw 0 the player looks toward -z,
+  # so +x is to the right.
+  def test_sound_position
+    yaw = @player.yaw
+    @player.yaw = 0.0
+    x = @player.x
+    y = @player.eye_y
+    z = @player.z
+    right = pan_to(x + 5.0, y, z)
+    left = pan_to(x - 5.0, y, z)
+    above = pan_to(x, y + 5.0, z)
+    ahead = pan_to(x, y, z - 5.0)
+    check("a sound pans toward the side that it comes from", right > 0.99 && left < -0.99 && above.abs < 0.01 && ahead.abs < 0.01)
+    check("a sound far below is quiet", near_volume(x, y - 12.0, z, 1.0, SOUND_RANGE) < 0.3 && near_volume(x, y - 20.0, z, 1.0, SOUND_RANGE) == 0.0)
+    check("an explosion carries farther than other sounds",
+          near_volume(x, y, z - 40.0, 1.0, EXPLOSION_RANGE) > 0.0 && near_volume(x, y, z - 40.0, 1.0, SOUND_RANGE) == 0.0)
+    @player.yaw = yaw
   end
 
   # In a dark pocket deep in the rock, the fear grows and a cave sound
@@ -490,7 +629,7 @@ class Game
     craft_recipe(recipe_for(Block::CRAFTING_TABLE))
     table = @inv.total(Block::CRAFTING_TABLE) == 1
     craft_at_table(recipe_for(Block::WOOD_PICK))
-    check("a crafting table comes from 4 planks, and a pickaxe needs one nearby", by_hand == 0 && table && @inv.total(Block::WOOD_PICK) > 0)
+    check("a crafting table comes from 4 planks, and a pickaxe needs one", by_hand == 0 && table && @inv.total(Block::WOOD_PICK) > 0)
     @inv.clear
     @inv.add(Block::WOOD_PICK)
     set_block(x, ground + 1, z, Block::STONE)
@@ -513,8 +652,14 @@ class Game
     @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
     @vitals.hunger = 5
-    eat
-    check("eating restores hunger", @vitals.hunger == 13 && @inv.count(5) == 1)
+    # Eating takes 1.6 seconds of holding the button, and a release starts
+    # it over.
+    20.times { right_button(0.05, true) }
+    right_button(0.05, false)
+    31.times { right_button(0.05, true) }
+    early = @vitals.hunger == 5 && @inv.count(5) == 2
+    2.times { right_button(0.05, true) }
+    check("holding the button for 1.6 seconds eats the food", early && @vitals.hunger == 13 && @inv.count(5) == 1)
     # A minute of standing still costs no hunger. 400 meters of sprint take
     # 40 exhaustion: the 5 points of saturation, then 5 points of hunger.
     @vitals = Vitals.new
@@ -686,8 +831,15 @@ class Game
     @weather.timer = 77.5
     @seen.fill(0)
     @seen[Block::DIAMOND] = 1
-    @furnace_heat = {}
-    @furnace_heat[77] = 5
+    @furnaces = {}
+    hot = Furnace.new(3, 70, 4)
+    hot.burn = 500
+    hot.burn_total = 1600
+    hot.progress = 37
+    hot.slots.set(Furnace::INPUT, Block::SAND, 2)
+    hot.slots.set(Furnace::FUEL, Block::LOG, 3)
+    @furnaces[World.key(3, 70, 4)] = hot
+    @furnaces[World.key(5, 70, 4)] = Furnace.new(5, 70, 4)
     save
     @world.set(x, ground + 1, z, Block::GLASS)
     @vitals.health = 3
@@ -695,7 +847,7 @@ class Game
     @items.clear
     @weather.set_now(false)
     @seen.fill(0)
-    @furnace_heat = {}
+    @furnaces = {}
     ok = load
     apply_loaded if ok
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
@@ -703,8 +855,11 @@ class Game
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
           @weather.raining? && @weather.rain == 1.0 && @weather.timer == 77.5)
-    check("the save keeps the seen items and the heat in furnaces", @seen[Block::DIAMOND] == 1 && furnace_heat(77) == 5)
-    @furnace_heat = {}
+    loaded = @furnaces[World.key(3, 70, 4)]
+    check("the save keeps the seen items, and the slots and the fire of furnaces",
+          @seen[Block::DIAMOND] == 1 && @furnaces.size == 1 && !loaded.nil? && loaded.x == 3 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&
+          loaded.slots.block(Furnace::INPUT) == Block::SAND && loaded.slots.count(Furnace::INPUT) == 2 && loaded.slots.block(Furnace::FUEL) == Block::LOG && loaded.slots.count(Furnace::FUEL) == 3)
+    @furnaces = {}
     @items.clear
     @weather.set_now(false)
     @vitals.health = 0
@@ -768,8 +923,55 @@ class Game
     note_seen
     @inv.remove(Block::PLANKS, 1)
     note_seen
-    planks = shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))
+    planks = shown_recipes.include?(recipe_for(Block::CRAFTING_TABLE)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))
     check("the recipe list shows only the recipes for seen ingredients", logs && planks)
+    @inv.add(Block::IRON)
+    note_seen
+    hand = shown_recipes.include?(recipe_for(Block::PLANKS)) && !shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
+    x = @player.x.floor + 2
+    y = @player.y.floor
+    z = @player.z.floor
+    old = @world.get(x, y, z)
+    set_block(x, y, z, Block::CRAFTING_TABLE)
+    open_station(x, y, z, AT_TABLE)
+    table = shown_recipes.include?(recipe_for(Block::PLANKS)) && shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
+    toggle_inventory
+    set_block(x, y, z, Block::FURNACE)
+    open_station(x, y, z, AT_FURNACE)
+    furnace = shown_recipes == [recipe_for(Block::IRON_INGOT)]
+    toggle_inventory
+    set_block(x, y, z, old)
+    check("the E screen, a crafting table and a furnace each show their own recipes", hand && table && furnace && @station == BY_HAND)
+    @inv.clear
+  end
+
+  # A crafting table shows more recipes than fit. The list scrolls to its
+  # last row and no further, and it starts at the top each time it opens.
+  def test_recipe_scroll
+    seen = @seen.dup
+    RECIPES.each { |r| @seen[r[0]] = 1 }
+    x = @player.x.floor + 2
+    y = @player.y.floor
+    z = @player.z.floor
+    old = @world.get(x, y, z)
+    set_block(x, y, z, Block::CRAFTING_TABLE)
+    open_station(x, y, z, AT_TABLE)
+    shown = shown_recipes
+    rows = (shown.size + 1) / 2
+    top = recipes_in_view == shown[0, RECIPE_ROWS * 2]
+    scroll_recipes(100)
+    end_view = recipes_in_view
+    bottom = @recipe_top == rows - RECIPE_ROWS && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_top * 2]
+    scroll_recipes(-100)
+    back = @recipe_top == 0
+    scroll_recipes(2)
+    toggle_inventory
+    open_station(x, y, z, AT_TABLE)
+    reset = @recipe_top == 0
+    toggle_inventory
+    set_block(x, y, z, old)
+    @seen = seen
+    check("the recipe list scrolls to its last row, and it opens at the top", rows > RECIPE_ROWS && top && bottom && back && reset)
   end
 
   # The inventory screens fit the frame and leave the hotbar and the health
@@ -799,14 +1001,16 @@ class Game
   # The index of the recipe that makes b.
   def recipe_for(b) = RECIPES.index { |r| r[2] == b }
 
-  # Crafts recipe k with a crafting table next to the player.
+  # Crafts recipe k on a crafting table next to the player.
   def craft_at_table(k)
     x = @player.x.floor + 2
     y = @player.y.floor
     z = @player.z.floor
     old = @world.get(x, y, z)
     set_block(x, y, z, Block::CRAFTING_TABLE)
+    open_station(x, y, z, AT_TABLE)
     craft_recipe(k)
+    toggle_inventory
     set_block(x, y, z, old)
   end
 
@@ -1256,8 +1460,8 @@ class Game
     @items.clear
   end
 
-  # A door opens and closes as a whole and goes as a whole. Smelting needs a
-  # furnace near the player. A sapling grows into a tree.
+  # A door opens and closes as a whole and goes as a whole. Smelting needs
+  # the screen of a furnace. A sapling grows into a tree.
   def test_door_furnace_sapling
     x = @spawn_x.floor + 50
     z = @spawn_z.floor + 50
@@ -1281,35 +1485,83 @@ class Game
     smelt = recipe_for(Block::IRON_INGOT)
     craft_recipe(smelt)
     far = @inv.total(Block::IRON) == 9
-    check("smelting needs a furnace nearby", far)
+    check("smelting needs a furnace", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
-    furnace = World.key(x + 2, y, z + 3)
-    # A click smelts one item, and the weakest fuel (a plank) covers it.
-    craft_recipe(smelt)
-    one = @inv.total(Block::IRON) == 8 && @inv.total(Block::IRON_INGOT) == 1 && @inv.total(Block::PLANKS) == 1 && @inv.total(Block::COAL) == 1 && furnace_heat(furnace) == 0
-    dark = @world.get(x + 2, y, z + 3) == Block::FURNACE
-    # A Shift-click smelts all 8 others, and the coal covers them.
-    craft_recipe(smelt, CRAFT_ALL)
-    all = @inv.total(Block::IRON) == 0 && @inv.total(Block::IRON_INGOT) == 9 && @inv.total(Block::COAL) == 0
-    # Coal for one item leaves 7 smelts of heat in the furnace.
-    @inv.add(Block::IRON)
-    @inv.add(Block::COAL)
-    @inv.remove(Block::PLANKS, 1)
-    craft_recipe(smelt)
-    kept = @inv.total(Block::COAL) == 0 && furnace_heat(furnace) == 7
+    open_station(x + 2, y, z + 3, AT_FURNACE)
+    f = open_furnace
+    slots = f.slots
+    @furnace_clock = 0.0
+    # A Shift-click sends the iron ore to the input and the planks to the
+    # fuel. An item takes 10 seconds.
+    quick_move_slot(0)
+    quick_move_slot(2)
+    update_furnaces(10.0)
+    one = slots.block(Furnace::OUTPUT) == Block::IRON_INGOT && slots.count(Furnace::OUTPUT) == 1 && slots.count(Furnace::INPUT) == 8 &&
+          slots.count(Furnace::FUEL) == 1 && f.burn == 101 && @inv.total(Block::COAL) == 1
     lit = @world.get(x + 2, y, z + 3) == Block.furnace_id(0, true)
-    @inv.add(Block::SAND)
-    craft_recipe(recipe_for(Block::GLASS))
-    used = @inv.total(Block::GLASS) == 1 && furnace_heat(furnace) == 6
-    # A broken furnace loses its heat, and with no fuel nothing smelts.
-    set_block(x + 2, y, z + 3, Block::AIR)
-    set_block(x + 2, y, z + 3, Block::FURNACE)
-    @inv.add(Block::SAND)
-    craft_recipe(recipe_for(Block::GLASS))
-    no_fuel = @inv.total(Block::SAND) == 1 && @inv.total(Block::GLASS) == 1
-    set_block(x + 2, y, z + 3, Block::AIR)
-    check("a furnace keeps the heat of its fuel, and smelting needs fuel", one && all && kept && used && no_fuel)
+    # 2 planks burn for 600 ticks: 3 items.
+    update_furnaces(30.0)
+    two = slots.count(Furnace::OUTPUT) == 3 && slots.count(Furnace::INPUT) == 6 && slots.empty?(Furnace::FUEL) && !f.lit?
+    dark = @world.get(x + 2, y, z + 3) == Block::FURNACE
+    check("a furnace smelts an item in 10 seconds, and 2 planks smelt 3 items", one && two)
     check("a furnace with heat is lit, and a furnace with none is not", dark && lit)
+    # A plank runs out 100 ticks into the second item. Then the progress goes
+    # back 2 ticks for each tick, and new fuel continues from there.
+    @held_block = Block::PLANKS
+    @held_count = 1
+    click_furnace(Furnace::FUEL, true)
+    update_furnaces(15.0)
+    update_furnaces(1.0)
+    cooled = slots.count(Furnace::OUTPUT) == 4 && f.progress == 60 && !f.lit?
+    @held_block = Block::PLANKS
+    @held_count = 1
+    click_furnace(Furnace::FUEL, true)
+    update_furnaces(7.0)
+    resumed = slots.count(Furnace::OUTPUT) == 5 && f.progress == 0
+    check("the progress goes back while a furnace is out, and new fuel continues it", cooled && resumed)
+    # The burning plank burns to its end, but no new fuel burns without
+    # something to smelt or room for the result.
+    slots.move_stack(Furnace::OUTPUT, @inv, 0, INV)
+    slots.move_stack(Furnace::INPUT, @inv, 0, INV)
+    slots.set(Furnace::FUEL, Block::PLANKS, 2)
+    update_furnaces(10.0)
+    no_input = slots.count(Furnace::FUEL) == 2 && !f.lit? && @inv.total(Block::IRON_INGOT) == 5 && @inv.total(Block::IRON) == 4
+    slots.set(Furnace::OUTPUT, Block::IRON_INGOT, Slots::STACK)
+    slots.set(Furnace::INPUT, Block::IRON, 1)
+    update_furnaces(10.0)
+    full = slots.count(Furnace::FUEL) == 2 && slots.count(Furnace::INPUT) == 1 && !f.lit?
+    check("a furnace burns no new fuel without something to smelt or room for the result", no_input && full)
+    # A smelting recipe puts its ingredient into the input slot.
+    slots.set(Furnace::OUTPUT, Block::AIR, 0)
+    slots.set(Furnace::INPUT, Block::AIR, 0)
+    craft_recipe(smelt)
+    first = slots.count(Furnace::INPUT) == 1 && @inv.total(Block::IRON) == 3
+    craft_recipe(smelt, CRAFT_ALL)
+    rest = slots.count(Furnace::INPUT) == 4 && @inv.total(Block::IRON) == 0
+    @inv.add(Block::SAND)
+    craft_recipe(recipe_for(Block::GLASS))
+    other = @inv.total(Block::SAND) == 1 && @message == "THE FURNACE HOLDS IRON ORE"
+    check("a smelting recipe puts its ingredient into the furnace", first && rest && other)
+    @held_block = Block::IRON_INGOT
+    @held_count = 1
+    click_furnace(Furnace::FUEL, true)
+    not_fuel = @held_count == 1 && slots.count(Furnace::FUEL) == 2 && @message == "NOT A FUEL"
+    @held_block = Block::DIRT
+    click_furnace(Furnace::INPUT, true)
+    not_smelted = @held_block == Block::DIRT && slots.block(Furnace::INPUT) == Block::IRON && @message == "THE FURNACE DOES NOT SMELT THAT"
+    click_furnace(Furnace::OUTPUT, true)
+    no_output = @held_block == Block::DIRT && slots.empty?(Furnace::OUTPUT)
+    @held_count = 0
+    @held_block = Block::AIR
+    survival = @survival
+    @survival = true
+    @items.clear
+    set_block(x + 2, y, z + 3, Block::AIR)
+    dropped = ground_count(Block::IRON) == 4 && ground_count(Block::PLANKS) == 2 && @furnaces[World.key(x + 2, y, z + 3)].nil?
+    @items.clear
+    @survival = survival
+    toggle_inventory
+    check("the furnace slots take only what fits them, and a broken furnace drops what it holds", not_fuel && not_smelted && no_output && dropped)
     set_block(x, y, z, Block::SAPLING)
     # The crop stands out of reach of the tree's leaves, on top of its column.
     cy = @world.height_at(x + 4, z)

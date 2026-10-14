@@ -14,7 +14,7 @@ class Game
 
   # The input on the pause screen. Esc goes back to the game. A click on a
   # button acts at once, and a slider follows the mouse while the button is
-  # down.
+  # down. Each button and slider clicks, as in Minecraft.
   def handle_menu(escape)
     if escape
       resume
@@ -26,6 +26,7 @@ class Game
     @menu_drag = -1 unless Gfx.in_button(1)
     if Gfx.in_button_pressed(1)
       i = menu_hover(w, h, s)
+      play(Sfx::CLICK, 0.4) if i >= 0
       if slider?(i)
         @menu_drag = i
       else
@@ -192,7 +193,7 @@ class Game
              "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
              "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  F FLY  G GAME MODE  T TIME  R RAIN  F3 DEBUG  F5 SAVE  F11 FULLSCREEN",
              "SURVIVAL: E TO CRAFT  BY HAND ONLY PLANKS, TORCHES AND A CRAFTING TABLE",
-             "TOOLS NEED A CRAFTING TABLE NEARBY  SMELTING NEEDS A FURNACE AND FUEL  STONE NEEDS A PICKAXE TO DROP"]
+             "RIGHT-CLICK A CRAFTING TABLE FOR TOOLS  PUT FUEL IN A FURNACE TO SMELT  STONE NEEDS A PICKAXE TO DROP"]
     i = 0
     while i < lines.size
       line = lines[i]

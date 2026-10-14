@@ -25,6 +25,7 @@ require_relative "game/save"
 require_relative "game/streaming"
 require_relative "game/block_changes"
 require_relative "game/slots"
+require_relative "game/furnace"
 require_relative "game/inventory"
 require_relative "game/items"
 require_relative "game/hand"
@@ -84,9 +85,18 @@ class Game
     @inv = Slots.new(INV)
     @seen = Array.new(Block::COUNT, 0)
     @recipe_new = Array.new(RECIPES.size, 0)
-    # The smelts left in each furnace, by World.key.
-    @furnace_heat = {}
-    @station_key = 0
+    # The first recipe row in view, and the wheel steps not used yet.
+    @recipe_top = 0
+    @recipe_wheel = 0.0
+    # The furnaces, by World.key, and the time not yet ticked.
+    @furnaces = {}
+    @furnace_clock = 0.0
+    # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE),
+    # and its cell.
+    @station = BY_HAND
+    @station_x = 0
+    @station_y = 0
+    @station_z = 0
     # The cell that fluid_in_view found.
     @fluid_x = 0
     @fluid_y = 0
@@ -143,12 +153,13 @@ class Game
     @fov = 0.6
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
-    @was_in_water = false
+    @was_swimming = false
     @particles = Particles.new(@seed)
     @arrows = []
     @items = []
     @falling = []
     @draw_time = -1.0
+    @eat_time = -1.0
     @vitals = Vitals.new
     @damage_flash = 0.0
     @mining = false
@@ -169,6 +180,7 @@ class Game
     # the fear that the darkness built up.
     @cave_timer = 0.0
     @cave_fear = 0.0
+    @ambient_wait = [0.0, 0.0, 0.0]
     @rng = Rng.new(@seed * 7 + 1)
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
@@ -257,7 +269,7 @@ class Game
     @chests = {}
     @seen.fill(0)
     @recipe_new.fill(0)
-    @furnace_heat = {}
+    @furnaces = {}
     @mobs.clear
     @arrows.clear
     @items.clear
@@ -351,15 +363,32 @@ class Game
   end
 
   def play(id, volume)
-    Gfx.au_play(id, volume * @volume) if @sound
+    Gfx.au_play(id, volume * @volume, 0.0) if @sound
   end
 
-  # Volume for a sound at x, z: fades to silence at 24 blocks.
-  def near_volume(x, z, gain)
+  # Plays a sound that comes from x, y, z and reaches range blocks.
+  def play_at(id, x, y, z, gain, range)
+    Gfx.au_play(id, near_volume(x, y, z, gain, range) * @volume, pan_to(x, y, z)) if @sound
+  end
+
+  # Volume for a sound at x, y, z: fades to silence at range blocks.
+  def near_volume(x, y, z, gain, range)
     dx = x - @player.x
+    dy = y - @player.eye_y
     dz = z - @player.z
-    v = 1.0 - Math.sqrt(dx * dx + dz * dz) / 24.0
+    v = 1.0 - Math.sqrt(dx * dx + dy * dy + dz * dz) / range
     v > 0.0 ? v * gain : 0.0
+  end
+
+  # Pan for a sound at x, y, z: -1.0 is to the left of the player, 1.0 is
+  # to the right, and 0.0 is ahead, behind, above or below.
+  def pan_to(x, y, z)
+    dx = x - @player.x
+    dy = y - @player.eye_y
+    dz = z - @player.z
+    dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+    return 0.0 if dist < 0.001
+    (dx * Math.cos(@player.yaw) + dz * Math.sin(@player.yaw)) / dist
   end
 
   def say(text)
@@ -390,7 +419,7 @@ class Game
       end
       @w_sprint = false unless Gfx.in_key(Key::W)
       sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
-      sprint = false if @survival && !@vitals.can_sprint?
+      sprint = false if (@survival && !@vitals.can_sprint?) || @eat_time >= 0.0
     end
     if @autopilot
       @player.flying = true
@@ -400,6 +429,7 @@ class Game
       sprint = true
       @player.y = 72.0
     end
+    @player.slowed = @eat_time >= 0.0
     remaining = dt
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining
@@ -412,19 +442,23 @@ class Game
       remaining -= step
     end
     @player.raycast(@world)
-    if (@player.on_ground || @player.in_water) && !@player.flying
+    # Water splashes and swishes, but lava makes no sound when the player
+    # enters it or moves in it. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
+    swimming = @player.in_water && !@player.in_lava
+    if (@player.on_ground || swimming) && !@player.in_lava && !@player.flying
       @step_dist += Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * dt
-      if @step_dist > 2.1
+      if @step_dist > Player::STEP
         @step_dist = 0.0
         ground = MATERIAL_STEP[material(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))]
-        play(@player.in_water ? Sfx::STEP_WATER : ground, 0.35)
+        play(swimming ? Sfx::STEP_WATER : ground, 0.35)
       end
     end
-    play(Sfx::SPLASH, 0.6) if @player.in_water && !@was_in_water && !@player.flying
-    @was_in_water = @player.in_water
+    play(Sfx::SPLASH, 0.6) if swimming && !@was_swimming && !@player.flying
+    @was_swimming = swimming
     @particles.update(@world, dt)
     @particles.sample_fire(@world, @player.x, @player.y, @player.z, dt)
     grow_plants(dt)
+    update_furnaces(dt)
     update_items(dt)
     update_falling(dt)
     note_seen if @survival
@@ -448,6 +482,7 @@ class Game
     @attack_time += dt
     update_hand(dt)
     update_cave_sound(dt)
+    update_block_sounds(dt)
     update_survival(dt)
     update_mobs(dt)
     @flow_timer -= dt
@@ -496,6 +531,41 @@ class Game
     return if @cave_fear < 300.0
     @cave_fear = 0.0
     play(Sfx::CAVE + (@rng.rand01 * Sfx::CAVES).to_i, 0.6)
+  end
+
+  # Looks at random blocks near the player, and plays the sound of each one
+  # that makes a sound, at its AMBIENT_RATE. Each sound waits for its last
+  # clip to end, so the long clips do not take all the voices.
+  def update_block_sounds(dt)
+    i = 0
+    while i < AMBIENT.size
+      @ambient_wait[i] -= dt
+      i += 1
+    end
+    r = SOUND_RANGE.to_i
+    span = r * 2 + 1
+    blocks = (span * span * span).to_f
+    sx = @player.x.floor - r
+    sy = @player.y.floor - r
+    sz = @player.z.floor - r
+    (dt * AMBIENT_SAMPLES + @rng.rand01).to_i.times do
+      x = sx + (@rng.rand01 * span).to_i
+      y = sy + (@rng.rand01 * span).to_i
+      z = sz + (@rng.rand01 * span).to_i
+      k = block_sound(x, y, z)
+      next if k < 0 || @ambient_wait[k] > 0.0 || @rng.rand01 >= AMBIENT_RATE[k] * blocks / AMBIENT_SAMPLES
+      @ambient_wait[k] = Gfx.au_seconds(AMBIENT[k])
+      play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k], SOUND_RANGE)
+    end
+  end
+
+  # The index in AMBIENT of the sound that block x, y, z makes, or -1.
+  def block_sound(x, y, z)
+    b = @world.get(x, y, z)
+    return 0 if Block.lava?(b) && @world.get(x, y + 1, z) == Block::AIR
+    return 1 if Block.water?(b) && b != Block::WATER
+    return 2 if Block.furnace_lit?(b)
+    -1
   end
 
   def daylight

@@ -23,6 +23,8 @@ Each file keeps its license.
 | `default_gravel_footstep.1.ogg` | Mito551 | CC BY-SA 3.0 | Minetest Game |
 | `default_break_glass.1.ogg` | cmusounddesign | CC BY 3.0 | <http://www.freesound.org/people/cmusounddesign/sounds/71947/> |
 | `default_dig_snappy.ogg` | blukotek | CC0 1.0 | <https://www.freesound.org/people/blukotek/sounds/251660/> |
+| `mcl_sounds_cloth.1.ogg` | Alecia Shepherd | CC BY-SA 4.0 | <https://opengameart.org/content/snowsong-sound-and-music-pack> |
+| `pedology_snow_soft_footstep.1.ogg` | Unknown author | CC BY-SA 3.0 | VoxeLibre `mcl_sounds` |
 | `default_gravel_dig.1.ogg` | lolamadeus | CC0 1.0 | <https://freesound.org/people/lolamadeus/sounds/179341/> |
 | `default_gravel_dug.1.ogg` | lolamadeus | CC0 1.0 | <https://freesound.org/people/lolamadeus/sounds/179341/> |
 | `default_sand_footstep.1.ogg` | worthahep88 | CC0 1.0 | <https://freesound.org/people/worthahep88/sounds/319224/> |
@@ -71,13 +73,19 @@ Each file keeps its license.
 | `mcl_bows_hit_other.ogg` | JoeDinesSound | CC0 1.0 | <https://freesound.org/people/JoeDinesSound/sounds/534952/> |
 | `watersplash.ogg` | tran5ient | CC0 1.0 | <https://freesound.org/people/tran5ient/sounds/190080/> |
 | `fire_extinguish_flame.1.ogg` | Perttu Ahola (celeron55) | CC BY-SA 3.0 | Minetest Game `fire` mod |
+| `fire_fire.1.ogg` | Dynamicell | CC BY 3.0 | <http://www.freesound.org/people/Dynamicell/sounds/17548/> |
+| `env_sounds_lava.1.ogg` | Halion | CC0 1.0 | <https://freesound.org/people/Halion/sounds/17785/> |
+| `env_sounds_water.1.ogg` | Yuval | CC0 1.0 | <https://freesound.org/people/Yuval/sounds/197023/> |
 | `tnt_explode.ogg` | Jose Ortiz "MindChamber" | CC0 1.0 | VoxeLibre `mcl_tnt` |
+| `tnt_ignite.ogg` | VoxeLibre contributors, from a sound by Ned Bouhalassa | CC0 1.0 | <https://freesound.org/people/Ned%20Bouhalassa/sounds/8320/> |
 | `weather_rain.ogg` | inchadney | CC BY-SA 3.0 | <http://freesound.org/people/inchadney/sounds/58835/> |
 | `item_drop_pickup.ogg` | VoxeLibre contributors (no author listed) | Free license (VoxeLibre `LEGAL.md`) | VoxeLibre `mcl_item_entity` |
+| `mesecons_button_push.ogg` | junggle | CC BY 3.0 | <https://freesound.org/people/junggle/sounds/29301/> |
 
 ## Licenses
 
 - CC0 1.0: <https://creativecommons.org/publicdomain/zero/1.0/>
 - CC BY 3.0: <https://creativecommons.org/licenses/by/3.0/>
 - CC BY-SA 3.0: <https://creativecommons.org/licenses/by-sa/3.0/>
+- CC BY-SA 4.0: <https://creativecommons.org/licenses/by-sa/4.0/>
 - MIT: <https://opensource.org/licenses/MIT>

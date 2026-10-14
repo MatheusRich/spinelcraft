@@ -11,6 +11,7 @@ class Game
       @hand_block = b
       @equip = 1.0
       @attack_time = 0.0
+      @eat_time = -1.0
     end
     @equip -= dt * 5.0 if @equip > 0.0
     # The sway follows the walk speed over about a fifth of a second, so it
@@ -85,6 +86,18 @@ class Game
       pull = @draw_time > 1.0 ? 1.0 : @draw_time
       ox -= pull * 0.15
       oz += pull * 0.12
+    end
+    if @eat_time >= 0.0
+      # The food moves to the mouth in a few frames, and it bobs once with
+      # each bite. As in Minecraft (ItemInHandRenderer.applyEatTransform,
+      # not on the wiki).
+      lift = 1.0 - (1.0 - @eat_time / EAT_TIME) ** 27
+      ox -= lift * 0.36
+      oy += lift * 0.12
+      oz += lift * 0.1
+      yaw += lift * 0.8
+      roll += lift * 0.3
+      oy += (Math.cos(@eat_time / CHEW_EVERY * Math::PI) * 0.04).abs if @eat_time >= CHEW_START
     end
     oy -= @equip * 0.45
     ox += @hand_dx

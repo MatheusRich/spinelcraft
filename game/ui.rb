@@ -96,6 +96,20 @@ class Ui
     vert(dx, dy, u0, v1, l, s, s, s, 1.0)
   end
 
+  # The bottom part (0 to 1) of an icon, as the flame of a furnace that
+  # burns down.
+  def icon_bottom(x, y, size, layer, part)
+    l = layer.to_f
+    top = y + size * (1.0 - part)
+    v0 = 1.0 - part
+    vert(x, top, 0.0, v0, l, 1.0, 1.0, 1.0, 1.0)
+    vert(x + size, top, 1.0, v0, l, 1.0, 1.0, 1.0, 1.0)
+    vert(x + size, y + size, 1.0, 1.0, l, 1.0, 1.0, 1.0, 1.0)
+    vert(x, top, 0.0, v0, l, 1.0, 1.0, 1.0, 1.0)
+    vert(x + size, y + size, 1.0, 1.0, l, 1.0, 1.0, 1.0, 1.0)
+    vert(x, y + size, 0.0, 1.0, l, 1.0, 1.0, 1.0, 1.0)
+  end
+
   def text(x, y, s, scale, r, g, b, a)
     cx = x
     s.each_char do |ch|

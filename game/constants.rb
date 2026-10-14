@@ -43,10 +43,39 @@ class Game
   M_GRAVEL = 5
   M_GLASS = 6
   M_LEAVES = 7
-  MATERIAL_DIG = [Sfx::DIG_STONE, Sfx::DIG_WOOD, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_GRAVEL, Sfx::DIG_STONE, Sfx::DIG_LEAVES]
-  MATERIAL_BREAK = [Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::STEP_SAND, Sfx::BREAK_GRAVEL, Sfx::BREAK_GLASS, Sfx::STEP_GRASS]
-  MATERIAL_STEP = [Sfx::STEP_HARD, Sfx::STEP_WOOD, Sfx::STEP_DIRT, Sfx::STEP_GRASS, Sfx::STEP_SAND, Sfx::STEP_GRAVEL, Sfx::STEP_GLASS, Sfx::STEP_GRASS]
-  MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE]
+  M_CLOTH = 8
+  M_SNOW = 9
+  MATERIAL_DIG = [Sfx::DIG_STONE, Sfx::DIG_WOOD, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_GRAVEL, Sfx::DIG_STONE, Sfx::DIG_LEAVES,
+                  Sfx::CLOTH, Sfx::SNOW]
+  MATERIAL_BREAK = [Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::STEP_SAND, Sfx::BREAK_GRAVEL, Sfx::BREAK_GLASS, Sfx::STEP_GRASS,
+                    Sfx::CLOTH, Sfx::SNOW]
+  MATERIAL_STEP = [Sfx::STEP_HARD, Sfx::STEP_WOOD, Sfx::STEP_DIRT, Sfx::STEP_GRASS, Sfx::STEP_SAND, Sfx::STEP_GRAVEL, Sfx::STEP_GLASS, Sfx::STEP_GRASS,
+                   Sfx::CLOTH, Sfx::SNOW]
+  MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE,
+                    Sfx::CLOTH, Sfx::PLACE]
+  # Eating takes 32 ticks. minecraft.wiki/w/Food
+  EAT_TIME = 1.6
+  # A bite plays each 4 ticks after the first 7 ticks of eating, as in
+  # Minecraft (LivingEntity.shouldTriggerItemUseEffects, not on the wiki).
+  CHEW_START = 0.35
+  CHEW_EVERY = 0.2
+  # A sound from a point fades to silence at this distance, in blocks.
+  # minecraft.wiki/w/Sound
+  SOUND_RANGE = 16.0
+  # The wiki gives 64 blocks for TNT. It does not say if a creeper
+  # explosion carries as far. minecraft.wiki/w/Sound
+  EXPLOSION_RANGE = 64.0
+  # Blocks near the player make these sounds now and then (Game#block_sound):
+  # lava under air, flowing water, and a lit furnace. The wiki says only
+  # that they play at random (minecraft.wiki/w/Lava, minecraft.wiki/w/Water,
+  # minecraft.wiki/w/Furnace). It does not give the rates, so these are a
+  # guess, as sounds for each block in each second.
+  AMBIENT = [Sfx::LAVA, Sfx::FLOWING, Sfx::CRACKLE]
+  AMBIENT_RATE = [1.0 / 150.0, 1.0 / 150.0, 1.0 / 25.0]
+  AMBIENT_VOLUME = [0.4, 0.3, 0.5]
+  # Each second, Game#update_block_sounds looks at this many random blocks
+  # within SOUND_RANGE of the player.
+  AMBIENT_SAMPLES = 3000.0
   # A day and a night last 20 minutes, as in Minecraft.
   # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0
@@ -70,10 +99,8 @@ class Game
   TILE_SLOTS = Lod::TRING * Lod::TRING
 
   # Survival crafting: turns the selected stack into something else.
-  # Each recipe: the ingredient, how many, the result, how many, and 1 when
-  # it needs a furnace near the player.
-  # Where a recipe works: by hand, with a crafting table near, or with a
-  # furnace near.
+  # Where a recipe works: by hand (the E screen), on a crafting table, or in
+  # a furnace (the screen that a right-click on one opens).
   BY_HAND = 0
   AT_TABLE = 1
   AT_FURNACE = 2
@@ -100,7 +127,7 @@ class Game
 
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
-  SAVE_VERSION = "SPINELCRAFT12"
+  SAVE_VERSION = "SPINELCRAFT13"
   # The options of the pause menu (see Game#save_options).
   OPTIONS_PATH = "options.txt"
   # Where a save that does not load goes, so that the next save does not replace it.

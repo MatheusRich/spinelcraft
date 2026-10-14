@@ -4,7 +4,7 @@ class Game
     @changed = true
     old = @world.get(x, y, z)
     drop_chest(x, y, z) if Block::BASE[b] != Block::CHEST && Block::BASE[old] == Block::CHEST
-    @furnace_heat.delete(World.key(x, y, z)) if Block::BASE[old] == Block::FURNACE && Block::BASE[b] != Block::FURNACE
+    drop_furnace(x, y, z) if Block::BASE[old] == Block::FURNACE && Block::BASE[b] != Block::FURNACE
     # A door goes as a whole: removing one half removes the other.
     if Block.door?(old) && !Block.door?(b)
       @world.set(x, y, z, b)
@@ -190,7 +190,7 @@ class Game
       if Block.lava?(b) && touches_water?(x, y, z)
         # Water cools lava into cobblestone.
         set_block(x, y, z, Block::COBBLE)
-        play(Sfx::FIZZ, near_volume(x + 0.5, z + 0.5, 0.6)) unless hiss
+        play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6, SOUND_RANGE) unless hiss
         hiss = true
         next
       end
