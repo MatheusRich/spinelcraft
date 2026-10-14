@@ -49,6 +49,13 @@ class World
   # puts the rivers farther apart.
   RIVER_VALLEY = 0.021
   RIVER_SCALE = 900.0
+  # Rivers fade out over RIVER_FADE of the continent noise and end where it
+  # reaches RIVER_INLAND, so the middle of a continent has no rivers.
+  RIVER_INLAND = 0.1
+  RIVER_FADE = 0.15
+  # The size of the continent noise in blocks: oceans and continents are
+  # a few thousand blocks across.
+  CONTINENT_SCALE = 2000.0
   # The size of the temperature and humidity noise in blocks. A climate
   # zone is a few hundred blocks or more across.
   CLIMATE_SCALE = 1600.0
@@ -444,7 +451,7 @@ class World
     nz = z + SHIFT
     wx = warp_x(nx, nz)
     wz = warp_z(nx, nz)
-    continent = @noise.fbm2(wx / 700.0, wz / 700.0, 3)
+    continent = @noise.fbm2(wx / CONTINENT_SCALE, wz / CONTINENT_SCALE, 4)
     erosion = @noise4.fbm2(wx / 340.0 + 30.0, wz / 340.0, 2)
     rugged = World.smooth((0.06 - erosion) / 0.22)
     inland = World.smooth((continent + 0.1) / 0.2)
@@ -460,10 +467,13 @@ class World
       dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * 3.0
       h += (dome - h) * ocean if dome > h
     end
+    # A river cuts its full valley near the coast. Farther inland the
+    # valley gets shallower, and it ends at RIVER_INLAND.
     river = @noise3.fbm2(wx / RIVER_SCALE + 90.0, wz / RIVER_SCALE, 2).abs
-    if river < RIVER_VALLEY && h > SEA - 3.0
+    fade = World.smooth((RIVER_INLAND - continent) / RIVER_FADE)
+    if fade > 0.0 && river < RIVER_VALLEY && h > SEA - 3.0
       bed = SEA - 3.0 + (h - SEA + 3.0) * World.smooth(river / RIVER_VALLEY)
-      h = bed if bed < h
+      h += (bed - h) * fade if bed < h
     end
     # Above PEAK, heights squeeze toward the top limit and never reach it,
     # so the highest peaks stay pointed instead of flat.
