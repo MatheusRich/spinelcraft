@@ -34,8 +34,14 @@ class World
   LAVA_LEVEL = 9
   # The base height of the land (BASE) at each continent noise value
   # (CONTINENT): deep ocean, ocean, coast, lowland, then highland.
-  CONTINENT = [-0.4, -0.29, -0.19, -0.12, -0.07, 0.06, 0.2, 0.34]
-  BASE = [SEA - 26.0, SEA - 15.0, SEA - 6.0, SEA + 0.0, SEA + 5.0, SEA + 9.0, SEA + 16.0, SEA + 21.0]
+  CONTINENT = [-0.25, -0.17, -0.135, -0.12, -0.07, 0.06, 0.2, 0.34]
+  BASE = [SEA - 17.0, SEA - 14.0, SEA - 4.0, SEA + 0.0, SEA + 5.0, SEA + 9.0, SEA + 16.0, SEA + 21.0]
+  # Islands rise in open ocean where the island noise is above ISLE. ISLE_RISE
+  # is the height of a dome for each step of the noise above ISLE, and
+  # ISLE_SCALE is the size of the noise in blocks.
+  ISLE = 0.12
+  ISLE_RISE = 100.0
+  ISLE_SCALE = 100.0
   # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
   # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
@@ -441,6 +447,13 @@ class World
     ridge = ridge < 0.0 ? 0.0 : ridge
     h = World.spline(CONTINENT, BASE, continent) + hills * (5.0 + 14.0 * rugged) +
         ridge * ridge * 46.0 * rugged * inland
+    # Away from the coast, the island noise lifts domes out of the deep
+    # ocean. Lower domes stay under the water as shoals.
+    ocean = World.smooth((CONTINENT[2] - continent) / (CONTINENT[2] - CONTINENT[1]))
+    if ocean > 0.0
+      dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * 3.0
+      h += (dome - h) * ocean if dome > h
+    end
     river = @noise3.fbm2(wx / 420.0 + 90.0, wz / 420.0, 2).abs
     if river < RIVER_VALLEY && h > SEA - 3.0
       bed = SEA - 3.0 + (h - SEA + 3.0) * World.smooth(river / RIVER_VALLEY)
