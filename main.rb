@@ -144,6 +144,7 @@ class Game
     @mine_z = 0
     @mine_progress = 0.0
     @dig_wait = 0.0
+    @mine_delay = 0.0
     @mobs = []
     @spawn_timer = 0.0
     @rng = Rng.new(@seed * 7 + 1)
@@ -357,6 +358,7 @@ class Game
       end
       @w_sprint = false unless Gfx.in_key(Key::W)
       sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
+      sprint = false if @survival && !@vitals.can_sprint?
     end
     if @autopilot
       @player.flying = true
@@ -371,6 +373,10 @@ class Game
       step = remaining > 0.02 ? 0.02 : remaining
       fell = @player.update(@world, step, fwd, strafe, jump, down, sprint)
       hurt((fell - 3.0).ceil) if fell > 3.5
+      if @survival
+        moved = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * step
+        @vitals.move(moved, sprint && @player.on_ground, @player.in_water, @player.jumped)
+      end
       remaining -= step
     end
     @player.raycast(@world)
@@ -430,7 +436,7 @@ class Game
       @vitals.douse
       play(Sfx::FIZZ, 0.6)
     end
-    felt_hurt if @vitals.update_vitals(dt, in_lava, under_water, Math.sqrt(p.vx * p.vx + p.vz * p.vz))
+    felt_hurt if @vitals.update_vitals(dt, in_lava, under_water)
   end
 
   def daylight

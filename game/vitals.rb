@@ -1,13 +1,36 @@
-# The health, hunger, air and fire of the player in survival. Lava sets
-# the player on fire, air runs out under water, walking uses hunger, and a
-# full stomach heals.
+# The health, hunger, air and fire of the player in survival, with the
+# values of Minecraft on Normal difficulty. Lava sets the player on fire,
+# air runs out under water, and a full stomach heals.
+#
+# Hunger works as in Minecraft. Actions add exhaustion. Each 4 points of
+# exhaustion take 1 point of saturation, or 1 point of hunger when the
+# saturation is empty. Food gives back hunger and saturation.
 class Vitals
   MAX_HEALTH = 20
   MAX_HUNGER = 20
   # Seconds of air under water.
-  MAX_AIR = 10.0
+  MAX_AIR = 15.0
+  # Air comes back 4 times as fast as it goes.
+  AIR_REFILL = 4.0
+  # Seconds that lava sets the player on fire for.
+  LAVA_FIRE = 15.0
+  # Exhaustion for one point of saturation or hunger.
+  EXHAUSTION_STEP = 4.0
+  # Exhaustion for each meter of sprint and of swim, each jump and each
+  # sprint jump, each attack, each hit taken, and each block broken.
+  SPRINT_COST = 0.1
+  SWIM_COST = 0.01
+  JUMP_COST = 0.05
+  SPRINT_JUMP_COST = 0.2
+  ATTACK_COST = 0.1
+  HURT_COST = 0.1
+  MINE_COST = 0.005
+  # Exhaustion for each point of health that comes back.
+  HEAL_COST = 6.0
+  # The player cannot sprint with this much hunger or less.
+  SPRINT_HUNGER = 6
 
-  attr_accessor :health, :hunger
+  attr_accessor :health, :hunger, :saturation, :exhaustion
   # Seconds of air left under water.
   attr_reader :air
   # Seconds that the player keeps burning after lava.
@@ -16,29 +39,46 @@ class Vitals
   def initialize
     @health = MAX_HEALTH
     @hunger = MAX_HUNGER
+    @saturation = 5.0
+    @exhaustion = 0.0
     @air = MAX_AIR
     @fire = 0.0
     # Seconds until the next point of fire damage, and of lava damage.
     @fire_tick = 0.0
     @lava_tick = 0.0
-    @hunger_timer = 0.0
+    # Seconds toward the next heal, or toward the next starve damage.
     @regen = 0.0
-    @since_damage = 0.0
   end
 
   def dead? = @health <= 0
   def burning? = @fire > 0.0
   def hungry? = @hunger < MAX_HUNGER
+  def can_sprint? = @hunger > SPRINT_HUNGER
 
   def hurt(amount)
     return if dead?
     @health -= amount
     @health = 0 if @health < 0
-    @since_damage = 0.0
+    exhaust(HURT_COST)
   end
 
-  def eat(food)
+  def exhaust(amount)
+    @exhaustion += amount
+  end
+
+  # dist meters of movement in one step. A swim costs more than a walk, and
+  # a sprint more than a swim.
+  def move(dist, sprint, swim, jumped)
+    exhaust(dist * SWIM_COST) if swim
+    exhaust(dist * SPRINT_COST) if sprint && !swim
+    exhaust(sprint ? SPRINT_JUMP_COST : JUMP_COST) if jumped
+  end
+
+  # Eating gives food points of hunger and sat points of saturation. The
+  # saturation never goes above the hunger.
+  def eat(food, sat)
     @hunger = [@hunger + food, MAX_HUNGER].min
+    @saturation = [@saturation + sat, @hunger.to_f].min
   end
 
   def douse
@@ -47,12 +87,11 @@ class Vitals
 
   # dt seconds of lava, fire, air, hunger and healing. in_lava is true when
   # the player touches lava, and under_water when the head is in water.
-  # speed is the speed on the ground. Returns true when the player took
-  # damage.
+  # Returns true when the player took damage.
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_vitals(dt, in_lava, under_water, speed)
+  def update_vitals(dt, in_lava, under_water)
     health = @health
     if in_lava
       @lava_tick -= dt
@@ -61,7 +100,7 @@ class Vitals
         hurt(4)
       end
       # Out of the lava, the player burns on for a while.
-      @fire = 4.0
+      @fire = LAVA_FIRE
       @fire_tick = 1.0
     elsif burning?
       @fire -= dt
@@ -78,23 +117,52 @@ class Vitals
         hurt(2)
       end
     else
-      @air = MAX_AIR
+      @air = [@air + dt * AIR_REFILL, MAX_AIR].min
     end
-    @since_damage += dt
-    @hunger_timer += dt * (speed > 5.0 ? 2.5 : 1.0)
-    if @hunger_timer > 25.0
-      @hunger_timer = 0.0
-      @hunger -= 1 if @hunger > 0
-    end
-    @regen += dt
-    if @regen > 4.0
-      @regen = 0.0
-      if @hunger >= 15 && @health < MAX_HEALTH && @since_damage > 5.0
-        @health += 1
-      elsif @hunger == 0 && @health > 1
-        hurt(1)
+    digest
+    update_regen(dt)
+    @health < health
+  end
+
+  # Takes a point of saturation, or of hunger, for each EXHAUSTION_STEP.
+  def digest
+    while @exhaustion >= EXHAUSTION_STEP
+      @exhaustion -= EXHAUSTION_STEP
+      if @saturation > 0.0
+        @saturation = [@saturation - 1.0, 0.0].max
+      elsif @hunger > 0
+        @hunger -= 1
       end
     end
-    @health < health
+  end
+
+  # With full hunger and saturation left, the player heals each half
+  # second. With 18 hunger or more, the player heals each 4 seconds. With
+  # no hunger, the player starves each 4 seconds, down to 1 health.
+  def update_regen(dt)
+    wounded = @health < MAX_HEALTH
+    wait = if wounded && @saturation > 0.0 && @hunger >= MAX_HUNGER
+      0.5
+    elsif wounded && @hunger >= 18
+      4.0
+    elsif @hunger <= 0
+      4.0
+    else
+      0.0
+    end
+    if wait == 0.0
+      @regen = 0.0
+      return
+    end
+    @regen += dt
+    return if @regen < wait
+    @regen = 0.0
+    if @hunger > 0
+      @health += 1
+      exhaust(HEAL_COST)
+    elsif @health > 1
+      # Starving costs no exhaustion.
+      @health -= 1
+    end
   end
 end

@@ -23,7 +23,8 @@ class Game
   CLOUD_UNIFORMS = 28 + 4 * LEVELS
   RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
   UNIFORMS = RAIN_UNIFORMS + 4
-  DAY_SECONDS = 600.0
+  # A day and a night last 20 minutes, as in Minecraft.
+  DAY_SECONDS = 1200.0
   MAX_ZOMBIES = 12
   PIGS = 24
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
@@ -59,8 +60,8 @@ class Game
              [Block::IRON_INGOT, 3, Block::IRON_PICK, 1, AT_TABLE], [Block::DIAMOND, 3, Block::DIAMOND_PICK, 1, AT_TABLE],
              [Block::PLANKS, 2, Block::WOOD_SWORD, 1, AT_TABLE], [Block::COBBLE, 2, Block::STONE_SWORD, 1, AT_TABLE],
              [Block::IRON_INGOT, 2, Block::IRON_SWORD, 1, AT_TABLE], [Block::DIAMOND, 2, Block::DIAMOND_SWORD, 1, AT_TABLE],
-             [Block::PLANKS, 4, Block::WOOD_AXE, 1, AT_TABLE], [Block::COBBLE, 4, Block::STONE_AXE, 1, AT_TABLE],
-             [Block::IRON_INGOT, 4, Block::IRON_AXE, 1, AT_TABLE], [Block::DIAMOND, 4, Block::DIAMOND_AXE, 1, AT_TABLE],
+             [Block::PLANKS, 3, Block::WOOD_AXE, 1, AT_TABLE], [Block::COBBLE, 3, Block::STONE_AXE, 1, AT_TABLE],
+             [Block::IRON_INGOT, 3, Block::IRON_AXE, 1, AT_TABLE], [Block::DIAMOND, 3, Block::DIAMOND_AXE, 1, AT_TABLE],
              [Block::PLANKS, 1, Block::WOOD_SHOVEL, 1, AT_TABLE], [Block::COBBLE, 1, Block::STONE_SHOVEL, 1, AT_TABLE],
              [Block::IRON_INGOT, 1, Block::IRON_SHOVEL, 1, AT_TABLE], [Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, AT_TABLE],
              [Block::STONE, 2, Block::BRICK, 1, AT_TABLE], [Block::WOOL, 3, Block::BED, 1, AT_TABLE],

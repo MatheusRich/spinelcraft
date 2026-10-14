@@ -15,12 +15,12 @@ class Game
     @survival ? @inv.block(@slot) : @hotbar[@slot]
   end
 
-  # Uses up one use of the selected tool. A tool with no uses left breaks.
-  def wear_tool
-    return unless @survival
+  # Uses up n uses of the selected tool. A tool with no uses left breaks.
+  def wear_tool(n)
+    return unless @survival && n > 0
     b = @inv.block(@slot)
     return unless Block.tool?(b) && @inv.count(@slot) > 0
-    @inv.take(@slot, 1)
+    @inv.take(@slot, n < @inv.count(@slot) ? n : @inv.count(@slot))
     return unless @inv.empty?(@slot)
     play(Sfx::BREAK, 0.8)
     say("#{Block::NAMES[b]} BROKE")

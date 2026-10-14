@@ -10,8 +10,8 @@ class Game
   F_SPAWN = 13 # x, z
   F_INV = 15 # INV blocks, then INV counts
   F_HOTBAR = F_INV + INV * 2
-  F_HUNGER = F_HOTBAR + HOTBAR
-  F_WEATHER = F_HUNGER + 1 # raining (1 or 0), seconds to the next change
+  F_HUNGER = F_HOTBAR + HOTBAR # hunger, saturation, exhaustion
+  F_WEATHER = F_HUNGER + 3 # raining (1 or 0), seconds to the next change
   # The chest count, then the key and the contents of each chest. Then the
   # item count and ITEM_FIELDS for each item on the ground. Then the count
   # of seen blocks, and their ids. Then the count of furnaces with heat, and
@@ -47,10 +47,10 @@ class Game
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv.to_a + @hotbar + [@vitals.hunger, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
+    inv = (@inv.to_a + @hotbar + [@vitals.hunger, @vitals.saturation, @vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
-      f.write("SPINELCRAFT8 #{header} #{inv}\n")
+      f.write("SPINELCRAFT9 #{header} #{inv}\n")
       keys.each { |k| f.write(chunks[k]) }
     end
     @changed = false
@@ -67,7 +67,7 @@ class Game
     return false if nl.nil?
     f = data[0, nl].split(" ")
     return false if f.size <= F_CHESTS
-    return false unless f[0] == "SPINELCRAFT8"
+    return false unless f[0] == "SPINELCRAFT9"
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
@@ -131,6 +131,8 @@ class Game
       i += 1
     end
     @vitals.hunger = f[F_HUNGER].to_i
+    @vitals.saturation = f[F_HUNGER + 1].to_f
+    @vitals.exhaustion = f[F_HUNGER + 2].to_f
     @weather.set_now(f[F_WEATHER] == "1")
     @weather.timer = f[F_WEATHER + 1].to_f
     @chests = {}

@@ -163,15 +163,17 @@ class Game
     end
   end
 
-  # What a mob that the player killed drops.
+  # What a mob that the player killed drops, as in Minecraft: a skeleton 0
+  # to 2 arrows and now and then its bow, a sheep its wool, and a pig 1 to 3
+  # porkchops.
   def drop_loot(m)
     if m.kind == Mob::SKELETON
-      loot(m, Block::ARROW, 1 + (@rng.rand01 * 3.0).to_i)
-      loot(m, Block::BOW, 1) if @rng.rand01 < 0.3
+      loot(m, Block::ARROW, (@rng.rand01 * 3.0).to_i)
+      loot(m, Block::BOW, 1) if @rng.rand01 < 0.085
     elsif m.kind == Mob::SHEEP
-      loot(m, Block::WOOL, 2)
+      loot(m, Block::WOOL, 1)
     elsif m.kind == Mob::PIG
-      loot(m, Block::PORKCHOP, 1)
+      loot(m, Block::PORKCHOP, 1 + (@rng.rand01 * 3.0).to_i)
     end
   end
 
@@ -191,6 +193,8 @@ class Game
   end
 
   # Draw time (seconds) sets speed and damage; a full draw takes one second.
+  # The damage is as in Minecraft: up to 6 from the power of the draw, and
+  # a full draw is a critical hit that adds 0 to 4.
   def shoot_bow(held)
     pull = held > 1.0 ? 1.0 : held
     return if pull < 0.1
@@ -202,16 +206,28 @@ class Game
       @inv.remove(Block::ARROW, 1)
     end
     speed = 12.0 + pull * 30.0
+    power = (pull * pull + 2.0 * pull) / 3.0
+    damage = (power * 6.0).ceil
+    damage += (@rng.rand01 * (damage / 2 + 2)).to_i if pull >= 1.0
     @arrows << Arrow.new(@player.x, @player.eye_y - 0.1, @player.z,
-                         @player.fx * speed, @player.fy * speed, @player.fz * speed, 5.0, 2 + (pull * 7.0).to_i)
+                         @player.fx * speed, @player.fy * speed, @player.fz * speed, 5.0, damage)
     @swing = 0.25
     play(Sfx::SHOOT, 0.8)
-    wear_tool
+    wear_tool(1)
   end
 
   # Removes blocks within the radius and hurts what is near, less with distance.
   # In survival, each block that an explosion breaks drops with this chance.
-  BLAST_DROP = 0.3
+  BLAST_DROP = 1.0 / 3.0
+  # A creeper's blast hurts what is this near, as in Minecraft.
+  BLAST_REACH = 6.0
+
+  # The damage of a creeper's blast at dist blocks, as in Minecraft:
+  # 43 at the center, and 1 at the edge.
+  def blast_damage(dist)
+    impact = 1.0 - dist / BLAST_REACH
+    ((impact * impact + impact) / 2.0 * 7.0 * BLAST_REACH + 1.0).to_i
+  end
 
   def explode(cx, cy, cz)
     r = 3
@@ -243,19 +259,19 @@ class Game
     pdy = @player.y + 0.9 - cy
     pdz = @player.z - cz
     dist = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz)
-    if dist < 7.0
-      hurt(((7.0 - dist) * 3.2).to_i)
+    if dist < BLAST_REACH
+      hurt(blast_damage(dist))
       len = dist < 0.1 ? 1.0 : dist
-      @player.vx += pdx / len * (7.0 - dist) * 2.0
-      @player.vz += pdz / len * (7.0 - dist) * 2.0
-      @player.vy += 4.0 + (7.0 - dist)
+      @player.vx += pdx / len * (BLAST_REACH - dist) * 2.0
+      @player.vz += pdz / len * (BLAST_REACH - dist) * 2.0
+      @player.vy += 4.0 + (BLAST_REACH - dist)
     end
     @mobs.each do |m|
       next unless m.alive
       mdx = m.x - cx
       mdz = m.z - cz
       d = Math.sqrt(mdx * mdx + mdz * mdz)
-      m.hit(((7.0 - d) * 3.0).to_i, cx, cz) if d < 7.0
+      m.hit(blast_damage(d), cx, cz) if d < BLAST_REACH
     end
   end
 
@@ -302,8 +318,8 @@ class Game
   def find_target_mob
     @target_mob = -1
     return if @mobs.empty?
-    best = @player.hit ? @player.hit_t : 3.5
-    best = 3.5 if best > 3.5
+    best = @player.hit ? @player.hit_t : Player::MOB_REACH
+    best = Player::MOB_REACH if best > Player::MOB_REACH
     ox = @player.x
     oy = @player.eye_y
     oz = @player.z

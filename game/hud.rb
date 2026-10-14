@@ -82,8 +82,8 @@ class Game
     end
   end
 
-  # Hearts on the left above the hotbar, food on the right, and air bubbles
-  # above the food.
+  # Hearts on the left above the hotbar, food on the right, and up to 10 air
+  # bubbles above the food.
   def draw_survival_bars(x0, y0, total, s)
     hy = y0 - 26.0 * s
     i = 0
@@ -106,7 +106,7 @@ class Game
       i += 1
     end
     if @vitals.air < Vitals::MAX_AIR
-      bubbles = @vitals.air.ceil
+      bubbles = (@vitals.air / Vitals::MAX_AIR * 10.0).ceil
       i = 0
       while i < bubbles
         bx = x0 + total - (i + 1) * 20.0 * s

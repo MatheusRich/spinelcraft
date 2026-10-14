@@ -108,7 +108,8 @@ class Game
       if pressed
         mob = @mobs[@target_mob]
         mob.hit(@survival ? Block.damage(current_block.to_i) : 10, @player.x, @player.z)
-        wear_tool
+        wear_tool(Block.wear(current_block.to_i, true))
+        @vitals.exhaust(Vitals::ATTACK_COST) if @survival
         mob.by_player = true
         play(Sfx::HIT, 0.8)
         @swing = 0.25
@@ -228,7 +229,21 @@ class Game
     end
   end
 
+  # The speed of a wooden, stone, iron and diamond tool on the blocks that
+  # it digs fast, as in Minecraft. A hand has speed 1.
+  TOOL_SPEED = [2.0, 4.0, 6.0, 8.0]
+  # Seconds before the next block starts to break, after a block that did
+  # not break at once.
+  MINE_DELAY = 0.25
+
+  # As in Minecraft, a block takes 1.5 seconds for each point of hardness,
+  # divided by the speed of the tool. Without the pickaxe tier that the
+  # block needs, it takes 5 seconds for each point and drops nothing. It
+  # takes 5 times as long with the head under water, and again 5 times as
+  # long off the ground.
   def mine(dt)
+    @mine_delay -= dt
+    return if @mine_delay > 0.0
     x = @player.hx
     y = @player.hy
     z = @player.hz
@@ -254,16 +269,22 @@ class Game
     # The tier of the tool when it is the kind that digs b fast, else 0.
     tier = Block::DIG_KIND[b] != 0 && Block.tool_kind(tool) == Block::DIG_KIND[b] ? Block.tool_tier(tool) : 0
     need = Block::NEEDS_PICK[b]
-    # The right tool speeds up digging. Without a good enough pickaxe, stone is slow.
-    speed = need > 0 && tier < need ? 0.3 : 1.0 + tier * 1.2
-    @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / hardness
+    speed = tier > 0 ? TOOL_SPEED[tier - 1] : 1.0
+    speed /= 5.0 if Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
+    speed /= 5.0 unless @player.on_ground
+    seconds = hardness * (tier >= need ? 1.5 : 5.0)
+    @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / seconds
     if @mine_progress >= 1.0
       @particles.burst(x, y, z, b)
       play(Sfx::BREAK, 0.7)
       set_block(x, y, z, Block::AIR)
       drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
       drop_extra(b, x, y, z)
-      wear_tool if hardness > 0.0
+      if hardness > 0.0
+        wear_tool(Block.wear(tool, false))
+        @mine_delay = MINE_DELAY
+      end
+      @vitals.exhaust(Vitals::MINE_COST)
       @mining = false
     end
   end
@@ -390,7 +411,7 @@ class Game
   def eat
     food = Block.food(current_block.to_i)
     return unless @survival && !@inv.empty?(@slot) && @vitals.hungry? && food > 0
-    @vitals.eat(food)
+    @vitals.eat(food, Block.saturation(current_block.to_i))
     @inv.take(@slot, 1)
     play(Sfx::PLACE, 0.5)
     say("YUM")

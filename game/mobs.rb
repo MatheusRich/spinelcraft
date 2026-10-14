@@ -6,13 +6,23 @@ class Mob
   SHEEP = 3
   CREEPER = 4
   FUSE = 1.5
+  # A creeper lights its fuse when the player is this near, and the fuse
+  # burns until the player is this far, as in Minecraft.
+  LIGHT_REACH = 3.0
+  FUSE_REACH = 7.0
   # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper.
   # MOB_SOUND in game/combat.rb has the sounds.
-  HP = [10, 20, 16, 10, 20]
+  HP = [10, 20, 20, 8, 20]
   HALF = [0.45, 0.3, 0.3, 0.45, 0.3]
   TALL = [0.95, 1.9, 1.9, 1.2, 1.7]
   # Passive mobs wander, never attack, and do not count as monsters.
   PASSIVE = [1, 0, 0, 1, 0]
+  # After a hit, the mob takes for this many seconds only the part of a new
+  # hit that is above the last one, as in Minecraft.
+  IMMUNE = 0.5
+  # Seconds of fire from the sun, and from lava.
+  SUN_FIRE = 8.0
+  LAVA_FIRE = 15.0
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :shoot, :explode, :by_player
   attr_reader :fuse
@@ -46,6 +56,8 @@ class Mob
     @on_ground = false
     @burn = 0.0
     @fire = 0.0
+    @immune = 0.0
+    @last_damage = 0
   end
 
   def passive? = PASSIVE[@kind] == 1
@@ -96,6 +108,7 @@ class Mob
   # parameter, and this one made the others untyped.
   def update_mob(world, dt, player, day)
     @hurt -= dt
+    @immune -= dt
     @attack_wait -= dt
     speed = 0.0
     damage = 0
@@ -126,9 +139,10 @@ class Mob
         # Walk up to the player, then stand still while the fuse burns.
         if dist < 24.0
           face(dx, dz)
-          speed = dist > 2.2 ? 2.2 : 0.0
+          speed = dist > 2.2 && @fuse == 0.0 ? 2.2 : 0.0
         end
-        if dist < 3.0 && (player.y - @y).abs < 2.5
+        lit = @fuse > 0.0 ? dist < FUSE_REACH : dist < LIGHT_REACH && (player.y - @y).abs < 2.5
+        if lit
           @fuse += dt
           @explode = true if @fuse >= FUSE
         else
@@ -146,7 +160,7 @@ class Mob
         end
       end
       exposed = world.height_at(@x.floor, @z.floor) <= (@y + 1.6).floor
-      @fire = 1.0 if day > 0.65 && exposed && @kind != CREEPER && @fire < 1.0
+      @fire = SUN_FIRE if day > 0.65 && exposed && @kind != CREEPER && @fire < SUN_FIRE
     end
     fx = -Math.sin(@yaw)
     fz = Math.cos(@yaw)
@@ -156,17 +170,20 @@ class Mob
     feet = world.get(@x.floor, (@y + 0.3).floor, @z.floor)
     in_water = Block.water?(feet) || Block.lava?(feet)
     # A mob burns on for a while after the sun or the lava, and water puts
-    # the fire out. Lava burns three times as fast.
-    @fire = 3.0 if Block.lava?(feet)
+    # the fire out. Fire takes 1 health each second, and lava 4 each half
+    # second (IMMUNE stops the hits in between).
+    @fire = LAVA_FIRE if Block.lava?(feet)
     @fire = 0.0 if Block.water?(feet)
+    take(4) if Block.lava?(feet)
     if @fire > 0.0
       @fire -= dt
-      @burn += Block.lava?(feet) ? dt * 3.0 : dt
-      if @burn > 0.8
-        @burn = 0.0
-        @hp -= 4
-        @hurt = 0.3
+      @burn -= dt
+      if @burn <= 0.0
+        @burn = 1.0
+        take(1)
       end
+    else
+      @burn = 0.0
     end
     if in_water
       @vy += (2.0 - @vy) * (4.0 * dt).clamp(0.0, 1.0)
@@ -205,9 +222,23 @@ class Mob
     true
   end
 
-  def hit(damage, from_x, from_z)
-    @hp -= damage
+  # Takes damage, or the part of it above the last hit while the mob is
+  # immune. Returns false when nothing is left to take.
+  def take(damage)
+    if @immune > 0.0
+      return false if damage <= @last_damage
+      @hp -= damage - @last_damage
+    else
+      @hp -= damage
+      @immune = IMMUNE
+    end
+    @last_damage = damage
     @hurt = 0.35
+    true
+  end
+
+  def hit(damage, from_x, from_z)
+    return unless take(damage)
     dx = @x - from_x
     dz = @z - from_z
     len = Math.sqrt(dx * dx + dz * dz)

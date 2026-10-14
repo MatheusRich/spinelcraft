@@ -107,8 +107,9 @@ module Block
   # Drawn as two crossed quads instead of a cube.
   PLANT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1]
-  # Seconds to break by hand in survival; negative never breaks.
-  HARDNESS = [0.0, 0.6, 0.5, 1.6, 0.5, -1.0, 1.2, 0.2, 1.0, 1.8, 0.3, 0.6, -1.0, 2.0, 2.2, 2.6, 0.6, 3.0, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.8, 0.3, 1.0, 1.0, 1.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 2.5, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, 1.0, 0.4, -1.0, -1.0, -1.0, 0.3, 0.0, 0.0, 0.0, 0.0]
+  # The hardness of each block, as in Minecraft; negative never breaks.
+  # Game#mine turns it into seconds.
+  HARDNESS = [0.0, 0.6, 0.5, 1.5, 0.5, -1.0, 2.0, 0.2, 2.0, 2.0, 0.3, 0.6, -1.0, 2.0, 3.0, 3.0, 0.6, 3.0, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.8, 0.2, 2.5, 3.0, 3.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 3.5, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, 2.5, 0.4, -1.0, -1.0, -1.0, 0.2, 0.0, 0.0, 0.0, 0.0]
   # What breaking the block gives in survival.
   DROPS = [0, DIRT, DIRT, COBBLE, SAND, 0, LOG, 0, PLANKS, COBBLE, 0, DIRT, 0, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS, SNOW, 0, ROSE, DANDELION, TORCH, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, WOOL, BED, CHEST, DOOR, DOOR, SAPLING, 0, 0, 0, 0, 0, 0, FURNACE, 0, 0, 0, 0, 0, 0, 0, 0, 0, SEEDS, SEEDS, SEEDS, WHEAT, 0, 0, CRAFTING_TABLE, LADDER, 0, 0, 0, BED, TORCH, TORCH, TORCH, TORCH]
   # Pickaxe tier a block needs to drop anything: 1 wood, 2 stone, 3 iron.
@@ -146,20 +147,38 @@ module Block
   def self.box_dz(b) = wall_torch?(b) ? WALL_DZ[b - WALL_TORCH] * wall_lean(0.3) : 0.0
   def self.box_dy(b) = wall_torch?(b) ? WALL_LIFT : 0.0
   # Hunger points that eating b gives back; 0 for what is not food.
-  def self.food(b) = b == COOKED_PORKCHOP ? 10 : (b == BREAD ? 8 : (b == PORKCHOP || b == APPLE ? 4 : 0))
+  def self.food(b) = b == COOKED_PORKCHOP ? 8 : (b == BREAD ? 5 : (b == APPLE ? 4 : (b == PORKCHOP ? 3 : 0)))
+  # Saturation points that eating b gives back.
+  def self.saturation(b) = b == COOKED_PORKCHOP ? 12.8 : (b == BREAD ? 6.0 : (b == APPLE ? 2.4 : (b == PORKCHOP ? 1.8 : 0.0)))
   # A crop that has not ripened yet.
   def self.growing?(b) = b >= SEEDS && b < WHEAT_RIPE
-  # The damage of a hit with b: a sword hits harder than a hand.
-  def self.damage(b) = b >= WOOD_SWORD && b <= DIAMOND_SWORD ? SWORD_DAMAGE[b - WOOD_SWORD] : 4
-  SWORD_DAMAGE = [6, 7, 9, 11]
+  def self.sword?(b) = b >= WOOD_SWORD && b <= DIAMOND_SWORD
+  # The damage of a hit with b, as in Minecraft 1.8, which has no attack
+  # cooldown: a hand does 1, and a wooden tool does 1 more than the hand
+  # with a shovel, 2 with a pickaxe, 3 with an axe and 4 with a sword. Each
+  # tier above wood adds 1.
+  def self.damage(b)
+    return 5 + b - WOOD_SWORD if sword?(b)
+    tool_kind(b) > 0 ? TOOL_DAMAGE[tool_kind(b)] + tool_tier(b) - 1 : 1
+  end
+  # The damage of a wooden tool by the kind in DIG_KIND.
+  TOOL_DAMAGE = [1, 3, 4, 2]
+  # The uses that one hit (attack true) or one broken block takes from b:
+  # a sword is for hits and a digging tool for blocks, and each loses 2 for
+  # the other job.
+  def self.wear(b, attack)
+    return attack ? 1 : 2 if sword?(b)
+    return attack ? 2 : 1 if tool_kind(b) > 0
+    0
+  end
   # Uses before a wooden, stone, iron or diamond tool breaks.
-  TOOL_USES = [60, 130, 250, 1560]
+  TOOL_USES = [59, 131, 250, 1561]
   # The uses of a new tool b; 0 for what is not a tool. A tool never
   # stacks: the count of its stack is the uses that it has left.
   def self.uses(b)
     return TOOL_USES[tool_tier(b) - 1] if tool_tier(b) > 0
-    return TOOL_USES[b - WOOD_SWORD] if b >= WOOD_SWORD && b <= DIAMOND_SWORD
-    b == BOW ? 380 : 0
+    return TOOL_USES[b - WOOD_SWORD] if sword?(b)
+    b == BOW ? 384 : 0
   end
   # The kind of a digging tool, as in DIG_KIND; 0 for anything else.
   def self.tool_kind(b) = PICK_TIER[b] > 0 ? 1 : (b >= WOOD_AXE && b <= DIAMOND_AXE ? 2 : (b >= WOOD_SHOVEL && b <= DIAMOND_SHOVEL ? 3 : 0))

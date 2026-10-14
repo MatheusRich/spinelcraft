@@ -3,10 +3,14 @@ class Player
   HALF = 0.3
   TALL = 1.8
   EYE = 1.62
-  REACH = 6.0
+  # How far the player reaches blocks, and mobs.
+  REACH = 4.5
+  MOB_REACH = 3.0
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water, :fall_start, :sneaking
   attr_reader :hit, :hx, :hy, :hz, :px, :py, :pz, :hit_t
+  # True when the last step started a jump.
+  attr_reader :jumped
 
   def initialize(x, y, z)
     @x = x
@@ -23,6 +27,7 @@ class Player
     @in_water = false
     # True when the last step ran into a wall in x or z.
     @against_wall = false
+    @jumped = false
     @fall_start = y
     @hit = false
     @hit_t = 0.0
@@ -58,7 +63,8 @@ class Player
     climbing = !@flying && (world.get(@x.floor, @y.floor, @z.floor) == Block::LADDER ||
                             world.get(@x.floor, (@y + 1.0).floor, @z.floor) == Block::LADDER)
     @sneaking = down && !@flying && @on_ground
-    speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking ? 1.3 : (sprint ? 6.8 : 4.3))
+    @jumped = false
+    speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking ? 1.3 : (sprint ? 5.6 : 4.3))
     speed *= 0.55 if @in_water && !@flying
     sy = Math.sin(@yaw)
     cy = Math.cos(@yaw)
@@ -87,7 +93,8 @@ class Player
       @vy = 6.0 if jump && @against_wall
     else
       @vy -= 28.0 * dt
-      @vy = 8.6 if jump && @on_ground
+      @jumped = jump && @on_ground
+      @vy = 8.6 if @jumped
       @vy = -55.0 if @vy < -55.0
     end
     was_ground = @on_ground

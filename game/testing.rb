@@ -342,11 +342,13 @@ class Game
     @player.raycast(@world)
     place
     check("a block placed on tall grass takes its cell", @world.get(x, ground + 1, z) == Block::PLANKS && @world.get(x, ground + 2, z) == Block::AIR)
-    # Stone drops cobblestone only to a pickaxe.
+    # Stone drops cobblestone only to a pickaxe. Off the ground, mining is
+    # slow, so the player stands while it mines.
     @inv.clear
     @slot = 0
     set_block(x, ground + 1, z, Block::STONE)
     @player.y = ground + 3.0
+    @player.on_ground = true
     n = 0
     while n < 200 && @world.get(x, ground + 1, z) == Block::STONE
       @player.raycast(@world)
@@ -377,12 +379,22 @@ class Game
     by_axe = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_AXE)
     by_pick = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_PICK)
     check("an axe chops a log faster than a hand or a pickaxe", by_axe < by_hand && by_pick == by_hand)
+    # 1.5 hardness * 1.5 seconds / speed 4 = 0.5625 seconds, as in Minecraft.
+    check("a stone pickaxe breaks stone in 12 frames", frames_to_mine(x, ground + 1, z, Block::STONE, Block::STONE_PICK) == 12)
     @items.clear
     @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
     @vitals.hunger = 5
     eat
-    check("eating restores hunger", @vitals.hunger == 15 && @inv.count(5) == 1)
+    check("eating restores hunger", @vitals.hunger == 13 && @inv.count(5) == 1)
+    # A minute of standing still costs no hunger. 400 meters of sprint take
+    # 40 exhaustion: the 5 points of saturation, then 5 points of hunger.
+    @vitals = Vitals.new
+    1200.times { @vitals.update_vitals(0.05, false, false) }
+    idle = @vitals.hunger == Vitals::MAX_HUNGER
+    @vitals.move(400.0, true, false, false)
+    @vitals.update_vitals(0.05, false, false)
+    check("standing still costs no hunger, and a sprint does", idle && @vitals.hunger == 15)
   end
 
   # Frames of 0.05 seconds that it takes to break block b at x, y, z (which
@@ -392,6 +404,7 @@ class Game
     @slot = 8
     set_block(x, y, z, b)
     @mining = false
+    @mine_delay = 0.0
     n = 0
     while n < 400 && @world.get(x, y, z) == b
       @player.raycast(@world)
@@ -445,14 +458,16 @@ class Game
       set_block(px + dx, 88, pz + 1, Block::STONE)
     end
     @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
-    @vitals.health = Vitals::MAX_HEALTH
+    # A blast this near kills a player with full health, so the player
+    # gets more health for the test.
+    @vitals.health = 100
     @items.clear
     frames = 0
     while frames < 300 && @world.get(px + 2, 88, pz) == Block::STONE
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @vitals.health < Vitals::MAX_HEALTH && frames > 60)
+    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @vitals.health < 100 && frames > 60)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
     @items.clear
     @mobs.clear
@@ -688,7 +703,7 @@ class Game
     @inv.set(0, Block::WOOD_PICK, 1)
     survival = @survival
     @survival = true
-    wear_tool
+    wear_tool(1)
     broke = @inv.count(0) == 0 && @inv.block(1) == Block::WOOD_PICK
     @inv.set(1, Block::WOOD_PICK, 7)
     @slot = 1
