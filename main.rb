@@ -362,17 +362,17 @@ class Game
     Gfx.au_play(id, volume * @volume, 0.0) if @sound
   end
 
-  # Plays a sound that comes from x, y, z.
-  def play_at(id, x, y, z, gain)
-    Gfx.au_play(id, near_volume(x, y, z, gain) * @volume, pan_to(x, y, z)) if @sound
+  # Plays a sound that comes from x, y, z and reaches range blocks.
+  def play_at(id, x, y, z, gain, range)
+    Gfx.au_play(id, near_volume(x, y, z, gain, range) * @volume, pan_to(x, y, z)) if @sound
   end
 
-  # Volume for a sound at x, y, z: fades to silence at 24 blocks.
-  def near_volume(x, y, z, gain)
+  # Volume for a sound at x, y, z: fades to silence at range blocks.
+  def near_volume(x, y, z, gain, range)
     dx = x - @player.x
     dy = y - @player.eye_y
     dz = z - @player.z
-    v = 1.0 - Math.sqrt(dx * dx + dy * dy + dz * dz) / 24.0
+    v = 1.0 - Math.sqrt(dx * dx + dy * dy + dz * dz) / range
     v > 0.0 ? v * gain : 0.0
   end
 

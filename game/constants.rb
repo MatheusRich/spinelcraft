@@ -41,6 +41,12 @@ class Game
   MATERIAL_BREAK = [Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::STEP_SAND, Sfx::BREAK_GRAVEL, Sfx::BREAK_GLASS, Sfx::STEP_GRASS]
   MATERIAL_STEP = [Sfx::STEP_HARD, Sfx::STEP_WOOD, Sfx::STEP_DIRT, Sfx::STEP_GRASS, Sfx::STEP_SAND, Sfx::STEP_GRAVEL, Sfx::STEP_GLASS, Sfx::STEP_GRASS]
   MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE]
+  # A sound from a point fades to silence at this distance, in blocks.
+  # minecraft.wiki/w/Sound
+  SOUND_RANGE = 16.0
+  # The wiki gives 64 blocks for TNT. It does not say if a creeper
+  # explosion carries as far. minecraft.wiki/w/Sound
+  EXPLOSION_RANGE = 64.0
   # A day and a night last 20 minutes, as in Minecraft.
   # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0

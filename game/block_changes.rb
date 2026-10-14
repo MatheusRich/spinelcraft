@@ -190,7 +190,7 @@ class Game
       if Block.lava?(b) && touches_water?(x, y, z)
         # Water cools lava into cobblestone.
         set_block(x, y, z, Block::COBBLE)
-        play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6) unless hiss
+        play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6, SOUND_RANGE) unless hiss
         hiss = true
         next
       end

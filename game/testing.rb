@@ -270,8 +270,9 @@ class Game
     test_cave_sound
   end
 
-  # A sound to the side pans to that side, and a sound far below is
-  # quiet. At yaw 0 the player looks toward -z, so +x is to the right.
+  # A sound to the side pans to that side, a sound far below is quiet,
+  # and an explosion reaches farther. At yaw 0 the player looks toward -z,
+  # so +x is to the right.
   def test_sound_position
     yaw = @player.yaw
     @player.yaw = 0.0
@@ -283,7 +284,9 @@ class Game
     above = pan_to(x, y + 5.0, z)
     ahead = pan_to(x, y, z - 5.0)
     check("a sound pans toward the side that it comes from", right > 0.99 && left < -0.99 && above.abs < 0.01 && ahead.abs < 0.01)
-    check("a sound far below is quiet", near_volume(x, y - 20.0, z, 1.0) < 0.2 && near_volume(x, y - 30.0, z, 1.0) == 0.0)
+    check("a sound far below is quiet", near_volume(x, y - 12.0, z, 1.0, SOUND_RANGE) < 0.3 && near_volume(x, y - 20.0, z, 1.0, SOUND_RANGE) == 0.0)
+    check("an explosion carries farther than other sounds",
+          near_volume(x, y, z - 40.0, 1.0, EXPLOSION_RANGE) > 0.0 && near_volume(x, y, z - 40.0, 1.0, SOUND_RANGE) == 0.0)
     @player.yaw = yaw
   end
 

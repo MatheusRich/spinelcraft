@@ -95,7 +95,7 @@ class Game
   def burn_item(item)
     item.count = 0
     @particles.smoke(item.x, item.y + 0.3, item.z, 4, 0.3)
-    play_at(Sfx::FIZZ, item.x, item.y, item.z, 0.6)
+    play_at(Sfx::FIZZ, item.x, item.y, item.z, 0.6, SOUND_RANGE)
   end
 
   # Joins items of one kind that touch, up to a stack.
