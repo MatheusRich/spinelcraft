@@ -3,12 +3,17 @@ class Game
   # The sound that each mob kind makes now and then, indexed by kind.
   MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::STEP, Sfx::OINK, Sfx::SPLASH]
 
-  # Monsters spawn only where no torch or lava is this near (in steps along
-  # x, y and z; walls do not count). A monster needs block light 0. The
-  # light of a torch is 14 and drops by 1 for each step, so the edge of
-  # this area has light 1. Lava has light 15, so near lava the area is 1
-  # step too small. minecraft.wiki/w/Light and /w/Mob_spawning
-  SAFE_REACH = 13
+  # Light in Minecraft: a torch has 14, lava 15, and a cell under the open
+  # sky 15 by day. Light goes down by 1 for each step to a cell that is
+  # not opaque, so walls stop it. A monster needs block light 0.
+  # minecraft.wiki/w/Light and /w/Mob_spawning
+  TORCH_LIGHT = 14
+  LAVA_LIGHT = 15
+  # The farthest that the light search goes from its cell. Sky light at
+  # most 15 and lava light reach no farther.
+  LIGHT_R = 15
+  LIGHT_SIDE = LIGHT_R * 2 + 1
+
   # The sky light of Minecraft under the open sky by the time of day, in
   # clear weather and in rain. DUSK has the first tick of each level as it
   # goes down from the top level to 4, and DAWN the first tick of each level
@@ -64,36 +69,88 @@ class Game
     tick >= dawn[0] ? 4 + passed : (rain ? SKY_TOP_RAIN : SKY_TOP_CLEAR) - passed
   end
 
-  # True when a monster can spawn in the cell x, y, z by its light. Under
-  # the open sky, the light is sky, the sky light now. Under an opaque
-  # block, it is 0. (In Minecraft, sky light also spreads under the side of
-  # a roof; here it does not.) Leaves and glass let the sky light through.
-  # No torch or lava may be near, and the light must be at most a random
-  # number from 0 to SPAWN_LIGHT.
+  # True when a monster can spawn in the cell x, y, z by its light, sky
+  # being the sky light under the open sky now. No torch or lava may light
+  # the cell, and its light must be at most a random number from 0 to
+  # SPAWN_LIGHT.
   def dark?(x, y, z, sky)
-    light = 0
-    if sky > 0
-      top = @world.height_at(x, z)
-      cover = y + 1
-      cover += 1 while cover < top && Block::OPAQUE[@world.get(x, cover, z)] == 0
-      light = sky if cover >= top
-    end
-    return false if light > SPAWN_LIGHT
-    cx = (x - SAFE_REACH) >> 4
-    while cx <= (x + SAFE_REACH) >> 4
-      cz = (z - SAFE_REACH) >> 4
-      while cz <= (z + SAFE_REACH) >> 4
+    # The random number comes first. A cell under the open sky that is
+    # sky - most steps away or farther cannot make the light more than most,
+    # so the search stops before those steps.
+    most = (@rng.rand01 * (SPAWN_LIGHT + 1)).to_i
+    light = spawn_light(x, y, z, sky, lamp_near?(x, y, z), sky - most)
+    light >= 0 && light <= most
+  end
+
+  # True when a torch or lava is close enough to light x, y, z if no wall
+  # were in the way: the steps along x, y and z are a shortest path.
+  def lamp_near?(x, y, z)
+    cx = (x - LAVA_LIGHT) >> 4
+    while cx <= (x + LAVA_LIGHT) >> 4
+      cz = (z - LAVA_LIGHT) >> 4
+      while cz <= (z + LAVA_LIGHT) >> 4
         list = @world.torches_of(cx, cz)
         k = 0
         while k < list.size
-          return false if (list[k] - x).abs + (list[k + 1] - y).abs + (list[k + 2] - z).abs <= SAFE_REACH
+          return true if (list[k] - x).abs + (list[k + 1] - y).abs + (list[k + 2] - z).abs < LAVA_LIGHT
           k += 3
         end
         cz += 1
       end
       cx += 1
     end
-    light <= (@rng.rand01 * (SPAWN_LIGHT + 1)).to_i
+    false
+  end
+
+  # The sky light of the cell x, y, z for a spawn, or -1 when a torch or
+  # lava lights it. A search goes out from the cell through the cells that
+  # are not opaque, the way that light comes in. The sky light is sky
+  # minus the steps to the nearest cell under the open sky. It is 0 when no
+  # such cell is fewer than sky_reach steps away. The search looks for
+  # torches and lava only when lamp is true.
+  def spawn_light(x, y, z, sky, lamp, sky_reach)
+    reach = lamp ? LIGHT_R : sky_reach - 1
+    return 0 if reach < 0
+    @light_stamp += 1
+    stamp = @light_stamp
+    seen = @light_seen
+    queue = @light_queue
+    queue.clear
+    area = LIGHT_SIDE * LIGHT_SIDE
+    start = (LIGHT_R * LIGHT_SIDE + LIGHT_R) * LIGHT_SIDE + LIGHT_R
+    seen[start] = stamp
+    queue << start << 0
+    sky_steps = -1
+    head = 0
+    while head < queue.size
+      n = queue[head].to_i
+      d = queue[head + 1].to_i
+      head += 2
+      cx = x + n / area - LIGHT_R
+      cy = y + (n / LIGHT_SIDE) % LIGHT_SIDE - LIGHT_R
+      cz = z + n % LIGHT_SIDE - LIGHT_R
+      if sky_steps < 0 && d < sky_reach && cy >= @world.height_at(cx, cz)
+        sky_steps = d
+        break unless lamp
+      end
+      return -1 if lamp && d < TORCH_LIGHT && Block.torch?(@world.get(cx, cy, cz))
+      next if d >= reach
+      k = 0
+      while k < 6
+        nx = cx + (k == 0 ? 1 : (k == 1 ? -1 : 0))
+        ny = cy + (k == 2 ? 1 : (k == 3 ? -1 : 0))
+        nz = cz + (k == 4 ? 1 : (k == 5 ? -1 : 0))
+        m = ((nx - x + LIGHT_R) * LIGHT_SIDE + ny - y + LIGHT_R) * LIGHT_SIDE + nz - z + LIGHT_R
+        if ny >= 0 && ny < WY && seen[m] != stamp
+          seen[m] = stamp
+          b = @world.get(nx, ny, nz)
+          return -1 if lamp && b == Block::LAVA && d + 1 < LAVA_LIGHT
+          queue << m << d + 1 if Block::OPAQUE[b] == 0
+        end
+        k += 1
+      end
+    end
+    sky_steps < 0 ? 0 : sky - sky_steps
   end
 
   # The pack centers of dt seconds, until the monsters reach the cap.

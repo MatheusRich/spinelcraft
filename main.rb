@@ -146,6 +146,11 @@ class Game
     @dig_wait = 0.0
     @mine_delay = 0.0
     @mobs = []
+    # The light search of Game#spawn_light: a stamp for each cell of its
+    # cube that it has seen, and its queue of cells and steps.
+    @light_seen = Array.new(LIGHT_SIDE * LIGHT_SIDE * LIGHT_SIDE, 0)
+    @light_stamp = 0
+    @light_queue = []
     @spawn_timer = 0.0
     @rng = Rng.new(@seed * 7 + 1)
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)

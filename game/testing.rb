@@ -1021,17 +1021,27 @@ class Game
     # At sky light 4, a random number from 0 to 7 lets half the tries pass.
     passes = 0
     200.times { passes += 1 if dark?(x, h, z, 4) }
+    check("monsters do not spawn under the sky by day, and half the tries pass at night", !open_day && passes > 70 && passes < 130)
+    # Sky light comes in from the side under the edge of a roof.
+    set_block(x, h + 1, z, Block::STONE)
+    under_roof = dark?(x, h, z, 15)
+    # Walls on the four sides close the cell.
+    walls = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+    walls.each { |w| set_block(x + w[0], h, z + w[1], Block::STONE) }
+    closed = dark?(x, h, z, 15)
+    check("sky light reaches under the edge of a roof, and not into a closed cell", !under_roof && closed)
+    # A torch 2 steps away, behind the wall on the +x side.
+    set_block(x + 2, h, z, Block::TORCH)
+    behind_wall = dark?(x, h, z, 0)
+    set_block(x + 1, h, z, Block::AIR)
+    through_opening = dark?(x, h, z, 0)
+    check("torch light does not go through a wall, and goes through an opening", behind_wall && !through_opening)
+    set_block(x + 2, h, z, Block::AIR)
+    walls.each { |w| set_block(x + w[0], h, z + w[1], Block::AIR) }
+    set_block(x, h + 1, z, Block::AIR)
     set_block(x, h + 3, z, Block::LEAVES)
     under_leaves = dark?(x, h, z, 15)
-    set_block(x, h + 3, z, Block::STONE)
-    covered_day = dark?(x, h, z, 15)
-    # The torch stands on the roof, 4 blocks above the cell.
-    set_block(x, h + 4, z, Block::TORCH)
-    near_torch = dark?(x, h, z, 15)
-    set_block(x, h + 4, z, Block::AIR)
     set_block(x, h + 3, z, Block::AIR)
-    check("monsters spawn under a roof, and not in daylight or near a torch", !open_day && covered_day && !near_torch)
-    check("under the night sky, about half the spawn tries pass", passes > 70 && passes < 130)
     check("leaves let the daylight through", !under_leaves)
   end
 
