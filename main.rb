@@ -417,7 +417,7 @@ class Game
       end
       @w_sprint = false unless Gfx.in_key(Key::W)
       sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
-      sprint = false if @survival && !@vitals.can_sprint?
+      sprint = false if (@survival && !@vitals.can_sprint?) || @eat_time >= 0.0
     end
     if @autopilot
       @player.flying = true
@@ -427,6 +427,7 @@ class Game
       sprint = true
       @player.y = 72.0
     end
+    @player.slowed = @eat_time >= 0.0
     remaining = dt
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining

@@ -285,7 +285,41 @@ class Game
     test_arrow_lands
     test_block_sounds
     test_lava_swim
+    test_eat_slowdown
     test_cave_sound
+  end
+
+  # A player who eats walks at sneaking speed.
+  def test_eat_slowdown
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    yaw = @player.yaw
+    flying = @player.flying
+    x = px.floor
+    z = pz.floor
+    y = WY - 4
+    (0..30).each { |d| set_block(x, y, z - d, Block::STONE) }
+    @player.flying = false
+    @player.yaw = 0.0
+    speeds = [false, true].map do |slowed|
+      @player.x = x + 0.5
+      @player.y = y + 1.0
+      @player.z = z + 0.5
+      @player.vx = 0.0
+      @player.vz = 0.0
+      @player.slowed = slowed
+      40.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, true) }
+      Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
+    end
+    (0..30).each { |d| set_block(x, y, z - d, Block::AIR) }
+    @player.slowed = false
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.yaw = yaw
+    @player.flying = flying
+    check("a player who eats walks at sneaking speed, not a sprint", speeds[0] > 5.0 && speeds[1] < 1.5)
   end
 
   # The player swims in lava as in water, but only water counts for the
