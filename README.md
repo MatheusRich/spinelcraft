@@ -114,7 +114,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 
 | Variable | Effect |
 | --- | --- |
-| `FRAMES=n` | Quit after n frames and print timings |
+| `FRAMES=n` | Quit after n frames and print timings. The game ignores the mouse and the keys. |
 | `SHOT=file.ppm` | Save the last frame as an image (use with `FRAMES`) |
 | `CAM=x,y,z,yaw,pitch` | Start as a flying camera at that place |
 | `AUTOPILOT=1` | Fly in a circle (for benchmarks) |

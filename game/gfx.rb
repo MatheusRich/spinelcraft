@@ -404,7 +404,9 @@ module Gfx
       }
     }
 
-    bool gfx_init(long w, long h, long vsync) {
+    /* quiet opens the window behind the other windows, so it does not take the keyboard. */
+    bool gfx_init(long w, long h, long vsync, long quiet) {
+      if (quiet) SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
       if (!SDL_Init(SDL_INIT_VIDEO)) return fail("SDL_Init");
       win = SDL_CreateWindow("Spinelcraft", (int)w, (int)h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
       if (!win) return fail("SDL_CreateWindow");
@@ -1003,7 +1005,7 @@ module Gfx
     /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms. */
     long gfx_limit(long which) { return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : UNIFORMS)); }
   C
-  ffi_func :gfx_init, [:long, :long, :long], :bool
+  ffi_func :gfx_init, [:long, :long, :long, :long], :bool
   ffi_func :gfx_textures, [:int_array, :long], :bool
   ffi_func :gfx_clouds, [:int_array, :long], :bool
   ffi_func :gfx_mesh, [:long, :int_array, :long, :int_array], :long

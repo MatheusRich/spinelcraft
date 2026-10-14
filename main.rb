@@ -40,6 +40,9 @@ class Game
   def initialize
     @seed = (ENV["SEED"] || "1337").to_i
     @max_frames = (ENV["FRAMES"] || "0").to_i
+    # A run with FRAMES set ignores the mouse and the keys, so the person at
+    # the computer does not move the camera in a screenshot or a benchmark.
+    @scripted = @max_frames > 0
     @autopilot = !ENV["AUTOPILOT"].nil?
     # AUTOPILOT=far flies in a straight line, so new chunks stream in.
     @autopilot_far = ENV["AUTOPILOT"] == "far"
@@ -185,7 +188,7 @@ class Game
 
   def setup
     vsync = ENV["NOVSYNC"] ? 0 : 1
-    abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync)
+    abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
     abort "texture upload failed" unless Gfx.gfx_textures(Tex.build, Tex::LAYERS)
     upload_clouds
@@ -209,7 +212,7 @@ class Game
     show_mobs if ENV["SHOWMOBS"]
     show_items if ENV["SHOWITEMS"]
     spawn_animals
-    Gfx.in_capture(1)
+    Gfx.in_capture(1) unless @scripted
     @captured = true
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
   end
@@ -457,7 +460,7 @@ class Game
       dt = (now - last) / 1.0e9
       dt = 0.05 if dt > 0.05
       last = now
-      handle_input(dt)
+      handle_input(dt) unless @scripted
       demo(frames) if @demo
       update_game(dt)
       t_stream = Gfx.gfx_ns
