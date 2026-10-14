@@ -98,6 +98,11 @@ class Mesher
 
   def offset(dx, dy, dz) = (dx * PZ + dz) * PY + dy
 
+  # How far the surface of water b sinks below the top of its cell, in steps
+  # of 0.11 after the first 0.01 (see vchunk in gfx.rb). over is the block
+  # above it; water under water fills its cell.
+  def water_drop(b, over) = Block::WATER_LEVEL[over] > 0 ? 0 : 9 - Block::WATER_LEVEL[b]
+
   # Meshes world chunk (cx, cz). It and the 8 chunks around it must be loaded.
   def build(cx, cz)
     @opaque.clear
@@ -188,8 +193,11 @@ class Mesher
             f = 0
             while f < 6
               nb = World.byte(blocks, i + @delta[f])
+              lift = 0
               visible = if water
-                water_level[nb] == 0 && opaque[nb] == 0
+                # A side next to lower water shows the step down to its surface.
+                lift = water_drop(nb, World.byte(blocks, i + @delta[f] + 1)) if f != 2 && f != 3 && water_level[nb] > 0
+                opaque[nb] == 0 && (water_level[nb] == 0 || lift > water_drop(id, above))
               else
                 opaque[nb] == 0 && !(nb == id && id == Block::GLASS)
               end
@@ -198,14 +206,17 @@ class Mesher
               if visible
                 tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : (f == front ? front_tex[id] : side_tex[id]))
                 ny = y + (f == 2 ? 1 : (f == 3 ? -1 : 0))
+                # A step down to lower water takes the light above that water.
+                ny += 1 if lift > 0
                 sx = x + @nx[f]
                 sz = z + @nz[f]
                 sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
                 w0 = Mesher.pack(lx, y, lz, f) | Mesher.tint_w0(tex)
                 if water
                   low = water_level[above] > 0 ? 0 : 1
-                  # A sunk surface keeps 8 - level in the bits that hold AO for solid faces.
-                  w1 = tex | (low == 1 ? (8 - water_level[id]) << 8 : 255 << 8) | (sky << 17) | (low << 18) | (Tex.scroll(tex) << 23)
+                  # Water has no AO. A sunk surface keeps 8 - level in bits 8-10,
+                  # and a side next to lower water keeps its drop in bits 11-14.
+                  w1 = tex | (low == 1 ? (8 - water_level[id]) << 8 : 0) | (lift << 11) | (sky << 17) | (low << 18) | (Tex.scroll(tex) << 23)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
                   @water << w0
                   @water << w1
