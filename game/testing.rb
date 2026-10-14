@@ -668,6 +668,24 @@ class Game
     @vitals.move(400.0, true, false, false)
     @vitals.update_vitals(0.05, false, false)
     check("standing still costs no hunger, and a sprint does", idle && @vitals.hunger == 15)
+    # Rotten flesh gives 4 hunger and 0.8 saturation. The Hunger effect
+    # adds 3 exhaustion in its 30 seconds, and then no more.
+    @vitals = Vitals.new
+    @vitals.hunger = 10
+    @vitals.saturation = 0.0
+    @inv.set(5, Block::ROTTEN_FLESH, 1)
+    @slot = 5
+    eat
+    fed = @vitals.hunger == 14 && @vitals.saturation == 0.8
+    @vitals.give_hunger_effect
+    601.times { @vitals.update_vitals(0.05, false, false) }
+    drained = !@vitals.hunger_effect? && (@vitals.exhaustion - 3.0).abs < 0.01
+    20.times { @vitals.update_vitals(0.05, false, false) }
+    check("rotten flesh feeds, and its Hunger effect adds exhaustion for 30 seconds", fed && drained && (@vitals.exhaustion - 3.0).abs < 0.01)
+    before = @particles.count(Particle::EFFECT)
+    @vitals.give_hunger_effect
+    update_survival(0.5)
+    check("the Hunger effect makes green specks around the player", @particles.count(Particle::EFFECT) > before)
   end
 
   # Frames of 0.05 seconds that it takes to break block b at x, y, z (which
@@ -1104,6 +1122,17 @@ class Game
     dropped = n >= 1 && n <= 3
     collect_items
     check("a pig that the player kills drops 1 to 3 porkchops", dropped && @inv.total(Block::PORKCHOP) == n)
+    @items.clear
+    # Each zombie drops 0 to 2, so 10 zombies drop none 1 time in 59049.
+    10.times do |i|
+      zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, 90.0, @spawn_z + i, 3)
+      zombie.hp = 0.0
+      zombie.by_player = true
+      @mobs << zombie
+    end
+    update_mobs(1.0 / 60.0)
+    n = ground_count(Block::ROTTEN_FLESH)
+    check("zombies that the player kills drop 0 to 2 rotten flesh each", n >= 1 && n <= 20)
     @items.clear
     loot(killed, Block::BOW, 1)
     check("a bow that a mob drops is new", @items.size == 1 && @items[0].count == Block.uses(Block::BOW))

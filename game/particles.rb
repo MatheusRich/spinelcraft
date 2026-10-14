@@ -1,13 +1,15 @@
-# Particles: block chips, flames, smoke and embers. Each one is a small
-# square that faces the camera. Burning mobs, torches, lava and explosions
-# make the flames and the smoke.
+# Particles: block chips, flames, smoke, embers and effect specks. Each one
+# is a small square that faces the camera. Burning mobs, torches, lava and
+# explosions make the flames and the smoke.
 class Particle
-  # Particle kinds. Chips, embers and drops of rain fall; flames and smoke rise.
+  # Particle kinds. Chips, embers and drops of rain fall; flames, smoke and
+  # effect specks rise.
   CHIP = 0
   FLAME = 1
   SMOKE = 2
   EMBER = 3
   DROP = 4
+  EFFECT = 5
 
   attr_reader :kind
 
@@ -39,8 +41,8 @@ class Particle
 
   def update(world, dt)
     @life -= dt
-    if @kind == FLAME || @kind == SMOKE
-      # Flames and smoke rise and slow down sideways.
+    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT
+      # Flames, smoke and effect specks rise and slow down sideways.
       k = 1.0 - (2.0 * dt).clamp(0.0, 1.0)
       @vx *= k
       @vz *= k
@@ -81,6 +83,9 @@ class Particle
       mesh.billboard(@x, @y, @z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, c, c, c, 1.0)
     when DROP
       mesh.billboard(@x, @y, @z, 0.035, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.7, 0.78, 0.95, 1.0)
+    when EFFECT
+      # The dull green #587653 of the Hunger effect. minecraft.wiki/w/Hunger_(effect)
+      mesh.billboard(@x, @y, @z, 0.02, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.345, 0.463, 0.325, 1.0)
     else
       mesh.glow = 1.0
       mesh.billboard(@x, @y, @z, 0.04, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::WHITE, 1.0, 0.45 + 0.3 * t, 0.1, 1.0)
@@ -168,6 +173,22 @@ class Particles
     (dt * 6.0 + @rng.rand01).to_i.times do
       add(Particle::SMOKE, x + (@rng.rand01 - 0.5) * half, y + tall * 0.8 + @rng.rand01 * 0.3, z + (@rng.rand01 - 0.5) * half,
           (@rng.rand01 - 0.5) * 0.3, 0.7 + @rng.rand01 * 0.4, (@rng.rand01 - 0.5) * 0.3, 1.0 + @rng.rand01 * 0.8, Tex::PUFF)
+    end
+  end
+
+  # Specks of the Hunger effect for dt seconds in front of the player, who
+  # looks along yaw with the eyes at x, eye_y, z. The view is first person
+  # only, so the specks start where the player sees them: 0.4 to 0.7 blocks
+  # ahead, at most 60 degrees to a side, from 0.8 below the eyes to 0.2
+  # above. A speck closer to the camera covers much of the view. The wiki
+  # gives no rate or life for effect particles, so about 10 each second
+  # that live 0.4 to 2 seconds are a guess.
+  def hunger(x, eye_y, z, yaw, dt)
+    (dt * 10.0 + @rng.rand01).to_i.times do
+      a = yaw + (@rng.rand01 - 0.5) * 2.0 * Math::PI / 3.0
+      r = 0.4 + @rng.rand01 * 0.3
+      add(Particle::EFFECT, x + Math.sin(a) * r, eye_y - 0.8 + @rng.rand01, z - Math.cos(a) * r,
+          0.0, 0.1 + @rng.rand01 * 0.2, 0.0, 0.4 + @rng.rand01 * 1.6, Tex::PUFF)
     end
   end
 

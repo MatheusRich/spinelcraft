@@ -102,11 +102,14 @@ class Game
       end
       i += 1
     end
+    # The Hunger effect turns the food yellow-green. minecraft.wiki/w/Hunger_(effect)
+    # gives no color for the bar, so this tint is a guess.
+    sick = @vitals.hunger_effect?
     i = 0
     while i < 10
       fx = x0 + total - (i + 1) * 20.0 * s
-      full = @vitals.hunger - i * 2 >= 1
-      @ui.icon(fx, hy, 18.0 * s, Tex::PORKCHOP, full ? 1.0 : 0.22)
+      shade = @vitals.hunger - i * 2 >= 1 ? 1.0 : 0.22
+      @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::PORKCHOP, 1.0, 1.0, shade * (sick ? 0.55 : 1.0), shade * (sick ? 1.5 : 1.0), shade * (sick ? 0.3 : 1.0), 1.0)
       i += 1
     end
     if @vitals.air < Vitals::MAX_AIR

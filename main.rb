@@ -507,6 +507,7 @@ class Game
       play(Sfx::FIZZ, 0.6)
     end
     felt_hurt(Sfx::HURT) if @vitals.update_vitals(dt, in_lava, under_water)
+    @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @vitals.hunger_effect?
   end
 
   # The pause screen is open. The world stops, as in Minecraft, but not on

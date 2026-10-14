@@ -32,12 +32,19 @@ class Vitals
   # The player cannot sprint with this much hunger or less.
   # minecraft.wiki/w/Sprinting
   SPRINT_HUNGER = 6
+  # The Hunger effect of rotten flesh lasts 30 seconds and adds 0.005
+  # exhaustion each tick, which is 0.1 each second.
+  # minecraft.wiki/w/Rotten_Flesh and /w/Hunger_(effect)
+  HUNGER_EFFECT_TIME = 30.0
+  HUNGER_EFFECT_COST = 0.1
 
   attr_accessor :health, :hunger, :saturation, :exhaustion
   # Seconds of air left under water.
   attr_reader :air
   # Seconds that the player keeps burning after lava.
   attr_reader :fire
+  # Seconds of the Hunger effect left.
+  attr_reader :hunger_effect
 
   def initialize
     @health = MAX_HEALTH
@@ -46,6 +53,7 @@ class Vitals
     @exhaustion = 0.0
     @air = MAX_AIR
     @fire = 0.0
+    @hunger_effect = 0.0
     # Seconds until the next point of fire damage, and of lava damage.
     @fire_tick = 0.0
     @lava_tick = 0.0
@@ -57,6 +65,12 @@ class Vitals
   def burning? = @fire > 0.0
   def hungry? = @hunger < MAX_HUNGER
   def can_sprint? = @hunger > SPRINT_HUNGER
+  def hunger_effect? = @hunger_effect > 0.0
+
+  # A second dose starts the Hunger effect over and does not add to it.
+  def give_hunger_effect
+    @hunger_effect = HUNGER_EFFECT_TIME
+  end
 
   def hurt(amount)
     return if dead?
@@ -123,6 +137,10 @@ class Vitals
       end
     else
       @air = [@air + dt * AIR_REFILL, MAX_AIR].min
+    end
+    if hunger_effect?
+      exhaust(dt * HUNGER_EFFECT_COST)
+      @hunger_effect -= dt
     end
     digest
     update_regen(dt)

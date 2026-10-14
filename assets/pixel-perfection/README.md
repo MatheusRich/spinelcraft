@@ -35,6 +35,7 @@ These files are copies with no changes.
 | `torch.png`, `ladder.png`, `fire.png` | `default_torch_on_floor.png`, `default_ladder.png`, `fire_basic_flame.png` |
 | `apple.png`, `bread.png`, `wheat.png` | `default_apple.png`, `farming_bread.png`, `farming_wheat_harvested.png` |
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
+| `rotten_flesh.png` | `mcl_mobitems_rotten_flesh.png` |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 
 ## Mob skins

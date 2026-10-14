@@ -435,12 +435,14 @@ class Game
     end
   end
 
+  # Rotten flesh gives the Hunger effect 4 times in 5.
+  # minecraft.wiki/w/Rotten_Flesh
   def eat
-    food = Block.food(current_block.to_i)
-    @vitals.eat(food, Block.saturation(current_block.to_i))
+    b = current_block.to_i
+    @vitals.eat(Block.food(b), Block.saturation(b))
+    @vitals.give_hunger_effect if b == Block::ROTTEN_FLESH && @rng.rand01 < 0.8
     @inv.take(@slot, 1)
     play(Sfx::EAT, 0.6)
-    say("YUM")
   end
 
   def place
