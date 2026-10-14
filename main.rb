@@ -452,6 +452,10 @@ class Game
     felt_hurt if @vitals.update_vitals(dt, in_lava, under_water)
   end
 
+  # The pause screen is open. The world stops, as in Minecraft, but not on
+  # the death screen or in the inventory.
+  def paused? = !@captured && !@inventory_open && !@vitals.dead?
+
   def daylight
     s = Math.sin(@time_of_day * Math::PI * 2.0)
     (0.5 + s * 0.9).clamp(0.12, 1.0)
@@ -481,7 +485,7 @@ class Game
       last = now
       handle_input(dt) unless @scripted
       demo(frames) if @demo
-      update_game(dt)
+      update_game(dt) unless paused?
       t_stream = Gfx.gfx_ns
       stream_around(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
       left = STREAM_BUDGET_NS - (Gfx.gfx_ns - t_stream)

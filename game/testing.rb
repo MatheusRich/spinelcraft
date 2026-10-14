@@ -162,6 +162,7 @@ class Game
     test_inventory_clicks
     test_swim_out
     test_hand_sway
+    test_pause
     test_streaming
     test_terrain_tables
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
@@ -187,6 +188,21 @@ class Game
     rising = (1...xs.size).all? { |i| xs[i] > xs[i - 1] }
     check("each terrain table has one entry for each biome or tree kind", biomes && kinds)
     check("the continent spline has rising points and one height for each", rising && World::BASE.size == xs.size)
+  end
+
+  # The pause screen stops the world, but the inventory and the death
+  # screen do not.
+  def test_pause
+    @captured = false
+    paused = paused?
+    @inventory_open = true
+    inventory = paused?
+    @inventory_open = false
+    @vitals.health = 0
+    dead = paused?
+    @vitals.health = Vitals::MAX_HEALTH
+    @captured = true
+    check("only the pause screen stops the world", paused && !inventory && !dead && !paused?)
   end
 
   # The held item moves only a little in each frame while the player walks,

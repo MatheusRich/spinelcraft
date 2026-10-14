@@ -25,7 +25,7 @@ class Game
       draw_backpack(w, h, inventory_scale(w, h))
     elsif @inventory_open
       draw_block_picker(w, h, s)
-    elsif !@captured
+    elsif paused?
       draw_pause_screen(w, h, s)
     end
   end
