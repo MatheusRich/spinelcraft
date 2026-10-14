@@ -245,7 +245,7 @@ class Game
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
   end
 
-  # N on the pause screen: a fresh world from a new seed, same game mode.
+  # New world on the pause menu: a fresh world from a new seed, same game mode.
   # The player starts again with an empty inventory.
   def new_world
     @seed = (Gfx.gfx_ns / 1000) % 1000000
