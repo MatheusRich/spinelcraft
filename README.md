@@ -19,7 +19,7 @@ A small Minecraft-like game written in Ruby. The Spinel compiler turns the Ruby 
 
 ## Build and run
 
-You need macOS, SDL3 and libvorbis (`brew install sdl3 libvorbis`) and a built Spinel compiler.
+You need macOS and a built Spinel compiler. `brew bundle` installs the libraries in `Brewfile`.
 
 ```sh
 ./build.sh      # writes ./spinelcraft
