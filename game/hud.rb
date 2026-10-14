@@ -31,7 +31,7 @@ class Game
   end
 
   # Tints for water, lava and damage, flames while the player burns, the
-  # crosshair, and the bow pull.
+  # crosshair, and the bow pull or the attack cooldown.
   def draw_view_overlays(w, h, s)
     eye_block = @world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor)
     if Block.water?(eye_block)
@@ -60,6 +60,10 @@ class Game
       pull = @draw_time > 1.0 ? 1.0 : @draw_time
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s, 4.0 * s, 0.0, 0.0, 0.0, 0.5)
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s * pull, 4.0 * s, 1.0, pull, 0.2, 0.9)
+    elsif @survival && attack_charge < 1.0
+      charge = attack_charge
+      @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s, 3.0 * s, 0.0, 0.0, 0.0, 0.5)
+      @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s * charge, 3.0 * s, 1.0, 1.0, 1.0, 0.8)
     end
   end
 

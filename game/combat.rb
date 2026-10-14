@@ -273,7 +273,7 @@ class Game
       mdx = m.x - cx
       mdz = m.z - cz
       d = Math.sqrt(mdx * mdx + mdz * mdz)
-      m.hit(blast_damage(d), cx, cz) if d < BLAST_REACH
+      m.hit(blast_damage(d).to_f, cx, cz) if d < BLAST_REACH
     end
   end
 
@@ -298,7 +298,7 @@ class Game
       if a.damage > 0
         m = @mobs.find { |mob| a.in_box?(mob.x, mob.y, mob.z, mob.half, mob.tall) }
         if m
-          m.hit(a.damage, a.x - a.vx, a.z - a.vz)
+          m.hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
           m.by_player = true
           play(Sfx::HIT, near_volume(a.x, a.z, 0.8))
           a.vanish

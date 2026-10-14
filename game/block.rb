@@ -155,17 +155,28 @@ module Block
   # A crop that has not ripened yet.
   def self.growing?(b) = b >= SEEDS && b < WHEAT_RIPE
   def self.sword?(b) = b >= WOOD_SWORD && b <= DIAMOND_SWORD
-  # The damage of a hit with b, as in Minecraft 1.8, which has no attack
-  # cooldown: a hand does 1, and a wooden tool does 1 more than the hand
-  # with a shovel, 2 with a pickaxe, 3 with an axe and 4 with a sword. Each
-  # tier above wood adds 1. NOT CONFIRMED on the wiki: minecraft.wiki/w/Melee_attack
-  # gives only the values after 1.9, which has an attack cooldown.
+  # The damage of a hit with b when the attack cooldown is full. A hand and
+  # what is not a weapon or a tool do 1. minecraft.wiki/w/Sword, /w/Axe,
+  # /w/Pickaxe, /w/Shovel and /w/Melee_attack
   def self.damage(b)
-    return 5 + b - WOOD_SWORD if sword?(b)
-    tool_kind(b) > 0 ? TOOL_DAMAGE[tool_kind(b)] + tool_tier(b) - 1 : 1
+    return SWORD_DAMAGE[b - WOOD_SWORD] if sword?(b)
+    kind = tool_kind(b)
+    return 1.0 if kind == 0
+    tier = tool_tier(b)
+    kind == 1 ? tier + 1.0 : (kind == 2 ? AXE_DAMAGE[tier - 1] : tier + 1.5)
   end
-  # The damage of a wooden tool by the kind in DIG_KIND.
-  TOOL_DAMAGE = [1, 3, 4, 2]
+  SWORD_DAMAGE = [4.0, 5.0, 6.0, 7.0]
+  AXE_DAMAGE = [7.0, 9.0, 9.0, 9.0]
+  # Attacks each second with b: the attack cooldown is 1 / speed seconds.
+  # minecraft.wiki/w/Sword, /w/Axe, /w/Pickaxe, /w/Shovel and
+  # /w/Melee_attack
+  def self.attack_speed(b)
+    return 1.6 if sword?(b)
+    kind = tool_kind(b)
+    return 4.0 if kind == 0
+    kind == 1 ? 1.2 : (kind == 2 ? AXE_SPEED[tool_tier(b) - 1] : 1.0)
+  end
+  AXE_SPEED = [0.8, 0.8, 0.9, 1.0]
   # The uses that one hit (attack true) or one broken block takes from b:
   # a sword is for hits and a digging tool for blocks, and each loses 2 for
   # the other job. minecraft.wiki/w/Item_durability

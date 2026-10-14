@@ -101,13 +101,21 @@ class Game
     end
   end
 
+  # How full the attack cooldown is, from 0 to 1. A hit does 0.2 + 0.8 *
+  # charge * charge of its damage. An attack, a broken block and a new item
+  # in the hand start the cooldown again. The 0.025 seconds are half a
+  # tick. minecraft.wiki/w/Melee_attack
+  def attack_charge = ((@attack_time + 0.025) * Block.attack_speed(current_block.to_i)).clamp(0.0, 1.0)
+
   # The left button hits the mob in the crosshair, or else breaks the block:
   # at once in creative, over time in survival.
   def left_button(dt, held, pressed)
     if held && @target_mob >= 0
       if pressed
         mob = @mobs[@target_mob]
-        mob.hit(@survival ? Block.damage(current_block.to_i) : 10, @player.x, @player.z)
+        charge = attack_charge
+        mob.hit(@survival ? Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge) : 10.0, @player.x, @player.z)
+        @attack_time = 0.0
         wear_tool(Block.wear(current_block.to_i, true))
         @vitals.exhaust(Vitals::ATTACK_COST) if @survival
         mob.by_player = true
@@ -123,6 +131,7 @@ class Game
         @particles.burst(@player.hx, @player.hy, @player.hz, broken)
         play(Sfx::BREAK, 0.7)
         set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
+        @attack_time = 0.0
         @action_cooldown = 0.22
         @swing = 0.25
       end
@@ -279,6 +288,7 @@ class Game
       @particles.burst(x, y, z, b)
       play(Sfx::BREAK, 0.7)
       set_block(x, y, z, Block::AIR)
+      @attack_time = 0.0
       drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
       drop_extra(b, x, y, z)
       if hardness > 0.0

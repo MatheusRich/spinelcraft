@@ -755,14 +755,14 @@ class Game
   def test_mob_drops
     @inv.clear
     far = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
-    far.hp = 0
+    far.hp = 0.0
     far.alive = false
     @mobs.clear
     @mobs << far
     update_mobs(1.0 / 60.0)
     check("a pig that dies on its own drops nothing", @items.empty?)
     killed = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
-    killed.hp = 0
+    killed.hp = 0.0
     killed.alive = false
     killed.by_player = true
     @mobs << killed
@@ -898,12 +898,32 @@ class Game
     @mobs << pig
     shoot_bow(1.0)
     frames = 0
-    while frames < 120 && pig.hp == 10
+    while frames < 120 && pig.hp == 10.0
       update_arrows(1.0 / 60.0)
       frames += 1
     end
-    check("a full bow draw hits a pig and uses an arrow", pig.hp < 10 && @inv.room_for(Block::ARROW) == INV * Slots::STACK)
+    check("a full bow draw hits a pig and uses an arrow", pig.hp < 10.0 && @inv.room_for(Block::ARROW) == INV * Slots::STACK)
+    # A wooden sword does 4 with a full cooldown, and 20% of that right after
+    # an attack.
     @mobs.clear
+    survival = @survival
+    @survival = true
+    @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
+    @slot = 0
+    update_hand(0.0)
+    full = Mob.new(Mob::ZOMBIE, bx + 2.5, 89.0, bz + 0.5, 3)
+    quick = Mob.new(Mob::ZOMBIE, bx + 2.5, 89.0, bz + 0.5, 4)
+    @mobs << full
+    @mobs << quick
+    @attack_time = 1.0
+    @target_mob = 0
+    left_button(0.0, true, true)
+    @target_mob = 1
+    left_button(0.0, true, true)
+    check("a hit right after an attack does less damage", full.hp == 16.0 && quick.hp > 19.0 && quick.hp < 19.2)
+    @inv.clear
+    @mobs.clear
+    @survival = survival
   end
 
   # Sneaking, walking off an edge, and the bed, on the platform from test_bow.

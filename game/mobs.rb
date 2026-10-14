@@ -15,7 +15,7 @@ class Mob
   # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper.
   # MOB_SOUND in game/combat.rb has the sounds.
   # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep and /w/Creeper
-  HP = [10, 20, 20, 8, 20]
+  HP = [10.0, 20.0, 20.0, 8.0, 20.0]
   HALF = [0.45, 0.3, 0.3, 0.45, 0.3]
   TALL = [0.95, 1.9, 1.9, 1.2, 1.7]
   # Passive mobs wander, never attack, and do not count as monsters.
@@ -61,7 +61,7 @@ class Mob
     @burn = 0.0
     @fire = 0.0
     @immune = 0.0
-    @last_damage = 0
+    @last_damage = 0.0
   end
 
   def passive? = PASSIVE[@kind] == 1
@@ -180,13 +180,13 @@ class Mob
     # second (IMMUNE stops the hits in between). minecraft.wiki/w/Damage
     @fire = LAVA_FIRE if Block.lava?(feet)
     @fire = 0.0 if Block.water?(feet)
-    take(4) if Block.lava?(feet)
+    wound(4.0) if Block.lava?(feet)
     if @fire > 0.0
       @fire -= dt
       @burn -= dt
       if @burn <= 0.0
         @burn = 1.0
-        take(1)
+        wound(1.0)
       end
     else
       @burn = 0.0
@@ -230,7 +230,7 @@ class Mob
 
   # Takes damage, or the part of it above the last hit while the mob is
   # immune. Returns false when nothing is left to take.
-  def take(damage)
+  def wound(damage)
     if @immune > 0.0
       return false if damage <= @last_damage
       @hp -= damage - @last_damage
@@ -244,7 +244,7 @@ class Mob
   end
 
   def hit(damage, from_x, from_z)
-    return unless take(damage)
+    return unless wound(damage)
     dx = @x - from_x
     dz = @z - from_z
     len = Math.sqrt(dx * dx + dz * dz)

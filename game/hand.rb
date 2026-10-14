@@ -10,6 +10,7 @@ class Game
     if b != @hand_block
       @hand_block = b
       @equip = 1.0
+      @attack_time = 0.0
     end
     @equip -= dt * 5.0 if @equip > 0.0
     # The sway follows the walk speed over about a fifth of a second, so it

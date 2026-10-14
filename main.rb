@@ -151,6 +151,9 @@ class Game
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
     @swing = 0.0
+    # Seconds since the last attack, broken block or new item in the hand
+    # (see attack_charge).
+    @attack_time = 0.0
     # The block in the hand model, and how far down the model still is after
     # the selection changed (1 to 0).
     @hand_block = 0
@@ -412,6 +415,7 @@ class Game
     @message_time -= dt
     @damage_flash -= dt
     @swing -= dt
+    @attack_time += dt
     update_hand(dt)
     update_survival(dt)
     update_mobs(dt)
