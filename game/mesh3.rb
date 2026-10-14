@@ -41,8 +41,9 @@ class Mesh3
   end
 
   # A square of half size h around x, y, z that faces the camera, whose
-  # right and up axes are (rx, 0, rz) and (ux, uy, uz).
-  def billboard(x, y, z, h, rx, rz, ux, uy, uz, layer, r, g, b, a)
+  # right and up axes are (rx, 0, rz) and (ux, uy, uz). It shows the square
+  # of the texture from (u0, v0) with the side du.
+  def billboard(x, y, z, h, rx, rz, ux, uy, uz, u0, v0, du, layer, r, g, b, a)
     l = layer.to_f
     ax = (rx + ux) * h
     ay = uy * h
@@ -50,12 +51,14 @@ class Mesh3
     bx = (rx - ux) * h
     by = -uy * h
     bz = (rz - uz) * h
-    vert(x - bx, y - by, z - bz, 0.0, 0.0, l, r, g, b, a)
-    vert(x + ax, y + ay, z + az, 1.0, 0.0, l, r, g, b, a)
-    vert(x + bx, y + by, z + bz, 1.0, 1.0, l, r, g, b, a)
-    vert(x - bx, y - by, z - bz, 0.0, 0.0, l, r, g, b, a)
-    vert(x + bx, y + by, z + bz, 1.0, 1.0, l, r, g, b, a)
-    vert(x - ax, y - ay, z - az, 0.0, 1.0, l, r, g, b, a)
+    u1 = u0 + du
+    v1 = v0 + du
+    vert(x - bx, y - by, z - bz, u0, v0, l, r, g, b, a)
+    vert(x + ax, y + ay, z + az, u1, v0, l, r, g, b, a)
+    vert(x + bx, y + by, z + bz, u1, v1, l, r, g, b, a)
+    vert(x - bx, y - by, z - bz, u0, v0, l, r, g, b, a)
+    vert(x + bx, y + by, z + bz, u1, v1, l, r, g, b, a)
+    vert(x - ax, y - ay, z - az, u0, v1, l, r, g, b, a)
   end
 
   # Tips the bodies of the next boxes by angle around their forward (z) axis

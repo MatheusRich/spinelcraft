@@ -22,6 +22,17 @@ class Particle
     @life = life
     @max = life
     @layer = layer
+    # A chip shows the piece of its texture from (@u0, @v0), a quarter of the
+    # texture wide, on a square of half size @half (see piece).
+    @u0 = 0.0
+    @v0 = 0.0
+    @half = 0.07
+  end
+
+  def piece(u0, v0, half)
+    @u0 = u0
+    @v0 = v0
+    @half = half
   end
 
   def alive? = @life > 0.0
@@ -60,19 +71,19 @@ class Particle
     t = @life / @max
     case @kind
     when CHIP
-      mesh.billboard(@x, @y, @z, 0.07, rx, rz, ux, uy, uz, @layer, 1.0, 1.0, 1.0, 1.0)
+      mesh.billboard(@x, @y, @z, @half, rx, rz, ux, uy, uz, @u0, @v0, 0.25, @layer, 0.6, 0.6, 0.6, 1.0)
     when FLAME
       mesh.glow = 1.0
-      mesh.billboard(@x, @y, @z, 0.04 + 0.12 * t, rx, rz, ux, uy, uz, Tex::FIRE, 1.0, 0.7 + 0.3 * t, 0.5 + 0.5 * t, 1.0)
+      mesh.billboard(@x, @y, @z, 0.04 + 0.12 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::FIRE, 1.0, 0.7 + 0.3 * t, 0.5 + 0.5 * t, 1.0)
       mesh.glow = 0.0
     when SMOKE
       c = 0.25 + 0.25 * t
-      mesh.billboard(@x, @y, @z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, Tex::PUFF, c, c, c, 1.0)
+      mesh.billboard(@x, @y, @z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, c, c, c, 1.0)
     when DROP
-      mesh.billboard(@x, @y, @z, 0.035, rx, rz, ux, uy, uz, Tex::PUFF, 0.7, 0.78, 0.95, 1.0)
+      mesh.billboard(@x, @y, @z, 0.035, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.7, 0.78, 0.95, 1.0)
     else
       mesh.glow = 1.0
-      mesh.billboard(@x, @y, @z, 0.04, rx, rz, ux, uy, uz, Tex::WHITE, 1.0, 0.45 + 0.3 * t, 0.1, 1.0)
+      mesh.billboard(@x, @y, @z, 0.04, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::WHITE, 1.0, 0.45 + 0.3 * t, 0.1, 1.0)
       mesh.glow = 0.0
     end
   end
@@ -96,12 +107,26 @@ class Particles
 
   def count(kind) = @all.count { |p| p.kind == kind }
 
-  # Chips of block b that fly out of the block cell x, y, z.
+  # Chips of block b that fly out of the block cell x, y, z. As in Minecraft,
+  # they start on a grid of 4 x 4 x 4 points in the cell and fly away from its
+  # middle, and each one shows a random piece of 4 x 4 pixels of the texture.
   def burst(x, y, z, b)
     layer = Block::SIDE[b]
-    12.times do
-      add(Particle::CHIP, x + 0.2 + @rng.rand01 * 0.6, y + 0.2 + @rng.rand01 * 0.6, z + 0.2 + @rng.rand01 * 0.6,
-          (@rng.rand01 - 0.5) * 4.0, @rng.rand01 * 4.0 + 1.0, (@rng.rand01 - 0.5) * 4.0, 0.5 + @rng.rand01 * 0.4, layer)
+    i = 0
+    while i < 64
+      dx = ((i & 3) + 0.5) / 4.0
+      dy = (((i >> 2) & 3) + 0.5) / 4.0
+      dz = ((i >> 4) + 0.5) / 4.0
+      vx = dx - 0.5 + (@rng.rand01 - 0.5) * 0.8
+      vy = dy - 0.5 + (@rng.rand01 - 0.5) * 0.8
+      vz = dz - 0.5 + (@rng.rand01 - 0.5) * 0.8
+      len = Math.sqrt(vx * vx + vy * vy + vz * vz)
+      len = 1.0 if len < 0.001
+      speed = (@rng.rand01 + @rng.rand01 + 1.0) * 1.2
+      chip = Particle.new(Particle::CHIP, x + dx, y + dy, z + dz, vx / len * speed, vy / len * speed + 2.0, vz / len * speed, 0.3 + @rng.rand01 * 0.7, layer)
+      chip.piece((@rng.rand01 * 13.0).floor / 16.0, (@rng.rand01 * 13.0).floor / 16.0, 0.05 + @rng.rand01 * 0.05)
+      @all << chip if @all.size < MAX
+      i += 1
     end
   end
 

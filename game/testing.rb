@@ -164,6 +164,7 @@ class Game
     test_hand_sway
     test_pause
     test_menu
+    test_chips
     test_streaming
     test_terrain_tables
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
@@ -227,6 +228,13 @@ class Game
     click_menu(M_DEBUG)
     check("new world asks for a second click", once && !@menu_confirm && @seed == seed)
     click_menu(M_DEBUG)
+  end
+
+  # A broken block throws 64 chips, as in Minecraft.
+  def test_chips
+    before = @particles.count(Particle::CHIP)
+    @particles.burst(@spawn_x.floor, 90, @spawn_z.floor, Block::STONE)
+    check("a broken block throws 64 chips", @particles.count(Particle::CHIP) - before == 64)
   end
 
   # The held item moves only a little in each frame while the player walks,
