@@ -78,6 +78,12 @@ The chest and the bed are not blocks in VoxeLibre. They are models with one 64x6
 | `bed_head_side.png`, `bed_side.png` | The side of each half in rows 7-12, with the outer end on the right, and a leg in rows 13-15 at the outer end |
 | `bed_head_end.png`, `bed_foot_end.png` | The outer end of each half in rows 7-12, with a leg in rows 13-15 at each corner |
 
+The moon phases are one 256x128 image in VoxeLibre, `mcl_moon_moon_phases.png`. It has 4 × 2 cells of 64x64, in the order of `MOON_LIT` in `game/constants.rb`, from the full moon. Each cell has a 16x16 moon at 24, 24, with a glow around it. The game draws its own glow.
+
+| File | Change |
+| --- | --- |
+| `moon_0.png` … `moon_7.png` | The 16x16 moon of cell k, without the glow. Cell k is in row k / 4 and column k % 4. |
+
 ## Add an image
 
 1. Find the texture in the VoxeLibre `textures/` folder. Its raw URL is `https://git.minetest.land/VoxeLibre/VoxeLibre/raw/branch/master/textures/<name>.png`.

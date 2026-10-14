@@ -105,7 +105,10 @@ module Tex
   BIRCH_LEAVES = 104
   BIRCH_PLANKS = 105
   BIRCH_SAPLING = 106
-  FONT = 107
+  # The moon in each phase: MOON + 0 is the full moon, in the order of
+  # MOON_LIT.
+  MOON = 107
+  FONT = MOON + 8
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -179,7 +182,8 @@ module Tex
                   DOOR_LOWER, DOOR_UPPER, DOOR_ITEM, CHEST_TOP, CHEST_SIDE, CHEST_FRONT, BED_TOP, BED_HEAD_TOP,
                   BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH,
                   SPRUCE_LOG_SIDE, SPRUCE_LOG_TOP, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG_SIDE,
-                  BIRCH_LOG_TOP, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING]
+                  BIRCH_LOG_TOP, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING, MOON, MOON + 1, MOON + 2, MOON + 3,
+                  MOON + 4, MOON + 5, MOON + 6, MOON + 7]
   IMAGE_FILES = %w[grass_top grass_side dirt stone sand water oak_log_side oak_log_top oak_leaves oak_planks cobble glass snow
                    snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
                    torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire oak_sapling apple
@@ -189,7 +193,8 @@ module Tex
                    furnace_side furnace_top door_lower door_upper door_item chest_top chest_side chest_front bed_top
                    bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
                    spruce_log_side spruce_log_top spruce_leaves spruce_planks spruce_sapling birch_log_side
-                   birch_log_top birch_leaves birch_planks birch_sapling]
+                   birch_log_top birch_leaves birch_planks birch_sapling moon_0 moon_1 moon_2 moon_3 moon_4 moon_5
+                   moon_6 moon_7]
 
   def self.images(px)
     s = 0

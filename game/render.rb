@@ -239,10 +239,9 @@ class Game
   # Sky layer: drawn before the world, so terrain and clouds cover it.
   def build_sky(w, h, s)
     @sky.clear
-    draw_sky_body(w, h, s, 1.0, 1.0, 0.95, 0.75, 70.0, 1.0, true)
-    # A waning moon is lit on its east edge, and a waxing moon on its west edge.
+    draw_sky_body(w, h, s, 1.0, Tex::WHITE, 1.0, 0.95, 0.75, 70.0, 1.0)
     phase = @day % 8
-    draw_sky_body(w, h, s, -1.0, 0.85, 0.88, 0.95, 46.0, MOON_LIT[phase], phase < 4)
+    draw_sky_body(w, h, s, -1.0, Tex::MOON + phase, 1.0, 1.0, 1.0, 46.0, MOON_LIT[phase])
     # Rain hides the stars.
     night = (0.55 - daylight) * 2.5 * (1.0 - @weather.rain)
     return if night <= 0.0
@@ -271,10 +270,9 @@ class Game
     end
   end
 
-  # The sun (side 1) or the moon (side -1). Only the lit part shows: lit is
-  # its width, from the east edge or from the west edge.
-  def draw_sky_body(w, h, s, side, r, g, b, size, lit, east)
-    return if lit <= 0.0
+  # The sun (side 1) or the moon (side -1): the texture layer with the color
+  # r, g, b, in a glow that is as bright as the lit part.
+  def draw_sky_body(w, h, s, side, layer, r, g, b, size, lit)
     a = @time_of_day * Math::PI * 2.0
     dx = Math.cos(a) * side
     dy = Math.sin(a) * side
@@ -290,11 +288,7 @@ class Game
     # Rain hides the sun and the moon.
     clear = 1.0 - @weather.rain
     return if clear <= 0.0
-    # East is +x. A point 1 block east of the body shows which screen side is east.
-    right = east
-    right = (@camera.sx > sx) == east if @camera.project(ex + dx * 100.0 + 1.0, ey + dy * 100.0, ez + dz * 100.0, w, h)
-    lw = half * 2.0 * lit
     @sky.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18 * clear * lit)
-    @sky.rect(right ? sx + half - lw : sx - half, sy - half, lw, half * 2.0, r, g, b, clear)
+    @sky.quad(sx - half, sy - half, half * 2.0, half * 2.0, layer, 1.0, 1.0, r, g, b, clear)
   end
 end
