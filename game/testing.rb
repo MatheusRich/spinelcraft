@@ -222,8 +222,21 @@ class Game
     set_slider(M_BRIGHTNESS, 1.0)
     set_slider(M_VOLUME, 0.25)
     check("the brightness and volume sliders set the options", @brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")
+    @fog_end = 1200.0
+    @show_debug = false
+    save_options
     @brightness = 0.0
     @volume = volume
+    @fog_end = view
+    @show_debug = true
+    load_options
+    File.delete(OPTIONS_PATH)
+    check("the options load from the file that save_options writes",
+          @brightness == 1.0 && @volume == 0.25 && @fog_end == 1200.0 && !@show_debug && !@fullscreen)
+    @brightness = 0.0
+    @volume = volume
+    @fog_end = view
+    @show_debug = true
     seed = @seed
     click_menu(M_NEW_WORLD)
     once = @seed == seed && @menu_confirm

@@ -1,8 +1,9 @@
 # The compiled game (./build.sh)
 /spinelcraft
 
-# Saved worlds
+# Saved worlds and the options
 *.sav
+/options.txt
 
 # Raw screenshots (tools/shot.sh converts them to PNG)
 *.ppm

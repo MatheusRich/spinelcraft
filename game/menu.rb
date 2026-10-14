@@ -90,6 +90,37 @@ class Game
     end
   end
 
+  # Writes the options to OPTIONS_PATH, one "name:value" line each, as in
+  # the options.txt of Minecraft.
+  def save_options
+    File.open(OPTIONS_PATH, "w") do |f|
+      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nview:#{@fog_end}\nfullscreen:#{@fullscreen}\ndebug:#{@show_debug}\n")
+    end
+  end
+
+  # Reads the options that save_options wrote. An option that is not in the
+  # file keeps its default.
+  def load_options
+    return unless File.exist?(OPTIONS_PATH)
+    File.binread(OPTIONS_PATH).split("\n").each do |line|
+      parts = line.split(":")
+      next if parts.size != 2
+      name = parts[0]
+      value = parts[1]
+      if name == "brightness"
+        @brightness = value.to_f.clamp(0.0, 1.0)
+      elsif name == "volume"
+        @volume = value.to_f.clamp(0.0, 1.0)
+      elsif name == "view"
+        @fog_end = value.to_f.clamp(VIEW_MIN, VIEW_MAX)
+      elsif name == "fullscreen"
+        @fullscreen = value == "true"
+      elsif name == "debug"
+        @show_debug = value == "true"
+      end
+    end
+  end
+
   def menu_label(i)
     if i == M_RESUME
       "BACK TO GAME"

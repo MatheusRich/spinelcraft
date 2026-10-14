@@ -104,7 +104,7 @@ class Game
     @alive_time = 0.0
     @anim_time = 0.0
     @fullscreen = false
-    @fog_end = (ENV["VIEW"] || FOG_END.to_s).to_f
+    @fog_end = FOG_END.to_f
     # The options of the pause menu (game/menu.rb), from 0 to 1. Brightness 0
     # is the light without a lift. The volume starts at half.
     @brightness = 0.0
@@ -131,7 +131,10 @@ class Game
     @survival = ENV["MODE"] == "survival"
     @loaded = [""]
     @changed = false
+    # A scripted run (FRAMES) does not change the save or the options.
     @save_on_quit = ENV["FRAMES"].nil? || !ENV["SAVE"].nil?
+    load_options if @save_on_quit
+    @fog_end = ENV["VIEW"].to_f if ENV["VIEW"]
     @sound = false
     @demo = !ENV["DEMO"].nil?
     @clouds = Clouds.new(@seed)
@@ -213,6 +216,7 @@ class Game
     vsync = ENV["NOVSYNC"] ? 0 : 1
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
+    Gfx.gfx_fullscreen(1) if @fullscreen
     abort "texture upload failed" unless Gfx.gfx_textures(Tex.build, Tex::LAYERS)
     abort "skin upload failed" unless Gfx.gfx_skins(Tex.skins, Tex::SKIN_FILES.size)
     upload_clouds
@@ -548,7 +552,10 @@ class Game
       Gfx.gfx_screenshot(@shot) if @shot != "" && frames == @max_frames - 1
       break if @max_frames > 0 && frames >= @max_frames
     end
-    save if @save_on_quit
+    if @save_on_quit
+      save
+      save_options
+    end
     elapsed = (Gfx.gfx_ns - started) / 1.0e9
     puts "gpu_wait_ms=#{Gfx.gfx_gpu_ms.round(2)}" if ENV["GPUTIME"]
     puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(total_cpu / frames).round(3)} max_cpu_ms=#{max_cpu.round(2)} max_frame_ms=#{max_frame.round(1)} slow_frames=#{slow_frames} health=#{@vitals.health} dead=#{@vitals.dead?} mobs=#{@mobs.size}"
