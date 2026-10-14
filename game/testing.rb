@@ -85,7 +85,7 @@ class Game
     return unless @player.hit
     if frame % 20 == 0 && frame < 50
       b = @world.get(@player.hx, @player.hy, @player.hz)
-      burst_particles(@player.hx, @player.hy, @player.hz, b)
+      @particles.burst(@player.hx, @player.hy, @player.hz, b)
       play(Sfx::BREAK, 0.7)
       set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
     elsif frame % 20 == 0 && frame >= 60 && frame < 120
@@ -427,7 +427,7 @@ class Game
     @player.y = 89.0
     @player.z = pz + 0.5
     60.times { update_mobs(1.0 / 60.0) }
-    check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @pt_kind.count(FLAME) > 0)
+    check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @particles.count(Particle::FLAME) > 0)
     @mobs.clear
     @survival = true
     @health = MAX_HEALTH

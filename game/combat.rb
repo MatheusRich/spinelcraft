@@ -3,18 +3,6 @@ class Game
   # The sound that each mob kind makes now and then, indexed by kind.
   MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::STEP, Sfx::OINK, Sfx::SPLASH]
 
-  def clear_arrows
-    @ar_x.clear
-    @ar_y.clear
-    @ar_z.clear
-    @ar_vx.clear
-    @ar_vy.clear
-    @ar_vz.clear
-    @ar_life.clear
-    @ar_stuck.clear
-    @ar_damage.clear
-  end
-
   # Monsters spawn only where no torch or lava is this near (in steps along
   # x, y and z; walls do not count). The light of a torch drops by 1 for
   # each step from 14, so the edge of this area has light 6.
@@ -139,7 +127,7 @@ class Game
         explode(m.x, m.y + 0.8, m.z)
       end
       m.douse if m.fire > 0.0 && @rain > 0.5 && under_sky?(m.x, m.y + m.tall, m.z)
-      emit_fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
+      @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
       k = 0
@@ -219,15 +207,8 @@ class Game
       @inv_block[slot] = Block::AIR if @inv_count[slot] == 0
     end
     speed = 12.0 + pull * 30.0
-    @ar_x << @player.x
-    @ar_y << @player.eye_y - 0.1
-    @ar_z << @player.z
-    @ar_vx << @player.fx * speed
-    @ar_vy << @player.fy * speed
-    @ar_vz << @player.fz * speed
-    @ar_life << 5.0
-    @ar_stuck << false
-    @ar_damage << 2 + (pull * 7.0).to_i
+    @arrows << Arrow.new(@player.x, @player.eye_y - 0.1, @player.z,
+                         @player.fx * speed, @player.fy * speed, @player.fz * speed, 5.0, 2 + (pull * 7.0).to_i)
     @swing = 0.25
     play(Sfx::SHOOT, 0.8)
     wear_tool
@@ -250,7 +231,7 @@ class Game
           dz = z + 0.5 - cz
           b = @world.get(x, y, z)
           if dx * dx + dy * dy + dz * dz < 9.5 - rand01 * 2.5 && b != Block::AIR && b != Block::BEDROCK && !Block.water?(b) && !Block.lava?(b)
-            burst_particles(x, y, z, b) if rand01 < 0.15
+            @particles.burst(x, y, z, b) if rand01 < 0.15
             set_block(x, y, z, Block::AIR)
             drop_from_block(Block::DROPS[b], 1, x, y, z) if @survival && rand01 < BLAST_DROP
           end
@@ -260,7 +241,7 @@ class Game
       end
       x += 1
     end
-    smoke_puff(cx, cy, cz, 40, 3.0)
+    @particles.smoke(cx, cy, cz, 40, 3.0)
     play(Sfx::BREAK, 1.0)
     play(Sfx::HIT, 1.0)
     pdx = @player.x - cx
@@ -294,91 +275,33 @@ class Game
     return if dist < 0.5
     speed = 22.0
     t = dist / speed
-    @ar_x << sx
-    @ar_y << sy
-    @ar_z << sz
-    @ar_vx << dx / t
-    @ar_vy << dy / t + 9.0 * t
-    @ar_vz << dz / t
-    @ar_life << 4.0
-    @ar_stuck << false
-    @ar_damage << 0
+    @arrows << Arrow.new(sx, sy, sz, dx / t, dy / t + 9.0 * t, dz / t, 4.0, 0)
     play(Sfx::SHOOT, near_volume(sx, sz, 0.9))
   end
 
   def update_arrows(dt)
-    i = 0
-    while i < @ar_life.size
-      @ar_life[i] -= dt
-      unless @ar_stuck[i]
-        @ar_vy[i] -= 18.0 * dt
-        nx = @ar_x[i] + @ar_vx[i] * dt
-        ny = @ar_y[i] + @ar_vy[i] * dt
-        nz = @ar_z[i] + @ar_vz[i] * dt
-        if Block.solid?(@world.get(nx.floor, ny.floor, nz.floor))
-          @ar_stuck[i] = true
-          @ar_life[i] = 3.0 if @ar_life[i] > 3.0
-        else
-          @ar_x[i] = nx
-          @ar_y[i] = ny
-          @ar_z[i] = nz
-          p = @player
-          if @ar_damage[i] > 0
-            k = 0
-            while k < @mobs.size
-              m = @mobs[k]
-              if nx > m.x - m.half && nx < m.x + m.half && ny > m.y && ny < m.y + m.tall && nz > m.z - m.half && nz < m.z + m.half
-                m.hit(@ar_damage[i], nx - @ar_vx[i], nz - @ar_vz[i])
-                m.by_player = true
-                play(Sfx::HIT, near_volume(nx, nz, 0.8))
-                @ar_life[i] = 0.0
-                break
-              end
-              k += 1
-            end
-          elsif nx > p.x - Player::HALF && nx < p.x + Player::HALF && ny > p.y && ny < p.y + Player::TALL && nz > p.z - Player::HALF && nz < p.z + Player::HALF
-            hurt(3)
-            if @survival
-              len = Math.sqrt(@ar_vx[i] * @ar_vx[i] + @ar_vz[i] * @ar_vz[i])
-              len = 1.0 if len < 0.001
-              @player.vx += @ar_vx[i] / len * 5.0
-              @player.vz += @ar_vz[i] / len * 5.0
-            end
-            @ar_life[i] = 0.0
-          end
+    @arrows.each do |a|
+      next unless a.fly(@world, dt)
+      if a.damage > 0
+        m = @mobs.find { |mob| a.in_box?(mob.x, mob.y, mob.z, mob.half, mob.tall) }
+        if m
+          m.hit(a.damage, a.x - a.vx, a.z - a.vz)
+          m.by_player = true
+          play(Sfx::HIT, near_volume(a.x, a.z, 0.8))
+          a.vanish
         end
+      elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)
+        hurt(3)
+        if @survival
+          len = Math.sqrt(a.vx * a.vx + a.vz * a.vz)
+          len = 1.0 if len < 0.001
+          @player.vx += a.vx / len * 5.0
+          @player.vz += a.vz / len * 5.0
+        end
+        a.vanish
       end
-      i += 1
     end
-    i = @ar_life.size - 1
-    while i >= 0
-      if @ar_life[i] <= 0.0
-        @ar_x.delete_at(i)
-        @ar_y.delete_at(i)
-        @ar_z.delete_at(i)
-        @ar_vx.delete_at(i)
-        @ar_vy.delete_at(i)
-        @ar_vz.delete_at(i)
-        @ar_life.delete_at(i)
-        @ar_stuck.delete_at(i)
-        @ar_damage.delete_at(i)
-      end
-      i -= 1
-    end
-  end
-
-  def draw_arrows
-    i = 0
-    while i < @ar_life.size
-      vx = @ar_vx[i]
-      vy = @ar_vy[i]
-      vz = @ar_vz[i]
-      yaw = Math.atan2(-vx, vz)
-      pitch = -Math.atan2(vy, Math.sqrt(vx * vx + vz * vz))
-      @dyn.box(@ar_x[i], @ar_y[i], @ar_z[i], yaw, 0.0, 0.0, pitch, -0.03, -0.03, -0.6, 0.03, 0.03, 0.0, Tex::WHITE, 0.45, 0.32, 0.18, 1.0)
-      @dyn.box(@ar_x[i], @ar_y[i], @ar_z[i], yaw, 0.0, 0.0, pitch, -0.05, -0.05, -0.62, 0.05, 0.05, -0.5, Tex::WHITE, 0.9, 0.9, 0.9, 1.0)
-      i += 1
-    end
+    @arrows.select!(&:alive?)
   end
 
   def find_target_mob

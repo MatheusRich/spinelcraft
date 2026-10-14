@@ -42,7 +42,7 @@ class Game
       z = @player.z + (rand01 * 2.0 - 1.0) * 8.0
       h = @world.height_at(x.floor, z.floor)
       if h > @player.y - 8.0 && h < @player.y + 6.0
-        spawn_particle(DROP, x, h + 0.05, z, 0.0, 1.2 + rand01, 0.0, 0.2 + rand01 * 0.1, Tex::PUFF)
+        @particles.add(Particle::DROP, x, h + 0.05, z, 0.0, 1.2 + rand01, 0.0, 0.2 + rand01 * 0.1, Tex::PUFF)
       end
       n -= 1
     end

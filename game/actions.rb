@@ -116,7 +116,7 @@ class Game
         mine(dt)
       elsif @action_cooldown <= 0.0
         broken = @world.get(@player.hx, @player.hy, @player.hz)
-        burst_particles(@player.hx, @player.hy, @player.hz, broken)
+        @particles.burst(@player.hx, @player.hy, @player.hz, broken)
         play(Sfx::BREAK, 0.7)
         set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
         @action_cooldown = 0.22
@@ -256,7 +256,7 @@ class Game
     speed = need > 0 && tier < need ? 0.3 : 1.0 + tier * 1.2
     @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / hardness
     if @mine_progress >= 1.0
-      burst_particles(x, y, z, b)
+      @particles.burst(x, y, z, b)
       play(Sfx::BREAK, 0.7)
       set_block(x, y, z, Block::AIR)
       drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need

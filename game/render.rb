@@ -175,7 +175,7 @@ class Game
       next unless @camera.box_visible?(m.x - 1.0, m.y, m.z - 1.0, m.x + 1.0, m.y + 2.0, m.z + 1.0)
       m.draw(@dyn)
     end
-    draw_arrows
+    @arrows.each { |a| a.draw(@dyn) }
     draw_items(ex, ez, reach)
     draw_falling
     # The camera's right and up axes, as in Camera#update.
@@ -184,7 +184,7 @@ class Game
     fz = @player.fz
     rx = Math.cos(@player.yaw)
     rz = Math.sin(@player.yaw)
-    draw_particles(rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
+    @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
     if @player.hit && @captured && @target_mob < 0
       aimed = @world.get(@player.hx, @player.hy, @player.hz)
       @dyn.outline(@player.hx, @player.hy, @player.hz, Block.box_half(aimed), Block.box_top(aimed))

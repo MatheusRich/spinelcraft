@@ -6,6 +6,7 @@ require_relative "game/player"
 require_relative "game/camera"
 require_relative "game/draw"
 require_relative "game/mobs"
+require_relative "game/arrow"
 require_relative "game/sounds"
 require_relative "game/clouds"
 require_relative "game/lod"
@@ -130,29 +131,8 @@ class Game
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
     @was_in_water = false
-    # Particles (game/particles.rb): kind, position, velocity, life, the life
-    # at birth, and texture layer, in parallel arrays.
-    @pt_kind = []
-    @pt_x = []
-    @pt_y = []
-    @pt_z = []
-    @pt_vx = []
-    @pt_vy = []
-    @pt_vz = []
-    @pt_life = []
-    @pt_max = []
-    @pt_layer = []
-    # Arrows: position, velocity and time left; a stuck arrow has stopped.
-    @ar_x = []
-    @ar_y = []
-    @ar_z = []
-    @ar_vx = []
-    @ar_vy = []
-    @ar_vz = []
-    @ar_life = []
-    @ar_stuck = []
-    # 0 for a skeleton's arrow; otherwise the damage of the player's arrow.
-    @ar_damage = []
+    @particles = Particles.new(@seed)
+    @arrows = []
     # Items on the ground (game/items.rb): the block, the count, the position,
     # the velocity, the age, and the seconds until the player can pick it up.
     @it_block = []
@@ -280,7 +260,7 @@ class Game
     @recipe_new.fill(0)
     @furnace_heat = {}
     @mobs.clear
-    clear_arrows
+    @arrows.clear
     clear_items
     @clouds = Clouds.new(@seed)
     upload_clouds
@@ -405,8 +385,8 @@ class Game
     end
     play(Sfx::SPLASH, 0.6) if @player.in_water && !@was_in_water && !@player.flying
     @was_in_water = @player.in_water
-    update_particles(dt)
-    sample_fire_blocks(dt)
+    @particles.update(@world, dt)
+    @particles.sample_fire(@world, @player.x, @player.y, @player.z, dt)
     grow_plants(dt)
     update_items(dt)
     update_falling(dt)

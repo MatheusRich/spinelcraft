@@ -129,7 +129,6 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/inventory.rb` | Hotbar, backpack, chests, crafting, and the inventory screen |
 | `game/items.rb` | Items on the ground: drops, pickup, and their models |
 | `game/hand.rb` | The held item in first person |
-| `game/particles.rb` | Block chips, flames, smoke, embers and drops of rain |
 | `game/weather.rb` | Rain: the weather cycle, the rain quads, and splashes |
 | `game/actions.rb` | Keys, the mouse, mining, placing, beds, and food |
 | `game/combat.rb` | Mob spawning and turns, damage, explosions, the bow, and arrows |
@@ -142,6 +141,8 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/player.rb` | Player physics and the block raycast |
 | `game/camera.rb` | The camera matrix, the frustum, and screen projection |
 | `game/mobs.rb` | Pig, sheep, zombie, skeleton and creeper behavior, physics and box models |
+| `game/arrow.rb` | An arrow in flight: its fall, where it sticks, and its model |
+| `game/particles.rb` | Block chips, flames, smoke, embers and drops of rain |
 | `game/draw.rb` | Vertex builders for the HUD and for 3D boxes |
 | `game/textures.rb` | Generated textures and the bitmap font |
 | `game/sounds.rb` | Sound synthesis |
