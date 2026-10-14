@@ -30,6 +30,15 @@ class World
   GY = WY / 4 + 1
   # A cave is where both cave noise fields are this close to zero (squared sum).
   CAVE_WIDTH = 0.006
+  # Tunnels close in the top CAVE_ROOF blocks of a column. Below that they
+  # widen over CAVE_FADE blocks to CAVE_WIDTH.
+  CAVE_ROOF = 4
+  CAVE_FADE = 8
+  # Tunnels reach the surface only in entrance patches: where the entrance
+  # noise is above ENTRANCE. Minecraft also keeps most tunnels below the
+  # surface and opens a separate, rarer set of entrances.
+  ENTRANCE = 0.25
+  ENTRANCE_SCALE = 48.0
   # Caves at this height and below fill with lava.
   LAVA_LEVEL = 9
   # The base height of the land (BASE) at each continent noise value
@@ -571,17 +580,27 @@ class World
   end
 
   # Caves: two noise fields near zero at once trace long tunnels.
-  def cave?(a, c) = a * a + c * c < CAVE_WIDTH
+  def cave?(a, c, width) = a * a + c * c < width
   # False when the first field alone rules out a cave, so the second needs no sample.
-  def cave_possible?(a) = a * a < CAVE_WIDTH
+  def cave_possible?(a, width) = a * a < width
+
+  # The tunnel width at depth blocks below the top block of a column.
+  def cave_width(depth)
+    return 0.0 if depth <= CAVE_ROOF
+    return CAVE_WIDTH if depth >= CAVE_ROOF + CAVE_FADE
+    CAVE_WIDTH * (depth - CAVE_ROOF) / CAVE_FADE
+  end
+
+  # True in the patches where tunnels keep their width up to the surface.
+  def entrance?(x, z) = @noise.noise2(x / ENTRANCE_SCALE + 200.0, z / ENTRANCE_SCALE) > ENTRANCE
 
   # The two cave noise fields at a point of the cave grid, which has one point
   # every 4 blocks. generate_chunk and carved? both sample it here.
   def cave_a(gx, gy, gz) = @noise2.noise3(gx * 4 / 40.0, gy * 4 / 22.0, gz * 4 / 40.0)
   def cave_b(gx, gy, gz) = @noise3.noise3(gx * 4 / 40.0 + 50.0, gy * 4 / 22.0, gz * 4 / 40.0)
 
-  # The cave test for one block, from the 8 grid points around it. It gives
-  # the same numbers as the chunk grid in generate_chunk.
+  # The cave test for one block of an entrance patch, from the 8 grid points
+  # around it. It gives the same numbers as the chunk grid in generate_chunk.
   def carved?(x, y, z)
     gx = x >> 2
     gy = y >> 2
@@ -605,7 +624,7 @@ class World
     tx = (x - gx * 4) / 4.0
     ty = (y - gy * 4) / 4.0
     tz = (z - gz * 4) / 4.0
-    cave?(trilinear(@corner_a, 0, 2, 2, tx, ty, tz), trilinear(@corner_b, 0, 2, 2, tx, ty, tz))
+    cave?(trilinear(@corner_a, 0, 2, 2, tx, ty, tz), trilinear(@corner_b, 0, 2, 2, tx, ty, tz), CAVE_WIDTH)
   end
 
   # The top ground block of the tree that grows at column x, z, or -1. It
@@ -618,7 +637,7 @@ class World
     return -1 if r >= Biome::TREES[biome]
     ground = top_block(x, z, h, biome)
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS
-    return -1 if !beach?(h - 1) && carved?(x, h - 1, z)
+    return -1 if !beach?(h - 1) && entrance?(x, z) && carved?(x, h - 1, z)
     h - 1
   end
 
@@ -666,6 +685,7 @@ class World
         biome = @col_b[lx * CHUNK + lz]
         top = h - 1
         surface = top_block(x, z, h, biome)
+        entrance = entrance?(x, z)
         base = World.index(x, 0, z)
         y = 0
         while y < h
@@ -695,10 +715,11 @@ class World
             iy = fy.to_i
             iz = fz.to_i
             n = (ix * GY + iy) * GX + iz
+            width = entrance ? CAVE_WIDTH : cave_width(top - y)
             a = trilinear(@cave_a, n, GY, GX, fx - ix, fy - iy, fz - iz)
-            if cave_possible?(a)
+            if cave_possible?(a, width)
               c = trilinear(@cave_b, n, GY, GX, fx - ix, fy - iy, fz - iz)
-              b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c)
+              b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c, width)
             end
           end
           put_block(base + y, b)
