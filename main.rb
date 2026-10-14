@@ -1,6 +1,7 @@
 require_relative "game/gfx"
 require_relative "game/rng"
 require_relative "game/textures"
+require_relative "game/block"
 require_relative "game/noise"
 require_relative "game/world"
 require_relative "game/mesher"

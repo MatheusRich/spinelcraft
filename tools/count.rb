@@ -1,6 +1,7 @@
 # Counts generated blocks by type. Runs under CRuby or Spinel.
 require_relative "../game/rng"
 require_relative "../game/textures"
+require_relative "../game/block"
 require_relative "../game/noise"
 require_relative "../game/world"
 
