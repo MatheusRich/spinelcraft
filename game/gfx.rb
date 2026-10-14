@@ -923,9 +923,9 @@ module Gfx
       return 0;
     }
 
-    /* The rain, after the water. uni[40 + 4 * LEVELS - 4] is its strength. */
+    /* The rain, after the water. uni[UNIFORMS - 8] is its strength, u.rain.x. */
     long gfx_draw_rain(void) {
-      if (!pass || !rain_count || uni[UNIFORMS - 4] <= 0.0f) return 0;
+      if (!pass || !rain_count || uni[UNIFORMS - 8] <= 0.0f) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_rain);
       SDL_GPUBufferBinding b = {.buffer = rain_buf};
       SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
