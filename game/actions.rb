@@ -345,17 +345,18 @@ class Game
 
   # Opens or closes the door at x, y, z and the other half above or below it.
   def toggle_door(x, y, z)
-    b = @world.get(x, y, z) == Block::DOOR ? Block::DOOR_OPEN : Block::DOOR
+    b = Block.door_toggled(@world.get(x, y, z))
     other = door_partner(x, y, z)
     # A closed door must not close on the player or a mob.
-    if b == Block::DOOR
+    unless Block.door_open?(b)
       return if @player.overlaps?(x, y, z) || @player.overlaps?(x, other, z)
       return if mob_in?(x, y < other ? y : other, z, 2)
     end
     @world.set(x, y, z, b)
-    @world.set(x, other, z, b) if Block.door?(@world.get(x, other, z))
+    partner = @world.get(x, other, z)
+    @world.set(x, other, z, Block.door_toggled(partner)) if Block.door?(partner)
     mark_dirty(x, z)
-    play(b == Block::DOOR ? Sfx::DIG_WOOD : Sfx::PLACE, 0.6)
+    play(Block.door_open?(b) ? Sfx::PLACE : Sfx::DIG_WOOD, 0.6)
     @swing = SWING
   end
 
@@ -448,6 +449,9 @@ class Game
       b = Block.facing_id(Block::TORCH, wall ^ 1)
     elsif Block::FACING[b] >= 0
       b = Block.facing_id(b, look_direction ^ 1)
+    elsif b == Block::DOOR
+      # A closed door stands on the edge of its cell next to the player.
+      b = Block.door_id(look_direction ^ 1, false, false)
     end
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
     if Block.plant?(b)
@@ -458,14 +462,14 @@ class Game
       end
       return if !Block.solid?(held) || Block.water?(@world.get(x, y, z))
     end
-    return if Block.solid?(b) && mob_in?(x, y, z, b == Block::DOOR ? 2 : 1)
+    return if Block.solid?(b) && mob_in?(x, y, z, Block.door?(b) ? 2 : 1)
     current = @world.get(x, y, z)
     # The view ray can pass a flower, so a block only replaces tall grass.
     return unless current == Block::AIR || Block.water?(current) || current == Block::TALL_GRASS
-    if b == Block::DOOR
+    if Block.door?(b)
       return unless door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)
-      set_block(x, y + 1, z, b)
+      set_block(x, y + 1, z, Block.door_id(Block::FACING[b], true, false))
     end
     if b == Block::BED
       d = look_direction

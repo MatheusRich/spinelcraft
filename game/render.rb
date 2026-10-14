@@ -194,7 +194,7 @@ class Game
     @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
     if @player.hit && @captured && @target_mob < 0
       aimed = @world.get(@player.hx, @player.hy, @player.hz)
-      @dyn.outline(@player.hx + Block.box_dx(aimed), @player.hy + Block.box_dy(aimed), @player.hz + Block.box_dz(aimed), Block.box_half(aimed), Block.box_top(aimed))
+      @dyn.outline(@player.hx + Block.box_dx(aimed), @player.hy + Block.box_dy(aimed), @player.hz + Block.box_dz(aimed), Block.box_hx(aimed), Block.box_hz(aimed), Block.box_top(aimed))
       if @mining && @mine_progress > 0.0
         e = 0.003
         x = @mine_x.to_f

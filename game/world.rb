@@ -140,7 +140,8 @@ class World
       while by <= y1
         bz = (z - half).floor
         while bz <= z1
-          return true if Block.solid?(get(bx, by, bz))
+          b = get(bx, by, bz)
+          return true if Block.solid?(b) && (!Block.door?(b) || door_in_box?(b, bx, bz, x, z, half))
           bz += 1
         end
         by += 1
@@ -148,6 +149,46 @@ class World
       bx += 1
     end
     false
+  end
+
+  # True when the board of the door b in the cell bx, bz overlaps the box of
+  # half width half around x, z.
+  def door_in_box?(b, bx, bz, x, z, half)
+    (bx + 0.5 + Block.box_dx(b) - x).abs < Block.box_hx(b) + half && (bz + 0.5 + Block.box_dz(b) - z).abs < Block.box_hz(b) + half
+  end
+
+  # The nearest face of the solid blocks that overlap the box of
+  # solid_in_box?, on the x axis (axis 0) or the z axis (axis 2): the lowest
+  # face when dir is 1, and the highest when dir is -1. A move along that
+  # axis stops at this face.
+  def box_edge(x, y, z, half, tall, axis, dir)
+    edge = dir > 0 ? 1.0e9 : -1.0e9
+    x1 = (x + half).floor
+    y1 = (y + tall).floor
+    z1 = (z + half).floor
+    bx = (x - half).floor
+    while bx <= x1
+      by = y.floor
+      while by <= y1
+        bz = (z - half).floor
+        while bz <= z1
+          b = get(bx, by, bz)
+          if Block.solid?(b) && (!Block.door?(b) || door_in_box?(b, bx, bz, x, z, half))
+            c = axis == 0 ? bx + 0.5 + Block.box_dx(b) : bz + 0.5 + Block.box_dz(b)
+            h = axis == 0 ? Block.box_hx(b) : Block.box_hz(b)
+            if dir > 0
+              edge = c - h if c - h < edge
+            elsif c + h > edge
+              edge = c + h
+            end
+          end
+          bz += 1
+        end
+        by += 1
+      end
+      bx += 1
+    end
+    edge
   end
 
   def set(x, y, z, b)

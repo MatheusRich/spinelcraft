@@ -50,8 +50,8 @@ module Tex
   PUFF = 52
   # Streaks of rain on a clear background.
   RAIN = 53
-  DOOR = 54
-  DOOR_OPEN = 55
+  DOOR_LOWER = 54
+  DOOR_UPPER = 55
   SAPLING = 56
   APPLE = 57
   WOOD_SWORD = 58
@@ -86,7 +86,8 @@ module Tex
   BED_HEAD_TOP = 86
   FURNACE_SIDE = 87
   FURNACE_TOP = 88
-  FONT = 89
+  DOOR_ITEM = 89
+  FONT = 90
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -147,14 +148,15 @@ module Tex
                   WOOL, FIRE, SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
                   COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL,
                   DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
-                  BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP]
+                  BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP,
+                  DOOR_LOWER, DOOR_UPPER, DOOR_ITEM]
   IMAGE_FILES = %w[grass_top grass_side dirt stone sand water log_side log_top leaves planks cobble glass snow
                    snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
                    torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire sapling apple
                    wood_sword stone_sword iron_sword diamond_sword iron_ingot furnace cooked_porkchop wood_axe
                    stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
                    wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket
-                   furnace_side furnace_top]
+                   furnace_side furnace_top door_lower door_upper door_item]
 
   def self.images(px)
     s = 0
@@ -178,7 +180,6 @@ module Tex
       i += 1
     end
     noisy(px, SKIN, 220, 220, 220, 25, 9)
-    door(px)
     bed(px)
     chest(px)
     puff(px)
@@ -359,25 +360,6 @@ module Tex
 
 
 
-  # A door of boards with a dark frame and a knob. The open door shows only
-  # its edge at the hinge side; the rest is clear.
-  def self.door(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        v = rnd(x / 4, y, 101) / 12 + (rnd(x, y, 102) - 128) / 20
-        edge = x == 0 || y == 0 || x == 15 || y == 15 || x % 5 == 0
-        c = edge ? 95 : 160 + v
-        set(px, DOOR, x, y, c, (c * 0.7).to_i, (c * 0.42).to_i, 255)
-        set(px, DOOR_OPEN, x, y, c, (c * 0.7).to_i, (c * 0.42).to_i, x < 3 ? 255 : 0)
-        x += 1
-      end
-      y += 1
-    end
-    set(px, DOOR, 12, 8, 210, 205, 190, 255)
-    set(px, DOOR, 12, 9, 170, 165, 150, 255)
-  end
 
 
 

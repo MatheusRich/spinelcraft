@@ -170,18 +170,18 @@ class Mesh3
     end
   end
 
-  # Dark edges around the box of a block in the cell x, y, z: half wide
-  # around the center, and top high. A box that is not in the middle of its
+  # Dark edges around the box of a block in the cell x, y, z: hx and hz
+  # around the center on x and z, and top high. A box that is not in the middle of its
   # cell (see Block.box_dx) moves x, y and z.
-  def outline(x, y, z, half, top)
+  def outline(x, y, z, hx, hz, top)
     t = 0.012
     e = 0.004
-    x0 = x + 0.5 - half - e
+    x0 = x + 0.5 - hx - e
     y0 = y - e
-    z0 = z + 0.5 - half - e
-    x1 = x + 0.5 + half + e
+    z0 = z + 0.5 - hz - e
+    x1 = x + 0.5 + hx + e
     y1 = y + top + e
-    z1 = z + 0.5 + half + e
+    z1 = z + 0.5 + hz + e
     i = 0
     while i < 4
       ya = i % 2 == 0 ? y0 : y1

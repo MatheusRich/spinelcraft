@@ -53,10 +53,11 @@ class Game
     shown.each_with_index do |b, i|
       drop_item(b, i == 11 ? 3 : 1, bx - 3.6 + i * 0.65, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
     end
-    set_block(bx - 2, y + 1, bz - 2, Block::DOOR)
-    set_block(bx - 2, y + 2, bz - 2, Block::DOOR)
-    set_block(bx, y + 1, bz - 2, Block::DOOR_OPEN)
-    set_block(bx, y + 2, bz - 2, Block::DOOR_OPEN)
+    # A closed door and an open door that face the player.
+    set_block(bx - 2, y + 1, bz - 2, Block.door_id(2, false, false))
+    set_block(bx - 2, y + 2, bz - 2, Block.door_id(2, true, false))
+    set_block(bx, y + 1, bz - 2, Block.door_id(2, false, true))
+    set_block(bx, y + 2, bz - 2, Block.door_id(2, true, true))
     # The furnace faces the player.
     set_block(bx + 2, y + 1, bz - 2, Block.facing_id(Block::FURNACE, 2))
     set_block(bx + 4, y + 1, bz - 2, Block::CRAFTING_TABLE)
@@ -140,6 +141,7 @@ class Game
     test_dark
     test_door_furnace_sapling
     test_door_rules
+    test_door_board
     test_ladder
     test_plant_box
     test_bed
@@ -1053,17 +1055,52 @@ class Game
     z = @spawn_z.floor + 56
     y = @world.height_at(x, z)
     set_block(x, y - 1, z, Block::STONE)
-    set_block(x, y, z, Block::DOOR)
-    set_block(x, y + 1, z, Block::DOOR)
+    set_block(x, y, z, Block.door_id(0, false, false))
+    set_block(x, y + 1, z, Block.door_id(0, true, false))
     stacked = door_fits?(x, y + 2, z)
     toggle_door(x, y, z)
     @mobs.clear
     @mobs << Mob.new(Mob::ZOMBIE, x + 0.5, y.to_f, z + 0.5, 3)
     toggle_door(x, y, z)
-    open = @world.get(x, y, z) == Block::DOOR_OPEN
+    open = Block.door_open?(@world.get(x, y, z))
     @mobs.clear
     set_block(x, y, z, Block::AIR)
     check("a door does not stand on a door or close on a mob", !stacked && open)
+  end
+
+  # A door is a thin board on one edge of its cell. The player walks into the
+  # cell up to the board of a closed door, and through an open door.
+  def test_door_board
+    x = @spawn_x.floor + 50
+    z = @spawn_z.floor + 62
+    y = @world.height_at(x, z) + 3
+    [-1, 0, 1, 2].each do |dz|
+      set_block(x, y - 1, z + dz, Block::STONE)
+      set_block(x, y, z + dz, Block::AIR)
+      set_block(x, y + 1, z + dz, Block::AIR)
+    end
+    # The closed door faces -z, so its board is on the -z edge of the cell.
+    set_block(x, y, z + 1, Block.door_id(3, false, false))
+    set_block(x, y + 1, z + 1, Block.door_id(3, true, false))
+    @player.x = x + 0.5
+    @player.y = y.to_f
+    @player.z = z - 0.5
+    @player.move(@world, 0.0, 0.0, 0.6)
+    @player.move(@world, 0.0, 0.0, 0.6)
+    stops = (@player.z - (z + 1 - Player::HALF - 0.001)).abs < 0.0001
+    # The board of a closed door that faces +z is on the far edge of its cell.
+    set_block(x, y, z + 1, Block.door_id(2, false, false))
+    set_block(x, y + 1, z + 1, Block.door_id(2, true, false))
+    @player.z = z + 0.5
+    @player.move(@world, 0.0, 0.0, 0.6)
+    @player.move(@world, 0.0, 0.0, 0.6)
+    inside = (@player.z - (z + 1 + 0.8125 - Player::HALF - 0.001)).abs < 0.0001
+    toggle_door(x, y, z + 1)
+    @player.z = z + 0.5
+    4.times { @player.move(@world, 0.0, 0.0, 0.6) }
+    through = @player.z > z + 2.5
+    set_block(x, y, z + 1, Block::AIR)
+    check("a door stops the player at its board, and an open door lets the player through", stops && inside && through)
   end
 
   # An item in a chunk that is not loaded waits there.
@@ -1082,12 +1119,12 @@ class Game
     z = @spawn_z.floor + 50
     y = @world.height_at(x, z)
     set_block(x, y - 1, z, Block::GRASS)
-    set_block(x, y, z, Block::DOOR)
-    set_block(x, y + 1, z, Block::DOOR)
+    set_block(x, y, z, Block.door_id(0, false, false))
+    set_block(x, y + 1, z, Block.door_id(0, true, false))
     toggle_door(x, y + 1, z)
-    opened = @world.get(x, y, z) == Block::DOOR_OPEN && @world.get(x, y + 1, z) == Block::DOOR_OPEN
+    opened = @world.get(x, y, z) == Block.door_id(0, false, true) && @world.get(x, y + 1, z) == Block.door_id(0, true, true)
     toggle_door(x, y, z)
-    closed = Block.solid?(@world.get(x, y, z)) && Block.solid?(@world.get(x, y + 1, z))
+    closed = @world.get(x, y, z) == Block.door_id(0, false, false) && @world.get(x, y + 1, z) == Block.door_id(0, true, false)
     set_block(x, y, z, Block::AIR)
     check("a door opens and closes as a whole, and breaks as a whole", opened && closed && @world.get(x, y + 1, z) == Block::AIR)
     @player.x = x + 0.5
@@ -1182,10 +1219,16 @@ class Game
     place
     furnace = @world.get(x, g, z)
     set_block(x, g, z, Block::AIR)
+    @inv.clear
+    @inv.add(Block::DOOR)
+    @player.raycast(@world)
+    place
+    door = @world.get(x, g, z) == Block.door_id(1, false, false) && @world.get(x, g + 1, z) == Block.door_id(1, true, false)
+    set_block(x, g, z, Block::AIR)
     @survival = survival
     @inv.clear
     check("a bed takes two blocks along the view and breaks as a whole", blocked && two && gone)
-    check("a furnace turns its front to the player", furnace == Block.facing_id(Block::FURNACE, 1))
+    check("a furnace and a door turn their front to the player", furnace == Block.facing_id(Block::FURNACE, 1) && door)
   end
 
   # The view ray hits a plant only in its small box, and goes on past it.

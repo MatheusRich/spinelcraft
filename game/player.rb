@@ -133,7 +133,7 @@ class Player
     if dx != 0.0
       @x += dx
       if blocked?(world)
-        @x = dx > 0.0 ? (@x + HALF).floor - HALF - 0.001 : (@x - HALF).floor + 1.0 + HALF + 0.001
+        @x = world.box_edge(@x, @y, @z, HALF, TALL, 0, dx > 0.0 ? 1 : -1) + (dx > 0.0 ? -HALF - 0.001 : HALF + 0.001)
         @vx = 0.0
         @against_wall = true
       elsif @sneaking && !ground_below?(world)
@@ -145,7 +145,7 @@ class Player
     if dz != 0.0
       @z += dz
       if blocked?(world)
-        @z = dz > 0.0 ? (@z + HALF).floor - HALF - 0.001 : (@z - HALF).floor + 1.0 + HALF + 0.001
+        @z = world.box_edge(@x, @y, @z, HALF, TALL, 2, dz > 0.0 ? 1 : -1) + (dz > 0.0 ? -HALF - 0.001 : HALF + 0.001)
         @vz = 0.0
         @against_wall = true
       elsif @sneaking && !ground_below?(world)
@@ -187,14 +187,15 @@ class Player
     bx + 1 > @x - HALF && bx < @x + HALF && by + 1 > @y && by < @y + TALL && bz + 1 > @z - HALF && bz < @z + HALF
   end
 
-  # True when the ray from o along d meets the box of b (Block.box_half and
-  # box_top) in the cell ix, iy, iz within reach.
+  # True when the ray from o along d meets the box of b (Block.box_hx, box_hz
+  # and box_top) in the cell ix, iy, iz within reach.
   def hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b)
-    h = Block.box_half(b)
+    hx = Block.box_hx(b)
+    hz = Block.box_hz(b)
     x = ix + 0.5 + Block.box_dx(b)
     y = iy + Block.box_dy(b)
     z = iz + 0.5 + Block.box_dz(b)
-    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, x - h, y, z - h, x + h, y + Block.box_top(b), z + h)
+    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, x - hx, y, z - hz, x + hx, y + Block.box_top(b), z + hz)
     t >= 0.0 && t <= REACH
   end
 
@@ -226,7 +227,7 @@ class Player
     t = 0.0
     while t <= REACH
       b = world.get(ix, iy, iz)
-      if b != Block::AIR && !Block.water?(b) && !Block.lava?(b) && (!Block.plant?(b) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b))
+      if b != Block::AIR && !Block.water?(b) && !Block.lava?(b) && (!(Block.plant?(b) || Block.door?(b)) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b))
         @hit = true
         @hit_t = t
         @hx = ix

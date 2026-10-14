@@ -61,7 +61,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 
 `build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module.
 
-Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the door, the bed, the chest, the block cracks, the hearts, the smoke, the rain and the font.
+Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the bed, the chest, the block cracks, the hearts, the smoke, the rain and the font.
 
 ## Rendering
 
@@ -133,7 +133,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
-| `SELFTEST=1` | Check 98 game rules and print PASS or FAIL for each |
+| `SELFTEST=1` | Check 99 game rules and print PASS or FAIL for each |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
 
