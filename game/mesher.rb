@@ -220,8 +220,9 @@ class Mesher
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
                   w1 = (w1 & ~(15 << 19)) | (LIGHT_MAX << 19) if Block.lava?(id)
                   # Bits 25-27 hold 1 + the facing and bits 28-30 the shape of a
-                  # block with a shape, which has no AO.
-                  w1 |= (255 << 8) | ((facing[id] + 1) << 25) | (shape << 28) if shape > 0
+                  # block with a shape, which has no AO. A shape without a
+                  # facing (a cactus) draws as if it faces +x.
+                  w1 |= (255 << 8) | ((facing[id] < 0 ? 1 : facing[id] + 1) << 25) | (shape << 28) if shape > 0
                   list = @lists[f]
                   list << w0
                   list << w1

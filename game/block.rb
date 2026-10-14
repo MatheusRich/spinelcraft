@@ -122,10 +122,11 @@ module Block
   # The sizes are those of Minecraft: 1 a closed door, a board 3 thick on
   # the +x edge; 2 an open door, the same board on the +z edge, so that
   # both share the hinge corner; 3 a ladder, a board 1 thick on its wall;
-  # 4 a chest; 5 a bed. Shape 0 is the full cube. SHAPE in the chunk
-  # shader (gfx.rb) has the same boxes.
+  # 4 a chest; 5 a bed; 6 a cactus, 1 narrower on each side, so that the
+  # clear edges of its texture fall outside the box. Shape 0 is the full
+  # cube. SHAPE in the chunk shader (gfx.rb) has the same boxes.
   SHAPE_BOX = [0, 0, 0, 16, 16, 16, 13, 0, 0, 16, 16, 16, 0, 0, 13, 16, 16, 16, 0, 0, 0, 1, 16, 16,
-               1, 0, 1, 15, 14, 15, 0, 0, 0, 16, 9, 16]
+               1, 0, 1, 15, 14, 15, 0, 0, 0, 16, 9, 16, 1, 0, 1, 15, 16, 15]
 
   NAMES = ["AIR", "GRASS", "DIRT", "STONE", "SAND", "WATER", "OAK LOG", "OAK LEAVES", "OAK PLANKS", "COBBLESTONE", "GLASS", "SNOWY GRASS", "BEDROCK", "BRICKS", "COAL ORE", "IRON ORE", "GRAVEL", "DIAMOND ORE", "CACTUS", "SNOW", "TALL GRASS", "ROSE", "DANDELION", "TORCH", "PORKCHOP", "WOODEN PICKAXE", "STONE PICKAXE", "IRON PICKAXE", "DIAMOND PICKAXE", "WATER", "WATER", "WATER", "WATER", "WATER", "WATER", "WATER", "BOW", "ARROW", "LAVA", "LAVA", "LAVA", "LAVA", "WOOL", "BED", "CHEST", "DOOR", "OAK SAPLING", "APPLE", "WOODEN SWORD", "STONE SWORD", "IRON SWORD", "DIAMOND SWORD", "IRON INGOT", "FURNACE", "COOKED PORKCHOP", "WOODEN AXE", "STONE AXE", "IRON AXE", "DIAMOND AXE", "WOODEN SHOVEL", "STONE SHOVEL", "IRON SHOVEL", "DIAMOND SHOVEL", "SEEDS", "WHEAT", "WHEAT", "WHEAT", "WHEAT", "BREAD", "CRAFTING TABLE", "LADDER", "BUCKET", "WATER BUCKET", "LAVA BUCKET", "TORCH", "TORCH", "TORCH", "TORCH", "FURNACE", "FURNACE", "FURNACE", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "LADDER", "LADDER", "LADDER", "CHEST", "CHEST", "CHEST", "FURNACE", "FURNACE", "FURNACE", "FURNACE", "BED", "BED", "BED", "BED", "BED", "BED", "BED", "BED", "ROTTEN FLESH", "SPRUCE LOG", "SPRUCE LEAVES", "SPRUCE PLANKS", "SPRUCE SAPLING", "BIRCH LOG", "BIRCH LEAVES", "BIRCH PLANKS", "BIRCH SAPLING", "MUTTON", "COOKED MUTTON"]
   TOP = [0, Tex::GRASS_TOP, Tex::DIRT, Tex::STONE, Tex::SAND, Tex::WATER, Tex::OAK_LOG_TOP, Tex::OAK_LEAVES, Tex::OAK_PLANKS, Tex::COBBLE, Tex::GLASS, Tex::SNOW, Tex::BEDROCK, Tex::BRICK, Tex::COAL, Tex::IRON, Tex::GRAVEL, Tex::DIAMOND, Tex::CACTUS_TOP, Tex::SNOW, Tex::TALL_GRASS, Tex::ROSE, Tex::DANDELION, Tex::TORCH, Tex::PORKCHOP, Tex::WOOD_PICK, Tex::STONE_PICK, Tex::IRON_PICK, Tex::DIAMOND_PICK, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::BOW, Tex::ARROW, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::WOOL, Tex::BED_ITEM, Tex::CHEST_TOP, Tex::DOOR_ITEM, Tex::OAK_SAPLING, Tex::APPLE, Tex::WOOD_SWORD, Tex::STONE_SWORD, Tex::IRON_SWORD, Tex::DIAMOND_SWORD, Tex::IRON_INGOT, Tex::FURNACE_TOP, Tex::COOKED_PORKCHOP, Tex::WOOD_AXE, Tex::STONE_AXE, Tex::IRON_AXE, Tex::DIAMOND_AXE, Tex::WOOD_SHOVEL, Tex::STONE_SHOVEL, Tex::IRON_SHOVEL, Tex::DIAMOND_SHOVEL, Tex::SEEDS, Tex::WHEAT_1, Tex::WHEAT_2, Tex::WHEAT_RIPE, Tex::WHEAT, Tex::BREAD, Tex::CRAFT_TOP, Tex::CLEAR, Tex::BUCKET, Tex::WATER_BUCKET, Tex::LAVA_BUCKET, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::CLEAR, Tex::CLEAR, Tex::CLEAR, Tex::CHEST_TOP, Tex::CHEST_TOP, Tex::CHEST_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::BED_TOP, Tex::BED_TOP, Tex::BED_TOP, Tex::BED_TOP, Tex::BED_HEAD_TOP, Tex::BED_HEAD_TOP, Tex::BED_HEAD_TOP, Tex::BED_HEAD_TOP, Tex::ROTTEN_FLESH, Tex::SPRUCE_LOG_TOP, Tex::SPRUCE_LEAVES, Tex::SPRUCE_PLANKS, Tex::SPRUCE_SAPLING, Tex::BIRCH_LOG_TOP, Tex::BIRCH_LEAVES, Tex::BIRCH_PLANKS, Tex::BIRCH_SAPLING, Tex::MUTTON, Tex::COOKED_MUTTON]
@@ -143,13 +144,13 @@ module Block
   BASE = [AIR, GRASS, DIRT, STONE, SAND, WATER, OAK_LOG, OAK_LEAVES, OAK_PLANKS, COBBLE, GLASS, SNOW_GRASS, BEDROCK, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS, SNOW, TALL_GRASS, ROSE, DANDELION, TORCH, PORKCHOP, WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, FLOW, 30, 31, 32, 33, 34, 35, BOW, ARROW, LAVA, LAVA_FLOW, 40, 41, WOOL, BED, CHEST, DOOR, OAK_SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE, COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL, DIAMOND_SHOVEL, SEEDS, 64, 65, WHEAT_RIPE, WHEAT, BREAD, CRAFTING_TABLE, LADDER, BUCKET, WATER_BUCKET, LAVA_BUCKET, TORCH, TORCH, TORCH, TORCH, FURNACE, FURNACE, FURNACE, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, LADDER, LADDER, LADDER, CHEST, CHEST, CHEST, FURNACE, FURNACE, FURNACE, FURNACE, BED, BED, BED, BED, BED, BED, BED, BED, ROTTEN_FLESH, SPRUCE_LOG, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING, MUTTON, COOKED_MUTTON]
 
   # The shape of each block in SHAPE_BOX.
-  SHAPE = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  SHAPE = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
   # Integer 0/1 tables: Spinel keeps Integer arrays unboxed.
   # Hides the faces behind it.
-  OPAQUE = [0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0]
+  OPAQUE = [0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0]
   # Darkens ambient occlusion corners.
-  OCCLUDES = [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0]
+  OCCLUDES = [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0]
   # Stops the player.
   SOLID = [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0]
   # Drawn as two crossed quads instead of a cube.
@@ -240,16 +241,17 @@ module Block
   def self.wall_lean(h) = 0.42 - 0.4 * h
   # The move of the box of b from the middle of its cell, and up from the
   # floor. A shape turns by a quarter turn for each step from +x to +z,
-  # and so on: +x goes to the facing.
+  # and so on: +x goes to the facing. A shape without a facing (a cactus)
+  # sits in the middle of its cell.
   def self.box_dx(b)
     return -DIR_DX[FACING[b]] * wall_lean(0.3) if wall_torch?(b)
-    return 0.0 if SHAPE[b] == 0
+    return 0.0 if SHAPE[b] == 0 || FACING[b] < 0
     d = FACING[b]
     d < 2 ? DIR_DX[d] * shape_mid(b, 0) : -DIR_DZ[d] * shape_mid(b, 2)
   end
   def self.box_dz(b)
     return -DIR_DZ[FACING[b]] * wall_lean(0.3) if wall_torch?(b)
-    return 0.0 if SHAPE[b] == 0
+    return 0.0 if SHAPE[b] == 0 || FACING[b] < 0
     d = FACING[b]
     d < 2 ? DIR_DX[d] * shape_mid(b, 2) : DIR_DZ[d] * shape_mid(b, 0)
   end
