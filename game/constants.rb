@@ -85,6 +85,11 @@ class Game
   # A day and a night last 20 minutes, as in Minecraft.
   # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0
+  # The lit part of the moon on each day of its 8-day cycle: full, waning
+  # gibbous, third quarter, waning crescent, new, waxing crescent, first
+  # quarter, waxing gibbous. minecraft.wiki/w/Moon gives the order, and the
+  # full moon on day 0. The wiki does not give the lit parts.
+  MOON_LIT = [1.0, 0.75, 0.5, 0.25, 0.0, 0.25, 0.5, 0.75]
   PIGS = 24
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36

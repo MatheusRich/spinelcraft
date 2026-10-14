@@ -134,7 +134,7 @@ class Game
     @time_of_day = (ENV["TIME"] || "0.3").to_f
     # The days since the world started, as Minecraft's daytime / 24000.
     # minecraft.wiki/w/Daylight_cycle
-    @day = 0
+    @day = (ENV["DAY"] || "0").to_i
     @action_cooldown = 0.0
     @message = ""
     @message_time = 0.0
