@@ -26,7 +26,6 @@ class Game
   # A day and a night last 20 minutes, as in Minecraft.
   # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0
-  MAX_ZOMBIES = 12
   PIGS = 24
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36

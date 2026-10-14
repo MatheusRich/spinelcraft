@@ -4,11 +4,41 @@ class Game
   MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::STEP, Sfx::OINK, Sfx::SPLASH]
 
   # Monsters spawn only where no torch or lava is this near (in steps along
-  # x, y and z; walls do not count). The light of a torch drops by 1 for
-  # each step from 14, so the edge of this area has light 6.
-  SAFE_REACH = 8
+  # x, y and z; walls do not count). A monster needs block light 0. The
+  # light of a torch is 14 and drops by 1 for each step, so the edge of
+  # this area has light 1. Lava has light 15, so near lava the area is 1
+  # step too small. minecraft.wiki/w/Light and /w/Mob_spawning
+  SAFE_REACH = 13
   # Daylight under this value is night: monsters spawn under the open sky.
-  NIGHT = 0.35
+  # Daylight is under it for 8 of the 20 minutes, from tick 13188 to tick
+  # 22812 of Minecraft, when the sky light is 7 or less.
+  # minecraft.wiki/w/Light and /w/Mob_spawning
+  NIGHT = 0.225
+
+  # Monster spawning and despawning as in Minecraft.
+  # minecraft.wiki/w/Mob_spawning
+  # The cap for the 17 x 17 chunks around the player. The game always loads
+  # all of them, so the cap does not get smaller as in Minecraft.
+  MONSTER_CAP = 70
+  # Chunks on each side of the player's chunk where monsters spawn.
+  SPAWN_CHUNKS = 8
+  # Pack centers each second: one for each of the 17 x 17 chunks each tick.
+  PACK_CENTERS = 289 * 20
+  # Packs for each center, and monsters for each center at most.
+  PACKS = 3
+  PACK_SIZE = 4
+  # Monsters spawn at least SPAWN_NEAR blocks from the player and at most
+  # DESPAWN_FAR. A monster farther than DESPAWN_FAR despawns at once. A
+  # monster that has been farther than DESPAWN_NEAR for IDLE_DESPAWN seconds
+  # despawns with a chance of 1 in 800 each tick.
+  SPAWN_NEAR = 24.0
+  DESPAWN_FAR = 128.0
+  DESPAWN_NEAR = 32.0
+  IDLE_DESPAWN = 30.0
+  DESPAWN_CHANCE = 20.0 / 800.0
+  # The monster kinds and their spawn weights. minecraft.wiki/w/Plains
+  MONSTER_KINDS = [Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER]
+  MONSTER_WEIGHTS = [95.0, 100.0, 100.0]
 
   # True when a monster can spawn in the cell x, y, z: the sky above it is
   # dark or an opaque block covers it, and no torch or lava is near. Leaves
@@ -37,32 +67,88 @@ class Game
     true
   end
 
-  # Puts a monster in a dark cell with a solid floor and room for its body,
-  # 16 to 40 blocks from the player on x and z. Half the tries look on the
-  # surface, and half look in caves up to 16 blocks above or below the player.
-  def spawn_monster(kind, day)
-    tries = 0
-    while tries < 20
-      tries += 1
-      ang = @rng.rand01 * 6.283
-      dist = 16.0 + @rng.rand01 * 24.0
-      x = (@player.x + Math.cos(ang) * dist).floor
-      z = (@player.z + Math.sin(ang) * dist).floor
-      next unless @world.loaded?(x, z)
-      h = @world.height_at(x, z)
-      y = @rng.rand01 < 0.5 ? h : (@player.y + @rng.rand01 * 32.0 - 16.0).floor
-      y = h if y > h
-      # Down to the first floor in the cave.
-      floor = y - 16
-      floor = 1 if floor < 1
-      y -= 1 while y > floor && !Block.solid?(@world.get(x, y - 1, z))
-      ground = @world.get(x, y - 1, z)
-      next unless Block.solid?(ground) && ground != Block::LEAVES
-      next if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
-      next unless dark?(x, y, z, day)
-      @mobs << Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
-      return
+  # The pack centers of dt seconds, until the monsters reach the cap.
+  def spawn_monsters(dt, day)
+    monsters = @mobs.count { |m| !m.passive? }
+    n = (dt * PACK_CENTERS + @rng.rand01).to_i
+    while n > 0 && monsters < MONSTER_CAP
+      monsters += spawn_packs(day, MONSTER_CAP - monsters)
+      n -= 1
     end
+  end
+
+  # Picks a pack center in a random cell of a random chunk near the player,
+  # at a random height up to the cell above the top of its column. Most
+  # centers are in the ground, so most monsters spawn in caves. Then PACKS
+  # packs walk from the center with steps of up to 5 on x and z, and each
+  # step can spawn a monster of the pack's kind. Returns how many spawned.
+  def spawn_packs(day, room)
+    span = SPAWN_CHUNKS * 2 + 1
+    x0 = ((@player.x.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
+    z0 = ((@player.z.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
+    return 0 unless @world.loaded?(x0, z0)
+    y = (@rng.rand01 * (@world.height_at(x0, z0) + 1)).to_i
+    return 0 if Block::OPAQUE[@world.get(x0, y, z0)] == 1
+    room = PACK_SIZE if room > PACK_SIZE
+    spawned = 0
+    pack = 0
+    while pack < PACKS
+      kind = pick_monster
+      x = x0
+      z = z0
+      step = 0
+      while step < PACK_SIZE
+        x += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
+        z += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
+        if monster_fits?(x, y, z, day)
+          @mobs << Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
+          spawned += 1
+          return spawned if spawned >= room
+        end
+        step += 1
+      end
+      pack += 1
+    end
+    spawned
+  end
+
+  # A random monster kind by MONSTER_WEIGHTS.
+  def pick_monster
+    r = @rng.rand01 * MONSTER_WEIGHTS.sum
+    i = 0
+    while i < MONSTER_KINDS.size - 1
+      r -= MONSTER_WEIGHTS[i]
+      return MONSTER_KINDS[i] if r < 0.0
+      i += 1
+    end
+    MONSTER_KINDS[i]
+  end
+
+  # True when a monster can spawn in the cell x, y, z: a loaded dark cell
+  # with a solid floor and room for its body, between SPAWN_NEAR and
+  # DESPAWN_FAR blocks from the player.
+  def monster_fits?(x, y, z, day)
+    return false if y < 1 || !@world.loaded?(x, z)
+    dx = x + 0.5 - @player.x
+    dy = y - @player.y
+    dz = z + 0.5 - @player.z
+    d2 = dx * dx + dy * dy + dz * dz
+    return false if d2 < SPAWN_NEAR * SPAWN_NEAR || d2 > DESPAWN_FAR * DESPAWN_FAR
+    ground = @world.get(x, y - 1, z)
+    return false unless Block.solid?(ground) && ground != Block::LEAVES
+    return false if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
+    dark?(x, y, z, day)
+  end
+
+  # True when the monster m despawns after dt seconds more.
+  def despawn?(m, dt)
+    dx = m.x - @player.x
+    dy = m.y - @player.y
+    dz = m.z - @player.z
+    d2 = dx * dx + dy * dy + dz * dz
+    return true if d2 > DESPAWN_FAR * DESPAWN_FAR
+    m.idle = d2 > DESPAWN_NEAR * DESPAWN_NEAR ? m.idle + dt : 0.0
+    m.idle > IDLE_DESPAWN && @rng.rand01 < dt * DESPAWN_CHANCE
   end
 
   # Puts a pig or a sheep on grass at a random distance from the player in [near, far).
@@ -105,14 +191,11 @@ class Game
   def update_mobs(dt)
     # Rain dims the day, so monsters do not burn in it.
     day = daylight * (1.0 - 0.5 * @weather.rain)
+    spawn_monsters(dt, day)
     @spawn_timer -= dt
     if @spawn_timer <= 0.0
       @spawn_timer = 2.0
-      zombies = 0
-      pigs = 0
-      @mobs.each { |m| m.passive? ? pigs += 1 : zombies += 1 }
-      roll = @rng.rand01
-      spawn_monster(roll < 0.3 ? Mob::SKELETON : (roll < 0.55 ? Mob::CREEPER : Mob::ZOMBIE), day) if zombies < MAX_ZOMBIES
+      pigs = @mobs.count(&:passive?)
       spawn_mob(@rng.rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
     end
     @mobs.each do |m|
@@ -158,8 +241,7 @@ class Game
     steps.times { update_arrows(dt / steps) }
     @mobs.reject! do |m|
       d2 = (m.x - @player.x) ** 2 + (m.z - @player.z) ** 2
-      !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || d2 > 160.0 * 160.0 ||
-        (!m.passive? && d2 > 64.0 * 64.0)
+      !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || (m.passive? ? d2 > 160.0 * 160.0 : despawn?(m, dt))
     end
   end
 

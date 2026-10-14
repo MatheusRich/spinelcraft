@@ -33,6 +33,8 @@ class Mob
   # Seconds that the mob still burns.
   attr_reader :fire
   attr_reader :kind, :half, :tall
+  # Seconds that a monster has been far from the player (Game#despawn?).
+  attr_accessor :idle
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -62,6 +64,7 @@ class Mob
     @fire = 0.0
     @immune = 0.0
     @last_damage = 0.0
+    @idle = 0.0
   end
 
   def passive? = PASSIVE[@kind] == 1

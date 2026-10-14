@@ -767,9 +767,10 @@ class Game
     killed.by_player = true
     @mobs << killed
     update_mobs(1.0 / 60.0)
-    dropped = ground_count(Block::PORKCHOP) == 1
+    n = ground_count(Block::PORKCHOP)
+    dropped = n >= 1 && n <= 3
     collect_items
-    check("a pig that the player kills drops a porkchop", dropped && @inv.total(Block::PORKCHOP) == 1)
+    check("a pig that the player kills drops 1 to 3 porkchops", dropped && @inv.total(Block::PORKCHOP) == n)
     @items.clear
     loot(killed, Block::BOW, 1)
     check("a bow that a mob drops is new", @items.size == 1 && @items[0].count == Block.uses(Block::BOW))
