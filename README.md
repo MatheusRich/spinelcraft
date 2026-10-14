@@ -61,6 +61,8 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 
 `build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module.
 
+The game draws most textures in code at startup (`game/textures.rb`). The tools, the bow and the arrow are PNG images in `assets/`, and the game loads them from the folder that holds the executable.
+
 ## Rendering
 
 The mesher writes one record of two 32-bit words for each visible face. The record holds the position, the face direction, the texture layer, ambient occlusion for each corner, sky light and torch light. The vertex shader turns each record into a quad with an indexed draw. Each chunk sorts its faces by direction, so the renderer skips the directions that cannot face the camera. That removes about a third of the faces. The renderer also skips chunks outside the view frustum or past the fog. Water draws after the opaque blocks, from back to front.
@@ -138,3 +140,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 `SELFTEST=1` writes and deletes `world.sav` and `world-bad.sav` in the current directory, so run it in a folder without a save that you want to keep.
 
 `tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby.
+
+## Credits
+
+The tool, bow and arrow images come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license. `assets/pixel-perfection/README.md` gives the sources.

@@ -153,6 +153,29 @@ module Tex
     end
   end
 
+  # The layers that come from the images in assets/pixel-perfection, and the
+  # name of each image, in the same order.
+  SPRITE_LAYERS = [WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE,
+                   WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL, DIAMOND_SHOVEL, WOOD_SWORD, STONE_SWORD, IRON_SWORD,
+                   DIAMOND_SWORD, BOW, ARROW]
+  SPRITE_FILES = %w[wood_pick stone_pick iron_pick diamond_pick wood_axe stone_axe iron_axe diamond_axe
+                    wood_shovel stone_shovel iron_shovel diamond_shovel wood_sword stone_sword iron_sword
+                    diamond_sword bow arrow]
+
+  def self.sprites(px)
+    s = 0
+    while s < SPRITE_LAYERS.size
+      path = "assets/pixel-perfection/#{SPRITE_FILES[s]}.png"
+      abort "#{path} did not load" unless Gfx.gfx_png(path)
+      i = 0
+      while i < 256
+        px[SPRITE_LAYERS[s] * 256 + i] = Gfx.gfx_png_pixel(i)
+        i += 1
+      end
+      s += 1
+    end
+  end
+
   def self.build
     px = Array.new(LAYERS * 256, 0)
     i = 0
@@ -260,27 +283,10 @@ module Tex
     plants(px)
     torch(px)
     porkchop(px)
-    pick(px, WOOD_PICK, 170, 130, 80)
-    pick(px, STONE_PICK, 135, 135, 135)
-    pick(px, IRON_PICK, 225, 220, 210)
-    pick(px, DIAMOND_PICK, 90, 230, 225)
-    bow(px)
-    arrow(px)
+    sprites(px)
     door(px)
     sapling(px)
     apple(px)
-    sword(px, WOOD_SWORD, 160, 120, 70)
-    sword(px, STONE_SWORD, 135, 135, 135)
-    sword(px, IRON_SWORD, 225, 220, 210)
-    sword(px, DIAMOND_SWORD, 90, 230, 225)
-    axe(px, WOOD_AXE, 160, 120, 70)
-    axe(px, STONE_AXE, 135, 135, 135)
-    axe(px, IRON_AXE, 225, 220, 210)
-    axe(px, DIAMOND_AXE, 90, 230, 225)
-    shovel(px, WOOD_SHOVEL, 160, 120, 70)
-    shovel(px, STONE_SHOVEL, 135, 135, 135)
-    shovel(px, IRON_SHOVEL, 225, 220, 210)
-    shovel(px, DIAMOND_SHOVEL, 90, 230, 225)
     ingot(px)
     crop(px, SEEDS, 4, 80, 170, 60)
     crop(px, WHEAT_1, 8, 90, 160, 50)
@@ -551,39 +557,8 @@ module Tex
     end
   end
 
-  def self.bow(px)
-    arc = [[3, 13], [3, 12], [4, 11], [4, 10], [5, 9], [5, 8], [6, 7], [7, 6], [8, 5], [9, 5], [10, 4], [11, 4], [12, 3], [13, 3]]
-    arc.each do |c|
-      set(px, BOW, c[0], c[1], 140, 95, 50, 255)
-      set(px, BOW, c[0] - 1, c[1] - 1, 110, 75, 40, 255)
-    end
-    i = 3
-    while i < 13
-      set(px, BOW, i + 1, 15 - i - 1, 230, 230, 230, 255)
-      i += 1
-    end
-  end
 
-  def self.arrow(px)
-    i = 3
-    while i < 13
-      set(px, ARROW, i, 15 - i, 150, 110, 70, 255)
-      i += 1
-    end
-    [[12, 2], [13, 2], [13, 3], [11, 2], [13, 1]].each { |c| set(px, ARROW, c[0], c[1], 200, 200, 205, 255) }
-    [[2, 12], [3, 13], [2, 13], [1, 13], [2, 14]].each { |c| set(px, ARROW, c[0], c[1], 235, 235, 235, 255) }
-  end
 
-  # A pickaxe: a diagonal handle and a curved head in the tier's color. The
-  # head crosses the end of the handle and bends around the top right corner.
-  def self.pick(px, layer, r, g, b)
-    handle(px, layer)
-    [[7, 1], [8, 1], [9, 1], [10, 1], [11, 1], [12, 1], [5, 2], [6, 2], [7, 2], [11, 2], [12, 2], [13, 2], [4, 3],
-     [5, 3], [12, 3], [13, 3], [14, 3], [13, 4], [14, 4], [14, 5], [14, 6], [14, 7], [13, 8], [14, 8], [13, 9],
-     [12, 10], [13, 10], [12, 11]].each do |c|
-      set(px, layer, c[0], c[1], r, g, b, 255)
-    end
-  end
 
   # A door of boards with a dark frame and a knob. The open door shows only
   # its edge at the hinge side; the rest is clear.
@@ -649,46 +624,9 @@ module Tex
     set(px, APPLE, 10, 1, 60, 140, 50, 255)
   end
 
-  # A sword: a diagonal blade in the tier's color, a cross guard, and a handle.
-  def self.sword(px, layer, r, g, b)
-    i = 0
-    while i < 9
-      set(px, layer, 5 + i, 10 - i, r, g, b, 255)
-      set(px, layer, 6 + i, 10 - i, r * 3 / 4, g * 3 / 4, b * 3 / 4, 255)
-      i += 1
-    end
-    [[3, 9], [4, 10], [5, 11], [6, 12], [7, 13]].each { |c| set(px, layer, c[0], c[1], 90, 70, 50, 255) }
-    [[4, 12], [3, 13], [2, 14]].each { |c| set(px, layer, c[0], c[1], 110, 80, 45, 255) }
-    set(px, layer, 1, 15, 90, 65, 40, 255)
-  end
 
-  # A diagonal handle with a wide blade at the top right.
-  def self.axe(px, layer, r, g, b)
-    handle(px, layer)
-    [[8, 1], [9, 1], [10, 1], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2], [7, 3], [8, 3], [9, 3], [11, 3],
-     [12, 3], [7, 4], [8, 4], [12, 4], [8, 5], [12, 5], [13, 5], [12, 6], [13, 6]].each do |c|
-      set(px, layer, c[0], c[1], r, g, b, 255)
-    end
-  end
 
-  # A diagonal handle with a rounded blade at the top right.
-  def self.shovel(px, layer, r, g, b)
-    handle(px, layer)
-    [[11, 1], [12, 1], [13, 1], [10, 2], [11, 2], [12, 2], [13, 2], [14, 2], [10, 3], [11, 3], [12, 3],
-     [13, 3], [14, 3], [11, 4], [12, 4], [13, 4]].each do |c|
-      set(px, layer, c[0], c[1], r, g, b, 255)
-    end
-  end
 
-  # The handle of a pickaxe, an axe or a shovel: from the lower left to the middle.
-  def self.handle(px, layer)
-    i = 2
-    while i < 12
-      set(px, layer, i, 15 - i, 110, 80, 45, 255)
-      set(px, layer, i + 1, 15 - i, 85, 60, 35, 255)
-      i += 1
-    end
-  end
 
   # Rows of stalks of height tall (in pixels) in color r, g, b.
   def self.crop(px, layer, tall, r, g, b)

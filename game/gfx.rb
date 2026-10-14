@@ -572,6 +572,31 @@ module Gfx
       return true;
     }
 
+    /* The pixels of the last image that gfx_png loaded (0xAABBGGRR). */
+    static Uint32 png_px[256];
+
+    /* Loads a 16x16 PNG. The path is relative to the folder of the game,
+       so the game finds assets/ from any working directory. */
+    bool gfx_png(const char *path) {
+      char full[1024];
+      SDL_snprintf(full, sizeof full, "%s%s", SDL_GetBasePath(), path);
+      SDL_Surface *s = SDL_LoadPNG(full);
+      if (!s) return fail(full);
+      SDL_Surface *c = SDL_ConvertSurface(s, SDL_PIXELFORMAT_RGBA32);
+      SDL_DestroySurface(s);
+      if (!c) return fail(full);
+      bool ok = c->w == 16 && c->h == 16;
+      if (ok) {
+        for (int y = 0; y < 16; y++) SDL_memcpy(png_px + y * 16, (Uint8 *)c->pixels + y * c->pitch, 64);
+      } else {
+        fprintf(stderr, "%s: not 16x16\n", full);
+      }
+      SDL_DestroySurface(c);
+      return ok;
+    }
+
+    long gfx_png_pixel(long i) { return png_px[i]; }
+
     /* The cloud grid: size x size RGBA pixels, one Integer per pixel (0xAABBGGRR).
        A new grid replaces the old one. */
     bool gfx_clouds(const int64_t *px, long size) {
@@ -1011,6 +1036,8 @@ module Gfx
   C
   ffi_func :gfx_init, [:long, :long, :long, :long], :bool
   ffi_func :gfx_textures, [:int_array, :long], :bool
+  ffi_func :gfx_png, [:str], :bool
+  ffi_func :gfx_png_pixel, [:long], :long
   ffi_func :gfx_clouds, [:int_array, :long], :bool
   ffi_func :gfx_mesh, [:long, :int_array, :long, :int_array], :long
   ffi_func :gfx_dyn, [:float_array, :long, :long], :long
