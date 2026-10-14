@@ -73,6 +73,9 @@ Each file keeps its license.
 | `mcl_bows_hit_other.ogg` | JoeDinesSound | CC0 1.0 | <https://freesound.org/people/JoeDinesSound/sounds/534952/> |
 | `watersplash.ogg` | tran5ient | CC0 1.0 | <https://freesound.org/people/tran5ient/sounds/190080/> |
 | `fire_extinguish_flame.1.ogg` | Perttu Ahola (celeron55) | CC BY-SA 3.0 | Minetest Game `fire` mod |
+| `fire_fire.1.ogg` | Dynamicell | CC BY 3.0 | <http://www.freesound.org/people/Dynamicell/sounds/17548/> |
+| `env_sounds_lava.1.ogg` | Halion | CC0 1.0 | <https://freesound.org/people/Halion/sounds/17785/> |
+| `env_sounds_water.1.ogg` | Yuval | CC0 1.0 | <https://freesound.org/people/Yuval/sounds/197023/> |
 | `tnt_explode.ogg` | Jose Ortiz "MindChamber" | CC0 1.0 | VoxeLibre `mcl_tnt` |
 | `tnt_ignite.ogg` | VoxeLibre contributors, from a sound by Ned Bouhalassa | CC0 1.0 | <https://freesound.org/people/Ned%20Bouhalassa/sounds/8320/> |
 | `weather_rain.ogg` | inchadney | CC BY-SA 3.0 | <http://freesound.org/people/inchadney/sounds/58835/> |

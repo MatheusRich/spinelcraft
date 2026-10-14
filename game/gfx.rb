@@ -1036,7 +1036,7 @@ module Gfx
 
     /* Audio: a few stereo voices bound to one device; SDL mixes them. The
        sounds are mono, and au_play pans each one into the two channels. */
-    #define VOICES 8
+    #define VOICES 16
     #define SOUNDS 64
     #define AU_RATE 44100
     static SDL_AudioDeviceID audio_dev;

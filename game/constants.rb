@@ -53,6 +53,17 @@ class Game
   # The wiki gives 64 blocks for TNT. It does not say if a creeper
   # explosion carries as far. minecraft.wiki/w/Sound
   EXPLOSION_RANGE = 64.0
+  # Blocks near the player make these sounds now and then (Game#block_sound):
+  # lava under air, flowing water, and a lit furnace. The wiki says only
+  # that they play at random (minecraft.wiki/w/Lava, minecraft.wiki/w/Water,
+  # minecraft.wiki/w/Furnace). It does not give the rates, so these are a
+  # guess, as sounds for each block in each second.
+  AMBIENT = [Sfx::LAVA, Sfx::FLOWING, Sfx::CRACKLE]
+  AMBIENT_RATE = [1.0 / 150.0, 1.0 / 150.0, 1.0 / 25.0]
+  AMBIENT_VOLUME = [0.4, 0.3, 0.5]
+  # Each second, Game#update_block_sounds looks at this many random blocks
+  # within SOUND_RANGE of the player.
+  AMBIENT_SAMPLES = 3000.0
   # A day and a night last 20 minutes, as in Minecraft.
   # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0

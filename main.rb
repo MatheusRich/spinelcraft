@@ -179,6 +179,7 @@ class Game
     # the fear that the darkness built up.
     @cave_timer = 0.0
     @cave_fear = 0.0
+    @ambient_wait = [0.0, 0.0, 0.0]
     @rng = Rng.new(@seed * 7 + 1)
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
@@ -474,6 +475,7 @@ class Game
     @attack_time += dt
     update_hand(dt)
     update_cave_sound(dt)
+    update_block_sounds(dt)
     update_survival(dt)
     update_mobs(dt)
     @flow_timer -= dt
@@ -522,6 +524,41 @@ class Game
     return if @cave_fear < 300.0
     @cave_fear = 0.0
     play(Sfx::CAVE + (@rng.rand01 * Sfx::CAVES).to_i, 0.6)
+  end
+
+  # Looks at random blocks near the player, and plays the sound of each one
+  # that makes a sound, at its AMBIENT_RATE. Each sound waits for its last
+  # clip to end, so the long clips do not take all the voices.
+  def update_block_sounds(dt)
+    i = 0
+    while i < AMBIENT.size
+      @ambient_wait[i] -= dt
+      i += 1
+    end
+    r = SOUND_RANGE.to_i
+    span = r * 2 + 1
+    blocks = (span * span * span).to_f
+    sx = @player.x.floor - r
+    sy = @player.y.floor - r
+    sz = @player.z.floor - r
+    (dt * AMBIENT_SAMPLES + @rng.rand01).to_i.times do
+      x = sx + (@rng.rand01 * span).to_i
+      y = sy + (@rng.rand01 * span).to_i
+      z = sz + (@rng.rand01 * span).to_i
+      k = block_sound(x, y, z)
+      next if k < 0 || @ambient_wait[k] > 0.0 || @rng.rand01 >= AMBIENT_RATE[k] * blocks / AMBIENT_SAMPLES
+      @ambient_wait[k] = Gfx.au_seconds(AMBIENT[k])
+      play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k], SOUND_RANGE)
+    end
+  end
+
+  # The index in AMBIENT of the sound that block x, y, z makes, or -1.
+  def block_sound(x, y, z)
+    b = @world.get(x, y, z)
+    return 0 if Block.lava?(b) && @world.get(x, y + 1, z) == Block::AIR
+    return 1 if Block.water?(b) && b != Block::WATER
+    return 2 if Block.furnace_lit?(b)
+    -1
   end
 
   def daylight

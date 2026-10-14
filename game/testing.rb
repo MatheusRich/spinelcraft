@@ -283,7 +283,31 @@ class Game
     check("a walking mob makes step sounds", steps >= 1)
     test_sound_position
     test_arrow_lands
+    test_block_sounds
     test_cave_sound
+  end
+
+  # Lava under air, flowing water and a lit furnace make sounds, but
+  # covered lava and still water do not.
+  def test_block_sounds
+    x = @player.x.floor
+    z = @player.z.floor
+    y = WY - 4
+    set_block(x, y, z, Block::LAVA)
+    open_lava = block_sound(x, y, z)
+    set_block(x, y + 1, z, Block::STONE)
+    covered_lava = block_sound(x, y, z)
+    set_block(x, y, z, Block::FLOW)
+    flowing = block_sound(x, y, z)
+    set_block(x, y, z, Block::WATER)
+    still = block_sound(x, y, z)
+    set_block(x, y, z, Block.furnace_id(0, true))
+    furnace = block_sound(x, y, z)
+    set_block(x, y, z, Block::AIR)
+    set_block(x, y + 1, z, Block::AIR)
+    check("lava, flowing water and a lit furnace make sounds",
+          AMBIENT[open_lava] == Sfx::LAVA && covered_lava < 0 && AMBIENT[flowing] == Sfx::FLOWING &&
+          still < 0 && AMBIENT[furnace] == Sfx::CRACKLE)
   end
 
   # An arrow that sticks in the ground lands once, so its sound plays once.

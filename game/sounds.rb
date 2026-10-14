@@ -54,6 +54,9 @@ module Sfx
   FUSE = 51
   CLOTH = 52
   SNOW = 53
+  LAVA = 54
+  FLOWING = 55
+  CRACKLE = 56
   # The file of each sound, in the order of the ids above.
   FILES = ["default_dug_node.1", "default_place_node.1", "default_place_node_hard.1", "player_damage",
            "default_grass_footstep.1", "default_dirt_footstep.1", "default_hard_footstep.1", "default_wood_footstep.1",
@@ -70,7 +73,8 @@ module Sfx
            "default_gravel_dig.1", "default_gravel_dug.1", "default_gravel_footstep.1",
            "default_sand_footstep.1", "default_water_footstep.1",
            "cave1", "cave2", "cave4", "cave5",
-           "tnt_ignite", "mcl_sounds_cloth.1", "pedology_snow_soft_footstep.1"]
+           "tnt_ignite", "mcl_sounds_cloth.1", "pedology_snow_soft_footstep.1",
+           "env_sounds_lava.1", "env_sounds_water.1", "fire_fire.1"]
   # The gain of each file in dB, in the order of the ids above. It sets the
   # RMS of the loudest 0.1 seconds of each sound to -20 dBFS (-12 dBFS for
   # the explosion), so that all sounds are equally loud.
@@ -80,7 +84,7 @@ module Sfx
            -2.4, -5.7, -9.8, 1.2, -1.6, -5.3, -11.6, -9.5,
            -10.0, -15.4, 1.0, -6.0, -5.4, -2.0, -8.0, -6.1,
            -1.5, 1.8, -0.6, 6.8, 2.7, -6.0, -1.3, -9.5,
-           -10.4, -9.6, -15.5, 6.8, -8.5, 10.6]
+           -10.4, -9.6, -15.5, 6.8, -8.5, 10.6, -6.0, 3.3, -9.7]
 
   # Loads each sound file. Returns how many loaded.
   def self.load_files
