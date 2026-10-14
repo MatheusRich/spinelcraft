@@ -2,13 +2,13 @@
 
 A small Minecraft-like game written in Ruby. The Spinel compiler turns the Ruby into a native executable, and SDL3 GPU (Metal on macOS) draws it. All game logic is Ruby. The only C is a thin layer in `game/gfx.rb` that passes data to SDL.
 
-![Forested hills, snow and the sea at the default 1600-block view](screenshots/landscape.png)
+![Snowy hills with spruces and the sea at the default 1600-block view](screenshots/landscape.png)
 
 ## Screenshots
 
 | | |
 | --- | --- |
-| ![A sunset over a river and green hills](screenshots/sunset.png) | ![A zombie, a skeleton and a creeper on a stone floor](screenshots/mobs.png) |
+| ![A sunset over snowy hills with spruces](screenshots/sunset.png) | ![A zombie, a skeleton and a creeper on a stone floor](screenshots/mobs.png) |
 | ![A cave lit by lava](screenshots/cave.png) | ![The creative block picker](screenshots/inventory.png) |
 
 ![The world from 400 blocks up with a 5000-block view](screenshots/far.png)
