@@ -3,18 +3,20 @@
 class Game
   HOTBAR_START = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::PLANKS,
                   Block::LOG, Block::GLASS, Block::BRICK, Block::TORCH]
-  # The creative inventory screen, row by row with INV_COLS cells in a row.
-  # Each column holds a group of related blocks or items, for example the
-  # four pickaxes. AIR is an empty cell. The blocks come first, then the items.
-  CREATIVE_ITEMS = [Block::GRASS, Block::STONE, Block::COAL, Block::LOG, Block::TALL_GRASS, Block::WATER, Block::CRAFTING_TABLE, Block::TORCH,
-                    Block::DIRT, Block::COBBLE, Block::IRON, Block::PLANKS, Block::SEEDS, Block::LAVA, Block::FURNACE, Block::LADDER,
-                    Block::SNOW_GRASS, Block::GRAVEL, Block::DIAMOND, Block::LEAVES, Block::ROSE, Block::AIR, Block::CHEST, Block::GLASS,
-                    Block::SNOW, Block::BRICK, Block::AIR, Block::SAPLING, Block::DANDELION, Block::AIR, Block::BED, Block::WOOL,
-                    Block::SAND, Block::BEDROCK, Block::AIR, Block::AIR, Block::CACTUS, Block::AIR, Block::DOOR, Block::AIR,
-                    Block::WOOD_SWORD, Block::WOOD_PICK, Block::WOOD_AXE, Block::WOOD_SHOVEL, Block::BOW, Block::IRON_INGOT, Block::WHEAT, Block::PORKCHOP,
-                    Block::STONE_SWORD, Block::STONE_PICK, Block::STONE_AXE, Block::STONE_SHOVEL, Block::ARROW, Block::BUCKET, Block::BREAD, Block::COOKED_PORKCHOP,
-                    Block::IRON_SWORD, Block::IRON_PICK, Block::IRON_AXE, Block::IRON_SHOVEL, Block::AIR, Block::WATER_BUCKET, Block::APPLE, Block::AIR,
-                    Block::DIAMOND_SWORD, Block::DIAMOND_PICK, Block::DIAMOND_AXE, Block::DIAMOND_SHOVEL, Block::AIR, Block::LAVA_BUCKET, Block::AIR, Block::AIR]
+  # The creative inventory screen: the blocks, then the items.
+  CREATIVE_ITEMS = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::PLANKS, Block::LOG,
+                    Block::LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
+                    Block::SNOW_GRASS, Block::CACTUS, Block::COAL, Block::IRON, Block::DIAMOND, Block::WATER,
+                    Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
+                    Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::SAPLING,
+                    Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER,
+                    Block::WOOD_SWORD, Block::STONE_SWORD, Block::IRON_SWORD, Block::DIAMOND_SWORD,
+                    Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK,
+                    Block::WOOD_AXE, Block::STONE_AXE, Block::IRON_AXE, Block::DIAMOND_AXE,
+                    Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL,
+                    Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
+                    Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
+                    Block::COOKED_PORKCHOP]
   FOG_END = 1600.0
   # The range of the render distance slider, in blocks.
   VIEW_MIN = 200.0

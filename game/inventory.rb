@@ -193,18 +193,14 @@ class Game
     toggle_inventory
   end
 
-  # Pixel rectangle of inventory cell i: x, y, size. The panel goes above
-  # the hotbar (60 * s), with the title (58 * s) above the cells and the label
-  # (40 * s) below them. The cells get smaller when the rows do not fit.
+  # Pixel rectangle of inventory cell i: x, y, size.
   def inventory_cell(i, w, h, s)
+    size = 56.0 * s
+    gap = 8.0 * s
     cols = INV_COLS
     rows = (CREATIVE_ITEMS.size + cols - 1) / cols
-    room = h - 174.0 * s
-    size = 56.0 * s
-    size = room * 7.0 / (rows * 8.0 - 1.0) if size * (rows * 8.0 - 1.0) / 7.0 > room
-    gap = size / 7.0
     x0 = (w - (cols * size + (cols - 1) * gap)) / 2.0
-    y0 = (h - (rows * size + (rows - 1) * gap)) / 2.0 - 21.0 * s
+    y0 = (h - (rows * size + (rows - 1) * gap)) / 2.0
     [x0 + (i % cols) * (size + gap), y0 + (i / cols) * (size + gap), size]
   end
 
@@ -214,7 +210,7 @@ class Game
     i = 0
     while i < CREATIVE_ITEMS.size
       c = inventory_cell(i, w, h, s)
-      return i if CREATIVE_ITEMS[i] != Block::AIR && mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
+      return i if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
       i += 1
     end
     -1
