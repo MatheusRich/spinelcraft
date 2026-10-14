@@ -108,11 +108,14 @@ class Player
     @sneaking = down && !@flying && @on_ground
     sprint = false if @sneaking || @slowed
     @jumped = false
+    # The swim speed holds while the feet are in the liquid, also when the
+    # player bobs at the surface and only the feet are under it.
+    low = world.get(@x.floor, @y.floor, @z.floor)
     speed = if @flying
               sprint ? SPRINT_FLY : FLY
-            elsif @in_lava
+            elsif @in_lava || Block.lava?(low)
               (Block.lava?(world.get(@x.floor, eye_y.floor, @z.floor)) ? SWIM_UNDER : SWIM) * LAVA
-            elsif @in_water
+            elsif @in_water || Block.water?(low)
               under = Block.water?(world.get(@x.floor, eye_y.floor, @z.floor))
               sprint ? SWIM_SPRINT : (under ? SWIM_UNDER : SWIM)
             else

@@ -333,7 +333,8 @@ class Game
 
   # The player swims at 2.2 m/s at the surface, 1.97 m/s under water, and
   # 3.918 m/s in a sprint. In lava the player swims at 0.4 times the speed
-  # in water, and a sprint does not make it faster.
+  # in water, and a sprint does not make it faster. A held jump does not
+  # make the player faster in water or in lava.
   def test_swim_speed
     px = @player.x
     py = @player.y
@@ -349,7 +350,8 @@ class Game
     end
     @player.flying = false
     @player.yaw = 0.0
-    speeds = [[false, false, false], [true, false, false], [false, true, false], [true, false, true]].map do |sprint, under, lava|
+    speeds = [[false, false, false, false], [true, false, false, false], [false, true, false, false], [true, false, true, false],
+              [false, false, false, true], [false, false, true, true]].map do |sprint, under, lava, jump|
       (0..20).each do |d|
         set_block(x, y + 1, z - d, lava ? Block::LAVA : Block::WATER)
         set_block(x, y + 2, z - d, under ? Block::WATER : Block::AIR)
@@ -359,9 +361,9 @@ class Game
       @player.z = z + 0.5
       @player.vx = 0.0
       @player.vz = 0.0
-      25.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, sprint) }
+      25.times { @player.update(@world, 0.02, 1.0, 0.0, jump, false, sprint) }
       z0 = @player.z
-      100.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, sprint) }
+      100.times { @player.update(@world, 0.02, 1.0, 0.0, jump, false, sprint) }
       (z0 - @player.z) / 2.0
     end
     (0..20).each do |d|
@@ -378,6 +380,7 @@ class Game
     check("the player swims at 2.2 m/s, 1.97 m/s under water, and 3.918 m/s in a sprint",
           (speeds[0] - 2.2).abs < 0.05 && (speeds[1] - 3.918).abs < 0.05 && (speeds[2] - 1.97).abs < 0.05)
     check("the player swims in lava at 0.88 m/s, also in a sprint", (speeds[3] - 0.88).abs < 0.03)
+    check("a held jump does not make a swim faster", (speeds[4] - 2.2).abs < 0.05 && (speeds[5] - 0.88).abs < 0.03)
   end
 
   # A player who eats or draws the bow walks at sneaking speed.
