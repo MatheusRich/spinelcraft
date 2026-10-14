@@ -295,11 +295,11 @@ class Game
     end
     @mobs.each do |m|
       if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
-        play(MOB_SOUND[m.kind], near_volume(m.x, m.z, 0.8))
+        play_at(MOB_SOUND[m.kind], m.x, m.y + m.tall * 0.5, m.z, 0.8)
       end
       if m.hiss
         m.hiss = false
-        play(Sfx::FUSE, near_volume(m.x, m.z, 1.0))
+        play_at(Sfx::FUSE, m.x, m.y + m.tall * 0.5, m.z, 1.0)
       end
       if m.shoot
         m.shoot = false
@@ -336,9 +336,9 @@ class Game
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player
       if lived && m.dying?
-        play(MOB_DEATH[m.kind], near_volume(m.x, m.z, 1.0))
+        play_at(MOB_DEATH[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0)
       elsif m.ouch && MOB_HURT[m.kind] >= 0
-        play(MOB_HURT[m.kind], near_volume(m.x, m.z, 1.0))
+        play_at(MOB_HURT[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0)
       end
       m.ouch = false
       @particles.smoke(m.x, m.y + m.tall * 0.3, m.z, 12, m.tall * 0.6) if !m.alive && m.dying?
@@ -477,7 +477,7 @@ class Game
     speed = 22.0
     t = dist / speed
     @arrows << Arrow.new(sx, sy, sz, dx / t, dy / t + 9.0 * t, dz / t, 4.0, 0)
-    play(Sfx::SHOOT, near_volume(sx, sz, 0.9))
+    play_at(Sfx::SHOOT, sx, sy, sz, 0.9)
   end
 
   def update_arrows(dt)
@@ -488,7 +488,7 @@ class Game
         if m
           m.hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
           m.by_player = true
-          play(Sfx::HIT, near_volume(a.x, a.z, 0.8))
+          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8)
           a.vanish
         end
       elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)

@@ -359,15 +359,32 @@ class Game
   end
 
   def play(id, volume)
-    Gfx.au_play(id, volume * @volume) if @sound
+    Gfx.au_play(id, volume * @volume, 0.0) if @sound
   end
 
-  # Volume for a sound at x, z: fades to silence at 24 blocks.
-  def near_volume(x, z, gain)
+  # Plays a sound that comes from x, y, z.
+  def play_at(id, x, y, z, gain)
+    Gfx.au_play(id, near_volume(x, y, z, gain) * @volume, pan_to(x, y, z)) if @sound
+  end
+
+  # Volume for a sound at x, y, z: fades to silence at 24 blocks.
+  def near_volume(x, y, z, gain)
     dx = x - @player.x
+    dy = y - @player.eye_y
     dz = z - @player.z
-    v = 1.0 - Math.sqrt(dx * dx + dz * dz) / 24.0
+    v = 1.0 - Math.sqrt(dx * dx + dy * dy + dz * dz) / 24.0
     v > 0.0 ? v * gain : 0.0
+  end
+
+  # Pan for a sound at x, y, z: -1.0 is to the left of the player, 1.0 is
+  # to the right, and 0.0 is ahead, behind, above or below.
+  def pan_to(x, y, z)
+    dx = x - @player.x
+    dy = y - @player.eye_y
+    dz = z - @player.z
+    dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+    return 0.0 if dist < 0.001
+    (dx * Math.cos(@player.yaw) + dz * Math.sin(@player.yaw)) / dist
   end
 
   def say(text)

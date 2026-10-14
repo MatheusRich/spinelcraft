@@ -266,7 +266,25 @@ class Game
     pig = Mob.new(Mob::PIG, @player.x, @player.y, @player.z, 5)
     pig.wound(1.0)
     check("a hit makes a mob cry out", pig.ouch)
+    test_sound_position
     test_cave_sound
+  end
+
+  # A sound to the side pans to that side, and a sound far below is
+  # quiet. At yaw 0 the player looks toward -z, so +x is to the right.
+  def test_sound_position
+    yaw = @player.yaw
+    @player.yaw = 0.0
+    x = @player.x
+    y = @player.eye_y
+    z = @player.z
+    right = pan_to(x + 5.0, y, z)
+    left = pan_to(x - 5.0, y, z)
+    above = pan_to(x, y + 5.0, z)
+    ahead = pan_to(x, y, z - 5.0)
+    check("a sound pans toward the side that it comes from", right > 0.99 && left < -0.99 && above.abs < 0.01 && ahead.abs < 0.01)
+    check("a sound far below is quiet", near_volume(x, y - 20.0, z, 1.0) < 0.2 && near_volume(x, y - 30.0, z, 1.0) == 0.0)
+    @player.yaw = yaw
   end
 
   # In a dark pocket deep in the rock, the fear grows and a cave sound
