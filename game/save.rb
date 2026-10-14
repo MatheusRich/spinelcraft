@@ -47,7 +47,7 @@ class Game
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv_block + @inv_count + @hotbar + [@hunger, @raining ? 1 : 0, @weather_timer] + chest_fields +
+    inv = (@inv_block + @inv_count + @hotbar + [@hunger, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
       f.write("SPINELCRAFT7 #{header} #{inv}\n")
@@ -136,9 +136,8 @@ class Game
       i += 1
     end
     @hunger = f[F_HUNGER].to_i
-    @raining = f[F_WEATHER] == "1"
-    @weather_timer = f[F_WEATHER + 1].to_f
-    @rain = @raining ? 1.0 : 0.0
+    @weather.set_now(f[F_WEATHER] == "1")
+    @weather.timer = f[F_WEATHER + 1].to_f
     @chests = {}
     at = F_CHESTS
     chests = f[at].to_i

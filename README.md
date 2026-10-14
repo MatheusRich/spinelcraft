@@ -129,7 +129,6 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/inventory.rb` | Hotbar, backpack, chests, crafting, and the inventory screen |
 | `game/items.rb` | Items on the ground: drops, throws, pickup, and lava |
 | `game/hand.rb` | The held item in first person |
-| `game/weather.rb` | Rain: the weather cycle, the rain quads, and splashes |
 | `game/actions.rb` | Keys, the mouse, mining, placing, beds, and food |
 | `game/combat.rb` | Mob spawning and turns, damage, explosions, the bow, and arrows |
 | `game/render.rb` | The 3D frame and the sky |
@@ -145,6 +144,7 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/item.rb` | An item on the ground: its fall, its float in water, and its model |
 | `game/falling_block.rb` | Sand or gravel that falls down its column |
 | `game/particles.rb` | Block chips, flames, smoke, embers and drops of rain |
+| `game/weather.rb` | Rain: the weather cycle, the rain quads, the splashes, and the rain sound |
 | `game/draw.rb` | Vertex builders for the HUD, for 3D boxes, and for the model of a block or item |
 | `game/textures.rb` | Generated textures and the bitmap font |
 | `game/sounds.rb` | Sound synthesis |

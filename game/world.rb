@@ -368,6 +368,8 @@ class World
   def loaded?(x, z) = chunk_loaded?(x >> 4, z >> 4)
   def inside?(x, y, z) = y >= 0 && y < WY && loaded?(x, z)
   def height_at(x, z) = @height[(x & LMASK) * WZ + (z & LMASK)]
+  # True when nothing above x, y, z stops the rain.
+  def under_sky?(x, y, z) = height_at(x.floor, z.floor) <= y.floor
 
   # The light list of a loaded chunk, else an empty list. (An Array-or-nil
   # return makes Spinel box the elements.)

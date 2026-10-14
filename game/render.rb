@@ -56,10 +56,10 @@ class Game
     end
     # Rain grays the sky, dims the light, and brings the fog nearer.
     gray = 0.06 + 0.4 * day
-    sky_r += (gray - sky_r) * @rain * 0.85
-    sky_g += (gray - sky_g) * @rain * 0.85
-    sky_b += (gray * 1.08 - sky_b) * @rain * 0.85
-    fog = @fog_end * (1.0 - 0.6 * @rain)
+    sky_r += (gray - sky_r) * @weather.rain * 0.85
+    sky_g += (gray - sky_g) * @weather.rain * 0.85
+    sky_b += (gray * 1.08 - sky_b) * @weather.rain * 0.85
+    fog = @fog_end * (1.0 - 0.6 * @weather.rain)
     @uniforms[16] = ex
     @uniforms[17] = ey
     @uniforms[18] = ez
@@ -69,15 +69,15 @@ class Game
     @uniforms[21] = under ? 0.15 : sky_g
     @uniforms[22] = under ? 0.35 : sky_b
     @uniforms[23] = under ? 24.0 : fog
-    @uniforms[24] = day * (1.0 - 0.35 * @rain)
+    @uniforms[24] = day * (1.0 - 0.35 * @weather.rain)
     # Fog at the view's end starts 65 blocks before it, or a quarter of the
     # view before it for long views, so it blends with the haze.
     @uniforms[25] = under ? 2.0 : fog - (fog * 0.25 > 65.0 ? fog * 0.25 : 65.0)
     @uniforms[26] = w
     @uniforms[27] = h
     @clouds.write_uniforms(@uniforms, CLOUD_UNIFORMS, ey, @cloud_drift)
-    @uniforms[RAIN_UNIFORMS] = @rain
-    @uniforms[RAIN_UNIFORMS + 1] = RAIN_R.to_f
+    @uniforms[RAIN_UNIFORMS] = @weather.rain
+    @uniforms[RAIN_UNIFORMS + 1] = Weather::R.to_f
   end
 
   # Fills @visible with the meshed chunks in the view and @water_visible with
@@ -236,7 +236,7 @@ class Game
     draw_sky_body(w, h, s, 1.0, 1.0, 0.95, 0.75, 70.0)
     draw_sky_body(w, h, s, -1.0, 0.85, 0.88, 0.95, 46.0)
     # Rain hides the stars.
-    night = (0.55 - daylight) * 2.5 * (1.0 - @rain)
+    night = (0.55 - daylight) * 2.5 * (1.0 - @weather.rain)
     return if night <= 0.0
     night = 1.0 if night > 1.0
     a = @time_of_day * Math::PI * 2.0
@@ -278,7 +278,7 @@ class Game
     sx = @camera.sx
     sy = @camera.sy
     # Rain hides the sun and the moon.
-    clear = 1.0 - @rain
+    clear = 1.0 - @weather.rain
     return if clear <= 0.0
     @sky.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18 * clear)
     @sky.rect(sx - half, sy - half, half * 2.0, half * 2.0, r, g, b, clear)

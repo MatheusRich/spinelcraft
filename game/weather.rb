@@ -2,93 +2,121 @@
 # light, brings the fog nearer, puts out fires under the open sky, and
 # splashes on the ground. The rain itself is streaks on crossed quads in
 # the columns around the player; the vrain shader moves them down.
-class Game
-  # Rain falls in the columns within RAIN_R blocks of the player.
-  RAIN_R = 10
+class Weather
+  # Rain falls in the columns within R blocks of the player.
+  R = 10
   # Seconds that the rain takes to start or to stop.
-  RAIN_FADE = 8.0
+  FADE = 8.0
 
-  def update_weather(dt)
-    @weather_timer -= dt
-    set_raining(!@raining) if @weather_timer <= 0.0
-    step = dt / RAIN_FADE
-    @rain = @raining ? (@rain + step).clamp(0.0, 1.0) : (@rain - step).clamp(0.0, 1.0)
-    return if @rain <= 0.0
-    rain_splashes(dt)
-    @rain_sound -= dt
-    if @rain_sound <= 0.0
-      # The sound is 1.5 seconds long; the next one starts before it ends.
-      # Under a roof it is quieter, and 10 blocks under the ground it stops.
-      @rain_sound = 1.3
-      cover = @world.height_at(@player.x.floor, @player.z.floor) - @player.eye_y
-      play(Sfx::RAIN, (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain)
-    end
+  # The strength of the rain, from 0 (none) to 1.
+  attr_reader :rain
+  # Seconds until the rain starts or stops.
+  attr_accessor :timer
+  # The rain quads.
+  attr_reader :mesh
+
+  def initialize(seed, raining)
+    @rng = seed & 0x7fffffff
+    @raining = false
+    @rain = 0.0
+    @timer = 0.0
+    @sound_wait = 0.0
+    @mesh = Mesh3.new
+    # The block that the rain quads are for, and their age in seconds.
+    @x = World::NONE
+    @y = 0
+    @z = World::NONE
+    @age = 0.0
+    set_now(raining)
   end
 
-  # Starts or stops the rain, and sets how long the new weather lasts.
-  def set_raining(on)
+  def raining? = @raining
+
+  # Starts or stops the rain, and sets how long the new weather lasts. The
+  # strength of the rain follows over FADE seconds.
+  def set(on)
     @raining = on
-    @weather_timer = on ? 120.0 + rand01 * 240.0 : 300.0 + rand01 * 600.0
+    @timer = on ? 120.0 + rand01 * 240.0 : 300.0 + rand01 * 600.0
   end
 
-  # True when nothing above x, y, z stops the rain.
-  def under_sky?(x, y, z) = @world.height_at(x.floor, z.floor) <= y.floor
+  # Starts or stops the rain at full strength at once.
+  def set_now(on)
+    set(on)
+    @rain = on ? 1.0 : 0.0
+  end
+
+  def update(dt)
+    @timer -= dt
+    set(!@raining) if @timer <= 0.0
+    step = dt / FADE
+    @rain = (@raining ? @rain + step : @rain - step).clamp(0.0, 1.0)
+  end
 
   # Drops that splash on the ground around the player.
-  def rain_splashes(dt)
+  def splash(particles, world, player, dt)
     n = (dt * 90.0 * @rain + rand01).to_i
-    while n > 0
-      x = @player.x + (rand01 * 2.0 - 1.0) * 8.0
-      z = @player.z + (rand01 * 2.0 - 1.0) * 8.0
-      h = @world.height_at(x.floor, z.floor)
-      if h > @player.y - 8.0 && h < @player.y + 6.0
-        @particles.add(Particle::DROP, x, h + 0.05, z, 0.0, 1.2 + rand01, 0.0, 0.2 + rand01 * 0.1, Tex::PUFF)
+    n.times do
+      x = player.x + (rand01 * 2.0 - 1.0) * 8.0
+      z = player.z + (rand01 * 2.0 - 1.0) * 8.0
+      h = world.height_at(x.floor, z.floor)
+      if h > player.y - 8.0 && h < player.y + 6.0
+        particles.add(Particle::DROP, x, h + 0.05, z, 0.0, 1.2 + rand01, 0.0, 0.2 + rand01 * 0.1, Tex::PUFF)
       end
-      n -= 1
     end
+  end
+
+  # The volume of the rain sound to start now, or 0.0. The sound is 1.5
+  # seconds long; the next one starts before it ends. Under a roof it is
+  # quieter, and 10 blocks under the ground it stops.
+  def sound(world, player, dt)
+    @sound_wait -= dt
+    return 0.0 if @sound_wait > 0.0
+    @sound_wait = 1.3
+    cover = world.height_at(player.x.floor, player.z.floor) - player.eye_y
+    (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain
   end
 
   # Makes the rain quads again when the player moves to another block, and
   # every second for the blocks that change. Returns true when it did.
-  def build_rain(dt)
-    @rain_age += dt
+  def build_quads(world, player, dt)
+    @age += dt
     return false if @rain <= 0.0
-    cx = @player.x.floor
-    cy = @player.y.floor
-    cz = @player.z.floor
-    return false if cx == @rain_x && cy == @rain_y && cz == @rain_z && @rain_age < 1.0
-    @rain_x = cx
-    @rain_y = cy
-    @rain_z = cz
-    @rain_age = 0.0
-    mesh = @rain_mesh
-    mesh.clear
+    cx = player.x.floor
+    cy = player.y.floor
+    cz = player.z.floor
+    return false if cx == @x && cy == @y && cz == @z && @age < 1.0
+    @x = cx
+    @y = cy
+    @z = cz
+    @age = 0.0
+    @mesh.clear
     top = (cy + 14).to_f
-    dx = -RAIN_R
-    while dx <= RAIN_R
-      dz = -RAIN_R
-      while dz <= RAIN_R
-        if dx * dx + dz * dz <= RAIN_R * RAIN_R
-          x = cx + dx
-          z = cz + dz
-          ground = @world.height_at(x, z)
-          bottom = (ground > cy - 10 ? ground : cy - 10).to_f
-          if bottom < top
-            # Each column starts its streaks at another place, so the
-            # columns do not fall in step. The texture repeats twice across a
-            # quad and every 4 blocks down.
-            v0 = ((x * 73856093) ^ (z * 19349663)) % 1024 / 256.0
-            v1 = v0 + (top - bottom) / 4.0
-            fx = x.to_f
-            fz = z.to_f
-            mesh.wall(fx, fz, fx + 1.0, fz + 1.0, bottom, top, 2.0, v0, v1, Tex::RAIN, 0.75, 0.8, 0.95, 0.45)
-            mesh.wall(fx + 1.0, fz, fx, fz + 1.0, bottom, top, 2.0, v0 + 0.5, v1 + 0.5, Tex::RAIN, 0.75, 0.8, 0.95, 0.45)
-          end
-        end
-        dz += 1
+    (-R..R).each do |dx|
+      (-R..R).each do |dz|
+        next if dx * dx + dz * dz > R * R
+        x = cx + dx
+        z = cz + dz
+        ground = world.height_at(x, z)
+        bottom = (ground > cy - 10 ? ground : cy - 10).to_f
+        next if bottom >= top
+        # Each column starts its streaks at another place, so the columns do
+        # not fall in step. The texture repeats twice across a quad and every
+        # 4 blocks down.
+        v0 = ((x * 73856093) ^ (z * 19349663)) % 1024 / 256.0
+        v1 = v0 + (top - bottom) / 4.0
+        fx = x.to_f
+        fz = z.to_f
+        @mesh.wall(fx, fz, fx + 1.0, fz + 1.0, bottom, top, 2.0, v0, v1, Tex::RAIN, 0.75, 0.8, 0.95, 0.45)
+        @mesh.wall(fx + 1.0, fz, fx, fz + 1.0, bottom, top, 2.0, v0 + 0.5, v1 + 0.5, Tex::RAIN, 0.75, 0.8, 0.95, 0.45)
       end
-      dx += 1
     end
     true
+  end
+
+  private
+
+  def rand01
+    @rng = (@rng * 1103515245 + 12345) & 0x7fffffff
+    (@rng >> 8) / 8388608.0
   end
 end

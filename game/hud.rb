@@ -135,7 +135,7 @@ class Game
     @ui.text(8.0 * s, 36.0 * s, "CHUNKS #{@visible.size / 2}  REMESH #{@mesh_ms.round(2)}MS  MOBS #{@mobs.size}", ts, 1.0, 1.0, 1.0, 1.0)
     clock = ((@time_of_day * 24.0 + 6.0) % 24.0).floor
     mode = @survival ? "SURVIVAL  DAY #{(@alive_time / DAY_SECONDS).floor + 1}" : "CREATIVE"
-    @ui.text(8.0 * s, 50.0 * s, "TIME #{clock}:00  #{mode}#{@raining ? "  RAIN" : ""}", ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(8.0 * s, 50.0 * s, "TIME #{clock}:00  #{mode}#{@weather.raining? ? "  RAIN" : ""}", ts, 1.0, 1.0, 1.0, 1.0)
   end
 
   def draw_death_screen(w, h, s)

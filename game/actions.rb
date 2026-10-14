@@ -93,8 +93,8 @@ class Game
     end
     @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T)
     if !@survival && Gfx.in_key_pressed(Key::R)
-      set_raining(!@raining)
-      say(@raining ? "RAIN" : "CLEAR SKY")
+      @weather.set(!@weather.raining?)
+      say(@weather.raining? ? "RAIN" : "CLEAR SKY")
     end
   end
 

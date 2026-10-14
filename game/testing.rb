@@ -398,6 +398,12 @@ class Game
     end
     check("zombie hit hurts the player", @health < MAX_HEALTH)
     @mobs.clear
+    # Each block that the blast breaks drops by chance, so the blast gets
+    # two more rows of stone to break.
+    (0..5).each do |dx|
+      set_block(px + dx, 88, pz - 1, Block::STONE)
+      set_block(px + dx, 88, pz + 1, Block::STONE)
+    end
     @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
     @health = MAX_HEALTH
     @items.clear
@@ -454,8 +460,7 @@ class Game
     pz = @spawn_z.floor
     @mobs.clear
     @time_of_day = 0.25
-    @raining = true
-    @rain = 1.0
+    @weather.set_now(true)
     zombie = Mob.new(Mob::ZOMBIE, px + 8.5, 89.0, pz + 0.5, 9)
     @mobs << zombie
     @player.x = px + 0.5
@@ -464,24 +469,21 @@ class Game
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie does not burn in the rain", zombie.fire == 0.0 && zombie.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
-    @rain_age = 1.0
-    build_rain(0.0)
+    @weather.build_quads(@world, @player, 1.0)
     open = rain_bottom(px + 3, pz)
     @world.set(px + 3, 95, pz, Block::STONE)
-    @rain_age = 1.0
-    build_rain(0.0)
+    @weather.build_quads(@world, @player, 1.0)
     roofed = rain_bottom(px + 3, pz)
     @world.set(px + 3, 95, pz, Block::AIR)
     check("the rain in a column stops at the highest block", open < 96.0 && roofed == 96.0)
-    set_raining(false)
-    @rain = 0.0
+    @weather.set_now(false)
     @time_of_day = 0.3
   end
 
   # The bottom of the rain in column x, z: the third vertex of the quad from
   # corner (x, z) to (x + 1, z + 1). A quad has 6 vertices of 11 floats.
   def rain_bottom(x, z)
-    v = @rain_mesh.v
+    v = @weather.mesh.v
     i = 0
     while i < v.size
       return v[i + 23] if v[i] == x.to_f && v[i + 2] == z.to_f && v[i + 11] == x + 1.0 && v[i + 13] == z + 1.0
@@ -498,8 +500,8 @@ class Game
     kept_count = @inv_count[1]
     @items.clear
     drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
-    set_raining(true)
-    @weather_timer = 77.5
+    @weather.set(true)
+    @weather.timer = 77.5
     @seen.fill(0)
     @seen[Block::DIAMOND] = 1
     @furnace_heat = {}
@@ -509,8 +511,7 @@ class Game
     @health = 3
     @inv_count[1] = 0
     @items.clear
-    set_raining(false)
-    @rain = 0.0
+    @weather.set_now(false)
     @seen.fill(0)
     @furnace_heat = {}
     ok = load
@@ -519,12 +520,11 @@ class Game
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
-          @raining && @rain == 1.0 && @weather_timer == 77.5)
+          @weather.raining? && @weather.rain == 1.0 && @weather.timer == 77.5)
     check("the save keeps the seen items and the heat in furnaces", @seen[Block::DIAMOND] == 1 && furnace_heat(77) == 5)
     @furnace_heat = {}
     @items.clear
-    set_raining(false)
-    @rain = 0.0
+    @weather.set_now(false)
     @health = 0
     @dead = true
     save

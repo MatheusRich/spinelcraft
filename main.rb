@@ -116,18 +116,6 @@ class Game
     @demo = !ENV["DEMO"].nil?
     @clouds = Clouds.new(@seed)
     @cloud_drift = 0.0
-    # Weather (game/weather.rb): the strength of the rain (0 to 1), whether
-    # it rains or stops, the seconds until that changes, the seconds until
-    # the next rain sound, and the rain quads with the block they are for.
-    @rain = 0.0
-    @raining = false
-    @weather_timer = 0.0
-    @rain_sound = 0.0
-    @rain_mesh = Mesh3.new
-    @rain_x = World::NONE
-    @rain_y = 0
-    @rain_z = World::NONE
-    @rain_age = 0.0
     @bob = 0.0
     @fov = 0.6
     @inventory_open = !ENV["INVENTORY"].nil?
@@ -159,9 +147,7 @@ class Game
     @mobs = []
     @spawn_timer = 0.0
     @rng = @seed * 7 + 1
-    # set_raining uses rand01, so it comes after @rng.
-    set_raining(!ENV["RAIN"].nil?)
-    @rain = 1.0 if @raining
+    @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
     @swing = 0.0
     # The block in the hand model, and how far down the model still is after
@@ -376,8 +362,13 @@ class Game
     update_items(dt)
     update_falling(dt)
     note_seen if @survival
-    update_weather(dt)
-    Gfx.gfx_rain(@rain_mesh.v, @rain_mesh.count) if build_rain(dt)
+    @weather.update(dt)
+    if @weather.rain > 0.0
+      @weather.splash(@particles, @world, @player, dt)
+      volume = @weather.sound(@world, @player, dt)
+      play(Sfx::RAIN, volume) if volume > 0.0
+    end
+    Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
@@ -414,7 +405,7 @@ class Game
       @fire_time = 4.0
       @fire_tick = 1.0
     elsif @fire_time > 0.0
-      if head || Block.water?(feet) || (@rain > 0.5 && under_sky?(@player.x, @player.eye_y, @player.z))
+      if head || Block.water?(feet) || (@weather.rain > 0.5 && @world.under_sky?(@player.x, @player.eye_y, @player.z))
         @fire_time = 0.0
         play(Sfx::FIZZ, 0.6)
       else
