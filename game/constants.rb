@@ -3,12 +3,20 @@
 class Game
   HOTBAR_START = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::PLANKS,
                   Block::LOG, Block::GLASS, Block::BRICK, Block::TORCH]
-  PLACEABLE = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::PLANKS, Block::LOG,
-               Block::LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
-               Block::SNOW_GRASS, Block::CACTUS, Block::COAL, Block::IRON, Block::DIAMOND, Block::WATER,
-               Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
-               Block::BOW, Block::ARROW, Block::LAVA, Block::WOOL, Block::BED, Block::CHEST,
-               Block::DOOR, Block::SAPLING, Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER]
+  # The creative inventory screen: the blocks, then the items.
+  CREATIVE_ITEMS = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::PLANKS, Block::LOG,
+                    Block::LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
+                    Block::SNOW_GRASS, Block::CACTUS, Block::COAL, Block::IRON, Block::DIAMOND, Block::WATER,
+                    Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
+                    Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::SAPLING,
+                    Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER,
+                    Block::WOOD_SWORD, Block::STONE_SWORD, Block::IRON_SWORD, Block::DIAMOND_SWORD,
+                    Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK,
+                    Block::WOOD_AXE, Block::STONE_AXE, Block::IRON_AXE, Block::DIAMOND_AXE,
+                    Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL,
+                    Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
+                    Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
+                    Block::COOKED_PORKCHOP]
   FOG_END = 1600.0
   # The range of the render distance slider, in blocks.
   VIEW_MIN = 200.0

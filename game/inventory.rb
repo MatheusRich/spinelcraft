@@ -156,7 +156,7 @@ class Game
     size = 56.0 * s
     gap = 8.0 * s
     cols = INV_COLS
-    rows = (PLACEABLE.size + cols - 1) / cols
+    rows = (CREATIVE_ITEMS.size + cols - 1) / cols
     x0 = (w - (cols * size + (cols - 1) * gap)) / 2.0
     y0 = (h - (rows * size + (rows - 1) * gap)) / 2.0
     [x0 + (i % cols) * (size + gap), y0 + (i / cols) * (size + gap), size]
@@ -166,7 +166,7 @@ class Game
     mx = Gfx.in_mouse_x
     my = Gfx.in_mouse_y
     i = 0
-    while i < PLACEABLE.size
+    while i < CREATIVE_ITEMS.size
       c = inventory_cell(i, w, h, s)
       return i if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
       i += 1
@@ -469,8 +469,8 @@ class Game
       h = Gfx.gfx_height.to_f
       hover = inventory_hover(w, h, ui_scale(h))
       if hover >= 0
-        @hotbar[@slot] = PLACEABLE[hover]
-        say(Block::NAMES[PLACEABLE[hover]])
+        @hotbar[@slot] = CREATIVE_ITEMS[hover]
+        say(Block::NAMES[CREATIVE_ITEMS[hover]])
         play(Sfx::PLACE, 0.4)
       end
     end

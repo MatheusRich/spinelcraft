@@ -262,25 +262,25 @@ class Game
     end
   end
 
-  # The creative inventory screen: every block that the player can place.
+  # The creative inventory screen: every block and item (see CREATIVE_ITEMS).
   def draw_block_picker(w, h, s)
     @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.55)
     first = inventory_cell(0, w, h, s)
-    last = inventory_cell(PLACEABLE.size - 1, w, h, s)
+    last = inventory_cell(CREATIVE_ITEMS.size - 1, w, h, s)
     pad = 18.0 * s
     right = inventory_cell(INV_COLS - 1, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, last[1] + last[2] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(first[0], first[1] - 36.0 * s, "BLOCKS", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(first[0], first[1] - 36.0 * s, "ITEMS", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     hover = inventory_hover(w, h, s)
     i = 0
-    while i < PLACEABLE.size
+    while i < CREATIVE_ITEMS.size
       c = inventory_cell(i, w, h, s)
       shade = i == hover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::FRONT[PLACEABLE[i]], 1.0)
+      @ui.icon(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, Block::FRONT[CREATIVE_ITEMS[i]], 1.0)
       i += 1
     end
-    label = hover >= 0 ? Block::NAMES[PLACEABLE[hover]] : "CLICK A BLOCK TO PUT IT IN THE SELECTED SLOT"
+    label = hover >= 0 ? Block::NAMES[CREATIVE_ITEMS[hover]] : "CLICK AN ITEM TO PUT IT IN THE SELECTED SLOT"
     @ui.text((w - @ui.text_width(label, 2.0 * s)) / 2.0, last[1] + last[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
   end
 end

@@ -64,8 +64,8 @@ class Game
       if @survival
         throw_selected
       else
-        at = PLACEABLE.index(@hotbar[@slot]) || 0
-        @hotbar[@slot] = PLACEABLE[(at + 1) % PLACEABLE.size]
+        at = CREATIVE_ITEMS.index(@hotbar[@slot]) || 0
+        @hotbar[@slot] = CREATIVE_ITEMS[(at + 1) % CREATIVE_ITEMS.size]
         say(Block::NAMES[@hotbar[@slot]])
       end
     end
