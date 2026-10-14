@@ -132,6 +132,16 @@ class Game
       m11 = -t1
       m21 = -t2
     end
+    # Minecraft draws the hand with a fixed view of 70 degrees, so the model
+    # keeps its size when the view gets wider in a sprint. The world view has
+    # the half angle @fov, so the model scales across the view by
+    # tan(@fov) / tan(35 degrees).
+    k = Math.tan(@fov) / Math.tan(35.0 * Math::PI / 180.0)
+    rx *= k
+    rz *= k
+    ux *= k
+    uy *= k
+    uz *= k
     # View space to the world: right r, up u, back -f.
     @dyn.set_frame(ex + ox * rx + oy * ux - oz * fx, ey + oy * uy - oz * fy, ez + ox * rz + oy * uz - oz * fz,
                    (m00 * rx + m10 * ux - m20 * fx) * size, (m10 * uy - m20 * fy) * size, (m00 * rz + m10 * uz - m20 * fz) * size,
