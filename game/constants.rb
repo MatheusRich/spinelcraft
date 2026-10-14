@@ -71,7 +71,7 @@ class Game
              [Block::STONE, 2, Block::BRICK, 1, AT_TABLE], [Block::WOOL, 3, Block::BED, 1, AT_TABLE],
              [Block::PLANKS, 5, Block::BOW, 1, AT_TABLE], [Block::PLANKS, 8, Block::CHEST, 1, AT_TABLE],
              [Block::PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::PLANKS, 3, Block::LADDER, 4, AT_TABLE],
-             [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE],
+             [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE], [Block::IRON_INGOT, 3, Block::BUCKET, 1, AT_TABLE],
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
              [Block::SAND, 1, Block::GLASS, 1, AT_FURNACE], [Block::COBBLE, 1, Block::STONE, 1, AT_FURNACE]]

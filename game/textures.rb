@@ -80,7 +80,10 @@ module Tex
   LADDER = 81
   # Nothing paints this layer, so it is fully transparent.
   CLEAR = 82
-  FONT = 83
+  BUCKET = 83
+  WATER_BUCKET = 84
+  LAVA_BUCKET = 85
+  FONT = 86
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -287,6 +290,9 @@ module Tex
     furnace(px)
     crafting_table(px)
     ladder(px)
+    bucket(px, BUCKET, 40, 40, 45)
+    bucket(px, WATER_BUCKET, 50, 90, 220)
+    bucket(px, LAVA_BUCKET, 240, 110, 20)
     lava(px)
     noisy(px, WOOL, 232, 232, 228, 14, 71)
     bed(px)
@@ -743,6 +749,28 @@ module Tex
         v = rnd(x, y, 131) / 12
         c = y == 6 ? 240 : 200
         set(px, IRON_INGOT, x, y, c + v - 10, c + v - 12, c + v - 18, 255)
+        x += 1
+      end
+      y += 1
+    end
+  end
+
+  # Bucket: gray metal that narrows to its bottom, with r, g, b at its top.
+  def self.bucket(px, layer, r, g, b)
+    y = 3
+    while y < 14
+      inset = (y - 3) / 4
+      x = 2 + inset
+      while x <= 13 - inset
+        edge = x == 2 + inset || x == 13 - inset || y == 13
+        if y == 3
+          set(px, layer, x, y, 200, 200, 210, 255)
+        elsif y < 6 && !edge
+          set(px, layer, x, y, r, g, b, 255)
+        else
+          shade = edge ? 120 : 165 + (x - 7).abs * 4
+          set(px, layer, x, y, shade, shade, shade + 8, 255)
+        end
         x += 1
       end
       y += 1

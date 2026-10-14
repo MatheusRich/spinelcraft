@@ -153,12 +153,76 @@ class Game
         use_bed(@player.hx, @player.hy, @player.hz)
       elsif Block.door?(target)
         toggle_door(@player.hx, @player.hy, @player.hz)
+      elsif @survival && Block.bucket?(current_block.to_i)
+        use_bucket
       elsif Block.food(current_block.to_i) > 0
         eat
       elsif @player.hit
         place
       end
       @action_cooldown = 0.22
+    end
+  end
+
+  # An empty bucket takes the first water or lava source in view. A full
+  # bucket pours its source into the cell where a block would go.
+  def use_bucket
+    b = current_block.to_i
+    if b == Block::BUCKET
+      return unless fluid_in_view
+      fluid = @world.get(@fluid_x, @fluid_y, @fluid_z)
+      set_block(@fluid_x, @fluid_y, @fluid_z, Block::AIR)
+      swap_bucket(fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET)
+    else
+      return unless @player.hit
+      x = @player.px
+      y = @player.py
+      z = @player.pz
+      if @world.get(@player.hx, @player.hy, @player.hz) == Block::TALL_GRASS
+        x = @player.hx
+        y = @player.hy
+        z = @player.hz
+      end
+      return unless @world.inside?(x, y, z)
+      current = @world.get(x, y, z)
+      return if Block.solid?(current) || Block.door?(current)
+      set_block(x, y, z, b == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
+      swap_bucket(Block::BUCKET)
+    end
+    play(Sfx::SPLASH, 0.5)
+  end
+
+  # Finds the first water or lava source on the line of sight within reach,
+  # and keeps its cell in @fluid_x, @fluid_y and @fluid_z. A solid block
+  # ends the line.
+  def fluid_in_view
+    t = 0.0
+    while t < Player::REACH
+      x = (@player.x + @player.fx * t).floor
+      y = (@player.eye_y + @player.fy * t).floor
+      z = (@player.z + @player.fz * t).floor
+      b = @world.get(x, y, z)
+      if b == Block::WATER || b == Block::LAVA
+        @fluid_x = x
+        @fluid_y = y
+        @fluid_z = z
+        return true
+      end
+      return false if Block.solid?(b)
+      t += 0.05
+    end
+    false
+  end
+
+  # Takes one bucket from the selected slot and gives b for it. An emptied
+  # slot gets b, so b stays in the hand.
+  def swap_bucket(b)
+    @inv_count[@slot] -= 1
+    if @inv_count[@slot] == 0
+      @inv_block[@slot] = b
+      @inv_count[@slot] = 1
+    elsif !give(b)
+      throw_stack(b, 1)
     end
   end
 

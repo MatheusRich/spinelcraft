@@ -124,6 +124,7 @@ class Game
     test_door_furnace_sapling
     test_door_rules
     test_ladder
+    test_buckets
     test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -949,6 +950,46 @@ class Game
     check("a sapling grows into a tree", @world.get(x, y, z) == Block::LOG && @world.get(x, y + 3, z) == Block::LOG)
     check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)
     set_block(x + 4, cy, z, Block::AIR)
+  end
+
+  # An empty bucket takes a water or lava source that the player looks at,
+  # and a full bucket puts the source back.
+  def test_buckets
+    x = @spawn_x.floor + 40
+    z = @spawn_z.floor - 50
+    y = @world.height_at(x, z) + 3
+    dx = -1
+    while dx <= 1
+      dz = -1
+      while dz <= 1
+        set_block(x + dx, y - 2, z + dz, Block::STONE)
+        set_block(x + dx, y - 1, z + dz, Block::STONE)
+        dz += 1
+      end
+      dx += 1
+    end
+    @player.x = x + 0.5
+    @player.y = y.to_f
+    @player.z = z + 0.5
+    @player.pitch = -1.55
+    @inv_block.fill(0)
+    @inv_count.fill(0)
+    @slot = 0
+    ok = true
+    [Block::WATER, Block::LAVA].each do |fluid|
+      full = fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET
+      set_block(x, y - 1, z, fluid)
+      give(Block::BUCKET)
+      @player.raycast(@world)
+      use_bucket
+      took = @inv_block[0] == full && @world.get(x, y - 1, z) == Block::AIR
+      @player.raycast(@world)
+      use_bucket
+      ok = false unless took && @inv_block[0] == Block::BUCKET && @world.get(x, y - 1, z) == fluid
+      remove_items(Block::BUCKET, 1)
+    end
+    set_block(x, y - 1, z, Block::STONE)
+    check("a bucket takes a water or lava source and puts it back", ok)
   end
 
   # A ladder lifts the player on jump, holds the player on Shift, and lets

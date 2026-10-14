@@ -69,6 +69,10 @@ class Game
     @inv_count = Array.new(INV, 0)
     @seen = Array.new(Block::COUNT, 0)
     @recipe_new = Array.new(RECIPES.size, 0)
+    # The cell that fluid_in_view found.
+    @fluid_x = 0
+    @fluid_y = 0
+    @fluid_z = 0
     @held_block = 0
     @held_count = 0
     @chests = {}
