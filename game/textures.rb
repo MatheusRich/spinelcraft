@@ -95,7 +95,9 @@ module Tex
   BED_ITEM = 94
   FURNACE_LIT = 95
   ROTTEN_FLESH = 96
-  FONT = 97
+  MUTTON = 97
+  COOKED_MUTTON = 98
+  FONT = 99
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -158,7 +160,8 @@ module Tex
                   DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
                   BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP,
                   DOOR_LOWER, DOOR_UPPER, DOOR_ITEM, CHEST_TOP, CHEST_SIDE, CHEST_FRONT, BED_TOP, BED_HEAD_TOP,
-                  BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH]
+                  BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH,
+                  MUTTON, COOKED_MUTTON]
   IMAGE_FILES = %w[grass_top grass_side dirt stone sand water log_side log_top leaves planks cobble glass snow
                    snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
                    torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire sapling apple
@@ -166,7 +169,8 @@ module Tex
                    stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
                    wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket
                    furnace_side furnace_top door_lower door_upper door_item chest_top chest_side chest_front bed_top
-                   bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh]
+                   bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
+                   mutton cooked_mutton]
 
   def self.images(px)
     s = 0

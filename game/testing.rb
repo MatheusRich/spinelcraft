@@ -1221,6 +1221,20 @@ class Game
     collect_items
     check("a pig that the player kills drops 1 to 3 porkchops", dropped && @inv.total(Block::PORKCHOP) == n)
     @items.clear
+    sheep = Mob.new(Mob::SHEEP, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    sheep.hp = 0.0
+    sheep.by_player = true
+    @mobs << sheep
+    update_mobs(1.0 / 60.0)
+    n = ground_count(Block::MUTTON)
+    check("a sheep that the player kills drops its wool and 1 to 2 mutton", ground_count(Block::WOOL) == 1 && n >= 1 && n <= 2)
+    @items.clear
+    # Raw mutton gives 2 hunger and 1.2 saturation, and cooked mutton 6 and
+    # 9.6. A furnace cooks it.
+    raw = Block.food(Block::MUTTON) == 2 && Block.saturation(Block::MUTTON) == 1.2
+    cooked = Block.food(Block::COOKED_MUTTON) == 6 && Block.saturation(Block::COOKED_MUTTON) == 9.6
+    smelts = RECIPES.any? { |r| r[0] == Block::MUTTON && r[2] == Block::COOKED_MUTTON && r[4] == AT_FURNACE }
+    check("mutton is food, and a furnace cooks it", raw && cooked && smelts)
     # Each zombie drops 0 to 2, so 10 zombies drop none 1 time in 59049.
     10.times do |i|
       zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, 90.0, @spawn_z + i, 3)

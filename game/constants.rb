@@ -16,7 +16,7 @@ class Game
                     Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL,
                     Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
                     Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
-                    Block::COOKED_PORKCHOP, Block::ROTTEN_FLESH]
+                    Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::ROTTEN_FLESH]
   FOG_END = 1600.0
   # The range of the render distance slider, in blocks.
   VIEW_MIN = 200.0
@@ -127,6 +127,7 @@ class Game
              [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE], [Block::IRON_INGOT, 3, Block::BUCKET, 1, AT_TABLE],
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
+             [Block::MUTTON, 1, Block::COOKED_MUTTON, 1, AT_FURNACE],
              [Block::SAND, 1, Block::GLASS, 1, AT_FURNACE], [Block::COBBLE, 1, Block::STONE, 1, AT_FURNACE]]
 
   INV_COLS = 8
