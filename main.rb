@@ -153,7 +153,7 @@ class Game
     @fov = 0.6
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
-    @was_in_water = false
+    @was_swimming = false
     @particles = Particles.new(@seed)
     @arrows = []
     @items = []
@@ -438,16 +438,19 @@ class Game
       remaining -= step
     end
     @player.raycast(@world)
-    if (@player.on_ground || @player.in_water) && !@player.flying
+    # Water splashes and swishes, but lava makes no sound when the player
+    # enters it or moves in it. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
+    swimming = @player.in_water && !@player.in_lava
+    if (@player.on_ground || swimming) && !@player.in_lava && !@player.flying
       @step_dist += Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * dt
       if @step_dist > Player::STEP
         @step_dist = 0.0
         ground = MATERIAL_STEP[material(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))]
-        play(@player.in_water ? Sfx::STEP_WATER : ground, 0.35)
+        play(swimming ? Sfx::STEP_WATER : ground, 0.35)
       end
     end
-    play(Sfx::SPLASH, 0.6) if @player.in_water && !@was_in_water && !@player.flying
-    @was_in_water = @player.in_water
+    play(Sfx::SPLASH, 0.6) if swimming && !@was_swimming && !@player.flying
+    @was_swimming = swimming
     @particles.update(@world, dt)
     @particles.sample_fire(@world, @player.x, @player.y, @player.z, dt)
     grow_plants(dt)

@@ -284,7 +284,37 @@ class Game
     test_sound_position
     test_arrow_lands
     test_block_sounds
+    test_lava_swim
     test_cave_sound
+  end
+
+  # The player swims in lava as in water, but only water counts for the
+  # splash and the swim sound.
+  def test_lava_swim
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    flying = @player.flying
+    x = px.floor
+    z = pz.floor
+    y = WY - 4
+    @player.flying = false
+    @player.x = x + 0.5
+    @player.y = y.to_f
+    @player.z = z + 0.5
+    set_block(x, y, z, Block::LAVA)
+    @player.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false)
+    lava = @player.in_water && @player.in_lava
+    set_block(x, y, z, Block::WATER)
+    @player.y = y.to_f
+    @player.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false)
+    water = @player.in_water && !@player.in_lava
+    set_block(x, y, z, Block::AIR)
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.flying = flying
+    check("lava is not water for the swim sounds", lava && water)
   end
 
   # Lava under air, flowing water and a lit furnace make sounds, but
