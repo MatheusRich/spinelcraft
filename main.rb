@@ -417,7 +417,7 @@ class Game
       end
       @w_sprint = false unless Gfx.in_key(Key::W)
       sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
-      sprint = false if (@survival && !@vitals.can_sprint?) || @eat_time >= 0.0
+      sprint = false if (@survival && !@vitals.can_sprint?) || using_item?
     end
     if @autopilot
       @player.flying = true
@@ -427,7 +427,7 @@ class Game
       sprint = true
       @player.y = 72.0
     end
-    @player.slowed = @eat_time >= 0.0
+    @player.slowed = using_item?
     remaining = dt
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining
@@ -565,6 +565,9 @@ class Game
     return 2 if Block.furnace_lit?(b)
     -1
   end
+
+  # True while the player eats or draws the bow.
+  def using_item? = @eat_time >= 0.0 || @draw_time >= 0.0
 
   def daylight
     s = Math.sin(@time_of_day * Math::PI * 2.0)

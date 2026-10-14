@@ -15,8 +15,8 @@ class Player
   # True when the feet are in lava. in_water is true then too, because the
   # player moves the same way in both.
   attr_reader :in_lava
-  # True while the player eats. The player then moves at sneaking speed and
-  # cannot sprint.
+  # True while the player eats or draws the bow (Game#using_item?). The
+  # player then moves at sneaking speed and cannot sprint.
   attr_accessor :slowed
   # True when the last step started a jump.
   attr_reader :jumped
@@ -76,9 +76,9 @@ class Player
                             Block::BASE[world.get(@x.floor, (@y + 1.0).floor, @z.floor)] == Block::LADDER)
     @sneaking = down && !@flying && @on_ground
     @jumped = false
-    # Walk and sprint speeds: minecraft.wiki/w/Sprinting. The wiki gives
-    # sneaking speed for a player who draws a bow (minecraft.wiki/w/Bow).
-    # It does not give the speed for eating, so eating uses the same.
+    # Walk and sprint speeds: minecraft.wiki/w/Sprinting. A player who draws
+    # a bow moves at sneaking speed (minecraft.wiki/w/Bow). The wiki does
+    # not give the speed for eating, so eating uses the same.
     speed = @flying ? (sprint ? 22.0 : 11.0) : (@sneaking || @slowed ? 1.3 : (sprint ? 5.6 : 4.3))
     speed *= 0.55 if @in_water && !@flying
     sy = Math.sin(@yaw)

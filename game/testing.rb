@@ -289,7 +289,7 @@ class Game
     test_cave_sound
   end
 
-  # A player who eats walks at sneaking speed.
+  # A player who eats or draws the bow walks at sneaking speed.
   def test_eat_slowdown
     px = @player.x
     py = @player.y
@@ -319,7 +319,11 @@ class Game
     @player.z = pz
     @player.yaw = yaw
     @player.flying = flying
-    check("a player who eats walks at sneaking speed, not a sprint", speeds[0] > 5.0 && speeds[1] < 1.5)
+    @draw_time = 0.5
+    bow = using_item?
+    @draw_time = -1.0
+    check("a player who eats or draws the bow walks at sneaking speed, not a sprint",
+          speeds[0] > 5.0 && speeds[1] < 1.5 && bow && !using_item?)
   end
 
   # The player swims in lava as in water, but only water counts for the
