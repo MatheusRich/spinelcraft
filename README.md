@@ -134,7 +134,8 @@ Stone, cobblestone, bricks and ores drop nothing unless you use a pickaxe of the
 | `game/render.rb` | The 3D frame and the sky |
 | `game/hud.rb` | The 2D overlay: crosshair, hotbar, bars, messages, and menus |
 | `game/testing.rb` | The `SELFTEST`, `SHOWMOBS` and `DEMO` switches |
-| `game/world.rb` | Block tables, noise, chunk generation, block storage, and the store of changed chunks |
+| `game/world.rb` | Block tables, chunk generation, block storage, and the store of changed chunks |
+| `game/noise.rb` | Perlin noise, and the hash for random choices that a position decides |
 | `game/mesher.rb` | Chunk meshing: one packed record for each visible face |
 | `game/lod.rb` | Far terrain: coarse tiles past the full-detail chunks |
 | `game/player.rb` | Player physics and the block raycast |

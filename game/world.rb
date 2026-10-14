@@ -179,129 +179,6 @@ CZ = RING
 # Bytes of one chunk in a save: 16 x 16 columns of WY blocks.
 CHUNK_BYTES = CHUNK * CHUNK * WY
 
-class Noise
-  def initialize(seed)
-    p = (0...256).to_a
-    rng = Rng.new(seed)
-    i = 255
-    while i > 0
-      j = rng.next_int % (i + 1)
-      t = p[i]
-      p[i] = p[j]
-      p[j] = t
-      i -= 1
-    end
-    @perm = Array.new(512, 0)
-    i = 0
-    while i < 512
-      @perm[i] = p[i & 255]
-      i += 1
-    end
-  end
-
-  def fade(t) = t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
-
-  def grad2(h, x, y)
-    case h & 7
-    when 0 then x + y
-    when 1 then -x + y
-    when 2 then x - y
-    when 3 then -x - y
-    when 4 then x
-    when 5 then -x
-    when 6 then y
-    else -y
-    end
-  end
-
-  def grad3(h, x, y, z)
-    case h & 15
-    when 0, 12 then x + y
-    when 1, 14 then -x + y
-    when 2 then x - y
-    when 3 then -x - y
-    when 4 then x + z
-    when 5 then -x + z
-    when 6 then x - z
-    when 7 then -x - z
-    when 8 then y + z
-    when 9, 13 then -y + z
-    when 10 then y - z
-    else -y - z
-    end
-  end
-
-  def noise2(x, y)
-    xi = x.floor
-    yi = y.floor
-    xf = x - xi
-    yf = y - yi
-    xa = xi & 255
-    ya = yi & 255
-    u = fade(xf)
-    v = fade(yf)
-    aa = @perm[@perm[xa] + ya]
-    ab = @perm[@perm[xa] + ya + 1]
-    ba = @perm[@perm[xa + 1] + ya]
-    bb = @perm[@perm[xa + 1] + ya + 1]
-    x1 = grad2(aa, xf, yf) + (grad2(ba, xf - 1.0, yf) - grad2(aa, xf, yf)) * u
-    x2 = grad2(ab, xf, yf - 1.0) + (grad2(bb, xf - 1.0, yf - 1.0) - grad2(ab, xf, yf - 1.0)) * u
-    (x1 + (x2 - x1) * v) * 0.7
-  end
-
-  def noise3(x, y, z)
-    xi = x.floor
-    yi = y.floor
-    zi = z.floor
-    xf = x - xi
-    yf = y - yi
-    zf = z - zi
-    xa = xi & 255
-    ya = yi & 255
-    za = zi & 255
-    u = fade(xf)
-    v = fade(yf)
-    w = fade(zf)
-    a = @perm[xa] + ya
-    aa = @perm[a] + za
-    ab = @perm[a + 1] + za
-    b = @perm[xa + 1] + ya
-    ba = @perm[b] + za
-    bb = @perm[b + 1] + za
-    l1 = lerp(lerp(grad3(@perm[aa], xf, yf, zf), grad3(@perm[ba], xf - 1.0, yf, zf), u),
-              lerp(grad3(@perm[ab], xf, yf - 1.0, zf), grad3(@perm[bb], xf - 1.0, yf - 1.0, zf), u), v)
-    l2 = lerp(lerp(grad3(@perm[aa + 1], xf, yf, zf - 1.0), grad3(@perm[ba + 1], xf - 1.0, yf, zf - 1.0), u),
-              lerp(grad3(@perm[ab + 1], xf, yf - 1.0, zf - 1.0), grad3(@perm[bb + 1], xf - 1.0, yf - 1.0, zf - 1.0), u), v)
-    lerp(l1, l2, w)
-  end
-
-  def lerp(a, b, t) = a + (b - a) * t
-
-  def fbm2(x, y, octaves)
-    sum = 0.0
-    amp = 1.0
-    freq = 1.0
-    norm = 0.0
-    i = 0
-    while i < octaves
-      sum += noise2(x * freq, y * freq) * amp
-      norm += amp
-      # `x *= k` in a loop makes Spinel box x as a possible bigint.
-      amp /= 2.0
-      freq += freq
-      i += 1
-    end
-    sum / norm
-  end
-end
-
-def hash3(x, y, z, salt)
-  h = (x * 73856093 + y * 19349663 + z * 83492791 + salt * 2654435761) & 0xffffffff
-  h = ((h ^ (h >> 15)) * 2146121005) & 0xffffffff
-  h = ((h ^ (h >> 13)) * 1798096565) & 0xffffffff
-  (h ^ (h >> 16)) & 0xffff
-end
-
 class World
   # Slot owner of an empty slot.
   NONE = -(1 << 40)
@@ -625,7 +502,7 @@ class World
     top = h - 1
     snowy = t < -0.3 || top > SEA + 34
     b = beach?(top) || desert?(t) ? Block::SAND : (snowy ? Block::SNOW_GRASS : Block::GRASS)
-    b = Block::GRAVEL if top < SEA - 2 && hash3(x / 3, 0, z / 3, 5) < 20000
+    b = Block::GRAVEL if top < SEA - 2 && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
     b = Block::STONE if bare_rock?(top)
     b = Block::SNOW if top > SEA + 44
     b
@@ -672,7 +549,7 @@ class World
   # The top ground block of the tree that grows at column x, z, or -1. It
   # only reads noise, so every chunk that a tree crosses gets the same tree.
   def tree_top(x, z)
-    return -1 unless tree_roll?(x, z, hash3(x, 0, z, 21))
+    return -1 unless tree_roll?(x, z, Noise.hash3(x, 0, z, 21))
     h = surface_height(x, z)
     ground = top_block(x, z, h, temperature(x, z))
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS
@@ -740,11 +617,11 @@ class World
             b = Block::STONE if bare_rock?(top)
           end
           if b == Block::STONE
-            if hash3(x >> 1, y >> 1, z >> 1, 11) < 1100 && hash3(x, y, z, 12) < 40000
+            if Noise.hash3(x >> 1, y >> 1, z >> 1, 11) < 1100 && Noise.hash3(x, y, z, 12) < 40000
               b = Block::COAL
-            elsif y < 50 && hash3(x >> 1, y >> 1, z >> 1, 13) < 600 && hash3(x, y, z, 14) < 36000
+            elsif y < 50 && Noise.hash3(x >> 1, y >> 1, z >> 1, 13) < 600 && Noise.hash3(x, y, z, 14) < 36000
               b = Block::IRON
-            elsif y < 16 && hash3(x >> 1, y >> 1, z >> 1, 15) < 160 && hash3(x, y, z, 16) < 30000
+            elsif y < 16 && Noise.hash3(x >> 1, y >> 1, z >> 1, 15) < 160 && Noise.hash3(x, y, z, 16) < 30000
               b = Block::DIAMOND
             end
           end
@@ -809,9 +686,9 @@ class World
         z = z0 + lz
         top = @col_h[lx * CHUNK + lz] - 1
         ground = block(World.index(x, top, z))
-        r = hash3(x, 0, z, 21)
+        r = Noise.hash3(x, 0, z, 21)
         if ground == Block::GRASS && !tree_roll?(x, z, r) && block(World.index(x, top + 1, z)) == Block::AIR
-          p = hash3(x, 2, z, 25)
+          p = Noise.hash3(x, 2, z, 25)
           meadow = @noise3.noise2(x / 30.0, z / 30.0 + 11.0)
           if p < 9000 + (meadow * 12000.0).to_i
             put(x, top + 1, z, Block::TALL_GRASS, x0, z0)
@@ -819,7 +696,7 @@ class World
             put(x, top + 1, z, (x + z) % 3 == 0 ? Block::ROSE : Block::DANDELION, x0, z0)
           end
         elsif ground == Block::SAND && desert?(@col_t[lx * CHUNK + lz]) && !beach?(top) && r < 350
-          tall = 1 + hash3(x, 1, z, 22) % 3
+          tall = 1 + Noise.hash3(x, 1, z, 22) % 3
           i = 0
           while i < tall
             put(x, top + 1 + i, z, Block::CACTUS, x0, z0)
@@ -844,7 +721,7 @@ class World
   end
 
   def tree(x, y, z, x0, z0)
-    tall = 4 + hash3(x, y, z, 23) % 3
+    tall = 4 + Noise.hash3(x, y, z, 23) % 3
     return if y + tall + 2 >= WY
     top = y + tall
     ly = top - 2
@@ -855,7 +732,7 @@ class World
         dz = -radius
         while dz <= radius
           corner = dx.abs == radius && dz.abs == radius
-          skip = corner && (ly == top + 1 || hash3(x + dx, ly, z + dz, 24) < 32000)
+          skip = corner && (ly == top + 1 || Noise.hash3(x + dx, ly, z + dz, 24) < 32000)
           put(x + dx, ly, z + dz, Block::LEAVES, x0, z0) if !skip && air_in?(x + dx, ly, z + dz, x0, z0)
           dz += 1
         end

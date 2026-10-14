@@ -1,6 +1,7 @@
 # Counts generated blocks by type. Runs under CRuby or Spinel.
 require_relative "../game/rng"
 require_relative "../game/textures"
+require_relative "../game/noise"
 require_relative "../game/world"
 
 # The 24 x 24 chunks from x = z = 0.
@@ -21,4 +22,4 @@ while i < Block::COUNT
   puts "#{Block::NAMES[i]}: #{counts[i]}"
   i += 1
 end
-puts "hash3 #{hash3(10, 0, 20, 21)}"
+puts "hash3 #{Noise.hash3(10, 0, 20, 21)}"

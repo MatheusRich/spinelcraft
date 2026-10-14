@@ -55,7 +55,7 @@ class Lod
     @top[k] = Block::TOP[b]
     @side[k] = Block::SIDE[b]
     @h[k] = h
-    if (b == Block::GRASS || b == Block::SNOW_GRASS) && w.tree_roll?(x, z, hash3(cx, 0, cz, 26) >> 4)
+    if (b == Block::GRASS || b == Block::SNOW_GRASS) && w.tree_roll?(x, z, Noise.hash3(cx, 0, cz, 26) >> 4)
       @h[k] = h + CANOPY
       @top[k] = Tex::LEAVES
       @side[k] = Tex::LEAVES
