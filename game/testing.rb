@@ -102,6 +102,7 @@ class Game
   # SELFTEST=1 runs the game rules without input and reports PASS/FAIL lines.
   def self_test
     @failures = 0
+    test_spawn
     x = @spawn_x.floor + 2
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
@@ -152,6 +153,16 @@ class Game
     test_terrain_tables
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
     puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
+  end
+
+  # The player starts on dry land: above the beach, with no water or
+  # leaves underfoot.
+  def test_spawn
+    x = @spawn_x.floor
+    z = @spawn_z.floor
+    h = @world.height_at(x, z)
+    b = @world.get(x, h - 1, z)
+    check("the player spawns on dry land", h > SEA + 2 && Block.solid?(b) && b != Block::LEAVES && !Block.water?(b))
   end
 
   # The terrain tables are read by position, so each must have one entry

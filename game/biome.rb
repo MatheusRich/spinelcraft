@@ -11,7 +11,6 @@ module Biome
             Block::SAND, Block::GRASS, Block::GRASS, Block::GRASS]
   # Trees per 65536 columns.
   TREES = [90, 2600, 2000, 1400, 50, 0, 160, 4200, 900]
-  # The tree that grows: OAK, SPRUCE, ACACIA or JUNGLE_TREE.
   TREE_KINDS = [OAK = 0, SPRUCE = 1, ACACIA = 2, JUNGLE_TREE = 3]
   TREE = [OAK, OAK, SPRUCE, SPRUCE, SPRUCE, OAK, ACACIA, JUNGLE_TREE, OAK]
   # Tall grass per 65536 columns of grass, before the meadow noise.
@@ -21,10 +20,8 @@ module Biome
   # The most trees of any biome, so a roll at or above it needs no biome.
   MAX_TREES = TREES.max
 
-  # The biome for temperature t and humidity w. Cold land is tundra or
-  # snowy taiga, cool land plains or taiga, mild land plains, forest or
-  # swamp, and hot land desert, savanna or jungle. Swamps only grow on low
-  # land; low is true there.
+  # The biome for temperature t and humidity w. low is true near sea
+  # level, the only land where swamps grow.
   def self.pick(t, w, low)
     if t < -0.32
       w > 0.1 ? SNOWY_TAIGA : TUNDRA
