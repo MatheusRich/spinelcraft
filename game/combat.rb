@@ -3,10 +3,10 @@ class Game
   # The sound that each mob kind makes now and then, indexed by kind.
   # The sounds of a mob by kind: pig, zombie, skeleton, sheep and creeper.
   # They follow VoxeLibre. MOB_SOUND plays now and then, MOB_HURT after a
-  # hit, and MOB_DEATH when the mob dies. A creeper is silent until its fuse
-  # hisses, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
+  # hit, and MOB_DEATH when the mob dies. A creeper makes no sound now and
+  # then, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
   MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1]
-  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, -1]
+  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT]
   MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH]
 
   # Light in Minecraft: a torch has 14, lava 15, and a cell under the open
@@ -337,7 +337,7 @@ class Game
       drop_loot(m) if @survival && lived && m.dying? && m.by_player
       if lived && m.dying?
         play_at(MOB_DEATH[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
-      elsif m.ouch && MOB_HURT[m.kind] >= 0
+      elsif m.ouch
         play_at(MOB_HURT[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
       end
       m.ouch = false

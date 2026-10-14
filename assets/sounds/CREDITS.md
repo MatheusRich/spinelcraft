@@ -72,6 +72,7 @@ Each file keeps its license.
 | `watersplash.ogg` | tran5ient | CC0 1.0 | <https://freesound.org/people/tran5ient/sounds/190080/> |
 | `fire_extinguish_flame.1.ogg` | Perttu Ahola (celeron55) | CC BY-SA 3.0 | Minetest Game `fire` mod |
 | `tnt_explode.ogg` | Jose Ortiz "MindChamber" | CC0 1.0 | VoxeLibre `mcl_tnt` |
+| `tnt_ignite.ogg` | VoxeLibre contributors, from a sound by Ned Bouhalassa | CC0 1.0 | <https://freesound.org/people/Ned%20Bouhalassa/sounds/8320/> |
 | `weather_rain.ogg` | inchadney | CC BY-SA 3.0 | <http://freesound.org/people/inchadney/sounds/58835/> |
 | `item_drop_pickup.ogg` | VoxeLibre contributors (no author listed) | Free license (VoxeLibre `LEGAL.md`) | VoxeLibre `mcl_item_entity` |
 

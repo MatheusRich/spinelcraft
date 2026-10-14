@@ -16,7 +16,7 @@ module Sfx
   OINK = 12
   GROAN = 13
   RATTLE = 14
-  FUSE = 15
+  CREEPER_HURT = 15
   SHOOT = 16
   HIT = 17
   SPLASH = 18
@@ -51,6 +51,7 @@ module Sfx
   # The cave sounds are CAVE to CAVE + CAVES - 1.
   CAVE = 47
   CAVES = 4
+  FUSE = 51
   # The file of each sound, in the order of the ids above.
   FILES = ["default_dug_node.1", "default_place_node.1", "default_place_node_hard.1", "player_damage",
            "default_grass_footstep.1", "default_dirt_footstep.1", "default_hard_footstep.1", "default_wood_footstep.1",
@@ -66,7 +67,8 @@ module Sfx
            "default_break_glass.1", "default_glass_footstep", "default_dig_snappy",
            "default_gravel_dig.1", "default_gravel_dug.1", "default_gravel_footstep.1",
            "default_sand_footstep.1", "default_water_footstep.1",
-           "cave1", "cave2", "cave4", "cave5"]
+           "cave1", "cave2", "cave4", "cave5",
+           "tnt_ignite"]
   # The gain of each file in dB, in the order of the ids above. It sets the
   # RMS of the loudest 0.1 seconds of each sound to -20 dBFS (-12 dBFS for
   # the explosion), so that all sounds are equally loud.
@@ -76,7 +78,7 @@ module Sfx
            -2.4, -5.7, -9.8, 1.2, -1.6, -5.3, -11.6, -9.5,
            -10.0, -15.4, 1.0, -6.0, -5.4, -2.0, -8.0, -6.1,
            -1.5, 1.8, -0.6, 6.8, 2.7, -6.0, -1.3, -9.5,
-           -10.4, -9.6, -15.5]
+           -10.4, -9.6, -15.5, 6.8]
 
   # Loads each sound file. Returns how many loaded.
   def self.load_files
