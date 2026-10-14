@@ -68,6 +68,7 @@ class Game
     @inv_block = Array.new(INV, 0)
     @inv_count = Array.new(INV, 0)
     @seen = Array.new(Block::COUNT, 0)
+    @recipe_new = Array.new(RECIPES.size, 0)
     @held_block = 0
     @held_count = 0
     @chests = {}
@@ -258,6 +259,7 @@ class Game
     reset_world
     @chests = {}
     @seen.fill(0)
+    @recipe_new.fill(0)
     @mobs.clear
     clear_arrows
     clear_items

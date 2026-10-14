@@ -246,7 +246,9 @@ class Game
       c = recipe_cell(j, w, h, s)
       can = count_items(r[0]) >= r[1] && (r[4] == BY_HAND || (r[4] == AT_TABLE ? table : furnace))
       shade = k == rhover ? 0.5 : 0.28
-      @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 1.0)
+      fresh = @recipe_new[k] == 1
+      @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)
+      @ui.text(c[0] + c[2] - @ui.text_width("NEW", 1.5 * s) - 4.0 * s, c[1] + 3.0 * s, "NEW", 1.5 * s, 1.0, 0.85, 0.2, 1.0) if fresh
       @ui.icon(c[0] + 2.0 * s, c[1] + 2.0 * s, 22.0 * s, Block::SIDE[r[2]], can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
       @ui.text(c[0] + 30.0 * s, c[1] + 4.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.0 * s, bright, bright, bright, 1.0)

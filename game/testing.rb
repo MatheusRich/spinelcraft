@@ -479,11 +479,16 @@ class Game
   # The recipe list shows a recipe once the player has had its ingredient.
   def test_seen_recipes
     @seen.fill(0)
+    @recipe_new.fill(0)
     @inv_block.fill(0)
     @inv_count.fill(0)
     give(Block::LOG)
     note_seen
     logs = shown_recipes == [recipe_for(Block::PLANKS)]
+    told = @message == "NEW RECIPE: PLANKS" && @recipe_new[recipe_for(Block::PLANKS)] == 1
+    toggle_inventory
+    toggle_inventory
+    check("a new recipe shows a message and a tag until the inventory closes", told && !@recipe_new.include?(1))
     give(Block::PLANKS)
     note_seen
     remove_items(Block::PLANKS, 1)

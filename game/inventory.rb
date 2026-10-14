@@ -249,10 +249,30 @@ class Game
   def note_seen
     i = 0
     while i < INV
-      @seen[@inv_block[i]] = 1 if @inv_count[i] > 0
+      see(@inv_block[i]) if @inv_count[i] > 0
       i += 1
     end
-    @seen[@held_block] = 1 if @held_count > 0
+    see(@held_block) if @held_count > 0
+  end
+
+  # Marks b as seen. Each recipe that b unlocks gets the NEW tag until the
+  # recipe list closes, and a message tells the player.
+  def see(b)
+    return if @seen[b] == 1
+    @seen[b] = 1
+    found = 0
+    last = 0
+    k = 0
+    while k < RECIPES.size
+      if RECIPES[k][0] == b
+        @recipe_new[k] = 1
+        found += 1
+        last = k
+      end
+      k += 1
+    end
+    return if found == 0
+    say(found == 1 ? "NEW RECIPE: #{Block::NAMES[RECIPES[last][2]]}" : "#{found} NEW RECIPES - PRESS E")
   end
 
   # The recipes that the list shows, in the order of RECIPES: those whose
@@ -406,6 +426,8 @@ class Game
   end
 
   def toggle_inventory
+    # The player saw the NEW tags in the recipe list.
+    @recipe_new.fill(0) if @inventory_open && @chest_key < 0
     if @inventory_open
       return_held
       # What does not fit falls to the ground.
