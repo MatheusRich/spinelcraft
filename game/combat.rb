@@ -482,7 +482,15 @@ class Game
 
   def update_arrows(dt)
     @arrows.each do |a|
-      next unless a.fly(@world, dt)
+      unless a.fly(@world, dt)
+        # An arrow makes the same sound when it hits a block as when it
+        # hits a mob. minecraft.wiki/w/Arrow
+        if a.landed
+          a.landed = false
+          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8, SOUND_RANGE)
+        end
+        next
+      end
       if a.damage > 0
         m = @mobs.find { |mob| !mob.dying? && a.in_box?(mob.x, mob.y, mob.z, mob.half, mob.tall) }
         if m

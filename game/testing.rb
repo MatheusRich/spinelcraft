@@ -268,7 +268,21 @@ class Game
     pig.wound(1.0)
     check("a hit makes a mob cry out", pig.ouch)
     test_sound_position
+    test_arrow_lands
     test_cave_sound
+  end
+
+  # An arrow that sticks in the ground lands once, so its sound plays once.
+  def test_arrow_lands
+    x = @spawn_x.floor + 0.5
+    z = @spawn_z.floor + 0.5
+    arrow = Arrow.new(x, @world.height_at(x.floor, z.floor) + 2.0, z, 0.0, -10.0, 0.0, 5.0, 0)
+    steps = 0
+    steps += 1 while arrow.fly(@world, 1.0 / 60.0) && steps < 120
+    landed = arrow.landed
+    arrow.landed = false
+    arrow.fly(@world, 1.0 / 60.0)
+    check("an arrow lands once when it sticks in a block", landed && !arrow.landed)
   end
 
   # A sound to the side pans to that side, a sound far below is quiet,

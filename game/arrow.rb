@@ -4,6 +4,8 @@ class Arrow
   attr_reader :x, :y, :z, :vx, :vz
   # 0 for a skeleton's arrow; otherwise the damage of the player's arrow.
   attr_reader :damage
+  # True on the step that the arrow sticks in a block; Game clears it.
+  attr_accessor :landed
 
   def initialize(x, y, z, vx, vy, vz, life, damage)
     @x = x
@@ -14,6 +16,7 @@ class Arrow
     @vz = vz
     @life = life
     @stuck = false
+    @landed = false
     @damage = damage
   end
 
@@ -33,6 +36,7 @@ class Arrow
     nz = @z + @vz * dt
     if Block.solid?(world.get(nx.floor, ny.floor, nz.floor))
       @stuck = true
+      @landed = true
       @life = 3.0 if @life > 3.0
       return false
     end
