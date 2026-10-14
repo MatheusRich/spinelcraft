@@ -49,9 +49,10 @@ class World
   PEAK = SEA + 34.0
   # The shortest trunk of each tree kind (Biome::OAK and so on), one
   # entry for each of Biome::TREE_KINDS.
-  TRUNK = [4, 6, 4, 8]
-  # How far leaves reach from the trunk.
-  TREE_REACH = 3
+  TRUNK = [4, 6, 5, 8]
+  # How far leaves reach from the root of a tree: an acacia leans 3
+  # blocks, and its crown reaches 3 more.
+  TREE_REACH = 6
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :edited, :store, :seed
 
@@ -723,10 +724,11 @@ class World
   # Oaks have round crowns, spruces narrow cones, acacias flat tops, and
   # jungle trees are tall with wide crowns.
   def tree(x, y, z, x0, z0, kind)
+    return acacia(x, y, z, x0, z0) if kind == Biome::ACACIA
     tall = TRUNK[kind] + Noise.hash3(x, y, z, 23) % 3
     return if y + tall + 2 >= WY
     top = y + tall
-    ly = kind == Biome::SPRUCE ? y + 2 : (kind == Biome::ACACIA ? top : top - 2)
+    ly = kind == Biome::SPRUCE ? y + 2 : top - 2
     while ly <= top + 1
       radius = leaf_radius(kind, top + 1 - ly)
       dx = -radius
@@ -751,11 +753,83 @@ class World
     put(x, y - 1, z, Block::DIRT, x0, z0)
   end
 
+  # An acacia on the ground below x, y, z. Near its top, the trunk leans
+  # 1 to 3 blocks to one side. Most acacias also fork a shorter branch
+  # that grows out on a diagonal, with a smaller crown.
+  # minecraft.wiki/w/Tree_definition (forking_trunk_placer) gives this
+  # shape. The wiki does not confirm the heights and the odds: they copy
+  # the acacia feature in the game code.
+  def acacia(x, y, z, x0, z0)
+    r = Noise.hash3(x, y, z, 23)
+    tall = TRUNK[Biome::ACACIA] + r % 3 + r / 3 % 3
+    return if y + tall + 2 >= WY
+    r /= 9
+    dir = r % 4
+    bend = tall - 1 - r / 4 % 4
+    lean = 3 - r / 16 % 3
+    tx = x
+    tz = z
+    i = 0
+    while i < tall
+      if i >= bend && lean > 0
+        tx += Block::DIR_DX[dir]
+        tz += Block::DIR_DZ[dir]
+        lean -= 1
+      end
+      put(tx, y + i, tz, Block::LOG, x0, z0)
+      i += 1
+    end
+    put(x, y - 1, z, Block::DIRT, x0, z0)
+    r = Noise.hash3(x, y, z, 27)
+    side = r % 4
+    if side != dir
+      i = bend - 1 - r / 4 % 2
+      left = 1 + r / 8 % 3
+      bx = x
+      bz = z
+      top = -1
+      while i < tall && left > 0
+        if i >= 1
+          bx += Block::DIR_DX[side]
+          bz += Block::DIR_DZ[side]
+          put(bx, y + i, bz, Block::LOG, x0, z0)
+          top = y + i
+        end
+        i += 1
+        left -= 1
+      end
+      acacia_crown(bx, top, bz, 2, x0, z0) if top >= 0
+    end
+    acacia_crown(tx, y + tall - 1, tz, 3, x0, z0)
+  end
+
+  # The flat crown of an acacia on the log at x, y, z. Level with the
+  # log, the leaves reach out `reach` blocks, without the corners. One
+  # layer above, they cover the 3 x 3 blocks over the log, and a crown
+  # that reaches 3 adds one block at the middle of each side.
+  def acacia_crown(x, y, z, reach, x0, z0)
+    dx = -reach
+    while dx <= reach
+      dz = -reach
+      while dz <= reach
+        ax = dx.abs
+        az = dz.abs
+        if (ax < reach || az < reach) && air_in?(x + dx, y, z + dz, x0, z0)
+          put(x + dx, y, z + dz, Block::LEAVES, x0, z0)
+        end
+        if ((ax <= 1 && az <= 1) || ax + az < reach) && air_in?(x + dx, y + 1, z + dz, x0, z0)
+          put(x + dx, y + 1, z + dz, Block::LEAVES, x0, z0)
+        end
+        dz += 1
+      end
+      dx += 1
+    end
+  end
+
   # The radius of the leaves d layers below the top layer of a tree.
   def leaf_radius(kind, d)
     case kind
     when Biome::SPRUCE then d == 0 ? 0 : (d.odd? ? 1 : 2)
-    when Biome::ACACIA then d == 0 ? 1 : 2
     when Biome::JUNGLE_TREE then d < 2 ? d + 1 : 3
     else d < 2 ? 1 : 2
     end
