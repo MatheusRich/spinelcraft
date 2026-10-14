@@ -49,10 +49,10 @@ class World
   PEAK = SEA + 34.0
   # The shortest trunk of each tree kind (Biome::OAK and so on), one
   # entry for each of Biome::TREE_KINDS.
-  TRUNK = [4, 5, 5, 8]
-  # How far leaves reach from the root of a tree: a large oak grows a
-  # branch 5 blocks long, and the leaves at its end reach 2 more.
-  TREE_REACH = 7
+  TRUNK = [4, 5, 5, 4]
+  # How far leaves reach from the root of a tree: a giant jungle tree
+  # grows a branch 5 blocks long, and the leaves at its end reach 3 more.
+  TREE_REACH = 8
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :edited, :store, :seed
 
@@ -720,29 +720,39 @@ class World
     block(World.index(x, y, z)) == Block::AIR
   end
 
-  # A tree of the biome on the ground below x, y, z. Oaks have round
-  # crowns, spruces narrow cones, acacias flat tops, and jungle trees are
-  # tall with wide crowns.
+  # A tree of the biome on the ground below x, y, z. The biome picks the
+  # kind of tree (Biome::TREE), and the kind picks among its shapes.
   def tree(x, y, z, x0, z0, biome)
     kind = Biome::TREE[biome]
-    return acacia(x, y, z, x0, z0) if kind == Biome::ACACIA
-    return large_oak(x, y, z, x0, z0) if kind == Biome::OAK && Noise.hash3(x, y, z, 28) < Biome::LARGE_OAKS[biome]
-    if kind == Biome::SPRUCE
-      return Noise.hash3(x, y, z, 31) < Biome::PINES[biome] ? pine(x, y, z, x0, z0) : spruce(x, y, z, x0, z0)
+    if kind == Biome::ACACIA
+      acacia(x, y, z, x0, z0)
+    elsif kind == Biome::SPRUCE
+      Noise.hash3(x, y, z, 31) < Biome::PINES[biome] ? pine(x, y, z, x0, z0) : spruce(x, y, z, x0, z0)
+    elsif kind == Biome::JUNGLE_TREE
+      jungle(x, y, z, x0, z0)
+    elsif Noise.hash3(x, y, z, 28) < Biome::LARGE_OAKS[biome]
+      large_oak(x, y, z, x0, z0)
+    else
+      oak(x, y, z, TRUNK[Biome::OAK] + Noise.hash3(x, y, z, 23) % 3, x0, z0)
     end
-    tall = TRUNK[kind] + Noise.hash3(x, y, z, 23) % 3
+  end
+
+  # An oak on the ground below x, y, z: a trunk of tall logs under two
+  # wide layers and two small layers of leaves, with some corners missing.
+  # Small jungle trees have this shape too.
+  def oak(x, y, z, tall, x0, z0)
     return if y + tall + 2 >= WY
+    logs(x, y, z, tall, x0, z0)
     top = y + tall
     ly = top - 2
     while ly <= top + 1
-      radius = leaf_radius(kind, top + 1 - ly)
+      radius = ly >= top ? 1 : 2
       dx = -radius
       while dx <= radius
         dz = -radius
         while dz <= radius
-          corner = radius > 0 && dx.abs == radius && dz.abs == radius
-          skip = (radius == 3 && dx * dx + dz * dz > 10) ||
-                 (corner && (ly == top + 1 || Noise.hash3(x + dx, ly, z + dz, 24) < 32000))
+          corner = dx.abs == radius && dz.abs == radius
+          skip = corner && (ly == top + 1 || Noise.hash3(x + dx, ly, z + dz, 24) < 32000)
           put(x + dx, ly, z + dz, Block::LEAVES, x0, z0) if !skip && air_in?(x + dx, ly, z + dz, x0, z0)
           dz += 1
         end
@@ -750,12 +760,117 @@ class World
       end
       ly += 1
     end
+  end
+
+  # A tree of the jungle on the ground below x, y, z: a large oak, a bush,
+  # a giant jungle tree or a small jungle tree. minecraft.wiki/w/Jungle
+  # names them all, and says that the oaks there are "more commonly
+  # large". The wiki does not confirm the shares of 10%, 45%, 15% and 30%:
+  # they copy the jungle trees in the game code.
+  def jungle(x, y, z, x0, z0)
+    r = Noise.hash3(x, y, z, 28)
+    if r < 6554
+      large_oak(x, y, z, x0, z0)
+    elsif r < 36045
+      jungle_bush(x, y, z, x0, z0)
+    elsif r < 45875
+      giant_jungle_tree(x, y, z, x0, z0)
+    else
+      # The trunk "can extend up to 10 blocks tall" (minecraft.wiki/w/Jungle_tree).
+      oak(x, y, z, TRUNK[Biome::JUNGLE_TREE] + Noise.hash3(x, y, z, 23) % 7, x0, z0)
+    end
+  end
+
+  # A jungle bush on the ground below x, y, z: one log, in 3 layers of
+  # leaves that reach 3, 2 and 1 blocks out from the bottom up, with some
+  # corners missing. minecraft.wiki/w/Jungle_Bush says "1-2 jungle logs"
+  # in "1-3 layers" of leaves. The wiki does not confirm the reach: it
+  # copies the bush in the game code.
+  def jungle_bush(x, y, z, x0, z0)
+    return if y + 3 >= WY
+    logs(x, y, z, 1, x0, z0)
+    ly = 0
+    while ly < 3
+      radius = 3 - ly
+      dx = -radius
+      while dx <= radius
+        dz = -radius
+        while dz <= radius
+          skip = dx.abs == radius && dz.abs == radius && Noise.hash3(x + dx, y + ly, z + dz, 24) < 32768
+          put(x + dx, y + ly, z + dz, Block::LEAVES, x0, z0) if !skip && air_in?(x + dx, y + ly, z + dz, x0, z0)
+          dz += 1
+        end
+        dx += 1
+      end
+      ly += 1
+    end
+  end
+
+  # A giant jungle tree on the ground below x, y, z: a trunk of 2 x 2 logs
+  # with a wide crown on top, and branches in its upper half that end in
+  # small crowns. minecraft.wiki/w/Jungle_tree says that they "can grow up
+  # to 32 blocks high", with "between one and six branches". The wiki does
+  # not confirm the other numbers: they copy the mega jungle tree in the
+  # game code.
+  def giant_jungle_tree(x, y, z, x0, z0)
+    r = Noise.hash3(x, y, z, 23)
+    tall = 10 + r % 3 + r / 3 % 20
+    return if y + tall >= WY
+    # Each log of the 2 x 2 trunk goes down to the ground of its own column.
+    a = 0
+    while a < 4
+      cx = x + a % 2
+      cz = z + a / 2
+      ground = a == 0 ? y : [y, surface_height(cx, cz)].min
+      logs(cx, ground, cz, y + tall - ground, x0, z0)
+      a += 1
+    end
+    jungle_crown(x, y + tall, z, 3, 3, true, x0, z0)
+    i = tall - 2 - r / 60 % 4
+    while i > tall / 2
+      b = Noise.hash3(x, y + i, z, 29)
+      angle = b / 65536.0 * 2.0 * Math::PI
+      bx = 0
+      bz = 0
+      l = 0
+      while l < 5
+        bx = (1.5 + Math.cos(angle) * l).to_i
+        bz = (1.5 + Math.sin(angle) * l).to_i
+        put(x + bx, y + i - 3 + l / 2, z + bz, Block::LOG, x0, z0)
+        l += 1
+      end
+      b = Noise.hash3(x, y + i, z, 30)
+      jungle_crown(x + bx, y + i, z + bz, 1, 2 + b % 2, false, x0, z0)
+      i -= 2 + b / 2 % 4
+    end
+  end
+
+  # The crown of a giant jungle tree: layers of leaves from x, y, z down,
+  # that reach r blocks, then r + 1 and so on. Each layer is round, and
+  # dx + dz stays below 7. A wide crown is around the 2 x 2 trunk that x,
+  # z is the corner of.
+  def jungle_crown(x, y, z, r, layers, wide, x0, z0)
+    w = wide ? 1 : 0
     i = 0
-    while i < tall
-      put(x, y + i, z, Block::LOG, x0, z0)
+    while i < layers
+      reach = r + i
+      dx = -reach
+      while dx <= reach + w
+        dz = -reach
+        while dz <= reach + w
+          ax = dx.abs
+          az = dz.abs
+          ax = (dx - 1).abs if wide && dx > 0
+          az = (dz - 1).abs if wide && dz > 0
+          if ax + az < 7 && ax * ax + az * az <= reach * reach && air_in?(x + dx, y - i, z + dz, x0, z0)
+            put(x + dx, y - i, z + dz, Block::LEAVES, x0, z0)
+          end
+          dz += 1
+        end
+        dx += 1
+      end
       i += 1
     end
-    put(x, y - 1, z, Block::DIRT, x0, z0)
   end
 
   # A spruce on the ground below x, y, z: a trunk of 5 to 8 logs with 1
@@ -992,14 +1107,6 @@ class World
         dz += 1
       end
       dx += 1
-    end
-  end
-
-  # The radius of the leaves d layers below the top layer of a tree.
-  def leaf_radius(kind, d)
-    case kind
-    when Biome::JUNGLE_TREE then d < 2 ? d + 1 : 3
-    else d < 2 ? 1 : 2
     end
   end
 end
