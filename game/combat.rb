@@ -9,11 +9,20 @@ class Game
   # this area has light 1. Lava has light 15, so near lava the area is 1
   # step too small. minecraft.wiki/w/Light and /w/Mob_spawning
   SAFE_REACH = 13
-  # Daylight under this value is night: monsters spawn under the open sky.
-  # Daylight is under it for 8 of the 20 minutes, from tick 13188 to tick
-  # 22812 of Minecraft, when the sky light is 7 or less.
-  # minecraft.wiki/w/Light and /w/Mob_spawning
-  NIGHT = 0.225
+  # The sky light of Minecraft under the open sky by the time of day, in
+  # clear weather and in rain. DUSK has the first tick of each level as it
+  # goes down from the top level to 4, and DAWN the first tick of each level
+  # as it goes up from 5 to the top level. A day has 24000 ticks, and tick
+  # 6000 is noon. minecraft.wiki/w/Light
+  SKY_TOP_CLEAR = 15
+  SKY_DUSK_CLEAR = [12041, 12210, 12377, 12542, 12705, 12867, 13027, 13188, 13348, 13509, 13670]
+  SKY_DAWN_CLEAR = [22331, 22492, 22653, 22813, 22974, 23135, 23297, 23460, 23624, 23791, 23961]
+  SKY_TOP_RAIN = 12
+  SKY_DUSK_RAIN = [12010, 12256, 12497, 12734, 12969, 13203, 13436, 13670]
+  SKY_DAWN_RAIN = [22331, 22566, 22799, 23032, 23267, 23505, 23746, 23992]
+  # A monster spawns only when the light is at most a random number from 0
+  # to this. minecraft.wiki/w/Mob_spawning
+  SPAWN_LIGHT = 7
 
   # Monster spawning and despawning as in Minecraft.
   # minecraft.wiki/w/Mob_spawning
@@ -40,16 +49,36 @@ class Game
   MONSTER_KINDS = [Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER]
   MONSTER_WEIGHTS = [95.0, 100.0, 100.0]
 
-  # True when a monster can spawn in the cell x, y, z: the sky above it is
-  # dark or an opaque block covers it, and no torch or lava is near. Leaves
-  # and glass let the daylight through.
-  def dark?(x, y, z, day)
-    if day >= NIGHT
+  # The sky light under the open sky now, from SKY_DUSK and SKY_DAWN.
+  def sky_light
+    rain = @weather.raining?
+    tick = (@time_of_day * 24000.0).to_i
+    dawn = rain ? SKY_DAWN_RAIN : SKY_DAWN_CLEAR
+    ticks = tick >= dawn[0] ? dawn : (rain ? SKY_DUSK_RAIN : SKY_DUSK_CLEAR)
+    passed = 0
+    i = 0
+    while i < ticks.size
+      passed += 1 if tick >= ticks[i]
+      i += 1
+    end
+    tick >= dawn[0] ? 4 + passed : (rain ? SKY_TOP_RAIN : SKY_TOP_CLEAR) - passed
+  end
+
+  # True when a monster can spawn in the cell x, y, z by its light. Under
+  # the open sky, the light is sky, the sky light now. Under an opaque
+  # block, it is 0. (In Minecraft, sky light also spreads under the side of
+  # a roof; here it does not.) Leaves and glass let the sky light through.
+  # No torch or lava may be near, and the light must be at most a random
+  # number from 0 to SPAWN_LIGHT.
+  def dark?(x, y, z, sky)
+    light = 0
+    if sky > 0
       top = @world.height_at(x, z)
       cover = y + 1
       cover += 1 while cover < top && Block::OPAQUE[@world.get(x, cover, z)] == 0
-      return false if cover >= top
+      light = sky if cover >= top
     end
+    return false if light > SPAWN_LIGHT
     cx = (x - SAFE_REACH) >> 4
     while cx <= (x + SAFE_REACH) >> 4
       cz = (z - SAFE_REACH) >> 4
@@ -64,15 +93,16 @@ class Game
       end
       cx += 1
     end
-    true
+    light <= (@rng.rand01 * (SPAWN_LIGHT + 1)).to_i
   end
 
   # The pack centers of dt seconds, until the monsters reach the cap.
-  def spawn_monsters(dt, day)
+  def spawn_monsters(dt)
     monsters = @mobs.count { |m| !m.passive? }
     n = (dt * PACK_CENTERS + @rng.rand01).to_i
+    sky = sky_light
     while n > 0 && monsters < MONSTER_CAP
-      monsters += spawn_packs(day, MONSTER_CAP - monsters)
+      monsters += spawn_packs(sky, MONSTER_CAP - monsters)
       n -= 1
     end
   end
@@ -82,7 +112,7 @@ class Game
   # centers are in the ground, so most monsters spawn in caves. Then PACKS
   # packs walk from the center with steps of up to 5 on x and z, and each
   # step can spawn a monster of the pack's kind. Returns how many spawned.
-  def spawn_packs(day, room)
+  def spawn_packs(sky, room)
     span = SPAWN_CHUNKS * 2 + 1
     x0 = ((@player.x.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
     z0 = ((@player.z.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
@@ -100,7 +130,7 @@ class Game
       while step < PACK_SIZE
         x += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         z += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
-        if monster_fits?(x, y, z, day)
+        if monster_fits?(x, y, z, sky)
           @mobs << Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
           spawned += 1
           return spawned if spawned >= room
@@ -127,7 +157,7 @@ class Game
   # True when a monster can spawn in the cell x, y, z: a loaded dark cell
   # with a solid floor and room for its body, between SPAWN_NEAR and
   # DESPAWN_FAR blocks from the player.
-  def monster_fits?(x, y, z, day)
+  def monster_fits?(x, y, z, sky)
     return false if y < 1 || !@world.loaded?(x, z)
     dx = x + 0.5 - @player.x
     dy = y - @player.y
@@ -137,7 +167,7 @@ class Game
     ground = @world.get(x, y - 1, z)
     return false unless Block.solid?(ground) && ground != Block::LEAVES
     return false if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
-    dark?(x, y, z, day)
+    dark?(x, y, z, sky)
   end
 
   # True when the monster m despawns after dt seconds more.
@@ -191,7 +221,7 @@ class Game
   def update_mobs(dt)
     # Rain dims the day, so monsters do not burn in it.
     day = daylight * (1.0 - 0.5 * @weather.rain)
-    spawn_monsters(dt, day)
+    spawn_monsters(dt)
     @spawn_timer -= dt
     if @spawn_timer <= 0.0
       @spawn_timer = 2.0

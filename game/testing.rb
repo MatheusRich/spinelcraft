@@ -997,23 +997,41 @@ class Game
   end
 
   # Monsters spawn only in the dark: under the sky at night, or under a
-  # block, and never near a torch.
+  # block, and never near a torch. The sky light follows the wiki's table.
   def test_dark
+    time = @time_of_day
+    raining = @weather.raining?
+    @weather.set_now(false)
+    @time_of_day = 0.25
+    noon = sky_light
+    @time_of_day = 0.55
+    dusk = sky_light
+    @time_of_day = 0.75
+    midnight = sky_light
+    @time_of_day = 0.25
+    @weather.set_now(true)
+    rain_noon = sky_light
+    @weather.set_now(raining)
+    @time_of_day = time
+    check("the sky light is 15 at noon, 7 at tick 13200, 4 at midnight and 12 in rain", noon == 15 && dusk == 7 && midnight == 4 && rain_noon == 12)
     x = @spawn_x.floor + 40
     z = @spawn_z.floor + 40
     h = @world.height_at(x, z)
-    open_day = dark?(x, h, z, 1.0)
-    open_night = dark?(x, h, z, 0.0)
+    open_day = dark?(x, h, z, 15)
+    # At sky light 4, a random number from 0 to 7 lets half the tries pass.
+    passes = 0
+    200.times { passes += 1 if dark?(x, h, z, 4) }
     set_block(x, h + 3, z, Block::LEAVES)
-    under_leaves = dark?(x, h, z, 1.0)
+    under_leaves = dark?(x, h, z, 15)
     set_block(x, h + 3, z, Block::STONE)
-    covered_day = dark?(x, h, z, 1.0)
+    covered_day = dark?(x, h, z, 15)
     # The torch stands on the roof, 4 blocks above the cell.
     set_block(x, h + 4, z, Block::TORCH)
-    near_torch = dark?(x, h, z, 0.0)
+    near_torch = dark?(x, h, z, 15)
     set_block(x, h + 4, z, Block::AIR)
     set_block(x, h + 3, z, Block::AIR)
-    check("monsters spawn under the night sky or a roof, and not near a torch", !open_day && open_night && covered_day && !near_torch)
+    check("monsters spawn under a roof, and not in daylight or near a torch", !open_day && covered_day && !near_torch)
+    check("under the night sky, about half the spawn tries pass", passes > 70 && passes < 130)
     check("leaves let the daylight through", !under_leaves)
   end
 
