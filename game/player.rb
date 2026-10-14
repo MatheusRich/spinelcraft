@@ -71,6 +71,11 @@ class Player
   SWIM = 2.2
   SWIM_UNDER = 1.97
   SWIM_SPRINT = 3.918
+  # Lava keeps half of the horizontal speed each tick, and water keeps 0.8
+  # (minecraft.wiki/w/Lava gives the half, but the wiki does not confirm
+  # the 0.8). With the same push each tick, the player then swims in lava
+  # 0.2 / 0.5 = 0.4 times as fast as in water, and cannot sprint there.
+  LAVA = 0.4
   # Speeds on a ladder.
   CLIMB = 2.35
   SLIDE = 3.0
@@ -105,6 +110,8 @@ class Player
     @jumped = false
     speed = if @flying
               sprint ? SPRINT_FLY : FLY
+            elsif @in_lava
+              (Block.lava?(world.get(@x.floor, eye_y.floor, @z.floor)) ? SWIM_UNDER : SWIM) * LAVA
             elsif @in_water
               under = Block.water?(world.get(@x.floor, eye_y.floor, @z.floor))
               sprint ? SWIM_SPRINT : (under ? SWIM_UNDER : SWIM)

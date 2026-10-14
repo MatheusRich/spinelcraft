@@ -332,7 +332,8 @@ class Game
   end
 
   # The player swims at 2.2 m/s at the surface, 1.97 m/s under water, and
-  # 3.918 m/s in a sprint.
+  # 3.918 m/s in a sprint. In lava the player swims at 0.4 times the speed
+  # in water, and a sprint does not make it faster.
   def test_swim_speed
     px = @player.x
     py = @player.y
@@ -348,8 +349,11 @@ class Game
     end
     @player.flying = false
     @player.yaw = 0.0
-    speeds = [[false, false], [true, false], [false, true]].map do |sprint, under|
-      (0..20).each { |d| set_block(x, y + 2, z - d, under ? Block::WATER : Block::AIR) }
+    speeds = [[false, false, false], [true, false, false], [false, true, false], [true, false, true]].map do |sprint, under, lava|
+      (0..20).each do |d|
+        set_block(x, y + 1, z - d, lava ? Block::LAVA : Block::WATER)
+        set_block(x, y + 2, z - d, under ? Block::WATER : Block::AIR)
+      end
       @player.x = x + 0.5
       @player.y = y + 1.0
       @player.z = z + 0.5
@@ -365,6 +369,7 @@ class Game
       set_block(x, y + 1, z - d, Block::AIR)
       set_block(x, y + 2, z - d, Block::AIR)
     end
+    @flow_queue.clear
     @player.x = px
     @player.y = py
     @player.z = pz
@@ -372,6 +377,7 @@ class Game
     @player.flying = flying
     check("the player swims at 2.2 m/s, 1.97 m/s under water, and 3.918 m/s in a sprint",
           (speeds[0] - 2.2).abs < 0.05 && (speeds[1] - 3.918).abs < 0.05 && (speeds[2] - 1.97).abs < 0.05)
+    check("the player swims in lava at 0.88 m/s, also in a sprint", (speeds[3] - 0.88).abs < 0.03)
   end
 
   # A player who eats or draws the bow walks at sneaking speed.
