@@ -106,8 +106,16 @@ class Game
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
     ground = h - 1
-    # The tests need air above the ground, and a plant can grow there.
-    set_block(x, ground + 1, z, Block::AIR)
+    # The tests need a floor at ground with open air above it around x, z.
+    # Spawn can be on a slope, under a plant or on sand over a cave, so the
+    # tests build that space first and let any loose sand land.
+    (x - 3..x + 3).each do |cx|
+      (z - 3..z + 3).each do |cz|
+        (WY - 1).downto(ground + 1) { |y| set_block(cx, y, cz, Block::AIR) }
+        set_block(cx, ground, cz, Block::DIRT)
+      end
+    end
+    land_falling
     test_falling_and_torches(x, z, ground)
     test_survival(x, z, ground)
     test_monsters
