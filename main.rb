@@ -132,6 +132,9 @@ class Game
     @slot = 0
     @captured = false
     @time_of_day = (ENV["TIME"] || "0.3").to_f
+    # The days since the world started, as Minecraft's daytime / 24000.
+    # minecraft.wiki/w/Daylight_cycle
+    @day = 0
     @action_cooldown = 0.0
     @message = ""
     @message_time = 0.0
@@ -279,6 +282,7 @@ class Game
     @items.clear
     @clouds = Clouds.new(@seed)
     upload_clouds
+    @day = 0
     spawn
     respawn
     spawn_animals
@@ -479,7 +483,7 @@ class Game
     @bob += speed * dt * 2.6
     target_fov = speed > 5.0 ? 0.66 : 0.6
     @fov += (target_fov - @fov) * (6.0 * dt).clamp(0.0, 1.0)
-    @time_of_day = (@time_of_day + dt / DAY_SECONDS) % 1.0
+    update_clock(dt)
     @message_time -= dt
     @damage_flash -= dt
     @swing -= dt
@@ -575,6 +579,15 @@ class Game
 
   # True while the player eats or draws the bow.
   def using_item? = @eat_time >= 0.0 || @draw_time >= 0.0
+
+  # The time of day goes past 1.0 at 6:00, and a new day starts.
+  def update_clock(dt)
+    @time_of_day += dt / DAY_SECONDS
+    while @time_of_day >= 1.0
+      @time_of_day -= 1.0
+      @day += 1
+    end
+  end
 
   def daylight
     s = Math.sin(@time_of_day * Math::PI * 2.0)

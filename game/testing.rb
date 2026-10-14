@@ -131,6 +131,7 @@ class Game
     test_monsters
     test_fire
     test_rain
+    test_clock
     test_save(x, z, ground)
     test_crafting_limits
     test_inventory_layout
@@ -842,8 +843,18 @@ class Game
     -1.0
   end
 
-  # The save keeps blocks, the inventory, health, the items on the ground and
-  # the weather, and a dead player respawns on load.
+  # The time of day wraps at 6:00 and counts the day.
+  def test_clock
+    @time_of_day = 0.99
+    @day = 4
+    update_clock(DAY_SECONDS * 0.02)
+    check("the clock counts a day at 6:00", @day == 5 && (@time_of_day - 0.01).abs < 1.0e-9)
+    @time_of_day = 0.3
+  end
+
+  # The save keeps blocks, the inventory, health, the day, the time alive,
+  # the items on the ground and the weather, and a dead player respawns on
+  # load.
   def test_save(x, z, ground)
     old = @world.get(x, ground + 1, z)
     kept_block = @inv.block(1)
@@ -863,6 +874,8 @@ class Game
     hot.slots.set(Furnace::FUEL, Block::OAK_LOG, 3)
     @furnaces[World.key(3, 70, 4)] = hot
     @furnaces[World.key(5, 70, 4)] = Furnace.new(5, 70, 4)
+    @day = 37
+    @alive_time = 1500.0
     save
     @world.set(x, ground + 1, z, Block::GLASS)
     @vitals.health = 3
@@ -871,8 +884,11 @@ class Game
     @weather.set_now(false)
     @seen.fill(0)
     @furnaces = {}
+    @day = 0
+    @alive_time = 0.0
     ok = load
     apply_loaded if ok
+    check("the save keeps the day and the time alive", ok && @day == 37 && @alive_time == 1500.0)
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
@@ -889,7 +905,7 @@ class Game
     save
     ok = load
     apply_loaded if ok
-    check("loading a save made while dead respawns", ok && @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead?)
+    check("loading a save made while dead respawns", ok && @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead? && @alive_time == 0.0)
     File.write(SAVE_PATH, "NOT A SAVE\n")
     ok = load
     keep_bad_save
@@ -1366,8 +1382,9 @@ class Game
     @mobs.clear
     set_block(bx + 6, 89, bz, Block.bed_id(0, true))
     @time_of_day = 0.75
+    day = @day
     use_bed(bx + 6, 89, bz)
-    check("sleeping in a bed skips the night and sets spawn", daylight > 0.35 && @spawn_x == bx + 6.5)
+    check("sleeping in a bed skips the night and sets spawn", daylight > 0.35 && @spawn_x == bx + 6.5 && @day == day + 1)
     set_block(bx + 6, 89, bz, Block::AIR)
     @time_of_day = 0.3
     check("sneaking stops at an edge", @player.y > 88.9 && @player.z < bz + 1.4)

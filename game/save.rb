@@ -5,10 +5,12 @@ class Game
   F_SEED = 4
   F_PLAYER = 5 # x, y, z, yaw, pitch
   F_TIME = 10
-  F_SURVIVAL = 11
-  F_HEALTH = 12
-  F_SPAWN = 13 # x, z
-  F_INV = 15 # INV blocks, then INV counts
+  F_DAY = 11
+  F_SURVIVAL = 12
+  F_HEALTH = 13
+  F_ALIVE = 14 # the seconds since the last respawn
+  F_SPAWN = 15 # x, z
+  F_INV = 17 # INV blocks, then INV counts
   F_HOTBAR = F_INV + INV * 2
   F_HUNGER = F_HOTBAR + HOTBAR # hunger, saturation, exhaustion
   F_WEATHER = F_HUNGER + 3 # raining (1 or 0), seconds to the next change
@@ -22,7 +24,7 @@ class Game
 
   def save
     header = [WX, WY, WZ, @seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
-              @time_of_day, @survival ? 1 : 0, @vitals.health, @spawn_x, @spawn_z].map(&:to_s).join(" ")
+              @time_of_day, @day, @survival ? 1 : 0, @vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
     close_chest
     land_falling
@@ -122,8 +124,10 @@ class Game
     @player.pitch = f[F_PLAYER + 4].to_f
     @player.fall_start = @player.y
     @time_of_day = f[F_TIME].to_f
+    @day = f[F_DAY].to_i
     @survival = f[F_SURVIVAL] == "1"
     @vitals.health = f[F_HEALTH].to_i
+    @alive_time = f[F_ALIVE].to_f
     @spawn_x = f[F_SPAWN].to_f
     @spawn_z = f[F_SPAWN + 1].to_f
     @inv.load(f, F_INV)

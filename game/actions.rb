@@ -332,7 +332,9 @@ class Game
       say("YOU CANNOT SLEEP NOW  MONSTERS ARE NEARBY")
       return
     end
+    # A night is always before the 6:00 wrap, so the morning is the next day.
     @time_of_day = 0.02
+    @day += 1
     say("GOOD MORNING")
   end
 
