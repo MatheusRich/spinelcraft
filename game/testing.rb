@@ -971,7 +971,7 @@ class Game
   # last row and no further, and it starts at the top each time it opens.
   def test_recipe_scroll
     seen = @seen.dup
-    RECIPES.each { |r| @seen[r[0]] = 1 }
+    RECIPES.each { |r| Block.fillers(r[0]).each { |b| @seen[b] = 1 } }
     x = @player.x.floor + 2
     y = @player.y.floor
     z = @player.z.floor
@@ -1051,6 +1051,12 @@ class Game
     @inv.set(20, Block::OAK_PLANKS, 4)
     craft_at_table(recipe_for(Block::BOW))
     check("a recipe takes ingredients from several stacks", @inv.total(Block::OAK_PLANKS) == 1 && @inv.total(Block::BOW) == Block.uses(Block::BOW))
+    @inv.clear
+    @inv.set(3, Block::SPRUCE_PLANKS, 1)
+    @inv.set(4, Block::BIRCH_PLANKS, 3)
+    craft_at_table(recipe_for(Block::WOOD_PICK))
+    check("a recipe for planks takes the planks of any wood", @inv.total(Block::SPRUCE_PLANKS) == 0 &&
+          @inv.total(Block::BIRCH_PLANKS) == 1 && @inv.total(Block::WOOD_PICK) == Block.uses(Block::WOOD_PICK))
     # A tool wears out, and a thrown tool keeps the uses that it has left.
     @inv.clear
     @inv.add(Block::WOOD_PICK)

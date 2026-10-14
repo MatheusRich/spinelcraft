@@ -101,6 +101,9 @@ module Block
   LEAVES = [OAK_LEAVES, SPRUCE_LEAVES, BIRCH_LEAVES]
   PLANKS = [OAK_PLANKS, SPRUCE_PLANKS, BIRCH_PLANKS]
   SAPLINGS = [OAK_SAPLING, SPRUCE_SAPLING, BIRCH_SAPLING]
+  # A recipe ingredient that the planks of any wood fill, as the planks tag
+  # in Minecraft. It is not a block, so no table has an entry for it.
+  ANY_PLANKS = 1000
   # The step in each of the 4 directions on the ground: +x, -x, +z and -z.
   # The opposite of direction d is d ^ 1.
   DIR_DX = [1, -1, 0, 0]
@@ -171,6 +174,9 @@ module Block
   def self.leaves?(b) = LEAVES.include?(b)
   def self.planks?(b) = PLANKS.include?(b)
   def self.sapling?(b) = SAPLINGS.include?(b)
+  # The blocks that fill the recipe ingredient ing.
+  def self.fillers(ing) = ing == ANY_PLANKS ? PLANKS : [ing]
+  def self.ingredient_name(ing) = ing == ANY_PLANKS ? "PLANKS" : NAMES[ing]
   # The wood of a log, leaves, planks or sapling: its index in LOGS, or -1.
   def self.wood(b)
     w = 0

@@ -37,9 +37,9 @@ class Game
   # in time.
   def craft_recipe(k, want = 1)
     r = RECIPES[k]
-    have = @inv.total(r[0]) / r[1]
+    have = ingredient_total(r[0]) / r[1]
     if have == 0
-      say("NEED #{r[1]} #{Block::NAMES[r[0]]}")
+      say("NEED #{r[1]} #{Block.ingredient_name(r[0])}")
       return
     end
     unless station_makes?(r[4])
@@ -56,7 +56,7 @@ class Game
     while times > 0
       @inv = saved.copy
       # Take the ingredients first: a slot that they empty is room for the result.
-      @inv.remove(r[0], r[1] * times)
+      remove_ingredient(r[0], r[1] * times)
       break if @inv.room_for(r[2]) >= r[3] * times
       times -= 1
     end
@@ -69,6 +69,31 @@ class Game
     n.times { @inv.add(r[2]) }
     say("CRAFTED #{n} #{Block::NAMES[r[2]]}")
     play(Sfx::PLACE, 0.6)
+  end
+
+  # How many of the recipe ingredient ing the inventory holds.
+  def ingredient_total(ing)
+    fillers = Block.fillers(ing)
+    n = 0
+    i = 0
+    while i < fillers.size
+      n += @inv.total(fillers[i])
+      i += 1
+    end
+    n
+  end
+
+  # Takes n of the recipe ingredient ing: all that it needs of the first
+  # block that fills it, then of the next one.
+  def remove_ingredient(ing, n)
+    fillers = Block.fillers(ing)
+    i = 0
+    while i < fillers.size && n > 0
+      taken = @inv.total(fillers[i]) < n ? @inv.total(fillers[i]) : n
+      @inv.remove(fillers[i], taken)
+      n -= taken
+      i += 1
+    end
   end
 
   # What a Shift-click on a recipe asks for: all that the inventory holds.
@@ -340,7 +365,7 @@ class Game
     last = 0
     k = 0
     while k < RECIPES.size
-      if RECIPES[k][0] == b
+      if Block.fillers(RECIPES[k][0]).include?(b)
         @recipe_new[k] = 1
         found += 1
         last = k
@@ -351,6 +376,9 @@ class Game
     say(found == 1 ? "NEW RECIPE: #{Block::NAMES[RECIPES[last][2]]}" : "#{found} NEW RECIPES - PRESS E")
   end
 
+  # True when the player has seen a block that fills the recipe ingredient ing.
+  def seen_ingredient?(ing) = Block.fillers(ing).any? { |b| @seen[b] == 1 }
+
   # The recipes that the list shows, in the order of RECIPES: those that the
   # open screen makes, and whose ingredient the player has seen. Other
   # recipes stay a surprise.
@@ -358,7 +386,7 @@ class Game
     shown = []
     k = 0
     while k < RECIPES.size
-      shown << k if @seen[RECIPES[k][0]] == 1 && station_makes?(RECIPES[k][4])
+      shown << k if seen_ingredient?(RECIPES[k][0]) && station_makes?(RECIPES[k][4])
       k += 1
     end
     shown

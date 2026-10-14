@@ -261,7 +261,7 @@ class Game
       k = view[j]
       r = RECIPES[k]
       c = recipe_cell(j + skip, w, h, s)
-      can = @inv.total(r[0]) >= r[1]
+      can = ingredient_total(r[0]) >= r[1]
       shade = k == rhover ? 0.5 : 0.28
       fresh = @recipe_new[k] == 1
       @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)
@@ -269,7 +269,7 @@ class Game
       @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, 28.0 * s, r[2], can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
       @ui.text(c[0] + 42.0 * s, c[1] + 6.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.5 * s, bright, bright, bright, 1.0)
-      need = "#{r[1]} #{Block::NAMES[r[0]]}"
+      need = "#{r[1]} #{Block.ingredient_name(r[0])}"
       @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, need, 2.0 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
       j += 1
     end
