@@ -61,7 +61,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 
 `build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module.
 
-The game draws most textures in code at startup (`game/textures.rb`). The tools, the bow and the arrow are PNG images in `assets/`, and the game loads them from the folder that holds the executable.
+Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the door, the bed, the chest, the block cracks, the hearts, the smoke, the rain and the font.
 
 ## Rendering
 
@@ -143,4 +143,4 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 
 ## Credits
 
-The tool, bow and arrow images come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license. `assets/pixel-perfection/README.md` gives the sources.
+The images in `assets/pixel-perfection` come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license. `assets/pixel-perfection/README.md` gives the sources.

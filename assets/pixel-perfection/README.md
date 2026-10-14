@@ -1,14 +1,16 @@
 # Pixel Perfection
 
-These images come from Pixel Perfection, a 16x16 resource pack for Minecraft by Hugh "XSSheep" Rutland. We take them from VoxeLibre, a Luanti game that uses Pixel Perfection for most of its textures. VoxeLibre changed or redid some textures. The files here are copies from VoxeLibre, with no changes.
+These images come from Pixel Perfection, a 16x16 resource pack for Minecraft by Hugh "XSSheep" Rutland. We take them from VoxeLibre, a Luanti game that uses Pixel Perfection for most of its textures. VoxeLibre changed or redid some textures.
 
-- License: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). If you change an image, the changed image keeps this license.
+- License: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The changed images below keep this license.
 - Original pack: <https://www.planetminecraft.com/texture_pack/131pixel-perfection/>
 - Source of these files: the `textures/` folder of <https://git.minetest.land/VoxeLibre/VoxeLibre> (the `master` branch, October 2026). VoxeLibre's `LEGAL.md` gives the license.
 
-## Files
+Each file has the name of its layer in `Tex` (`iron_pick.png` is `Tex::IRON_PICK`). `Tex::IMAGE_FILES` in `game/textures.rb` lists the files that the game loads.
 
-Each file has the name of its layer in `Tex` (`iron_pick.png` is `Tex::IRON_PICK`). `Tex::SPRITE_FILES` in `game/textures.rb` lists the files that the game loads.
+## Copies
+
+These files are copies with no changes.
 
 | File | VoxeLibre file |
 | --- | --- |
@@ -18,11 +20,37 @@ Each file has the name of its layer in `Tex` (`iron_pick.png` is `Tex::IRON_PICK
 | `wood_sword.png`, `stone_sword.png`, `iron_sword.png`, `diamond_sword.png` | `default_tool_woodsword.png`, `default_tool_stonesword.png`, `default_tool_steelsword.png`, `default_tool_diamondsword.png` |
 | `bow.png` | `mcl_bows_bow.png` |
 | `arrow.png` | `mcl_bows_arrow_inv.png` |
+| `dirt.png`, `stone.png`, `sand.png`, `gravel.png` | `default_dirt.png`, `default_stone.png`, `default_sand.png`, `default_gravel.png` |
+| `snow.png`, `snow_side.png`, `bedrock.png` | `default_snow.png`, `mcl_core_grass_side_snowed.png`, `mcl_core_bedrock.png` |
+| `coal.png`, `iron.png`, `diamond.png` | `mcl_core_coal_ore.png`, `mcl_core_iron_ore.png`, `mcl_core_diamond_ore.png` |
+| `log_side.png`, `log_top.png`, `planks.png` | `default_tree.png`, `default_tree_top.png`, `default_wood.png` |
+| `cobble.png`, `brick.png`, `glass.png`, `wool.png` | `default_cobble.png`, `default_brick.png`, `default_glass.png`, `wool_white.png` |
+| `cactus_side.png`, `cactus_top.png` | `mcl_core_cactus_side.png`, `mcl_core_cactus_top.png` |
+| `rose.png`, `dandelion.png`, `sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
+| `seeds.png`, `wheat_1.png`, `wheat_2.png`, `wheat_ripe.png` | `mcl_farming_wheat_stage_1.png`, `mcl_farming_wheat_stage_3.png`, `mcl_farming_wheat_stage_5.png`, `mcl_farming_wheat_stage_7.png` |
+| `craft_top.png`, `craft_side.png`, `furnace.png` | `crafting_workbench_top.png`, `crafting_workbench_front.png`, `default_furnace_front.png` |
+| `torch.png`, `ladder.png`, `fire.png` | `default_torch_on_floor.png`, `default_ladder.png`, `fire_basic_flame.png` |
+| `apple.png`, `bread.png`, `wheat.png` | `default_apple.png`, `farming_bread.png`, `farming_wheat_harvested.png` |
+| `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
+| `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
+
+## Changed images
+
+In Minecraft, grass, leaves and water are gray, and the biome gives them their color. Spinelcraft has no biome color, so these images have the plains color of Minecraft. The colors come from minecraft.wiki/w/Plains: grass `#91BD59`, foliage `#77AB2F` and water `#3F76E4`. A tint multiplies each channel of a pixel by the channel of the color.
+
+| File | Change |
+| --- | --- |
+| `grass_top.png` | `mcl_core_grass_block_top.png` with the grass tint |
+| `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. |
+| `tall_grass.png` | `mcl_flowers_tallgrass.png` with the grass tint |
+| `leaves.png` | `default_leaves.png` with the foliage tint |
+| `water.png` | The first frame of `mcl_core_water_source_animation.png` with the water tint. The alpha is 170 at most. |
+| `lava.png` | The first frame of `mcl_core_lava_source_animation.png` |
 
 ## Add an image
 
 1. Find the texture in the VoxeLibre `textures/` folder. Its raw URL is `https://git.minetest.land/VoxeLibre/VoxeLibre/raw/branch/master/textures/<name>.png`.
-2. Save it here with the name of its `Tex` layer, and add a row to the table above.
-3. Add the layer to `Tex::SPRITE_LAYERS` and the name to `Tex::SPRITE_FILES`.
+2. Save it here with the name of its `Tex` layer, and add a row to a table above.
+3. Add the layer to `Tex::IMAGE_LAYERS` and the name to `Tex::IMAGE_FILES`.
 
-The game loads only 16x16 images.
+The game loads only 16x16 images. An animated texture is a strip of frames, so take the first 16x16 frame.

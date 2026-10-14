@@ -137,39 +137,30 @@ module Tex
     px[layer * 256 + y * 16 + x] = rgba(r, g, b, a)
   end
 
-  def self.ore(px, layer, r, g, b, salt)
-    noisy(px, layer, 125, 125, 125, 18, 4)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        if rnd(x / 3, y / 3, salt) < 70 && rnd(x, y, salt + 1) < 170
-          v = rnd(x, y, salt + 2) / 6
-          set(px, layer, x, y, r + v, g + v, b + v, 255)
-        end
-        x += 1
-      end
-      y += 1
-    end
-  end
-
   # The layers that come from the images in assets/pixel-perfection, and the
   # name of each image, in the same order.
-  SPRITE_LAYERS = [WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE,
-                   WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL, DIAMOND_SHOVEL, WOOD_SWORD, STONE_SWORD, IRON_SWORD,
-                   DIAMOND_SWORD, BOW, ARROW]
-  SPRITE_FILES = %w[wood_pick stone_pick iron_pick diamond_pick wood_axe stone_axe iron_axe diamond_axe
-                    wood_shovel stone_shovel iron_shovel diamond_shovel wood_sword stone_sword iron_sword
-                    diamond_sword bow arrow]
+  IMAGE_LAYERS = [GRASS_TOP, GRASS_SIDE, DIRT, STONE, SAND, WATER, LOG_SIDE, LOG_TOP, LEAVES, PLANKS, COBBLE, GLASS,
+                  SNOW, SNOW_SIDE, BEDROCK, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS_SIDE, CACTUS_TOP, TALL_GRASS,
+                  ROSE, DANDELION, TORCH, PORKCHOP, WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, BOW, ARROW, LAVA,
+                  WOOL, FIRE, SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
+                  COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL,
+                  DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
+                  BUCKET, WATER_BUCKET, LAVA_BUCKET]
+  IMAGE_FILES = %w[grass_top grass_side dirt stone sand water log_side log_top leaves planks cobble glass snow
+                   snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
+                   torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire sapling apple
+                   wood_sword stone_sword iron_sword diamond_sword iron_ingot furnace cooked_porkchop wood_axe
+                   stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
+                   wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket]
 
-  def self.sprites(px)
+  def self.images(px)
     s = 0
-    while s < SPRITE_LAYERS.size
-      path = "assets/pixel-perfection/#{SPRITE_FILES[s]}.png"
+    while s < IMAGE_LAYERS.size
+      path = "assets/pixel-perfection/#{IMAGE_FILES[s]}.png"
       abort "#{path} did not load" unless Gfx.gfx_png(path)
       i = 0
       while i < 256
-        px[SPRITE_LAYERS[s] * 256 + i] = Gfx.gfx_png_pixel(i)
+        px[IMAGE_LAYERS[s] * 256 + i] = Gfx.gfx_png_pixel(i)
         i += 1
       end
       s += 1
@@ -183,137 +174,17 @@ module Tex
       px[i] = rgba(255, 255, 255, 255)
       i += 1
     end
-    noisy(px, GRASS_TOP, 95, 160, 60, 22, 1)
-    noisy(px, DIRT, 134, 96, 67, 20, 2)
-    noisy(px, STONE, 125, 125, 125, 18, 4)
-    noisy(px, SAND, 219, 206, 160, 12, 5)
-    noisy(px, SNOW, 240, 245, 250, 6, 6)
-    noisy(px, GRAVEL, 130, 122, 118, 40, 7)
-    noisy(px, BEDROCK, 70, 70, 70, 60, 8)
     noisy(px, SKIN, 220, 220, 220, 25, 9)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        # grass side: dirt with a ragged grass lip
-        lip = 3 + rnd(x, 0, 11) % 3
-        if y < lip
-          v = (rnd(x, y, 12) - 128) * 22 / 128
-          set(px, GRASS_SIDE, x, y, 95 + v, 160 + v, 60 + v, 255)
-        else
-          v = (rnd(x, y, 13) - 128) * 20 / 128
-          set(px, GRASS_SIDE, x, y, 134 + v, 96 + v, 67 + v, 255)
-        end
-        slip = 3 + rnd(x, 0, 14) % 3
-        if y < slip
-          set(px, SNOW_SIDE, x, y, 240, 245, 250, 255)
-        else
-          v = (rnd(x, y, 15) - 128) * 20 / 128
-          set(px, SNOW_SIDE, x, y, 134 + v, 96 + v, 67 + v, 255)
-        end
-        # water: soft blue, translucent
-        v = rnd(x / 2 + y, y, 16) / 12
-        set(px, WATER, x, y, 40 + v, 90 + v, 200, 170)
-        # log side: vertical bark stripes
-        v = rnd(x, y / 4, 17) / 8 + (x % 4 == 0 ? -18 : 0)
-        set(px, LOG_SIDE, x, y, 105 + v, 80 + v, 50 + v, 255)
-        # log top: rings
-        dx = x - 7.5
-        dy = y - 7.5
-        ring = Math.sqrt(dx * dx + dy * dy).to_i
-        edge = x == 0 || y == 0 || x == 15 || y == 15
-        if edge
-          set(px, LOG_TOP, x, y, 105, 80, 50, 255)
-        elsif ring % 3 == 0
-          set(px, LOG_TOP, x, y, 160, 130, 80, 255)
-        else
-          set(px, LOG_TOP, x, y, 185, 152, 98, 255)
-        end
-        # leaves: holes let the sky through
-        if rnd(x, y, 18) < 60
-          set(px, LEAVES, x, y, 0, 0, 0, 0)
-        else
-          v = (rnd(x, y, 19) - 128) * 40 / 128
-          set(px, LEAVES, x, y, 55 + v, 125 + v, 40 + v, 255)
-        end
-        # planks: four boards with seams
-        v = rnd(x / 8 + y / 4 * 3, y / 4, 20) / 10 + (rnd(x, y, 21) - 128) / 24
-        if y % 4 == 3 || (x == (y / 4 % 2 == 0 ? 4 : 11))
-          set(px, PLANKS, x, y, 120, 92, 56, 255)
-        else
-          set(px, PLANKS, x, y, 168 + v, 132 + v, 82 + v, 255)
-        end
-        # cobble: stone lumps with dark mortar
-        cell = rnd(x / 4 + (y / 4 % 2) * 7, y / 4, 22)
-        if x % 4 == 0 || y % 4 == 0
-          set(px, COBBLE, x, y, 85, 85, 85, 255)
-        else
-          v = cell / 5 + (rnd(x, y, 23) - 128) / 16
-          set(px, COBBLE, x, y, 105 + v, 105 + v, 105 + v, 255)
-        end
-        # glass: frame and a glint
-        if edge
-          set(px, GLASS, x, y, 210, 235, 240, 255)
-        elsif (x == y + 3 || x == y + 4) && x < 10
-          set(px, GLASS, x, y, 240, 250, 255, 200)
-        else
-          set(px, GLASS, x, y, 0, 0, 0, 0)
-        end
-        # brick
-        row = y / 4
-        offset = row % 2 == 0 ? 0 : 4
-        if y % 4 == 0 || (x + offset) % 8 == 0
-          set(px, BRICK, x, y, 200, 195, 185, 255)
-        else
-          v = (rnd(x, y, 24) - 128) / 10
-          set(px, BRICK, x, y, 150 + v, 70 + v, 55 + v, 255)
-        end
-        # cactus
-        v = (rnd(x, y, 25) - 128) / 10
-        if x % 4 == 1 && y % 3 == 0
-          set(px, CACTUS_SIDE, x, y, 220, 230, 180, 255)
-        else
-          set(px, CACTUS_SIDE, x, y, 60 + v, 130 + v, 50 + v, 255)
-        end
-        set(px, CACTUS_TOP, x, y, 80 + v, 150 + v, 70 + v, 255)
-        x += 1
-      end
-      y += 1
-    end
-    plants(px)
-    torch(px)
-    porkchop(px)
-    sprites(px)
     door(px)
-    sapling(px)
-    apple(px)
-    ingot(px)
-    crop(px, SEEDS, 4, 80, 170, 60)
-    crop(px, WHEAT_1, 8, 90, 160, 50)
-    crop(px, WHEAT_2, 12, 140, 160, 50)
-    crop(px, WHEAT_RIPE, 15, 215, 180, 70)
-    wheat(px)
-    bread(px)
-    furnace(px)
-    crafting_table(px)
-    ladder(px)
-    bucket(px, BUCKET, 40, 40, 45)
-    bucket(px, WATER_BUCKET, 50, 90, 220)
-    bucket(px, LAVA_BUCKET, 240, 110, 20)
-    lava(px)
-    noisy(px, WOOL, 232, 232, 228, 14, 71)
     bed(px)
     chest(px)
-    ore(px, COAL, 30, 30, 30, 30)
-    ore(px, IRON, 200, 160, 120, 40)
-    ore(px, DIAMOND, 90, 220, 220, 50)
-    fire(px)
     puff(px)
     rain(px)
     heart(px, HEART, 220, 30, 40)
     heart(px, HEART_EMPTY, 50, 20, 20)
     font(px)
     cracks(px)
+    images(px)
     bleed(px, LEAVES)
     bleed(px, GLASS)
     bleed(px, TALL_GRASS)
@@ -330,30 +201,6 @@ module Tex
     px
   end
 
-  # Tongues of flame: tall in the middle, yellow at the base, red at the tips.
-  def self.fire(px)
-    x = 0
-    while x < 16
-      edge = (x - 7.5).abs / 8.0
-      tall = (16.0 * (1.0 - edge * edge) * (0.55 + rnd(x / 2, 0, 81) / 570.0)).to_i
-      y = 0
-      while y < 16
-        up = 15 - y
-        if up < tall
-          t = up.to_f / tall
-          if t < 0.4
-            set(px, FIRE, x, y, 255, 225, 90, 255)
-          elsif t < 0.75
-            set(px, FIRE, x, y, 250, 140, 30, 255)
-          else
-            set(px, FIRE, x, y, 215, 55, 20, 255)
-          end
-        end
-        y += 1
-      end
-      x += 1
-    end
-  end
 
   # A few streaks in each column of pixels that has rain.
   def self.rain(px)
@@ -451,44 +298,6 @@ module Tex
     end
   end
 
-  def self.plants(px)
-    x = 0
-    while x < 16
-      # tall grass: blades of random height
-      top = 3 + rnd(x, 0, 31) % 9
-      y = top
-      while y < 16
-        if rnd(x, 1, 32) < 190
-          v = (rnd(x, y, 33) - 128) / 8
-          set(px, TALL_GRASS, x, y, 80 + v, 150 + v, 50 + v, 255)
-        end
-        y += 1
-      end
-      x += 1
-    end
-    # flowers: a stem and a petal head
-    y = 7
-    while y < 16
-      set(px, ROSE, 7, y, 50, 120, 40, 255)
-      set(px, DANDELION, 8, y, 50, 120, 40, 255)
-      y += 1
-    end
-    set(px, ROSE, 6, 11, 50, 120, 40, 255)
-    set(px, DANDELION, 9, 12, 50, 120, 40, 255)
-    y = 3
-    while y < 8
-      x = 5
-      while x < 10
-        corner = (x == 5 || x == 9) && (y == 3 || y == 7)
-        unless corner
-          set(px, ROSE, x, y, 210 - (x + y) % 3 * 25, 25, 35, 255)
-          set(px, DANDELION, x + 1, y + 1, 250, 215 - (x + y) % 2 * 30, 40, 255)
-        end
-        x += 1
-      end
-      y += 1
-    end
-  end
 
   # Chest: wood with a dark rim, and a band and a metal latch on the sides.
   def self.chest(px)
@@ -543,19 +352,6 @@ module Tex
     end
   end
 
-  def self.lava(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        v = rnd(x / 2 + y / 3, y / 2, 61)
-        hot = v > 170 ? 1 : 0
-        set(px, LAVA, x, y, 230 + hot * 25, 90 + v / 4 + hot * 90, 20 + hot * 60, 255)
-        x += 1
-      end
-      y += 1
-    end
-  end
 
 
 
@@ -580,251 +376,22 @@ module Tex
     set(px, DOOR, 12, 9, 170, 165, 150, 255)
   end
 
-  # A thin stem with a few round leaves.
-  def self.sapling(px)
-    y = 9
-    while y < 16
-      set(px, SAPLING, 7, y, 110, 80, 45, 255)
-      y += 1
-    end
-    [[7, 3, 3.2], [4, 7, 2.6], [10, 6, 2.8], [7, 8, 2.2]].each do |c|
-      y = 0
-      while y < 16
-        x = 0
-        while x < 16
-          d = (x - c[0]) ** 2 + (y - c[1]) ** 2
-          v = rnd(x, y, 111) / 8
-          set(px, SAPLING, x, y, 50 + v, 120 + v, 40 + v, 255) if d < c[2] * c[2]
-          x += 1
-        end
-        y += 1
-      end
-    end
-  end
-
-  def self.apple(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        dx = (x - 7.5) / 5.5
-        dy = (y - 9.0) / 5.5
-        if dx * dx + dy * dy < 1.0
-          v = rnd(x, y, 121) / 10
-          light = x < 7 && y < 8 ? 40 : 0
-          set(px, APPLE, x, y, 200 + v + light, 30 + v + light, 35 + v + light, 255)
-        end
-        x += 1
-      end
-      y += 1
-    end
-    set(px, APPLE, 8, 2, 100, 70, 40, 255)
-    set(px, APPLE, 8, 3, 100, 70, 40, 255)
-    set(px, APPLE, 9, 2, 60, 140, 50, 255)
-    set(px, APPLE, 10, 1, 60, 140, 50, 255)
-  end
 
 
 
 
 
-  # Rows of stalks of height tall (in pixels) in color r, g, b.
-  def self.crop(px, layer, tall, r, g, b)
-    x = 1
-    while x < 16
-      h = tall - rnd(x, 0, layer) % 3
-      h = 2 if h < 2
-      y = 16 - h
-      while y < 16
-        v = rnd(x, y, layer + 1) / 10
-        set(px, layer, x, y, r + v, g + v, b + v / 2, 255)
-        y += 1
-      end
-      x += 3
-    end
-  end
 
-  # A bundle of golden stalks, tied in the middle.
-  def self.wheat(px)
-    x = 3
-    while x < 13
-      y = 1 + (x - 8).abs / 2
-      while y < 15
-        v = rnd(x, y, 151) / 8
-        set(px, WHEAT, x, y, 210 + v, 175 + v, 70, 255) if (x + y) % 3 != 0
-        y += 1
-      end
-      x += 1
-    end
-    x = 4
-    while x < 12
-      set(px, WHEAT, x, 9, 130, 95, 45, 255)
-      x += 1
-    end
-  end
 
-  # A loaf: a brown oval, lighter on top.
-  def self.bread(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        dx = (x - 7.5) / 7.0
-        dy = (y - 9.0) / 4.5
-        if dx * dx + dy * dy < 1.0
-          v = rnd(x, y, 161) / 12
-          top = y < 8 ? 30 : 0
-          set(px, BREAD, x, y, 170 + v + top, 110 + v + top, 50 + v, 255)
-        end
-        x += 1
-      end
-      y += 1
-    end
-  end
 
-  def self.ingot(px)
-    y = 6
-    while y < 11
-      x = 2 + (10 - y) / 2
-      while x < 14 - (10 - y) / 2
-        v = rnd(x, y, 131) / 12
-        c = y == 6 ? 240 : 200
-        set(px, IRON_INGOT, x, y, c + v - 10, c + v - 12, c + v - 18, 255)
-        x += 1
-      end
-      y += 1
-    end
-  end
 
-  # Bucket: gray metal that narrows to its bottom, with r, g, b at its top.
-  def self.bucket(px, layer, r, g, b)
-    y = 3
-    while y < 14
-      inset = (y - 3) / 4
-      x = 2 + inset
-      while x <= 13 - inset
-        edge = x == 2 + inset || x == 13 - inset || y == 13
-        if y == 3
-          set(px, layer, x, y, 200, 200, 210, 255)
-        elsif y < 6 && !edge
-          set(px, layer, x, y, r, g, b, 255)
-        else
-          shade = edge ? 120 : 165 + (x - 7).abs * 4
-          set(px, layer, x, y, shade, shade, shade + 8, 255)
-        end
-        x += 1
-      end
-      y += 1
-    end
-  end
 
-  # Ladder: two rails and four rungs; the rest is transparent.
-  def self.ladder(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        rail = x == 2 || x == 3 || x == 12 || x == 13
-        rung = (y % 4 == 1 || y % 4 == 2) && x > 3 && x < 12
-        if rail || rung
-          v = (rnd(x, y, 95) - 128) / 16
-          dark = x == 3 || x == 13 || y % 4 == 2 ? 25 : 0
-          set(px, LADDER, x, y, 150 + v - dark, 105 + v - dark, 60 + v - dark, 255)
-        end
-        x += 1
-      end
-      y += 1
-    end
-  end
 
-  # Crafting table: planks with a dark grid on top, and a hammer and a saw
-  # on the sides.
-  def self.crafting_table(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        v = rnd(x / 4, y, 93) / 12 + (rnd(x, y, 94) - 128) / 20
-        edge = x == 0 || y == 0 || x == 15 || y == 15
-        top = edge || x == 5 || x == 10 || y == 5 || y == 10 ? 85 : 150 + v
-        set(px, CRAFT_TOP, x, y, top, (top * 0.68).to_i, (top * 0.38).to_i, 255)
-        side = edge || y == 3 ? 85 : 150 + v
-        set(px, CRAFT_SIDE, x, y, side, (side * 0.68).to_i, (side * 0.38).to_i, 255)
-        x += 1
-      end
-      y += 1
-    end
-    y = 6
-    while y < 14
-      set(px, CRAFT_SIDE, 4, y, 70, 45, 25, 255)
-      set(px, CRAFT_SIDE, y - 4, 6, 180, 180, 190, 255) if y < 9
-      set(px, CRAFT_SIDE, 10, y, 190, 190, 200, 255)
-      set(px, CRAFT_SIDE, 11, y, 150, 150, 160, 255) if y > 6
-      y += 1
-    end
-  end
 
-  # Gray stone around a dark mouth with a glow at its bottom.
-  def self.furnace(px)
-    noisy(px, FURNACE, 120, 120, 120, 20, 141)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        set(px, FURNACE, x, y, 75, 75, 75, 255) if x == 0 || y == 0 || x == 15 || y == 15
-        set(px, FURNACE, x, y, 25, 22, 20, 255) if x > 3 && x < 12 && y > 7 && y < 14
-        set(px, FURNACE, x, y, 230, 120, 30, 255) if x > 4 && x < 11 && y == 12
-        x += 1
-      end
-      y += 1
-    end
-  end
 
-  def self.porkchop(px)
-    meat(px, PORKCHOP, 215, 95, 105, 245, 225, 215)
-    meat(px, COOKED_PORKCHOP, 150, 85, 45, 200, 160, 110)
-  end
 
-  # A round piece of meat with a rim of fat.
-  def self.meat(px, layer, r, g, b, fr, fg, fb)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        dx = (x - 7.5) / 6.5
-        dy = (y - 8.0) / 5.0
-        d = dx * dx + dy * dy
-        if d < 1.0
-          if d > 0.62
-            set(px, layer, x, y, fr, fg, fb, 255)
-          else
-            v = rnd(x, y, 41) / 10
-            set(px, layer, x, y, r + v, g + v, b + v, 255)
-          end
-        end
-        x += 1
-      end
-      y += 1
-    end
-  end
 
-  def self.torch(px)
-    y = 6
-    while y < 16
-      set(px, TORCH, 7, y, 120, 85, 50, 255)
-      set(px, TORCH, 8, y, 95, 65, 40, 255)
-      y += 1
-    end
-    set(px, TORCH, 7, 3, 255, 240, 150, 255)
-    set(px, TORCH, 8, 3, 255, 220, 120, 255)
-    set(px, TORCH, 7, 4, 255, 200, 60, 255)
-    set(px, TORCH, 8, 4, 255, 230, 110, 255)
-    set(px, TORCH, 7, 5, 240, 140, 30, 255)
-    set(px, TORCH, 8, 5, 255, 180, 50, 255)
-    set(px, TORCH, 6, 4, 230, 120, 20, 255)
-    set(px, TORCH, 9, 4, 230, 120, 20, 255)
-    set(px, TORCH, 7, 2, 250, 200, 80, 255)
-  end
+
 
   HEART_ROWS = [
     "................", "................", "..####....####..", ".######..######.",
