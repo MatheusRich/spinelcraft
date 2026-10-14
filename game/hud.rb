@@ -283,21 +283,4 @@ class Game
     label = hover >= 0 ? Block::NAMES[PLACEABLE[hover]] : "CLICK A BLOCK TO PUT IT IN THE SELECTED SLOT"
     @ui.text((w - @ui.text_width(label, 2.0 * s)) / 2.0, last[1] + last[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
   end
-
-  def draw_pause_screen(w, h, s)
-    @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.45)
-    msg = "PAUSED - CLICK OR ESC TO PLAY  N NEW WORLD"
-    @ui.text((w - @ui.text_width(msg, 4.0 * s)) / 2.0, h / 2.0 - 60.0 * s, msg, 4.0 * s, 1.0, 1.0, 1.0, 1.0)
-    lines = ["WASD MOVE  SPACE JUMP  CTRL SPRINT  SHIFT DOWN",
-             "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
-             "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  F FLY  G GAME MODE  T TIME  R RAIN  F3 DEBUG  F4 VIEW  F5 SAVE  F11 FULLSCREEN",
-             "SURVIVAL: E TO CRAFT  BY HAND ONLY PLANKS, TORCHES AND A CRAFTING TABLE",
-             "TOOLS NEED A CRAFTING TABLE NEARBY  SMELTING NEEDS A FURNACE AND FUEL  STONE NEEDS A PICKAXE TO DROP"]
-    i = 0
-    while i < lines.size
-      line = lines[i]
-      @ui.text((w - @ui.text_width(line, 2.0 * s)) / 2.0, h / 2.0 + (i * 18.0) * s, line, 2.0 * s, 0.9, 0.9, 0.9, 1.0)
-      i += 1
-    end
-  end
 end

@@ -24,7 +24,7 @@ module Gfx
        Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS and
        the GPU slots that the game uses. */
     #define LEVELS 4
-    #define UNIFORMS (40 + 4 * LEVELS)
+    #define UNIFORMS (44 + 4 * LEVELS)
     #define COLUMNS 1024
     #define STR2(x) #x
     #define STR(x) STR2(x)
@@ -93,7 +93,7 @@ module Gfx
     static const char *MSL =
       "#include <metal_stdlib>\n"
       "using namespace metal;\n"
-      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; float4 cloud; float4 cloud_near; float4 rain; };\n"
+      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; float4 cloud; float4 cloud_near; float4 rain; float4 opt; };\n"
       "struct VOut { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; };\n"
       "struct VChunk { uint2 d [[attribute(0)]]; };\n"
       "constant float3 CORNER[10][4] = {\n"
@@ -117,6 +117,12 @@ module Gfx
       "  // Haze: the more air between the camera and p, the more p takes the sky color.\n"
       "  float haze = 1.0 - exp(-d / 1800.0);\n"
       "  return max(edge, haze);\n"
+      "}\n"
+      "// The brightness option, u.opt.x from 0 to 1, lifts the light l toward\n"
+      "// 1 - (1 - l)^4, as the brightness option of Minecraft does.\n"
+      "float bright(float l, constant U &u) {\n"
+      "  float d = 1.0 - l;\n"
+      "  return mix(l, 1.0 - d * d * d * d, u.opt.x);\n"
       "}\n"
       "vertex VOut vchunk(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
       "  uint w0 = in.d.x, w1 = in.d.y;\n"
@@ -161,7 +167,7 @@ module Gfx
       "  // 14 is Mesher::LIGHT_MAX, the light at a torch.\n"
       "  float torch = pow(float((w1 >> 19) & 15u) / 14.0, 1.6);\n"
       "  float warm = clamp((torch - light) * 3.0, 0.0, 1.0);\n"
-      "  light = max(light, torch);\n"
+      "  light = bright(max(light, torch), u);\n"
       "  float s = SHADE[face] * ao * light;\n"
       "  VOut o;\n"
       "  o.pos = u.vp * float4(p, 1.0);\n"
@@ -193,7 +199,7 @@ module Gfx
       "  float3 corner = CORNER[face][c];\n"
       "  float3 p = bp + corner * float3(cs, hgt, cs);\n"
       "  float day = u.misc.x;\n"
-      "  float s = SHADE[face] * (0.12 + 0.88 * day);\n"
+      "  float s = SHADE[face] * bright(0.12 + 0.88 * day, u);\n"
       "  VOutL o;\n"
       "  o.pos = u.vp * float4(p, 1.0);\n"
       "  o.uv = face == 2u ? UV[c] * cs : UV[c] * float2(cs, hgt);\n"
@@ -219,7 +225,7 @@ module Gfx
       "  VOut o;\n"
       "  o.pos = u.vp * float4(p, 1.0);\n"
       "  o.uv = in.uv; o.layer = in.layer;\n"
-      "  float l = max(0.2 + 0.8 * u.misc.x, in.glow);\n"
+      "  float l = max(bright(0.2 + 0.8 * u.misc.x, u), in.glow);\n"
       "  o.color = float4(in.color.rgb * l, in.color.a);\n"
       "  o.fog = fog_of(p, u);\n"
       "  return o;\n"

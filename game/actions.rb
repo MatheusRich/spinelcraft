@@ -22,11 +22,7 @@ class Game
       return
     end
     if !@captured
-      new_world if Gfx.in_key_pressed(Key::N)
-      if Gfx.in_button_pressed(1) || escape
-        @captured = true
-        Gfx.in_capture(1)
-      end
+      handle_menu(escape)
       return
     end
     @player.look(Gfx.in_mouse_dx, Gfx.in_mouse_dy)
@@ -90,15 +86,17 @@ class Game
       @fog_end = i.nil? ? VIEWS[0] : VIEWS[i]
       say("VIEW DISTANCE #{@fog_end.to_i}")
     end
-    if Gfx.in_key_pressed(Key::F11)
-      @fullscreen = !@fullscreen
-      Gfx.gfx_fullscreen(@fullscreen ? 1 : 0)
-    end
+    toggle_fullscreen if Gfx.in_key_pressed(Key::F11)
     @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T)
     if !@survival && Gfx.in_key_pressed(Key::R)
       @weather.set(!@weather.raining?)
       say(@weather.raining? ? "RAIN" : "CLEAR SKY")
     end
+  end
+
+  def toggle_fullscreen
+    @fullscreen = !@fullscreen
+    Gfx.gfx_fullscreen(@fullscreen ? 1 : 0)
   end
 
   # How full the attack cooldown is, from 0 to 1. A hit does 0.2 + 0.8 *

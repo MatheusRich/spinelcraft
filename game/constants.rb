@@ -19,10 +19,11 @@ class Game
   LEVELS = 4
   LOD_REACH = 640
   # Floats that render passes to the shaders: 28, one square for each level,
-  # 8 for the far cloud layer, then 4 for the rain.
+  # 8 for the far cloud layer, 4 for the rain, then 4 for the options.
   CLOUD_UNIFORMS = 28 + 4 * LEVELS
   RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
-  UNIFORMS = RAIN_UNIFORMS + 4
+  OPTION_UNIFORMS = RAIN_UNIFORMS + 4
+  UNIFORMS = OPTION_UNIFORMS + 4
   # A day and a night last 20 minutes, as in Minecraft.
   # minecraft.wiki/w/Daylight_cycle
   DAY_SECONDS = 1200.0

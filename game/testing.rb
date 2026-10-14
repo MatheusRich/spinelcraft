@@ -163,6 +163,7 @@ class Game
     test_swim_out
     test_hand_sway
     test_pause
+    test_menu
     test_streaming
     test_terrain_tables
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
@@ -203,6 +204,29 @@ class Game
     @vitals.health = Vitals::MAX_HEALTH
     @captured = true
     check("only the pause screen stops the world", paused && !inventory && !dead && !paused?)
+  end
+
+  # The sliders of the pause menu set the options, and New world asks for a
+  # second click.
+  def test_menu
+    view = @fog_end
+    set_slider(M_VIEW, 0.5)
+    half = @fog_end
+    set_slider(M_VIEW, 0.0)
+    near = @fog_end
+    @fog_end = view
+    check("the render distance slider goes in steps of 100 blocks", half == 2600.0 && near == VIEWS[0])
+    set_slider(M_BRIGHTNESS, 1.0)
+    set_slider(M_VOLUME, 0.25)
+    check("the brightness and volume sliders set the options", @brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")
+    @brightness = 0.0
+    @volume = 1.0
+    seed = @seed
+    click_menu(M_NEW_WORLD)
+    once = @seed == seed && @menu_confirm
+    click_menu(M_DEBUG)
+    check("new world asks for a second click", once && !@menu_confirm && @seed == seed)
+    click_menu(M_DEBUG)
   end
 
   # The held item moves only a little in each frame while the player walks,

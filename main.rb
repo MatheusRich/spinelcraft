@@ -34,6 +34,7 @@ require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
 require_relative "game/hud"
+require_relative "game/menu"
 require_relative "game/testing"
 
 class Game
@@ -104,6 +105,15 @@ class Game
     @anim_time = 0.0
     @fullscreen = false
     @fog_end = (ENV["VIEW"] || FOG_END.to_s).to_f
+    # The options of the pause menu (game/menu.rb), from 0 to 1. Brightness 0
+    # is the light without a lift.
+    @brightness = 0.0
+    @volume = 1.0
+    # The slider that the mouse drags, or -1.
+    @menu_drag = -1
+    # True after one click on New world.
+    @menu_confirm = false
+    @quit = false
     @last_w = -1.0
     @w_sprint = false
     @slot = 0
@@ -331,7 +341,7 @@ class Game
   end
 
   def play(id, volume)
-    Gfx.au_play(id, volume) if @sound
+    Gfx.au_play(id, volume * @volume) if @sound
   end
 
   # Volume for a sound at x, z: fades to silence at 24 blocks.
@@ -478,7 +488,7 @@ class Game
     max_frame = 0.0
     slow_frames = 0
     started = last
-    until Gfx.in_poll
+    until Gfx.in_poll || @quit
       now = Gfx.gfx_ns
       dt = (now - last) / 1.0e9
       dt = 0.05 if dt > 0.05

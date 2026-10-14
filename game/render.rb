@@ -78,6 +78,7 @@ class Game
     @clouds.write_uniforms(@uniforms, CLOUD_UNIFORMS, ey, @cloud_drift)
     @uniforms[RAIN_UNIFORMS] = @weather.rain
     @uniforms[RAIN_UNIFORMS + 1] = Weather::R.to_f
+    @uniforms[OPTION_UNIFORMS] = @brightness
   end
 
   # Fills @visible with the meshed chunks in the view and @water_visible with
