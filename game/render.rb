@@ -176,8 +176,12 @@ class Game
       m.draw(@dyn)
     end
     @arrows.each { |a| a.draw(@dyn) }
-    draw_items(ex, ez, reach)
-    draw_falling
+    @items.each_with_index do |item, i|
+      ddx = item.x - ex
+      ddz = item.z - ez
+      item.draw(@dyn, i.to_f) if ddx * ddx + ddz * ddz < reach * reach
+    end
+    @falling.each { |f| f.draw(@dyn) }
     # The camera's right and up axes, as in Camera#update.
     fx = @player.fx
     fy = @player.fy

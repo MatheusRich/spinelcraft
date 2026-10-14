@@ -186,9 +186,9 @@ class Game
   def test_falling_and_torches(x, z, ground)
     set_block(x, ground + 6, z, Block::SAND)
     set_block(x, ground + 7, z, Block::GRAVEL)
-    midair = @world.get(x, ground + 6, z) == Block::AIR && @world.get(x, ground + 1, z) == Block::AIR && @fall_block.size == 2
+    midair = @world.get(x, ground + 6, z) == Block::AIR && @world.get(x, ground + 1, z) == Block::AIR && @falling.size == 2
     fall_for(2.0)
-    landed = @world.get(x, ground + 1, z) == Block::SAND && @world.get(x, ground + 2, z) == Block::GRAVEL && @fall_block.empty?
+    landed = @world.get(x, ground + 1, z) == Block::SAND && @world.get(x, ground + 2, z) == Block::GRAVEL && @falling.empty?
     check("sand and gravel fall through the air and land on the ground", midair && landed)
     set_block(x, ground + 2, z, Block::AIR)
     set_block(x, ground + 1, z, Block::AIR)
@@ -272,12 +272,12 @@ class Game
     check("hurt lowers health", @health == 15 && !@dead)
     kept_blocks = @inv_block.dup
     kept_counts = @inv_count.dup
-    clear_items
+    @items.clear
     toggle_inventory
     hurt(30)
     check("death at zero health, and it closes the inventory", @health == 0 && @dead && !@inventory_open)
     check("death drops the inventory on the ground", room_for(Block::DIRT) == INV * STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::PLANKS) == 4)
-    clear_items
+    @items.clear
     @inv_block = kept_blocks
     @inv_count = kept_counts
     respawn
@@ -310,7 +310,7 @@ class Game
       mine(0.05)
       n += 1
     end
-    check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && @it_count.empty?)
+    check("stone without a pickaxe drops nothing", @world.get(x, ground + 1, z) == Block::AIR && @items.empty?)
     7.times { give(Block::PLANKS) }
     craft_recipe(recipe_for(Block::WOOD_PICK))
     by_hand = count_items(Block::WOOD_PICK)
@@ -335,7 +335,7 @@ class Game
     by_axe = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_AXE)
     by_pick = frames_to_mine(x, ground + 1, z, Block::LOG, Block::STONE_PICK)
     check("an axe chops a log faster than a hand or a pickaxe", by_axe < by_hand && by_pick == by_hand)
-    clear_items
+    @items.clear
     @inv_block[5] = Block::COOKED_PORKCHOP
     @inv_count[5] = 2
     @slot = 5
@@ -400,7 +400,7 @@ class Game
     @mobs.clear
     @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
     @health = MAX_HEALTH
-    clear_items
+    @items.clear
     frames = 0
     while frames < 300 && @world.get(px + 2, 88, pz) == Block::STONE
       update_mobs(1.0 / 60.0)
@@ -408,7 +408,7 @@ class Game
     end
     check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @health < MAX_HEALTH && frames > 60)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
-    clear_items
+    @items.clear
     @mobs.clear
     @time_of_day = 0.3
     @health = MAX_HEALTH
@@ -496,7 +496,7 @@ class Game
     old = @world.get(x, ground + 1, z)
     kept_block = @inv_block[1]
     kept_count = @inv_count[1]
-    clear_items
+    @items.clear
     drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
     set_raining(true)
     @weather_timer = 77.5
@@ -508,7 +508,7 @@ class Game
     @world.set(x, ground + 1, z, Block::GLASS)
     @health = 3
     @inv_count[1] = 0
-    clear_items
+    @items.clear
     set_raining(false)
     @rain = 0.0
     @seen.fill(0)
@@ -517,12 +517,12 @@ class Game
     apply_loaded if ok
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @health == MAX_HEALTH && @inv_block[1] == kept_block && @inv_count[1] == kept_count && kept_count > 0 && @survival)
     check("the save keeps the items on the ground and the weather",
-          @it_count.size == 1 && @it_block[0] == Block::STONE_SWORD && @it_count[0] == 17 &&
-          @it_x[0] == x + 0.25 && @it_y[0] == ground + 1.0 && @it_z[0] == z + 0.75 &&
+          @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
+          @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
           @raining && @rain == 1.0 && @weather_timer == 77.5)
     check("the save keeps the seen items and the heat in furnaces", @seen[Block::DIAMOND] == 1 && furnace_heat(77) == 5)
     @furnace_heat = {}
-    clear_items
+    @items.clear
     set_raining(false)
     @rain = 0.0
     @health = 0
@@ -669,7 +669,7 @@ class Game
     broke = @inv_count[0] == 0 && @inv_block[1] == Block::WOOD_PICK
     @inv_count[1] = 7
     @slot = 1
-    clear_items
+    @items.clear
     throw_selected
     collect_items
     @survival = survival
@@ -709,14 +709,14 @@ class Game
     # An open chest destroyed by a blast never duplicates its contents.
     @inv_block.fill(0)
     @inv_count.fill(0)
-    clear_items
+    @items.clear
     set_block(cx, 90, cz, Block::CHEST)
     open_chest(cx, 90, cz)
     @chest_block[0] = Block::DIAMOND
     @chest_count[0] = 7
     set_block(cx, 90, cz, Block::AIR)
     check("a chest destroyed while open does not duplicate items", count_items(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.empty?)
-    clear_items
+    @items.clear
   end
 
   # Mobs that die without the player's help drop nothing.
@@ -729,7 +729,7 @@ class Game
     @mobs.clear
     @mobs << far
     update_mobs(1.0 / 60.0)
-    check("a pig that dies on its own drops nothing", @it_count.empty?)
+    check("a pig that dies on its own drops nothing", @items.empty?)
     killed = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
     killed.hp = 0
     killed.alive = false
@@ -739,20 +739,20 @@ class Game
     dropped = ground_count(Block::PORKCHOP) == 1
     collect_items
     check("a pig that the player kills drops a porkchop", dropped && count_items(Block::PORKCHOP) == 1)
-    clear_items
+    @items.clear
     loot(killed, Block::BOW, 1)
-    check("a bow that a mob drops is new", @it_count.size == 1 && @it_count[0] == Block.uses(Block::BOW))
-    clear_items
+    check("a bow that a mob drops is new", @items.size == 1 && @items[0].count == Block.uses(Block::BOW))
+    @items.clear
   end
 
   # Stands the player on the first item until the ground is empty or the
   # frames run out.
   def collect_items
     frames = 0
-    while frames < 300 && !@it_count.empty?
-      @player.x = @it_x[0]
-      @player.y = @it_y[0]
-      @player.z = @it_z[0]
+    while frames < 300 && !@items.empty?
+      @player.x = @items[0].x
+      @player.y = @items[0].y
+      @player.z = @items[0].z
       update_items(1.0 / 60.0)
       frames += 1
     end
@@ -777,22 +777,22 @@ class Game
     end
     @inv_block.fill(0)
     @inv_count.fill(0)
-    clear_items
+    @items.clear
     @player.x = cx + 0.5
     @player.y = y + 1.0
     @player.z = cz + 0.5
     throw_stack(Block::DIRT, 1)
     run_items(0.5)
     waited = count_items(Block::DIRT) == 0 && ground_count(Block::DIRT) == 1
-    @player.x = @it_x[0]
-    @player.z = @it_z[0]
+    @player.x = @items[0].x
+    @player.z = @items[0].z
     run_items(1.5)
-    check("a thrown item waits before the player picks it up", waited && count_items(Block::DIRT) == 1 && @it_count.empty?)
+    check("a thrown item waits before the player picks it up", waited && count_items(Block::DIRT) == 1 && @items.empty?)
     drop_item(Block::SAND, 1, cx + 2.5, y + 3.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     @player.x = cx + 0.5
     run_items(1.5)
-    check("an item falls to the ground and stays out of reach", @it_count.size == 1 && (@it_y[0] - (y + 1.0)).abs < 0.01)
-    clear_items
+    check("an item falls to the ground and stays out of reach", @items.size == 1 && (@items[0].y - (y + 1.0)).abs < 0.01)
+    @items.clear
     i = 0
     while i < INV
       @inv_block[i] = Block::STONE
@@ -802,14 +802,14 @@ class Game
     drop_item(Block::SAND, 1, cx + 0.5, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     drop_item(Block::SAND, 1, cx + 0.6, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     run_items(0.5)
-    check("a full inventory leaves items on the ground, and items of one kind join", @it_count.size == 1 && @it_count[0] == 2 && count_items(Block::SAND) == 0)
-    clear_items
+    check("a full inventory leaves items on the ground, and items of one kind join", @items.size == 1 && @items[0].count == 2 && count_items(Block::SAND) == 0)
+    @items.clear
     @inv_block.fill(0)
     @inv_count.fill(0)
     set_block(cx + 2, y + 1, cz, Block::LAVA)
     drop_item(Block::SAND, 1, cx + 2.5, y + 1.2, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     run_items(0.2)
-    check("lava burns an item", @it_count.empty?)
+    check("lava burns an item", @items.empty?)
     set_block(cx + 2, y + 1, cz, Block::AIR)
     flush_dirty while !@later_list.empty? || !@dirty_list.empty?
   end
@@ -990,11 +990,11 @@ class Game
 
   # An item in a chunk that is not loaded waits there.
   def test_far_items
-    clear_items
+    @items.clear
     drop_item(Block::DIRT, 1, @player.x + 3000.0, 60.0, @player.z, 0.0, 0.0, 0.0, 0.0)
     run_items(6.0)
-    check("an item in a chunk that is not loaded waits there", @it_count.size == 1 && @it_y[0] == 60.0 && @it_age[0] == 0.0)
-    clear_items
+    check("an item in a chunk that is not loaded waits there", @items.size == 1 && @items[0].y == 60.0 && @items[0].age == 0.0)
+    @items.clear
   end
 
   # A door opens and closes as a whole and goes as a whole. Smelting needs a

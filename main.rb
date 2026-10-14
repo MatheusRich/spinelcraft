@@ -7,6 +7,8 @@ require_relative "game/camera"
 require_relative "game/draw"
 require_relative "game/mobs"
 require_relative "game/arrow"
+require_relative "game/item"
+require_relative "game/falling_block"
 require_relative "game/sounds"
 require_relative "game/clouds"
 require_relative "game/lod"
@@ -133,25 +135,8 @@ class Game
     @was_in_water = false
     @particles = Particles.new(@seed)
     @arrows = []
-    # Items on the ground (game/items.rb): the block, the count, the position,
-    # the velocity, the age, and the seconds until the player can pick it up.
-    @it_block = []
-    @it_count = []
-    @it_x = []
-    @it_y = []
-    @it_z = []
-    @it_vx = []
-    @it_vy = []
-    @it_vz = []
-    @it_age = []
-    @it_wait = []
-    # Falling sand and gravel (game/block_changes.rb): the block, the column,
-    # the height of the bottom, and the speed down.
-    @fall_block = []
-    @fall_x = []
-    @fall_z = []
-    @fall_y = []
-    @fall_vy = []
+    @items = []
+    @falling = []
     @draw_time = -1.0
     @health = MAX_HEALTH
     @hunger = MAX_HUNGER
@@ -261,7 +246,7 @@ class Game
     @furnace_heat = {}
     @mobs.clear
     @arrows.clear
-    clear_items
+    @items.clear
     @clouds = Clouds.new(@seed)
     upload_clouds
     spawn

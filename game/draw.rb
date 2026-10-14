@@ -177,6 +177,16 @@ class Mesh3
     corner_faces(mask, top, side, bottom, r, g, b, a)
   end
 
+  # Block or item b as a unit model around the origin of the frame of set_frame.
+  def item_model(b)
+    if Block.flat?(b)
+      layer = Block::SIDE[b]
+      frame_box(-0.5, -0.5, 0.0, 0.5, 0.5, 0.0, 16, layer, layer, layer, 1.0, 1.0, 1.0, 1.0)
+    else
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
+    end
+  end
+
   # The faces in mask of the box with the corners in @cx, @cy and @cz.
   def corner_faces(mask, top, side, bottom, r, g, b, a)
     f = 0

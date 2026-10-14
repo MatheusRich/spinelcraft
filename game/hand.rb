@@ -37,7 +37,7 @@ class Game
     ux = -rz * fy
     uy = rz * fx - rx * fz
     uz = rx * fy
-    flat = b != Block::AIR && flat_item?(b)
+    flat = b != Block::AIR && Block.flat?(b)
     # The place (right, up, back) and the turn of the model in view space.
     if b == Block::AIR
       ox = 0.6
@@ -105,7 +105,7 @@ class Game
       # The arm reaches forward from below the view.
       @dyn.frame_box(-0.5, -0.5, -2.6, 0.5, 0.5, 0.5, 63, Tex::SKIN, Tex::SKIN, Tex::SKIN, 0.86, 0.66, 0.52, 1.0)
     else
-      item_model(b)
+      @dyn.item_model(b)
     end
   end
 end

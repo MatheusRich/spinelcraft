@@ -41,12 +41,8 @@ class Game
       furnace_fields << key
       furnace_fields << heat
     end
-    item_fields = [@it_count.size]
-    i = 0
-    while i < @it_count.size
-      item_fields.concat([@it_block[i], @it_count[i], @it_x[i], @it_y[i], @it_z[i], @it_age[i]])
-      i += 1
-    end
+    item_fields = [@items.size]
+    @items.each { |item| item_fields.concat([item.block, item.count, item.x, item.y, item.z, item.age]) }
     t0 = Gfx.gfx_ns
     chunks = @world.edited_chunks
     keys = chunks.keys
@@ -112,7 +108,7 @@ class Game
     @later_list.each { |i| @later[i] = false }
     @later_list.clear
     @flow_queue.clear
-    remove_falling(0) while !@fall_block.empty?
+    @falling.clear
   end
 
   def apply_loaded
@@ -160,13 +156,12 @@ class Game
       at += 1 + CHEST_SLOTS * 2
       c += 1
     end
-    clear_items
+    @items.clear
     items = f[at].to_i
     at += 1
     c = 0
     while c < items
-      drop_item(f[at].to_i, f[at + 1].to_i, f[at + 2].to_f, f[at + 3].to_f, f[at + 4].to_f, 0.0, 0.0, 0.0, PICKUP_WAIT)
-      @it_age[@it_age.size - 1] = f[at + 5].to_f
+      @items << Item.new(f[at].to_i, f[at + 1].to_i, f[at + 2].to_f, f[at + 3].to_f, f[at + 4].to_f, 0.0, 0.0, 0.0, PICKUP_WAIT, f[at + 5].to_f)
       at += ITEM_FIELDS
       c += 1
     end

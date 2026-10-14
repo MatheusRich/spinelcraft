@@ -119,6 +119,8 @@ module Block
   def self.item?(b) = (b >= PORKCHOP && b <= DIAMOND_PICK) || b == BOW || b == ARROW || (b >= APPLE && b <= IRON_INGOT) ||
     (b >= COOKED_PORKCHOP && b <= DIAMOND_SHOVEL) || b == WHEAT || b == BREAD || bucket?(b)
   def self.bucket?(b) = b >= BUCKET && b <= LAVA_BUCKET
+  # Items and plants are flat pictures; the other blocks are cubes.
+  def self.flat?(b) = item?(b) || plant?(b)
   def self.door?(b) = b == DOOR || b == DOOR_OPEN
   def self.bed?(b) = b == BED || b == BED_HEAD
   # The box of a block in its cell: half its width around the center, and
