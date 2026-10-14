@@ -151,8 +151,11 @@ class Game
       if @survival && @player.hit && Block::BASE[target] == Block::CHEST
         open_chest(@player.hx, @player.hy, @player.hz)
         return
-      elsif @survival && (Block::BASE[target] == Block::CRAFTING_TABLE || Block::BASE[target] == Block::FURNACE)
-        toggle_inventory
+      elsif @survival && Block::BASE[target] == Block::CRAFTING_TABLE
+        open_station(@player.hx, @player.hy, @player.hz, AT_TABLE)
+        return
+      elsif @survival && Block::BASE[target] == Block::FURNACE
+        open_station(@player.hx, @player.hy, @player.hz, AT_FURNACE)
         return
       elsif Block.bed?(target)
         use_bed(@player.hx, @player.hy, @player.hz)

@@ -3,9 +3,6 @@ class Game
   RECIPE_W = 300.0
   # The recipe list has two columns of this many rows.
   RECIPE_ROWS = 16
-  # A recipe that needs a crafting table or a furnace works when one is this
-  # near the player.
-  STATION_REACH = 4
   # What a furnace burns, and how many items one of each smelts. The list
   # goes from the weakest fuel to the strongest.
   FUEL_BLOCKS = [Block::PLANKS, Block::LOG, Block::COAL]
@@ -38,8 +35,8 @@ class Game
       say("NEED #{r[1]} #{Block::NAMES[r[0]]}")
       return
     end
-    unless station_near?(r[4])
-      say(r[4] == AT_TABLE ? "NEED A CRAFTING TABLE NEARBY" : "NEED A FURNACE NEARBY")
+    unless station_makes?(r[4])
+      say(r[4] == AT_TABLE ? "NEED A CRAFTING TABLE" : "NEED A FURNACE")
       return
     end
     smelt = r[4] == AT_FURNACE
@@ -120,35 +117,24 @@ class Game
     best
   end
 
-  # True when the recipes for where (BY_HAND, AT_TABLE or AT_FURNACE) work.
-  # A crafting table or a furnace must be within STATION_REACH blocks of the
-  # player on each axis. @station_x, @station_y and @station_z keep the
-  # cell of the one found.
-  def station_near?(where)
-    return true if where == BY_HAND
-    b = where == AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
-    px = @player.x.floor
-    py = @player.y.floor
-    pz = @player.z.floor
-    x = px - STATION_REACH
-    while x <= px + STATION_REACH
-      y = py - STATION_REACH
-      while y <= py + STATION_REACH
-        z = pz - STATION_REACH
-        while z <= pz + STATION_REACH
-          if Block::BASE[@world.get(x, y, z)] == b
-            @station_x = x
-            @station_y = y
-            @station_z = z
-            return true
-          end
-          z += 1
-        end
-        y += 1
-      end
-      x += 1
-    end
-    false
+  # True when the open screen makes the recipes for where (BY_HAND,
+  # AT_TABLE or AT_FURNACE). A crafting table also makes the recipes by
+  # hand, as in Minecraft. When the station is gone, the screen works as
+  # the E screen.
+  def station_makes?(where)
+    open = @station
+    b = open == AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
+    open = BY_HAND if open != BY_HAND && Block::BASE[@world.get(@station_x, @station_y, @station_z)] != b
+    where == open || (where == BY_HAND && open == AT_TABLE)
+  end
+
+  # Opens the screen of the crafting table or the furnace at x, y, z.
+  def open_station(x, y, z, where)
+    @station = where
+    @station_x = x
+    @station_y = y
+    @station_z = z
+    toggle_inventory
   end
 
   # Pixel rectangle of inventory cell i: x, y, size.
@@ -237,13 +223,14 @@ class Game
     say(found == 1 ? "NEW RECIPE: #{Block::NAMES[RECIPES[last][2]]}" : "#{found} NEW RECIPES - PRESS E")
   end
 
-  # The recipes that the list shows, in the order of RECIPES: those whose
-  # ingredient the player has seen. Other recipes stay a surprise.
+  # The recipes that the list shows, in the order of RECIPES: those that the
+  # open screen makes, and whose ingredient the player has seen. Other
+  # recipes stay a surprise.
   def shown_recipes
     shown = []
     k = 0
     while k < RECIPES.size
-      shown << k if @seen[RECIPES[k][0]] == 1
+      shown << k if @seen[RECIPES[k][0]] == 1 && station_makes?(RECIPES[k][4])
       k += 1
     end
     shown
@@ -408,7 +395,7 @@ class Game
 
   def toggle_inventory
     # The player saw the NEW tags in the recipe list.
-    @recipe_new.fill(0) if @inventory_open && @chest_key < 0
+    shown_recipes.each { |k| @recipe_new[k] = 0 } if @inventory_open && @chest_key < 0
     if @inventory_open
       return_held
       # What does not fit falls to the ground.
@@ -422,6 +409,7 @@ class Game
       play(Sfx::CHEST_CLOSE, 0.5)
       close_chest
     end
+    @station = BY_HAND if @inventory_open
     @inventory_open = !@inventory_open
     @captured = !@inventory_open
     Gfx.in_capture(@inventory_open ? 0 : 1)

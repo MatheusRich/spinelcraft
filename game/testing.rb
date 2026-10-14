@@ -490,7 +490,7 @@ class Game
     craft_recipe(recipe_for(Block::CRAFTING_TABLE))
     table = @inv.total(Block::CRAFTING_TABLE) == 1
     craft_at_table(recipe_for(Block::WOOD_PICK))
-    check("a crafting table comes from 4 planks, and a pickaxe needs one nearby", by_hand == 0 && table && @inv.total(Block::WOOD_PICK) > 0)
+    check("a crafting table comes from 4 planks, and a pickaxe needs one", by_hand == 0 && table && @inv.total(Block::WOOD_PICK) > 0)
     @inv.clear
     @inv.add(Block::WOOD_PICK)
     set_block(x, ground + 1, z, Block::STONE)
@@ -768,8 +768,26 @@ class Game
     note_seen
     @inv.remove(Block::PLANKS, 1)
     note_seen
-    planks = shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))
+    planks = shown_recipes.include?(recipe_for(Block::CRAFTING_TABLE)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))
     check("the recipe list shows only the recipes for seen ingredients", logs && planks)
+    @inv.add(Block::IRON)
+    note_seen
+    hand = shown_recipes.include?(recipe_for(Block::PLANKS)) && !shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
+    x = @player.x.floor + 2
+    y = @player.y.floor
+    z = @player.z.floor
+    old = @world.get(x, y, z)
+    set_block(x, y, z, Block::CRAFTING_TABLE)
+    open_station(x, y, z, AT_TABLE)
+    table = shown_recipes.include?(recipe_for(Block::PLANKS)) && shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
+    toggle_inventory
+    set_block(x, y, z, Block::FURNACE)
+    open_station(x, y, z, AT_FURNACE)
+    furnace = shown_recipes == [recipe_for(Block::IRON_INGOT)]
+    toggle_inventory
+    set_block(x, y, z, old)
+    check("the E screen, a crafting table and a furnace each show their own recipes", hand && table && furnace && @station == BY_HAND)
+    @inv.clear
   end
 
   # The inventory screen fits the frame and leaves the hotbar and the health
@@ -795,14 +813,16 @@ class Game
   # The index of the recipe that makes b.
   def recipe_for(b) = RECIPES.index { |r| r[2] == b }
 
-  # Crafts recipe k with a crafting table next to the player.
+  # Crafts recipe k on a crafting table next to the player.
   def craft_at_table(k)
     x = @player.x.floor + 2
     y = @player.y.floor
     z = @player.z.floor
     old = @world.get(x, y, z)
     set_block(x, y, z, Block::CRAFTING_TABLE)
+    open_station(x, y, z, AT_TABLE)
     craft_recipe(k)
+    toggle_inventory
     set_block(x, y, z, old)
   end
 
@@ -1252,8 +1272,8 @@ class Game
     @items.clear
   end
 
-  # A door opens and closes as a whole and goes as a whole. Smelting needs a
-  # furnace near the player. A sapling grows into a tree.
+  # A door opens and closes as a whole and goes as a whole. Smelting needs
+  # the screen of a furnace. A sapling grows into a tree.
   def test_door_furnace_sapling
     x = @spawn_x.floor + 50
     z = @spawn_z.floor + 50
@@ -1277,8 +1297,9 @@ class Game
     smelt = recipe_for(Block::IRON_INGOT)
     craft_recipe(smelt)
     far = @inv.total(Block::IRON) == 9
-    check("smelting needs a furnace nearby", far)
+    check("smelting needs a furnace", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
+    open_station(x + 2, y, z + 3, AT_FURNACE)
     furnace = World.key(x + 2, y, z + 3)
     # A click smelts one item, and the weakest fuel (a plank) covers it.
     craft_recipe(smelt)
@@ -1303,6 +1324,7 @@ class Game
     @inv.add(Block::SAND)
     craft_recipe(recipe_for(Block::GLASS))
     no_fuel = @inv.total(Block::SAND) == 1 && @inv.total(Block::GLASS) == 1
+    toggle_inventory
     set_block(x + 2, y, z + 3, Block::AIR)
     check("a furnace keeps the heat of its fuel, and smelting needs fuel", one && all && kept && used && no_fuel)
     check("a furnace with heat is lit, and a furnace with none is not", dark && lit)

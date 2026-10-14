@@ -86,7 +86,12 @@ class Game
     @recipe_new = Array.new(RECIPES.size, 0)
     # The smelts left in each furnace, by World.key.
     @furnace_heat = {}
-    @station_key = 0
+    # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE),
+    # and its cell.
+    @station = BY_HAND
+    @station_x = 0
+    @station_y = 0
+    @station_z = 0
     # The cell that fluid_in_view found.
     @fluid_x = 0
     @fluid_y = 0

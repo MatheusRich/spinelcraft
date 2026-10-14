@@ -64,10 +64,8 @@ class Game
   TILE_SLOTS = Lod::TRING * Lod::TRING
 
   # Survival crafting: turns the selected stack into something else.
-  # Each recipe: the ingredient, how many, the result, how many, and 1 when
-  # it needs a furnace near the player.
-  # Where a recipe works: by hand, with a crafting table near, or with a
-  # furnace near.
+  # Where a recipe works: by hand (the E screen), on a crafting table, or in
+  # a furnace (the screen that a right-click on one opens).
   BY_HAND = 0
   AT_TABLE = 1
   AT_FURNACE = 2

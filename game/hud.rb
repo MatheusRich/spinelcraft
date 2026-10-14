@@ -236,8 +236,6 @@ class Game
     bottom = recipe_cell(n < 1 ? 0 : (n < RECIPE_ROWS ? n - 1 : RECIPE_ROWS - 1), w, h, s)
     right = recipe_cell(n > RECIPE_ROWS ? RECIPE_ROWS : 0, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, bottom[1] + bottom[3] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    table = station_near?(AT_TABLE)
-    furnace = station_near?(AT_FURNACE)
     @ui.text(first[0], first[1] - 36.0 * s, "CRAFTING", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     rhover = recipe_hover(w, h, s)
     if shown.empty?
@@ -248,7 +246,7 @@ class Game
       k = shown[j]
       r = RECIPES[k]
       c = recipe_cell(j, w, h, s)
-      can = @inv.total(r[0]) >= r[1] && (r[4] == BY_HAND || (r[4] == AT_TABLE ? table : furnace))
+      can = @inv.total(r[0]) >= r[1]
       shade = k == rhover ? 0.5 : 0.28
       fresh = @recipe_new[k] == 1
       @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)
@@ -256,7 +254,7 @@ class Game
       @ui.icon(c[0] + 2.0 * s, c[1] + 2.0 * s, 22.0 * s, Block::FRONT[r[2]], can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
       @ui.text(c[0] + 30.0 * s, c[1] + 4.0 * s, "#{r[3]} #{Block::NAMES[r[2]]}", 2.0 * s, bright, bright, bright, 1.0)
-      need = "#{r[1]} #{Block::NAMES[r[0]]}#{r[4] == AT_FURNACE ? " + FURNACE" : (r[4] == AT_TABLE ? " + TABLE" : "")}"
+      need = "#{r[1]} #{Block::NAMES[r[0]]}"
       @ui.text(c[0] + c[2] - @ui.text_width(need, 1.5 * s) - 4.0 * s, c[1] + 15.0 * s, need, 1.5 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
       j += 1
     end
