@@ -2,15 +2,9 @@
 # pick the biome, and the biome picks the ground block, the trees and the
 # plants. The height adds beaches, bare rock and snow on top (World#top_block).
 module Biome
-  PLAINS = 0
-  FOREST = 1
-  TAIGA = 2
-  SNOWY_TAIGA = 3
-  TUNDRA = 4
-  DESERT = 5
-  SAVANNA = 6
-  JUNGLE = 7
-  SWAMP = 8
+  # Each table below has one entry for each biome, in this order.
+  ALL = [PLAINS = 0, FOREST = 1, TAIGA = 2, SNOWY_TAIGA = 3, TUNDRA = 4, DESERT = 5, SAVANNA = 6,
+         JUNGLE = 7, SWAMP = 8]
 
   # The top block of a column away from beaches and peaks.
   GROUND = [Block::GRASS, Block::GRASS, Block::GRASS, Block::SNOW_GRASS, Block::SNOW_GRASS,
@@ -18,10 +12,7 @@ module Biome
   # Trees per 65536 columns.
   TREES = [90, 2600, 2000, 1400, 50, 0, 160, 4200, 900]
   # The tree that grows: OAK, SPRUCE, ACACIA or JUNGLE_TREE.
-  OAK = 0
-  SPRUCE = 1
-  ACACIA = 2
-  JUNGLE_TREE = 3
+  TREE_KINDS = [OAK = 0, SPRUCE = 1, ACACIA = 2, JUNGLE_TREE = 3]
   TREE = [OAK, OAK, SPRUCE, SPRUCE, SPRUCE, OAK, ACACIA, JUNGLE_TREE, OAK]
   # Tall grass per 65536 columns of grass, before the meadow noise.
   GRASS = [9000, 5000, 3000, 0, 0, 0, 26000, 22000, 12000]

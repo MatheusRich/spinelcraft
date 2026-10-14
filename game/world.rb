@@ -40,7 +40,8 @@ class World
   WARP = 90.0
   # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
   RIVER_VALLEY = 0.07
-  # The shortest trunk of each tree kind (Biome::OAK and so on).
+  # The shortest trunk of each tree kind (Biome::OAK and so on), one
+  # entry for each of Biome::TREE_KINDS.
   TRUNK = [4, 6, 4, 8]
   # How far leaves reach from the trunk.
   TREE_REACH = 3

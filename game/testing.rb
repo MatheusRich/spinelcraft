@@ -141,8 +141,20 @@ class Game
     test_swim_out
     test_hand_sway
     test_streaming
+    test_terrain_tables
     File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
     puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
+  end
+
+  # The terrain tables are read by position, so each must have one entry
+  # for each biome or tree kind, and the spline needs rising points.
+  def test_terrain_tables
+    biomes = [Biome::GROUND, Biome::TREES, Biome::TREE, Biome::GRASS, Biome::FLOWERS].all? { |t| t.size == Biome::ALL.size }
+    kinds = World::TRUNK.size == Biome::TREE_KINDS.size && Biome::TREE.all? { |k| k < Biome::TREE_KINDS.size }
+    xs = World::CONTINENT
+    rising = (1...xs.size).all? { |i| xs[i] > xs[i - 1] }
+    check("each terrain table has one entry for each biome or tree kind", biomes && kinds)
+    check("the continent spline has rising points and one height for each", rising && World::BASE.size == xs.size)
   end
 
   # The held item moves only a little in each frame while the player walks,
