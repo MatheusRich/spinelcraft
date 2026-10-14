@@ -64,9 +64,11 @@ class Player
   # Speeds in blocks per second. minecraft.wiki/w/Transportation
   WALK = 4.317
   SPRINT = 5.612
-  FLY = 11.0
-  SPRINT_FLY = 22.0
-  FLY_UP = 7.49
+  # Flight is 4 times as fast as in Minecraft (11, 22 and 7.49), and up and
+  # down 3 times, so the player can look around the world quickly.
+  FLY = 44.0
+  SPRINT_FLY = 88.0
+  FLY_UP = 22.5
   # Swim speeds at the surface, under water, and in a sprint.
   SWIM = 2.2
   SWIM_UNDER = 1.97
