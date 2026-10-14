@@ -277,7 +277,8 @@ class Game
       c = inventory_cell(i, w, h, s)
       shade = i == hover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, CREATIVE_ITEMS[i], 1.0)
+      inset = c[2] * 6.0 / 56.0
+      @ui.item(c[0] + inset, c[1] + inset, c[2] - inset * 2.0, CREATIVE_ITEMS[i], 1.0) if CREATIVE_ITEMS[i] != Block::AIR
       i += 1
     end
     label = hover >= 0 ? Block::NAMES[CREATIVE_ITEMS[hover]] : "CLICK AN ITEM TO PUT IT IN THE SELECTED SLOT"

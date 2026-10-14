@@ -772,7 +772,7 @@ class Game
     check("the recipe list shows only the recipes for seen ingredients", logs && planks)
   end
 
-  # The inventory screen fits the frame and leaves the hotbar and the health
+  # The inventory screens fit the frame and leave the hotbar and the health
   # bars free, for common frame sizes.
   def test_inventory_layout
     sizes = [1280.0, 720.0, 2560.0, 1440.0, 1920.0, 1080.0, 2880.0, 1800.0, 3840.0, 2160.0]
@@ -787,9 +787,13 @@ class Game
       pad = 18.0 * s
       fits = false if first[0] - pad < 0.0 || first[1] - pad - 40.0 * s < 0.0
       fits = false if last[0] + last[2] + pad > w || last[1] + last[3] + pad > h - 82.0 * ui_scale(h)
+      s = ui_scale(h)
+      first = inventory_cell(0, w, h, s)
+      last = inventory_cell(CREATIVE_ITEMS.size - 1, w, h, s)
+      fits = false if first[1] - 58.0 * s < 0.0 || last[1] + last[2] + 40.0 * s > h - 60.0 * s
       i += 2
     end
-    check("the inventory screen fits the frame above the hotbar", fits)
+    check("the inventory screens fit the frame above the hotbar", fits)
   end
 
   # The index of the recipe that makes b.

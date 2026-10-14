@@ -64,8 +64,9 @@ class Game
       if @survival
         throw_selected
       else
-        at = CREATIVE_ITEMS.index(@hotbar[@slot]) || 0
-        @hotbar[@slot] = CREATIVE_ITEMS[(at + 1) % CREATIVE_ITEMS.size]
+        at = (CREATIVE_ITEMS.index(@hotbar[@slot]) || 0) + 1
+        at += 1 while CREATIVE_ITEMS[at % CREATIVE_ITEMS.size] == Block::AIR
+        @hotbar[@slot] = CREATIVE_ITEMS[at % CREATIVE_ITEMS.size]
         say(Block::NAMES[@hotbar[@slot]])
       end
     end
