@@ -15,8 +15,8 @@ module Gfx
     static SDL_Window *win;
     static SDL_GPUDevice *dev;
     static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth, *p_hand, *p_rain;
-    static SDL_GPUTexture *atlas, *skins, *depth_tex, *cloud_tex;
-    static SDL_GPUSampler *sampler, *cloud_sampler;
+    static SDL_GPUTexture *atlas, *skins, *depth_tex, *cloud_tex, *tint_tex;
+    static SDL_GPUSampler *sampler, *cloud_sampler, *tint_sampler;
     static SDL_GPUTextureFormat depth_fmt;
     static Uint32 depth_w, depth_h;
     static SDL_GPUCommandBuffer *cmd;
@@ -24,11 +24,15 @@ module Gfx
     static SDL_GPUTexture *swap_tex;
     static Uint32 swap_w = 1280, swap_h = 720;
     /* These sizes must match the Ruby side. gfx_limit returns them, and
-       Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS and
-       the GPU slots that the game uses. */
+       Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS,
+       Tint::SIZE and the GPU slots that the game uses. */
     #define LEVELS 4
-    #define UNIFORMS (44 + 4 * LEVELS)
+    #define BIOMES 9
+    #define UNIFORMS (44 + 4 * LEVELS + 8 * BIOMES)
+    /* u.rain.x, the strength of the rain. */
+    #define RAIN_AT (36 + 4 * LEVELS)
     #define COLUMNS 1024
+    #define TINT_SIZE 256
     #define STR2(x) #x
     #define STR(x) STR2(x)
     static float uni[UNIFORMS];
@@ -87,6 +91,9 @@ module Gfx
     static SDL_GPUTransferBuffer *rain_tb;
     static Uint32 rain_count;
     static int rain_changed;
+    /* The tint map changes when chunks load. */
+    static SDL_GPUTransferBuffer *tint_tb;
+    static int tint_changed;
 
     static char keys_now[SDL_SCANCODE_COUNT], keys_prev[SDL_SCANCODE_COUNT];
     static float mouse_dx, mouse_dy, wheel;
@@ -96,8 +103,9 @@ module Gfx
     static const char *MSL =
       "#include <metal_stdlib>\n"
       "using namespace metal;\n"
-      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; float4 cloud; float4 cloud_near; float4 rain; float4 opt; };\n"
-      "struct VOut { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; };\n"
+      "struct U { float4x4 vp; float4 cam; float4 fog; float4 misc; float4 lod[" STR(LEVELS) "]; float4 cloud; float4 cloud_near; float4 rain; float4 opt; float4 tint[2 * " STR(BIOMES) "]; };\n"
+      "// tint multiplies the pixels of the texture, except the pixels with alpha 254 (Tex.tint).\n"
+      "struct VOut { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; float3 tint; };\n"
       "struct VChunk { uint2 d [[attribute(0)]]; };\n"
       "constant float3 CORNER[10][4] = {\n"
       "  {{1,0,1},{1,0,0},{1,1,0},{1,1,1}}, {{0,0,0},{0,0,1},{0,1,1},{0,1,0}},\n"
@@ -127,7 +135,9 @@ module Gfx
       "  float d = 1.0 - l;\n"
       "  return mix(l, 1.0 - d * d * d * d, u.opt.x);\n"
       "}\n"
-      "vertex VOut vchunk(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
+      "// The tint map (Tint) has one pixel for each square of 4 x 4 columns of the ring.\n"
+      "vertex VOut vchunk(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]],\n"
+      "                  texture2d_array<float> tints [[texture(0)]], sampler tsmp [[sampler(0)]]) {\n"
       "  uint w0 = in.d.x, w1 = in.d.y;\n"
       "  float3 bp = float3(w0 & 1023u, (w0 >> 10) & 127u, (w0 >> 17) & 1023u);\n"
       "  // x and z are storage columns of a ring of COLUMNS blocks; use the copy nearest the camera.\n"
@@ -182,12 +192,15 @@ module Gfx
       "  o.layer = float(w1 & 255u);\n"
       "  o.color = float4(float3(s) * mix(float3(1.0), float3(1.0, 0.82, 0.6), warm), 1.0);\n"
       "  o.fog = fog_of(p, u);\n"
+      "  // Bit 31 of w1 and bit 31 of w0 are the low and the high bit of the tint (Mesher.tint_w1).\n"
+      "  uint tint = (w1 >> 31) | ((w0 >> 31) << 1);\n"
+      "  o.tint = tint == 0u ? float3(1.0) : tints.sample(tsmp, p.xz / " STR(COLUMNS) ".0, tint - 1u, level(0.0)).rgb * (255.0 / 64.0);\n"
       "  return o;\n"
       "}\n"
       "// Far terrain: one record per face of a cell of 2^s x 2^s blocks (level s - 2).\n"
       "// w0 holds the cell column in a ring of COLUMNS cells, the base y and the face;\n"
-      "// w1 the texture, the face height in blocks and s.\n"
-      "struct VOutL { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; float2 wp; uint level [[flat]]; };\n"
+      "// w1 the texture, the face height in blocks, s, the tint and the biome (Lod.tint).\n"
+      "struct VOutL { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; float2 wp; uint level [[flat]]; float3 tint [[flat]]; };\n"
       "vertex VOutL vlod(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
       "  uint w0 = in.d.x, w1 = in.d.y;\n"
       "  uint sh = (w1 >> 15) & 7u;\n"
@@ -211,7 +224,12 @@ module Gfx
       "  o.fog = fog_of(p, u);\n"
       "  o.wp = p.xz;\n"
       "  o.level = sh - 2u;\n"
+      "  uint tint = (w1 >> 18) & 3u;\n"
+      "  o.tint = tint == 0u ? float3(1.0) : u.tint[((w1 >> 20) & 15u) * 2u + tint - 1u].rgb;\n"
       "  return o;\n"
+      "}\n"
+      "float3 tinted(float4 c, float3 tint) {\n"
+      "  return abs(c.a - 254.0 / 255.0) < 0.5 / 255.0 ? c.rgb : c.rgb * tint;\n"
       "}\n"
       "// u.lod[L] is the square (x0, z0, x1, z1) that the next finer level covers:\n"
       "// full-detail chunks for level 0, level L - 1 for level L.\n"
@@ -219,7 +237,8 @@ module Gfx
       "                     texture2d_array<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {\n"
       "  float4 r = u.lod[in.level];\n"
       "  if (in.wp.x > r.x && in.wp.x < r.z && in.wp.y > r.y && in.wp.y < r.w) discard_fragment();\n"
-      "  float4 c = tex.sample(smp, in.uv, uint(in.layer)) * in.color;\n"
+      "  float4 c = tex.sample(smp, in.uv, uint(in.layer));\n"
+      "  c = float4(tinted(c, in.tint), c.a) * in.color;\n"
       "  return float4(mix(c.rgb, u.fog.rgb, in.fog), 1.0);\n"
       "}\n"
       "struct VDyn { float3 pos [[attribute(0)]]; float2 uv [[attribute(1)]]; float layer [[attribute(2)]]; float4 color [[attribute(3)]]; float glow [[attribute(4)]]; };\n"
@@ -231,6 +250,7 @@ module Gfx
       "  float l = max(bright(0.2 + 0.8 * u.misc.x, u), in.glow);\n"
       "  o.color = float4(in.color.rgb * l, in.color.a);\n"
       "  o.fog = fog_of(p, u);\n"
+      "  o.tint = float3(1.0);\n"
       "  return o;\n"
       "}\n"
       "vertex VOut vdyn(VDyn in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
@@ -289,12 +309,13 @@ module Gfx
       "vertex VOut vui(VUi in [[stage_in]], constant U &u [[buffer(0)]]) {\n"
       "  VOut o;\n"
       "  o.pos = float4(in.pos.x / u.misc.z * 2.0 - 1.0, 1.0 - in.pos.y / u.misc.w * 2.0, 0.0, 1.0);\n"
-      "  o.uv = in.uv; o.layer = in.layer; o.color = in.color; o.fog = 0.0;\n"
+      "  o.uv = in.uv; o.layer = in.layer; o.color = in.color; o.fog = 0.0; o.tint = float3(1.0);\n"
       "  return o;\n"
       "}\n"
       "fragment float4 fworld(VOut in [[stage_in]], constant U &u [[buffer(0)]],\n"
       "                       texture2d_array<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {\n"
-      "  float4 c = tex.sample(smp, in.uv, uint(in.layer)) * in.color;\n"
+      "  float4 c = tex.sample(smp, in.uv, uint(in.layer));\n"
+      "  c = float4(tinted(c, in.tint), c.a) * in.color;\n"
       "  if (c.a < (in.color.a > 0.99 ? 0.5 : 0.02)) discard_fragment();\n"
       "  return float4(mix(c.rgb, u.fog.rgb, in.fog), c.a);\n"
       "}\n"
@@ -467,7 +488,7 @@ module Gfx
         SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET)
         ? SDL_GPU_TEXTUREFORMAT_D32_FLOAT : SDL_GPU_TEXTUREFORMAT_D16_UNORM;
 
-      SDL_GPUShader *vchunk = shader("vchunk", SDL_GPU_SHADERSTAGE_VERTEX, 0);
+      SDL_GPUShader *vchunk = shader("vchunk", SDL_GPU_SHADERSTAGE_VERTEX, 1);
       SDL_GPUShader *vdyn = shader("vdyn", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vcloud_box = shader("vcloud_box", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *vhand = shader("vhand", SDL_GPU_SHADERSTAGE_VERTEX, 0);
@@ -551,6 +572,16 @@ module Gfx
       si.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
       si.max_lod = 16.0f;
       cloud_sampler = SDL_CreateGPUSampler(dev, &si);
+      /* The tint map: blended pixels, and no mipmaps. */
+      si.mag_filter = SDL_GPU_FILTER_LINEAR;
+      si.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+      si.max_lod = 0.0f;
+      tint_sampler = SDL_CreateGPUSampler(dev, &si);
+      SDL_GPUTextureCreateInfo tti = {.type = SDL_GPU_TEXTURETYPE_2D_ARRAY, .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+        .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER, .width = TINT_SIZE, .height = TINT_SIZE, .layer_count_or_depth = 2, .num_levels = 1};
+      tint_tex = SDL_CreateGPUTexture(dev, &tti);
+      tint_tb = make_transfer(TINT_SIZE * TINT_SIZE * 2 * 4);
+      if (!tint_sampler || !tint_tex || !tint_tb) return fail("tint map");
 
       SDL_GPUBufferCreateInfo ibi = {.usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = 12};
       quad_index = SDL_CreateGPUBuffer(dev, &ibi);
@@ -762,6 +793,15 @@ module Gfx
       cloud_changed = 1;
       return 0;
     }
+    /* The tint map: 2 layers of TINT_SIZE x TINT_SIZE pixels (0xAABBGGRR).
+       The next frame uploads it. */
+    long gfx_tint(const int64_t *px) {
+      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tint_tb, true);
+      for (long i = 0; i < TINT_SIZE * TINT_SIZE * 2; i++) dst[i] = (Uint32)px[i];
+      SDL_UnmapGPUTransferBuffer(dev, tint_tb);
+      tint_changed = 1;
+      return 0;
+    }
     long gfx_rain(const double *v, long nfloats) {
       rain_count = stage_floats(rain_tb, v, nfloats, RAIN_CAP * DYN_FLOATS) / DYN_FLOATS;
       rain_changed = 1;
@@ -771,7 +811,8 @@ module Gfx
     /* uniforms: 16 view-projection (column-major), cam xyz + time, fog rgb + end,
        daylight, fog start, screen w, screen h, for each far terrain level the
        square x0 z0 x1 z1 that the next finer level covers, 8 for the far cloud
-       layer, 4 for the rain, and 4 for the options (brightness first).
+       layer, 4 for the rain, 4 for the options (brightness first), and 8 for
+       each biome (its grass and foliage ratios for far terrain).
        Returns true when there is a frame to draw. */
     bool gfx_begin(const double *u) {
       for (int i = 0; i < UNIFORMS; i++) uni[i] = (float)u[i];
@@ -833,6 +874,17 @@ module Gfx
         SDL_UploadToGPUBuffer(cp, &src, &dst, true);
       }
       rain_changed = 0;
+      if (tint_changed) {
+        /* The first layer cycles the texture, so a frame on the GPU keeps the old map. */
+        SDL_GPUTextureTransferInfo src = {.transfer_buffer = tint_tb, .pixels_per_row = TINT_SIZE, .rows_per_layer = TINT_SIZE};
+        SDL_GPUTextureRegion dst = {.texture = tint_tex, .w = TINT_SIZE, .h = TINT_SIZE, .d = 1};
+        for (Uint32 l = 0; l < 2; l++) {
+          src.offset = l * TINT_SIZE * TINT_SIZE * 4;
+          dst.layer = l;
+          SDL_UploadToGPUTexture(cp, &src, &dst, l == 0);
+        }
+      }
+      tint_changed = 0;
       if (sky_count) {
         SDL_GPUTransferBufferLocation src = {.transfer_buffer = sky_tb};
         SDL_GPUBufferRegion dst = {.buffer = sky_buf, .size = sky_count * 36};
@@ -887,6 +939,10 @@ module Gfx
     long gfx_chunks(const int64_t *pairs, long n, long kind) {
       if (!pass) return 0;
       SDL_BindGPUGraphicsPipeline(pass, kind == 2 ? p_lod : (kind ? p_water : p_chunk));
+      if (kind != 2) {
+        SDL_GPUTextureSamplerBinding tsb = {.texture = tint_tex, .sampler = tint_sampler};
+        SDL_BindGPUVertexSamplers(pass, 0, &tsb, 1);
+      }
       SDL_GPUBufferBinding ib = {.buffer = quad_index};
       SDL_BindGPUIndexBuffer(pass, &ib, SDL_GPU_INDEXELEMENTSIZE_16BIT);
       SDL_GPUBufferBinding b = {.buffer = arena};
@@ -923,9 +979,9 @@ module Gfx
       return 0;
     }
 
-    /* The rain, after the water. uni[UNIFORMS - 8] is its strength, u.rain.x. */
+    /* The rain, after the water. */
     long gfx_draw_rain(void) {
-      if (!pass || !rain_count || uni[UNIFORMS - 8] <= 0.0f) return 0;
+      if (!pass || !rain_count || uni[RAIN_AT] <= 0.0f) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_rain);
       SDL_GPUBufferBinding b = {.buffer = rain_buf};
       SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
@@ -1172,8 +1228,10 @@ module Gfx
     double in_mouse_y(void) { float x, y; SDL_GetMouseState(&x, &y); return y * SDL_GetWindowPixelDensity(win); }
     void in_capture(long on) { SDL_SetWindowRelativeMouseMode(win, on != 0); }
     void gfx_fullscreen(long on) { SDL_SetWindowFullscreen(win, on != 0); }
-    /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms. */
-    long gfx_limit(long which) { return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : UNIFORMS)); }
+    /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms, 4: the tint map size. */
+    long gfx_limit(long which) {
+      return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : (which == 3 ? UNIFORMS : TINT_SIZE)));
+    }
   C
   ffi_func :gfx_init, [:long, :long, :long, :long], :bool
   ffi_func :gfx_textures, [:int_array, :long], :bool
@@ -1187,6 +1245,7 @@ module Gfx
   ffi_func :gfx_sky, [:float_array, :long], :long
   ffi_func :gfx_cloud_boxes, [:float_array, :long], :long
   ffi_func :gfx_rain, [:float_array, :long], :long
+  ffi_func :gfx_tint, [:int_array], :long
   ffi_func :gfx_begin, [:float_array], :bool
   ffi_func :gfx_chunks, [:int_array, :long, :long], :long
   ffi_func :gfx_draw_dyn, [], :long

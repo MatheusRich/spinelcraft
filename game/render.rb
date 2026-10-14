@@ -24,6 +24,10 @@ class Game
     Gfx.gfx_ui(@ui.v, @ui.v.size)
     build_sky(w, h, ui_scale(h))
     Gfx.gfx_sky(@sky.v, @sky.v.size)
+    if @tint.changed
+      Gfx.gfx_tint(@tint.pixels)
+      @tint.changed = false
+    end
     if Gfx.gfx_begin(@uniforms)
       @faces_drawn = Gfx.gfx_chunks(@visible, @visible.size / 2, 0)
       @faces_drawn += Gfx.gfx_chunks(@lod_visible, @lod_visible.size / 2, 2)

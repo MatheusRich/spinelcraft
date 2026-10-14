@@ -144,6 +144,7 @@ class Game
     test_mob_death
     test_items(cx, cz)
     test_light_sources(cx, cz)
+    test_tint(cx, cz)
     test_dark
     test_door_furnace_sapling
     test_door_rules
@@ -186,7 +187,7 @@ class Game
   # The terrain tables are read by position, so each must have one entry
   # for each biome or tree kind, and the spline needs rising points.
   def test_terrain_tables
-    biomes = [Biome::GROUND, Biome::TREES, Biome::TREE, Biome::BIRCHES, Biome::LARGE_OAKS, Biome::PINES, Biome::GRASS, Biome::FLOWERS].all? { |t| t.size == Biome::ALL.size }
+    biomes = [Biome::GROUND, Biome::TREES, Biome::TREE, Biome::BIRCHES, Biome::LARGE_OAKS, Biome::PINES, Biome::GRASS, Biome::FLOWERS, Biome::GRASS_COLOR, Biome::FOLIAGE_COLOR].all? { |t| t.size == Biome::ALL.size }
     kinds = World::TRUNK.size == Biome::TREE_KINDS.size && World::WOOD.size == Biome::TREE_KINDS.size && Biome::TREE.all? { |k| k < Biome::TREE_KINDS.size }
     xs = World::CONTINENT
     rising = (1...xs.size).all? { |i| xs[i] > xs[i - 1] }
@@ -1233,6 +1234,39 @@ class Game
   end
 
   # Wool does not glow, lava gives light, and water turns lava into cobblestone.
+  # The tint of the face of block b at (cx, 90, cz) in direction f, from
+  # its face record (Mesher.tint_w1), or -1 when the mesh has no such face.
+  def face_tint(cx, cz, b, f)
+    set_block(cx, 90, cz, b)
+    @mesher.build(cx / CHUNK, cz / CHUNK)
+    tint = -1
+    k = 0
+    while k < @mesher.opaque.size
+      w0 = @mesher.opaque[k]
+      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == 90 && Mesher.face_z(w0) == (cz & LMASK) && (w0 >> 27) & 15 == f
+        tint = (@mesher.opaque[k + 1] >> 31) | ((w0 >> 31) << 1)
+      end
+      k += 2
+    end
+    set_block(cx, 90, cz, Block::AIR)
+    tint
+  end
+
+  def test_tint(cx, cz)
+    check("grass takes the grass color and oak leaves the foliage color",
+          face_tint(cx, cz, Block::GRASS, 2) == 1 && face_tint(cx, cz, Block::GRASS, 0) == 1 &&
+          face_tint(cx, cz, Block::OAK_LEAVES, 2) == 2 && face_tint(cx, cz, Block::SPRUCE_LEAVES, 2) == 0 &&
+          face_tint(cx, cz, Block::STONE, 2) == 0)
+    k = ((cz >> 2) & (Tint::SIZE - 1)) * Tint::SIZE + ((cx >> 2) & (Tint::SIZE - 1))
+    # to_i keeps the world generator typed (see stream_around).
+    x = ((cx >> 2) * 4 + 2).to_i
+    z = ((cz >> 2) * 4 + 2).to_i
+    b = @world.biome(x, z, @world.surface_height(x, z))
+    plains = Tint.ratio(Biome::GRASS_COLOR[Biome::PLAINS], Biome::GRASS_COLOR[Biome::PLAINS])
+    check("the tint map holds the ratio of the biome color to the plains color",
+          plains == 0xff404040 && @tint.pixels[k] == Tint.ratio(Biome::GRASS_COLOR[b], Biome::GRASS_COLOR[Biome::PLAINS]))
+  end
+
   def test_light_sources(cx, cz)
     # Wool is not a light source.
     set_block(cx, 90, cz, Block::WOOL)

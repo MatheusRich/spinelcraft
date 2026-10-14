@@ -7,6 +7,7 @@ require_relative "game/biome"
 require_relative "game/noise"
 require_relative "game/world"
 require_relative "game/mesher"
+require_relative "game/tint"
 require_relative "game/ray"
 require_relative "game/player"
 require_relative "game/vitals"
@@ -51,6 +52,7 @@ class Game
     @shot = ENV["SHOT"] || ""
     @world = World.new(@seed)
     @mesher = Mesher.new(@world)
+    @tint = Tint.new(@world)
     @lods = Array.new(LEVELS) { |l| Lod.new(@world, l) }
     @lod_visible = Array.new(0, 0)
     # Per level: the tile the ring walk is centered on, and how far it got.
@@ -62,6 +64,7 @@ class Game
     @ui = Ui.new
     @dyn = Mesh3.new
     @uniforms = Array.new(UNIFORMS, 0.0)
+    @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
     @visible = []
     @water_visible = []
     # Sort keys of the visible chunks with water: distance * LOD_SLOT0 + slot.
@@ -222,6 +225,7 @@ class Game
     abort "the world ring is not Mesher::COLUMNS wide" if WX != Mesher::COLUMNS || Lod::TRING * Lod::CELLS != Mesher::COLUMNS
     abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + LEVELS * TILE_SLOTS
     abort "gfx.rb UNIFORMS is not #{UNIFORMS}" if Gfx.gfx_limit(3) != UNIFORMS
+    abort "gfx.rb TINT_SIZE is not #{Tint::SIZE}" if Gfx.gfx_limit(4) != Tint::SIZE
   end
 
   def setup

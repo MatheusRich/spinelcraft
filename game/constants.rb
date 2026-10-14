@@ -30,11 +30,13 @@ class Game
   LEVELS = 4
   LOD_REACH = 640
   # Floats that render passes to the shaders: 28, one square for each level,
-  # 8 for the far cloud layer, 4 for the rain, then 4 for the options.
+  # 8 for the far cloud layer, 4 for the rain, 4 for the options, then 8
+  # for each biome: its grass and foliage ratios for far terrain (Tint).
   CLOUD_UNIFORMS = 28 + 4 * LEVELS
   RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
   OPTION_UNIFORMS = RAIN_UNIFORMS + 4
-  UNIFORMS = OPTION_UNIFORMS + 4
+  TINT_UNIFORMS = OPTION_UNIFORMS + 4
+  UNIFORMS = TINT_UNIFORMS + 8 * Biome::ALL.size
   # The materials of blocks for their sounds (Game#material), and the sound
   # of each material when the player digs it, breaks it, steps on it and
   # places it. They follow VoxeLibre (mcl_sounds), but stone, wood and dirt

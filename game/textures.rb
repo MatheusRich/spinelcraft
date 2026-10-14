@@ -113,6 +113,15 @@ module Tex
   # The mesher puts it in bits 23-24 of a face record for the shader.
   def self.scroll(layer) = layer == WATER ? 1 : (layer == LAVA ? 2 : 0)
 
+  # The biome color that a layer takes in the world: 0 none, 1 the grass
+  # color, 2 the foliage color (Tint). The images have the plains colors,
+  # so items show the plains colors. A pixel with alpha 254 keeps its
+  # color: the dirt of GRASS_SIDE.
+  def self.tint(layer)
+    return 2 if layer == OAK_LEAVES
+    layer == GRASS_TOP || layer == GRASS_SIDE || layer == TALL_GRASS ? 1 : 0
+  end
+
   GLYPHS = [
     "... ... ... ... ...",
     "### #.# #.# #.# ###", ".#. ##. .#. .#. ###", "### ..# ### #.. ###", "### ..# ### ..# ###",

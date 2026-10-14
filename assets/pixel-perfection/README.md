@@ -54,12 +54,12 @@ VoxeLibre replaced the creeper with another mob, so the creeper skin comes from 
 
 ## Changed images
 
-In Minecraft, grass, leaves and water are gray, and the biome gives them their color. Spinelcraft has no biome color, so these images have the plains color of Minecraft. The colors come from minecraft.wiki/w/Plains: grass `#91BD59`, foliage `#77AB2F` and water `#3F76E4`. A tint multiplies each channel of a pixel by the channel of the color.
+In Minecraft, grass, leaves and water are gray, and the biome gives them their color. These images have the plains color of Minecraft, so items show the plains color. The colors come from minecraft.wiki/w/Plains: grass `#91BD59`, foliage `#77AB2F` and water `#3F76E4`. A tint multiplies each channel of a pixel by the channel of the color. In the world, the game changes the color of grass and oak leaves to the color of the biome (`Tint` in `game/tint.rb`). Water keeps the plains color.
 
 | File | Change |
 | --- | --- |
 | `grass_top.png` | `mcl_core_grass_block_top.png` with the grass tint |
-| `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. |
+| `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. The dirt pixels have alpha 254, so the biome color does not change them. |
 | `tall_grass.png` | `mcl_flowers_tallgrass.png` with the grass tint |
 | `oak_leaves.png` | `default_leaves.png` with the foliage tint |
 | `spruce_leaves.png` | `mcl_core_leaves_spruce.png` made gray, with the spruce tint `#619961` (minecraft.wiki/w/Leaves). The biome does not change this color in Minecraft. |

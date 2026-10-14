@@ -23,6 +23,11 @@ class Mesher
 
   # The first word of a face record: x and z (10 bits each), y (7 bits), and the face.
   def self.pack(x, y, z, f) = x | (y << 10) | (z << 17) | (f << 27)
+  # Bit 31 of the second word and bit 31 of the first word hold the low and
+  # the high bit of the tint of a face (Tex.tint). The shader multiplies the
+  # face by the color of that kind in the tint map.
+  def self.tint_w0(tex) = (Tex.tint(tex) >> 1) << 31
+  def self.tint_w1(tex) = (Tex.tint(tex) & 1) << 31
   def self.face_x(w0) = w0 & COLUMN_MASK
   def self.face_y(w0) = (w0 >> 10) & 127
   def self.face_z(w0) = (w0 >> 17) & COLUMN_MASK
@@ -164,14 +169,14 @@ class Mesher
           above = World.byte(blocks, i + 1)
           if Block.plant?(id)
             sky = y >= height[lx * WZ + lz] ? 1 : 0
-            w1 = top_tex[id] | (255 << 8) | (sky << 17)
+            w1 = top_tex[id] | (255 << 8) | (sky << 17) | Mesher.tint_w1(top_tex[id])
             w1 |= torch_light(x, y, z) << 19 if lit
             # Bits 25-27 hold 1 + the facing of a wall torch.
             w1 |= (Block::FACING[id] + 1) << 25 if Block.wall_torch?(id)
             plants = @lists[6]
             f = 6
             while f < 10
-              plants << Mesher.pack(lx, y, lz, f)
+              plants << (Mesher.pack(lx, y, lz, f) | Mesher.tint_w0(top_tex[id]))
               plants << w1
               f += 1
             end
@@ -196,7 +201,7 @@ class Mesher
                 sx = x + @nx[f]
                 sz = z + @nz[f]
                 sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
-                w0 = Mesher.pack(lx, y, lz, f)
+                w0 = Mesher.pack(lx, y, lz, f) | Mesher.tint_w0(tex)
                 if water
                   low = water_level[above] > 0 ? 0 : 1
                   # A sunk surface keeps 8 - level in the bits that hold AO for solid faces.
@@ -211,7 +216,7 @@ class Mesher
                   ao2 = ao_value(occludes[World.byte(blocks, i + @ao[a + 6])], occludes[World.byte(blocks, i + @ao[a + 7])], occludes[World.byte(blocks, i + @ao[a + 8])])
                   ao3 = ao_value(occludes[World.byte(blocks, i + @ao[a + 9])], occludes[World.byte(blocks, i + @ao[a + 10])], occludes[World.byte(blocks, i + @ao[a + 11])])
                   flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
-                  w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | (Tex.scroll(tex) << 23)
+                  w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | (Tex.scroll(tex) << 23) | Mesher.tint_w1(tex)
                   w1 |= torch_light(sx, ny, sz) << 19 if lit
                   w1 = (w1 & ~(15 << 19)) | (LIGHT_MAX << 19) if Block.lava?(id)
                   # Bits 25-27 hold 1 + the facing and bits 28-30 the shape of a

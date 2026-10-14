@@ -100,6 +100,7 @@ class Game
   def reset_world
     @world = World.new(@seed)
     @mesher = Mesher.new(@world)
+    @tint = Tint.new(@world)
     @lods = Array.new(LEVELS) { |l| Lod.new(@world, l) }
     @lod_tx.fill(World::NONE)
     @meshed.fill(0)
