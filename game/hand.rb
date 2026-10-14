@@ -97,6 +97,20 @@ class Game
     m20 = -cp * sy
     m21 = sp
     m22 = cp * cy
+    # The view sees the back of the sprite, so a blade or a bow string above
+    # the handle faces the player. A tool mirrors across its handle, so that
+    # part faces forward.
+    if Block.tool?(b)
+      t0 = m00
+      t1 = m10
+      t2 = m20
+      m00 = -m01
+      m10 = -m11
+      m20 = -m21
+      m01 = -t0
+      m11 = -t1
+      m21 = -t2
+    end
     # View space to the world: right r, up u, back -f.
     @dyn.set_frame(ex + ox * rx + oy * ux - oz * fx, ey + oy * uy - oz * fy, ez + ox * rz + oy * uz - oz * fz,
                    (m00 * rx + m10 * ux - m20 * fx) * size, (m10 * uy - m20 * fy) * size, (m00 * rz + m10 * uz - m20 * fz) * size,
