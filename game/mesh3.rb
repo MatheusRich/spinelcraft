@@ -8,10 +8,13 @@ class Mesh3
   attr_reader :v
   # The least light of the next vertices: 1.0 for flames (see dyn_out in gfx.rb).
   attr_accessor :glow
+  # The opaque pixels of the texture layers (see Tex.opaque), for item_model.
+  attr_accessor :opaque
 
   def initialize
     @v = []
     @glow = 0.0
+    @opaque = []
     @cx = Array.new(8, 0.0)
     @cy = Array.new(8, 0.0)
     @cz = Array.new(8, 0.0)
@@ -190,10 +193,15 @@ class Mesh3
   end
 
   # Block or item b as a unit model around the origin of the frame of set_frame.
+  # A flat item is its sprite with a thickness of one pixel, as in Minecraft.
+  # The texture goes along -x on both faces.
   def item_model(b)
     if Block.flat?(b)
       layer = Block::SIDE[b]
-      frame_box(-0.5, -0.5, 0.0, 0.5, 0.5, 0.0, 16, layer, layer, layer, 1.0, 1.0, 1.0, 1.0)
+      frame_corners(-0.5, -0.5, -ITEM_T, 0.5, 0.5, ITEM_T)
+      face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+      face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+      item_edges(layer)
     elsif Block::SHAPE[b] > 0
       shape_model(b)
     elsif Block::FACING[b] >= 0
@@ -203,6 +211,73 @@ class Mesh3
     else
       frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
     end
+  end
+
+  # Half the thickness of a flat item: one pixel of 16 is 1/16 of the model.
+  ITEM_T = 1.0 / 32.0
+
+  # The sides of the pixels of layer that have a clear pixel or the border
+  # of the texture next to them. A side shows the color of its pixel.
+  def item_edges(layer)
+    k = layer * 32
+    i = 0
+    while i < 16
+      row = @opaque[k + i]
+      col = @opaque[k + 16 + i]
+      above = i > 0 ? @opaque[k + i - 1] : 0
+      below = i < 15 ? @opaque[k + i + 1] : 0
+      before = i > 0 ? @opaque[k + 15 + i] : 0
+      after = i < 15 ? @opaque[k + 17 + i] : 0
+      edge_runs(row & (0xffff ^ above), i, i, true, SHADE[2], layer)
+      edge_runs(row & (0xffff ^ below), i, i + 1, true, SHADE[3], layer)
+      edge_runs(col & (0xffff ^ before), i, i, false, SHADE[0], layer)
+      edge_runs(col & (0xffff ^ after), i, i + 1, false, SHADE[0], layer)
+      i += 1
+    end
+  end
+
+  # One quad for each run of set bits in mask. The run goes along the row
+  # (along_x) or the column with the index line, and its quad stands on the
+  # pixel border edge (0 to 16) across the run.
+  def edge_runs(mask, line, edge, along_x, shade, layer)
+    l = layer.to_f
+    c = (line + 0.5) / 16.0
+    e = 0.5 - edge / 16.0
+    a = 0
+    while a < 16
+      if ((mask >> a) & 1) == 1
+        b = a + 1
+        b += 1 while b < 16 && ((mask >> b) & 1) == 1
+        a0 = 0.5 - a / 16.0
+        b0 = 0.5 - b / 16.0
+        if along_x
+          side_quad(a0, e, b0, e, a / 16.0, c, b / 16.0, c, shade, l)
+        else
+          side_quad(e, a0, e, b0, c, a / 16.0, c, b / 16.0, shade, l)
+        end
+        a = b
+      else
+        a += 1
+      end
+    end
+  end
+
+  # A quad across the thickness of a flat item, from the point (ax, ay) with
+  # the texture at (au, av) to the point (bx, by) with the texture at (bu, bv).
+  def side_quad(ax, ay, bx, by, au, av, bu, bv, shade, l)
+    frame_vert(ax, ay, -ITEM_T, au, av, l, shade)
+    frame_vert(bx, by, -ITEM_T, bu, bv, l, shade)
+    frame_vert(bx, by, ITEM_T, bu, bv, l, shade)
+    frame_vert(ax, ay, -ITEM_T, au, av, l, shade)
+    frame_vert(bx, by, ITEM_T, bu, bv, l, shade)
+    frame_vert(ax, ay, ITEM_T, au, av, l, shade)
+  end
+
+  # A vertex at x, y, z in the frame of set_frame, with the light s.
+  def frame_vert(x, y, z, u, w, l, s)
+    f = @frame
+    vert(f[0] + x * f[3] + y * f[6] + z * f[9], f[1] + x * f[4] + y * f[7] + z * f[10],
+         f[2] + x * f[5] + y * f[8] + z * f[11], u, w, l, s, s, s, 1.0)
   end
 
   # Block b with a shape (a chest) as the box of its shape, with the front

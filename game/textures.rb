@@ -342,6 +342,26 @@ module Tex
     end
   end
 
+  # The opaque pixels of each layer as bit masks, for the edges of an item
+  # (see Mesh3#item_edges). At layer * 32 + y is the row y, with bit x for
+  # the pixel x. At layer * 32 + 16 + x is the column x, with bit y for the
+  # pixel y. A pixel is opaque where fdyn in gfx.rb draws it.
+  def self.opaque(px)
+    masks = Array.new(LAYERS * 32, 0)
+    i = 0
+    while i < LAYERS * 256
+      if (px[i] >> 24) & 255 >= 128
+        k = i / 256 * 32
+        x = i % 16
+        y = i / 16 % 16
+        masks[k + y] = masks[k + y] | (1 << x)
+        masks[k + 16 + x] = masks[k + 16 + x] | (1 << y)
+      end
+      i += 1
+    end
+    masks
+  end
+
   HEART_ROWS = [
     "................", "................", "..####....####..", ".######..######.",
     "################", "################", "################", ".##############.",

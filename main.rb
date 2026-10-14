@@ -217,7 +217,9 @@ class Game
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
     Gfx.gfx_fullscreen(1) if @fullscreen
-    abort "texture upload failed" unless Gfx.gfx_textures(Tex.build, Tex::LAYERS)
+    px = Tex.build
+    abort "texture upload failed" unless Gfx.gfx_textures(px, Tex::LAYERS)
+    @dyn.opaque = Tex.opaque(px)
     abort "skin upload failed" unless Gfx.gfx_skins(Tex.skins, Tex::SKIN_FILES.size)
     upload_clouds
     @sound = ENV["MUTE"].nil? && Sfx.init
