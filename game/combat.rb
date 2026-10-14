@@ -302,6 +302,7 @@ class Game
       @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
+      lived = m.death == 0.0
       k = 0
       while k < steps
         damage = m.update_mob(@world, sdt, @player, day)
@@ -319,9 +320,10 @@ class Game
         end
         k += 1
       end
-    end
-    if @survival
-      @mobs.each { |m| drop_loot(m) if !m.alive && m.hp <= 0 && m.by_player }
+      # A mob drops its loot when it dies, and its body goes up in smoke
+      # when it is gone. minecraft.wiki/w/Death
+      drop_loot(m) if @survival && lived && m.dying? && m.by_player
+      @particles.smoke(m.x, m.y + m.tall * 0.3, m.z, 12, m.tall * 0.6) if !m.alive && m.dying?
     end
     steps = (dt * 180.0).ceil
     steps = 1 if steps < 1
@@ -465,7 +467,7 @@ class Game
     @arrows.each do |a|
       next unless a.fly(@world, dt)
       if a.damage > 0
-        m = @mobs.find { |mob| a.in_box?(mob.x, mob.y, mob.z, mob.half, mob.tall) }
+        m = @mobs.find { |mob| !mob.dying? && a.in_box?(mob.x, mob.y, mob.z, mob.half, mob.tall) }
         if m
           m.hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
           m.by_player = true
@@ -501,8 +503,8 @@ class Game
     i = 0
     while i < @mobs.size
       m = @mobs[i]
-      # Skip the mobs that are out of reach.
-      if (m.x - ox) ** 2 + (m.z - oz) ** 2 < 25.0
+      # Skip the mobs that are out of reach, and the dying mobs.
+      if !m.dying? && (m.x - ox) ** 2 + (m.z - oz) ** 2 < 25.0
         t = m.ray(ox, oy, oz, dx, dy, dz)
         if t >= 0.0 && t < best
           best = t

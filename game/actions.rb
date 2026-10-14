@@ -316,7 +316,7 @@ class Game
       say("SPAWN SET  YOU CAN ONLY SLEEP AT NIGHT")
       return
     end
-    near = @mobs.count { |m| !m.passive? && (m.x - x) ** 2 + (m.z - z) ** 2 < 100.0 }
+    near = @mobs.count { |m| !m.passive? && !m.dying? && (m.x - x) ** 2 + (m.z - z) ** 2 < 100.0 }
     if near > 0
       say("YOU CANNOT SLEEP NOW  MONSTERS ARE NEARBY")
       return
@@ -363,6 +363,7 @@ class Game
   # True when a mob overlaps the column of tall cells from x, y, z up.
   def mob_in?(x, y, z, tall)
     @mobs.each do |m|
+      next if m.dying?
       return true if x + 1 > m.x - m.half && x < m.x + m.half && y + tall > m.y && y < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
     end
     false

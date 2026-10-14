@@ -140,6 +140,7 @@ class Game
     cz = @spawn_z.floor + 4
     test_chests(cx, cz)
     test_mob_drops
+    test_mob_death
     test_items(cx, cz)
     test_light_sources(cx, cz)
     test_dark
@@ -766,14 +767,12 @@ class Game
     @inv.clear
     far = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
     far.hp = 0.0
-    far.alive = false
     @mobs.clear
     @mobs << far
     update_mobs(1.0 / 60.0)
     check("a pig that dies on its own drops nothing", @items.empty?)
     killed = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
     killed.hp = 0.0
-    killed.alive = false
     killed.by_player = true
     @mobs << killed
     update_mobs(1.0 / 60.0)
@@ -785,6 +784,23 @@ class Game
     loot(killed, Block::BOW, 1)
     check("a bow that a mob drops is new", @items.size == 1 && @items[0].count == Block.uses(Block::BOW))
     @items.clear
+    @mobs.clear
+  end
+
+  # A dead mob lies on the ground for DEATH_TIME and takes no hits. Then it
+  # goes up in smoke.
+  def test_mob_death
+    pig = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    @mobs.clear
+    @mobs << pig
+    pig.hit(100.0, pig.x - 1.0, pig.z)
+    hp = pig.hp
+    30.times { update_mobs(1.0 / 60.0) }
+    struck = pig.wound(5.0)
+    check("a dead mob stays for a while and takes no hits", pig.alive && pig.dying? && !struck && pig.hp == hp)
+    smoke = @particles.count(Particle::SMOKE)
+    40.times { update_mobs(1.0 / 60.0) }
+    check("a dead mob goes up in smoke after DEATH_TIME", !pig.alive && @particles.count(Particle::SMOKE) > smoke)
   end
 
   # Stands the player on the first item until the ground is empty or the

@@ -27,6 +27,9 @@ class Mob
   # /w/Lava
   SUN_FIRE = 8.0
   LAVA_FIRE = 15.0
+  # A dead mob falls on its left side for 20 ticks, then its body goes up
+  # in smoke. minecraft.wiki/w/Death
+  DEATH_TIME = 1.0
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :shoot, :explode, :by_player
   attr_reader :fuse
@@ -35,6 +38,8 @@ class Mob
   attr_reader :kind, :half, :tall
   # Seconds that a monster has been far from the player (Game#despawn?).
   attr_accessor :idle
+  # Seconds since the mob died; 0.0 while it lives.
+  attr_reader :death
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -65,9 +70,14 @@ class Mob
     @immune = 0.0
     @last_damage = 0.0
     @idle = 0.0
+    @death = 0.0
   end
 
   def passive? = PASSIVE[@kind] == 1
+
+  # A dying mob lies on the ground until DEATH_TIME. It does not move on its
+  # own, attack or take hits.
+  def dying? = @hp <= 0
 
   # Rain or water puts out the fire.
   def douse
@@ -119,7 +129,9 @@ class Mob
     @attack_wait -= dt
     speed = 0.0
     damage = 0
-    if passive?
+    if dying?
+      @death += dt
+    elsif passive?
       @think -= dt
       if @think <= 0.0
         @think = 2.0 + @rng.rand01 * 4.0
@@ -205,10 +217,10 @@ class Mob
       @vy = 0.0
     end
     bumped = move(world, @vx * dt, @vy * dt, @vz * dt)
-    @vy = 8.2 if bumped && @on_ground
+    @vy = 8.2 if bumped && @on_ground && !dying?
     moving = Math.sqrt(@vx * @vx + @vz * @vz)
     @phase += moving * dt * 3.5
-    @alive = false if @hp <= 0 || @y < -10.0
+    @alive = false if @death >= DEATH_TIME || @y < -10.0
     damage
   end
 
@@ -232,8 +244,9 @@ class Mob
   end
 
   # Takes damage, or the part of it above the last hit while the mob is
-  # immune. Returns false when nothing is left to take.
+  # immune. Returns false when nothing is left to take, or the mob is dying.
   def wound(damage)
+    return false if dying?
     if @immune > 0.0
       return false if damage <= @last_damage
       @hp -= damage - @last_damage
@@ -268,7 +281,10 @@ class Mob
   # A hurt mob is red, and a creeper flashes white as its fuse burns down.
   def draw(mesh)
     swing = Math.sin(@phase) * 0.7
-    red = @hurt > 0.0 ? 0.45 : 1.0
+    red = @hurt > 0.0 || dying? ? 0.45 : 1.0
+    # The fall follows the curve of the game's renderer, which the wiki does
+    # not confirm: sqrt(1.6 * t / DEATH_TIME) of a right angle.
+    mesh.roll(Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5)
     l = Tex::SKINS + @kind
     if @kind == CREEPER
       flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.6 : 0.0
@@ -307,6 +323,7 @@ class Mob
       part(mesh, l, leg, 12.0, 0.0, -swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, true, 1.0, red, red)
       mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0) if thin
     end
+    mesh.roll(0.0)
   end
 
   # One box of the Minecraft model: w x h x d pixels at bx, by, bz from the

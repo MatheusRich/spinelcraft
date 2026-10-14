@@ -175,7 +175,8 @@ class Game
       ddx = mx - ex
       ddz = mz - ez
       next if ddx * ddx + ddz * ddz > reach * reach
-      next unless @camera.box_visible?(mx - 1.0, my, mz - 1.0, mx + 1.0, my + 2.0, mz + 1.0)
+      # 2 blocks around the feet also hold a mob that lies on its side.
+      next unless @camera.box_visible?(mx - 2.0, my - 1.0, mz - 2.0, mx + 2.0, my + 2.0, mz + 2.0)
       m.draw(@dyn)
     end
     @arrows.each { |a| a.draw(@dyn) }

@@ -17,6 +17,8 @@ class Mesh3
     @cz = Array.new(8, 0.0)
     # The origin and the x, y and z axes of the frame for frame_box.
     @frame = Array.new(12, 0.0)
+    @roll_cos = 1.0
+    @roll_sin = 0.0
   end
 
   def clear = @v.clear
@@ -56,8 +58,16 @@ class Mesh3
     vert(x - ax, y - ay, z - az, 0.0, 1.0, l, r, g, b, a)
   end
 
+  # Tips the bodies of the next boxes by angle around their forward (z) axis
+  # through their feet, to the body's left side (+x). 0.0 stands them up again.
+  def roll(angle)
+    @roll_cos = Math.cos(angle)
+    @roll_sin = Math.sin(angle)
+  end
+
   # A box in a body's local space: the box swings by `swing` around the x axis
-  # through (0, pivot_y, pivot_z), then the body turns by `yaw` and moves to ox, oy, oz.
+  # through (0, pivot_y, pivot_z), the body tips by the angle of roll, then the
+  # body turns by `yaw` and moves to ox, oy, oz.
   def box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
     body_corners(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1)
     corner_faces(63, layer, layer, layer, r, g, b, a)
@@ -98,6 +108,8 @@ class Mesh3
     sn = Math.sin(swing)
     cyw = Math.cos(yaw)
     syw = Math.sin(yaw)
+    cr = @roll_cos
+    sr = @roll_sin
     i = 0
     while i < 8
       lx = (i & 1) == 0 ? x0 : x1
@@ -105,11 +117,13 @@ class Mesh3
       lz = (i & 4) == 0 ? z0 : z1
       dy = ly - pivot_y
       dz = lz - pivot_z
-      ry = pivot_y + dy * cs - dz * sn
+      sy = pivot_y + dy * cs - dz * sn
       rz = pivot_z + dy * sn + dz * cs
-      @cx[i] = ox + lx * cyw - rz * syw
+      rx = lx * cr + sy * sr
+      ry = sy * cr - lx * sr
+      @cx[i] = ox + rx * cyw - rz * syw
       @cy[i] = oy + ry
-      @cz[i] = oz + lx * syw + rz * cyw
+      @cz[i] = oz + rx * syw + rz * cyw
       i += 1
     end
   end
