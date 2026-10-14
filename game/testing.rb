@@ -618,8 +618,14 @@ class Game
     @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
     @vitals.hunger = 5
-    eat
-    check("eating restores hunger", @vitals.hunger == 13 && @inv.count(5) == 1)
+    # Eating takes 1.6 seconds of holding the button, and a release starts
+    # it over.
+    20.times { right_button(0.05, true) }
+    right_button(0.05, false)
+    31.times { right_button(0.05, true) }
+    early = @vitals.hunger == 5 && @inv.count(5) == 2
+    2.times { right_button(0.05, true) }
+    check("holding the button for 1.6 seconds eats the food", early && @vitals.hunger == 13 && @inv.count(5) == 1)
     # A minute of standing still costs no hunger. 400 meters of sprint take
     # 40 exhaustion: the 5 points of saturation, then 5 points of hunger.
     @vitals = Vitals.new

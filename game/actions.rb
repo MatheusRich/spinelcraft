@@ -136,6 +136,15 @@ class Game
   # places a block.
   def right_button(dt, held)
     target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
+    if edible? && !usable?(target)
+      if held
+        chew(dt)
+      else
+        @eat_time = -1.0
+      end
+      return
+    end
+    @eat_time = -1.0
     if current_block == Block::BOW && Block::BASE[target] != Block::CHEST && !Block.bed?(target) && !Block.door?(target)
       if held
         @draw_time = 0.0 if @draw_time < 0.0
@@ -163,8 +172,6 @@ class Game
         toggle_door(@player.hx, @player.hy, @player.hz)
       elsif @survival && Block.bucket?(current_block.to_i)
         use_bucket
-      elsif Block.food(current_block.to_i) > 0
-        eat
       elsif @player.hit
         place
       end
@@ -405,9 +412,31 @@ class Game
   # The y of the other half of the door at x, y, z.
   def door_partner(x, y, z) = Block.door?(@world.get(x, y + 1, z)) ? y + 1 : y - 1
 
+  # True when the player holds food and can eat it now.
+  def edible? = @survival && !@inv.empty?(@slot) && @vitals.hungry? && Block.food(current_block.to_i) > 0
+
+  # True for a block that the right button opens or uses.
+  def usable?(b)
+    base = Block::BASE[b]
+    base == Block::CHEST || base == Block::CRAFTING_TABLE || base == Block::FURNACE || Block.bed?(b) || Block.door?(b)
+  end
+
+  # dt more seconds of eating. After CHEW_START, each CHEW_EVERY plays a
+  # bite and throws crumbs of the food. At EAT_TIME the player eats it.
+  def chew(dt)
+    before = @eat_time < 0.0 ? 0.0 : @eat_time
+    @eat_time = before + dt
+    if @eat_time >= EAT_TIME
+      eat
+      @eat_time = -1.0
+    elsif @eat_time >= CHEW_START && ((@eat_time - CHEW_START) / CHEW_EVERY).floor != ((before - CHEW_START) / CHEW_EVERY).floor
+      play(Sfx::EAT, 0.5)
+      @particles.shatter(@player, current_block.to_i)
+    end
+  end
+
   def eat
     food = Block.food(current_block.to_i)
-    return unless @survival && !@inv.empty?(@slot) && @vitals.hungry? && food > 0
     @vitals.eat(food, Block.saturation(current_block.to_i))
     @inv.take(@slot, 1)
     play(Sfx::EAT, 0.6)

@@ -131,9 +131,10 @@ class Particles
   end
 
   # Chips of item b that fly from in front of the player when the item
-  # breaks. As in Minecraft (LivingEntity.spawnItemParticles, not on the
-  # wiki), 5 chips start 0.6 blocks ahead of the eyes and 0.3 to 0.9 blocks
-  # below them, and fly up and a little to the sides.
+  # breaks, or crumbs when the player eats it. As in Minecraft
+  # (LivingEntity.spawnItemParticles, not on the wiki), 5 chips start 0.6
+  # blocks ahead of the eyes and 0.3 to 0.9 blocks below them, and fly up
+  # and a little to the sides.
   def shatter(player, b)
     cy = Math.cos(player.yaw)
     sy = Math.sin(player.yaw)

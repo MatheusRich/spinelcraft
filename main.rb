@@ -159,6 +159,7 @@ class Game
     @items = []
     @falling = []
     @draw_time = -1.0
+    @eat_time = -1.0
     @vitals = Vitals.new
     @damage_flash = 0.0
     @mining = false
