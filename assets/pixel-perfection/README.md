@@ -42,6 +42,7 @@ These files are copies with no changes.
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
 | `rotten_flesh.png` | `mcl_mobitems_rotten_flesh.png` |
 | `mutton.png`, `cooked_mutton.png` | `mcl_mobitems_mutton_raw.png`, `mcl_mobitems_mutton_cooked.png` |
+| `raw_chicken.png`, `cooked_chicken.png`, `feather.png`, `egg.png` | `mcl_mobitems_chicken_raw.png`, `mcl_mobitems_chicken_cooked.png`, `mcl_mobitems_feather.png`, `mcl_throwing_egg.png` |
 | `beef.png`, `steak.png`, `leather.png`, `milk_bucket.png` | `mcl_mobitems_beef_raw.png`, `mcl_mobitems_beef_cooked.png`, `mcl_mobitems_leather.png`, `mcl_mobitems_bucket_milk.png` |
 | `hunger.png`, `hunger_empty.png`, `hunger_effect.png` | `hbhunger_icon.png`, `hbhunger_bgicon.png`, `mcl_hunger_icon_foodpoison.png` (9x9, as the HUD icons of Minecraft) |
 | `heart.png`, `heart_empty.png` | `hudbars_icon_health.png`, `hudbars_bgicon_health.png` (9x9, as the HUD icons of Minecraft) |
@@ -62,6 +63,7 @@ VoxeLibre replaced the creeper with another mob, so the creeper skin comes from 
 | `skin_pig.png`, `skin_sheep.png`, `skin_sheep_fur.png`, `skin_cow.png` | VoxeLibre `mobs_mc_pig.png`, `mobs_mc_sheep.png`, `mobs_mc_sheep_fur.png`, `mobs_mc_cow.png` |
 | `skin_zombie.png`, `skin_skeleton.png` | VoxeLibre `mobs_mc_zombie.png`, `mobs_mc_skeleton.png`, changed by MysticTempest for VoxeLibre |
 | `skin_player.png` | VoxeLibre `character.png`, the default skin of the player. The view shows its right arm. |
+| `skin_chicken.png` | VoxeLibre `mobs_mc_chicken.png`, changed or added by kingoscargames for VoxeLibre |
 | `skin_creeper.png` | Mineclonia `mods/ENTITIES/mobs_mc/textures/mobs_mc_creeper.png` (<https://codeberg.org/mineclonia/mineclonia>, the `main` branch, October 2026) |
 
 ## Changed images

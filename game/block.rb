@@ -130,6 +130,11 @@ module Block
   STEAK = 151
   LEATHER = 152
   MILK_BUCKET = 153
+  # What a chicken drops and lays.
+  RAW_CHICKEN = 154
+  COOKED_CHICKEN = 155
+  FEATHER = 156
+  EGG = 157
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -418,6 +423,10 @@ module Block
   define_item STEAK, "STEAK", Tex::STEAK, food: 8, saturation: 12.8 # minecraft.wiki/w/Steak
   define_item LEATHER, "LEATHER", Tex::LEATHER
   define_item MILK_BUCKET, "MILK BUCKET", Tex::MILK_BUCKET
+  define_item RAW_CHICKEN, "RAW CHICKEN", Tex::RAW_CHICKEN, food: 2, saturation: 1.2 # minecraft.wiki/w/Raw_Chicken
+  define_item COOKED_CHICKEN, "COOKED CHICKEN", Tex::COOKED_CHICKEN, food: 6, saturation: 7.2 # minecraft.wiki/w/Cooked_Chicken
+  define_item FEATHER, "FEATHER", Tex::FEATHER
+  define_item EGG, "EGG", Tex::EGG
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
@@ -524,6 +533,9 @@ module Block
   def self.box_dy(b) = wall_torch?(b) ? WALL_LIFT : 0.0
   # Hunger and saturation points that eating b gives back.
   def self.food(b) = FOOD[b]
+  # The chance that eating b gives the Hunger effect.
+  # minecraft.wiki/w/Rotten_Flesh and /w/Raw_Chicken
+  def self.hunger_chance(b) = b == ROTTEN_FLESH ? 0.8 : (b == RAW_CHICKEN ? 0.3 : 0.0)
   def self.saturation(b) = SATURATION[b]
   # A crop that has not ripened yet.
   def self.growing?(b) = (b >= SEEDS && b < WHEAT_RIPE) || (b >= PUMPKIN_SEEDS && b < PUMPKIN_STEM_RIPE)

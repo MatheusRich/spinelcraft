@@ -20,7 +20,8 @@ class Game
                     Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
                     Block::COAL, Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
                     Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::BEEF, Block::STEAK,
-                    Block::ROTTEN_FLESH, Block::LEATHER, Block::MILK_BUCKET,
+                    Block::RAW_CHICKEN, Block::COOKED_CHICKEN, Block::ROTTEN_FLESH, Block::LEATHER, Block::MILK_BUCKET,
+                    Block::FEATHER, Block::EGG,
                     Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
                     Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::SHEARS,
                     Block::BONE, Block::BONE_MEAL]
@@ -168,6 +169,7 @@ class Game
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::OAK_LOG, 1, Block::COAL, 1, AT_FURNACE],
              [Block::SPRUCE_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::BIRCH_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
              [Block::MUTTON, 1, Block::COOKED_MUTTON, 1, AT_FURNACE], [Block::BEEF, 1, Block::STEAK, 1, AT_FURNACE],
+             [Block::RAW_CHICKEN, 1, Block::COOKED_CHICKEN, 1, AT_FURNACE],
              [Block::SAND, 1, Block::GLASS, 1, AT_FURNACE], [Block::COBBLE, 1, Block::STONE, 1, AT_FURNACE]]
 
   INV_COLS = 8
@@ -176,7 +178,7 @@ class Game
   # of each name.
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
-  SAVE_VERSION = "SPINELCRAFT20"
+  SAVE_VERSION = "SPINELCRAFT21"
   # The options of the pause menu (see Game#save_options).
   OPTIONS_PATH = "options.txt"
   # Where a save that does not load goes, so that the next save does not replace it.

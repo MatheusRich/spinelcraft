@@ -532,7 +532,7 @@ class Game
     b = current_block.to_i
     return drink_milk if b == Block::MILK_BUCKET
     @vitals.eat(Block.food(b), Block.saturation(b))
-    @vitals.give_hunger_effect if b == Block::ROTTEN_FLESH && @rng.rand01 < 0.8
+    @vitals.give_hunger_effect if @rng.rand01 < Block.hunger_chance(b)
     @inv.take(@slot, 1)
     play(Sfx::EAT, 0.6)
   end

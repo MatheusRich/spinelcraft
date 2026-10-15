@@ -5,13 +5,13 @@ class Game
   # They follow VoxeLibre. MOB_SOUND plays now and then, MOB_HURT after a
   # hit, and MOB_DEATH when the mob dies. A creeper makes no sound now and
   # then, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
-  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1, Sfx::MOO]
-  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT, Sfx::COW_HURT]
-  MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH, Sfx::COW_HURT]
+  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1, Sfx::MOO, Sfx::CLUCK]
+  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT, Sfx::COW_HURT, Sfx::CHICKEN_HURT]
+  MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH, Sfx::COW_HURT, Sfx::CHICKEN_HURT]
   # The animals that spawn on grass, and the weight of each, as in the
-  # plains biome. The chicken is not in the game. minecraft.wiki/w/Plains
-  ANIMAL_KINDS = [Mob::PIG, Mob::SHEEP, Mob::COW]
-  ANIMAL_WEIGHTS = [10.0, 12.0, 8.0]
+  # plains biome. minecraft.wiki/w/Plains
+  ANIMAL_KINDS = [Mob::PIG, Mob::SHEEP, Mob::COW, Mob::CHICKEN]
+  ANIMAL_WEIGHTS = [10.0, 12.0, 8.0, 10.0]
 
   # Light in Minecraft: a torch has 14, lava and a jack o'lantern 15, and a
   # cell under the open sky 15 by day. Light goes down by 1 for each step
@@ -398,6 +398,7 @@ class Game
         k += 1
       end
       bite_grass(m) if m.grass_bite
+      lay_egg(m) if m.lay
       # A mob drops its loot when it dies, and its body goes up in smoke
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player
@@ -425,9 +426,10 @@ class Game
   # What a mob that the player killed drops, as in Minecraft: a zombie 0 to
   # 2 rotten flesh, a skeleton 0 to 2 arrows, 0 to 2 bones and now and then
   # its bow, a sheep its wool and 1 to 2 mutton, a pig 1 to 3 porkchops,
-  # and a cow 0 to 2 leather and 1 to 3 raw beef, or steak when it dies on
-  # fire. minecraft.wiki/w/Rotten_Flesh, /w/Skeleton, /w/Sheep, /w/Pig and
-  # /w/Cow
+  # a cow 0 to 2 leather and 1 to 3 raw beef, or steak when it dies on
+  # fire, and a chicken 0 to 2 feathers and 1 raw chicken, or cooked
+  # chicken when it dies on fire. minecraft.wiki/w/Rotten_Flesh,
+  # /w/Skeleton, /w/Sheep, /w/Pig, /w/Cow and /w/Chicken
   def drop_loot(m)
     if m.kind == Mob::ZOMBIE
       loot(m, Block::ROTTEN_FLESH, (@rng.rand01 * 3.0).to_i)
@@ -443,6 +445,9 @@ class Game
     elsif m.kind == Mob::COW
       loot(m, Block::LEATHER, (@rng.rand01 * 3.0).to_i)
       loot(m, m.burning? ? Block::STEAK : Block::BEEF, 1 + (@rng.rand01 * 3.0).to_i)
+    elsif m.kind == Mob::CHICKEN
+      loot(m, Block::FEATHER, (@rng.rand01 * 3.0).to_i)
+      loot(m, m.burning? ? Block::COOKED_CHICKEN : Block::RAW_CHICKEN, 1)
     end
   end
 
@@ -450,6 +455,13 @@ class Game
   def loot(m, b, n)
     n = Block.uses(b) if Block.tool?(b)
     drop_item(b, n, m.x, m.y + 0.5, m.z, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
+  end
+
+  # A chicken lays an egg where it stands, with a plop.
+  def lay_egg(m)
+    m.lay = false
+    drop_item(Block::EGG, 1, m.x, m.y + 0.2, m.z, 0.0, 1.0, 0.0, PICKUP_WAIT)
+    play_from(m, Sfx::LAY_EGG, 1.0)
   end
 
   # PIGS animals around the player.

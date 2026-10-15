@@ -27,6 +27,7 @@ class Game
       m.head = kind == Mob::ZOMBIE ? Block::CARVED_PUMPKIN : Block::JACK_O_LANTERN if @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
       @mobs << m
     end
+    @mobs << Mob.new(Mob::CHICKEN, bx - 0.5, y + 1.0, bz + 2.5, 1)
     @player.x = bx + 0.5
     @player.y = y + 1.5
     @player.z = bz + 6.5
@@ -514,7 +515,7 @@ class Game
           Command.complete("/gi") == ["give"] && commands == ["teleport", "time", "tp"] && Command.complete("hello").empty?)
     items = Command.complete("/give ")
     check("Tab completes item names in /give and mob names in /summon, also after @s",
-          Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper", "cow"] &&
+          Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper", "cow", "chicken"] &&
           Command.complete("/give pum") == ["pumpkin", "pumpkin_seeds"] && Command.complete("/give jack") == ["jack_o_lantern"] &&
           items.size == CREATIVE_ITEMS.size && items.count("water") == 1 && items.count("wheat") == 1 &&
           !items.include?("wheat_crops"))
@@ -2011,6 +2012,7 @@ class Game
     @items.clear
     @mobs.clear
     check("beef is food, and a furnace cooks it into steak", cooks?(Block::BEEF, 3, 1.8, Block::STEAK, 8, 12.8))
+    test_chickens
     # Each zombie drops 0 to 2, so 10 zombies drop none 1 time in 59049.
     10.times do |i|
       zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
@@ -2026,6 +2028,55 @@ class Game
     check("a bow that a mob drops is new", @items.size == 1 && @items[0].count == Block.uses(Block::BOW))
     @items.clear
     @mobs.clear
+  end
+
+  # A chicken drops 0 to 2 feathers and 1 raw chicken, or cooked chicken
+  # when it dies in fire. It lays an egg each 5 to 10 minutes, and it falls
+  # slowly. Raw chicken can give the Hunger effect.
+  def test_chickens
+    x = @spawn_x + 30.0
+    z = @spawn_z
+    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 5)
+    hen.hp = 0.0
+    hen.by_player = true
+    @mobs << hen
+    update_mobs(1.0 / 60.0)
+    n = ground_count(Block::FEATHER)
+    check("a chicken that the player kills drops 0 to 2 feathers and 1 raw chicken",
+          n <= 2 && ground_count(Block::RAW_CHICKEN) == 1 && ground_count(Block::COOKED_CHICKEN) == 0)
+    @items.clear
+    lx = x.floor
+    lz = (z + 3.0).floor
+    set_block(lx, SKY_Y, lz, Block::LAVA)
+    burnt = Mob.new(Mob::CHICKEN, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
+    burnt.by_player = true
+    @mobs << burnt
+    10.times { update_mobs(1.0 / 60.0) }
+    set_block(lx, SKY_Y, lz, Block::AIR)
+    check("a chicken that dies in lava drops cooked chicken once",
+          burnt.dying? && ground_count(Block::COOKED_CHICKEN) == 1 && ground_count(Block::RAW_CHICKEN) == 0)
+    @items.clear
+    @mobs.clear
+    check("chicken is food, and a furnace cooks it", cooks?(Block::RAW_CHICKEN, 2, 1.2, Block::COOKED_CHICKEN, 6, 7.2))
+    check("raw chicken gives the Hunger effect 3 times in 10, and cooked chicken never",
+          Block.hunger_chance(Block::RAW_CHICKEN) == 0.3 && Block.hunger_chance(Block::COOKED_CHICKEN) == 0.0 &&
+          Block.hunger_chance(Block::ROTTEN_FLESH) == 0.8)
+    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 11)
+    due = hen.egg_time >= Mob::EGG_MIN && hen.egg_time <= Mob::EGG_MIN + Mob::EGG_MORE
+    hen.egg_time = 0.001
+    @mobs << hen
+    update_mobs(1.0 / 60.0)
+    check("a chicken lays an egg each 5 to 10 minutes",
+          due && ground_count(Block::EGG) == 1 && hen.egg_time >= Mob::EGG_MIN - 0.1)
+    @items.clear
+    @mobs.clear
+    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 13)
+    pig = Mob.new(Mob::PIG, x + 3.0, SKY_Y.to_f, z, 13)
+    60.times do
+      hen.update_mob(@world, 1.0 / 60.0, @player, 0.5)
+      pig.update_mob(@world, 1.0 / 60.0, @player, 0.5)
+    end
+    check("a chicken falls slowly", hen.vy >= Mob::CHICKEN_FALL && pig.vy < Mob::CHICKEN_FALL * 4.0)
   end
 
   # A dead mob lies on the ground for DEATH_TIME and takes no hits. Then it

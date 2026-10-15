@@ -54,6 +54,9 @@ Each file keeps its license.
 | `mobs_mc_cow.ogg` | Zozzy | CC0 1.0 | <https://www.freesound.org/people/Zozzy/sounds/59245/> |
 | `mobs_mc_cow_hurt.ogg` | Bird_man, changed by the VoxeLibre contributors | CC0 1.0 | <https://freesound.org/people/Bird_man/packs/16972/> |
 | `mobs_mc_cow_milk.ogg` | Klaraschick, shortened by the VoxeLibre contributors | CC0 1.0 | <https://freesound.org/people/Klaraschick/sounds/415312/> |
+| `mobs_mc_chicken_buck.1.ogg` | evsecrets | CC0 1.0 | <https://freesound.org/people/evsecrets/sounds/346961/> |
+| `mobs_mc_chicken_hurt.ogg` | evsecrets | CC0 1.0 | <https://freesound.org/people/evsecrets/sounds/346961/> |
+| `mobs_mc_chicken_lay_egg.ogg` | PilzAdam and Wuzzy | CC0 1.0 | VoxeLibre `mobs_mc` |
 
 ## Doors, chests and caves
 

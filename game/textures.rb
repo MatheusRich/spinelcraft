@@ -185,6 +185,10 @@ module Tex
   STEAK = image("steak")
   LEATHER = image("leather")
   MILK_BUCKET = image("milk_bucket")
+  RAW_CHICKEN = image("raw_chicken")
+  COOKED_CHICKEN = image("cooked_chicken")
+  FEATHER = image("feather")
+  EGG = image("egg")
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size
@@ -275,10 +279,10 @@ module Tex
   # fur of a sheep and the skin of the player, whose arm the view shows. A
   # skin of 64 x 32 fills the top half of its layer.
   SKINS = 256
-  SKIN_FUR = 6
-  SKIN_PLAYER = 7
-  SKIN_FILES = %w[skin_pig skin_zombie skin_skeleton skin_sheep skin_creeper skin_cow skin_sheep_fur skin_player]
-  SKIN_HEIGHTS = [32, 64, 32, 32, 32, 32, 32, 32]
+  SKIN_FUR = 7
+  SKIN_PLAYER = 8
+  SKIN_FILES = %w[skin_pig skin_zombie skin_skeleton skin_sheep skin_creeper skin_cow skin_chicken skin_sheep_fur skin_player]
+  SKIN_HEIGHTS = [32, 64, 32, 32, 32, 32, 32, 32, 32]
 
   def self.skins
     px = Array.new(SKIN_FILES.size * 4096, 0)

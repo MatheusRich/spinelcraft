@@ -62,6 +62,9 @@ module Sfx
   COW_HURT = 59
   MILK = 60
   DRINK = 61
+  CLUCK = 62
+  CHICKEN_HURT = 63
+  LAY_EGG = 64
   # The file of each sound, in the order of the ids above.
   FILES = ["default_dug_node.1", "default_place_node.1", "default_place_node_hard.1", "player_damage",
            "default_grass_footstep.1", "default_dirt_footstep.1", "default_hard_footstep.1", "default_wood_footstep.1",
@@ -81,7 +84,7 @@ module Sfx
            "tnt_ignite", "mcl_sounds_cloth.1", "pedology_snow_soft_footstep.1",
            "env_sounds_lava.1", "env_sounds_water.1", "fire_fire.1",
            "mesecons_button_push", "mobs_mc_cow", "mobs_mc_cow_hurt", "mobs_mc_cow_milk",
-           "mcl_potions_drinking"]
+           "mcl_potions_drinking", "mobs_mc_chicken_buck.1", "mobs_mc_chicken_hurt", "mobs_mc_chicken_lay_egg"]
   # The gain of each file in dB, in the order of the ids above. It sets the
   # RMS of the loudest 0.1 seconds of each sound to -20 dBFS (-12 dBFS for
   # the explosion), so that all sounds are equally loud.
@@ -92,7 +95,7 @@ module Sfx
            -10.0, -15.4, 1.0, -6.0, -5.4, -2.0, -8.0, -6.1,
            -1.5, 1.8, -0.6, 6.8, 2.7, -6.0, -1.3, -9.5,
            -10.4, -9.6, -15.5, 6.8, -8.5, 10.6, -6.0, 3.3, -9.7, 2.7,
-           -11.4, -8.4, -1.9, -0.6]
+           -11.4, -8.4, -1.9, -0.6, 9.6, -2.7, -5.4]
 
   # Loads each sound file. Returns how many loaded.
   def self.load_files

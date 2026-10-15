@@ -1,5 +1,5 @@
-# Pigs, sheep, cows, zombies, skeletons and creepers: behavior, physics and
-# box models.
+# Pigs, sheep, cows, chickens, zombies, skeletons and creepers: behavior,
+# physics and box models.
 class Mob
   PIG = 0
   ZOMBIE = 1
@@ -7,6 +7,7 @@ class Mob
   SHEEP = 3
   CREEPER = 4
   COW = 5
+  CHICKEN = 6
   # Seconds of a creeper's fuse. minecraft.wiki/w/Creeper
   FUSE = 1.5
   # A creeper lights its fuse when the player is this near, and the fuse
@@ -14,16 +15,24 @@ class Mob
   # minecraft.wiki/w/Creeper
   LIGHT_REACH = 3.0
   FUSE_REACH = 7.0
-  # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper, cow.
-  # MOB_SOUND in game/combat.rb has the sounds.
-  # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep, /w/Creeper and
-  # /w/Cow
-  NAMES = ["PIG", "ZOMBIE", "SKELETON", "SHEEP", "CREEPER", "COW"]
-  HP = [10.0, 20.0, 20.0, 8.0, 20.0, 10.0]
-  HALF = [0.45, 0.3, 0.3, 0.45, 0.3, 0.45]
-  TALL = [0.95, 1.9, 1.9, 1.2, 1.7, 1.4]
+  # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper, cow,
+  # chicken. MOB_SOUND in game/combat.rb has the sounds.
+  # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep, /w/Creeper,
+  # /w/Cow and /w/Chicken
+  NAMES = ["PIG", "ZOMBIE", "SKELETON", "SHEEP", "CREEPER", "COW", "CHICKEN"]
+  HP = [10.0, 20.0, 20.0, 8.0, 20.0, 10.0, 4.0]
+  HALF = [0.45, 0.3, 0.3, 0.45, 0.3, 0.45, 0.2]
+  TALL = [0.95, 1.9, 1.9, 1.2, 1.7, 1.4, 0.7]
   # Passive mobs wander, never attack, and do not count as monsters.
-  PASSIVE = [1, 0, 0, 1, 0, 1]
+  PASSIVE = [1, 0, 0, 1, 0, 1, 1]
+  # A chicken lays an egg each 5 to 10 minutes. minecraft.wiki/w/Chicken
+  EGG_MIN = 300.0
+  EGG_MORE = 300.0
+  # A chicken in the air falls no faster than this, in blocks each second.
+  # The wiki says only that chickens fall slowly (minecraft.wiki/w/Chicken).
+  # This is the speed where Minecraft's gravity and the chicken's slowdown
+  # of 0.6 for each tick meet, which the wiki does not confirm.
+  CHICKEN_FALL = -2.3
   # A passive mob walks at WALK_SPEED. After damage it panics for PANIC
   # seconds: it runs at PANIC_SPEED, first away from a hit and then to a
   # new side about each second. The wiki says only that a pig "flees for a
@@ -73,6 +82,10 @@ class Mob
   attr_reader :graze
   # True for one step when a grazing sheep takes its bite (Game#bite_grass).
   attr_accessor :grass_bite
+  # Seconds until a chicken lays its next egg.
+  attr_accessor :egg_time
+  # True after a chicken lays an egg, until Game#update_mobs drops it.
+  attr_accessor :lay
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -115,6 +128,12 @@ class Mob
     @sheared = false
     @graze = 0.0
     @grass_bite = false
+    @egg_time = EGG_MIN + @rng.rand01 * EGG_MORE
+    @lay = false
+    # The angle of a chicken's wings (Minecraft's flap), and how far they
+    # open: 1 in the air, and down to 0 on the ground (flapSpeed).
+    @flap = 0.0
+    @flap_open = 0.0
   end
 
   def passive? = PASSIVE[@kind] == 1
@@ -131,6 +150,24 @@ class Mob
   GRAZE_NOD = 0.9
 
   def shearable? = @kind == SHEEP && !@sheared && !dying?
+
+  # dt more seconds of laying for a chicken: it sets lay when an egg is due.
+  def lay_eggs(dt)
+    return if @kind != CHICKEN || dying?
+    @egg_time -= dt
+    return if @egg_time > 0.0
+    @egg_time = EGG_MIN + @rng.rand01 * EGG_MORE
+    @lay = true
+  end
+
+  # A chicken opens its wings in the air and beats them, and folds them
+  # on the ground, as Minecraft's Chicken.aiStep: flapSpeed goes up 1.2
+  # each tick in the air and down 0.3 on the ground, and flap goes up about
+  # 1.8 each tick in the air. The wiki does not give these values.
+  def flap_wings(dt)
+    @flap_open = (@flap_open + (@on_ground ? -6.0 : 24.0) * dt).clamp(0.0, 1.0)
+    @flap += 36.0 * dt unless @on_ground
+  end
 
   # The sheep starts to eat grass: it stands still with its head down.
   def start_graze
@@ -200,6 +237,7 @@ class Mob
     end
     @immune -= dt
     @attack_wait -= dt
+    lay_eggs(dt)
     speed = 0.0
     damage = 0
     if dying?
@@ -257,6 +295,7 @@ class Mob
       @vy -= 28.0 * dt
     end
     @vy = -38.0 if @vy < -38.0
+    @vy = CHICKEN_FALL if @kind == CHICKEN && !in_water && @vy < CHICKEN_FALL
     if blocked?(world)
       @y = @y.floor + 1.0
       @vy = 0.0
@@ -273,6 +312,7 @@ class Mob
     # The legs swing as far as the mob goes fast, and come to rest when it
     # stops, as in Minecraft.
     @leg_swing += ((moving / WALK_SPEED).clamp(0.0, 1.0) - @leg_swing) * (8.0 * dt).clamp(0.0, 1.0)
+    flap_wings(dt) if @kind == CHICKEN
     if @on_ground && !dying?
       @step_dist += moving * dt
       if @step_dist > Player::STEP
@@ -420,7 +460,8 @@ class Mob
     red = @hurt > 0.0 || dying? ? 0.45 : 1.0
     # The fall follows the curve of the game's renderer, which the wiki does
     # not confirm: sqrt(1.6 * t / DEATH_TIME) of a right angle.
-    mesh.roll(Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5)
+    fall = Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5
+    mesh.roll(fall)
     if @kind == CREEPER
       draw_creeper(mesh, swing, red)
     elsif @kind == PIG
@@ -429,6 +470,8 @@ class Mob
       draw_sheep(mesh, swing, red)
     elsif @kind == COW
       draw_cow(mesh, swing, red)
+    elsif @kind == CHICKEN
+      draw_chicken(mesh, swing, red, fall)
     else
       draw_humanoid(mesh, swing, red)
     end
@@ -480,6 +523,42 @@ class Mob
     part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -6.0, -10.0, -7.0, 12.0, 18.0, 10.0, 18.0, 4.0, 0.0, false, 1.0, red, red)
     part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -2.0, 2.0, -8.0, 4.0, 6.0, 1.0, 52.0, 0.0, 0.0, false, 1.0, red, red)
     legs(mesh, l, 4.0, 12.0, 7.0, -6.0, 12.0, 0.0, swing, 1.0, red)
+  end
+
+  # The ChickenModel of Minecraft. The wings turn around the axis from the
+  # back to the front through their top edge: out and up as they beat.
+  # fall is the angle of a dying mob (Mesh3#roll).
+  def draw_chicken(mesh, swing, red, fall)
+    l = Tex::SKINS + @kind
+    part(mesh, l, 0.0, 16.0, 0.0, Math::PI / 2.0, -3.0, -4.0, -3.0, 6.0, 8.0, 6.0, 0.0, 9.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, -2.0, 19.0, 1.0, swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 1.0, 19.0, 1.0, -swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, 1.0, red, red)
+    beat = (Math.sin(@flap) + 1.0) * @flap_open
+    wing(mesh, l, -4.0, fall, beat, red)
+    wing(mesh, l, 4.0, fall, -beat, red)
+    mesh.roll(fall)
+    part(mesh, l, 0.0, 15.0, -4.0, 0.0, -2.0, -6.0, -2.0, 4.0, 6.0, 3.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 15.0, -4.0, 0.0, -2.0, -4.0, -4.0, 4.0, 2.0, 2.0, 14.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 15.0, -4.0, 0.0, -1.0, -2.0, -3.0, 2.0, 2.0, 2.0, 14.0, 4.0, 0.0, false, 1.0, red, red)
+  end
+
+  # A wing of a chicken: 1 x 4 x 6 pixels that hang from the pivot px, 13,
+  # 0 (px -4 is the right wing, 4 the left), turned by beat around the axis
+  # from the back to the front through the pivot. Mesh3#roll turns the
+  # whole body by fall around the axis through its feet, so the turn by
+  # fall + beat goes around that axis, and the box moves by the difference
+  # to turn around the pivot instead.
+  def wing(mesh, l, px, fall, beat, red)
+    cx = px / 16.0
+    cy = 11.0 / 16.0
+    t = fall + beat
+    mx = cx * Math.cos(fall) + cy * Math.sin(fall) - (cx * Math.cos(t) + cy * Math.sin(t))
+    my = cy * Math.cos(fall) - cx * Math.sin(fall) - (cy * Math.cos(t) - cx * Math.sin(t))
+    mesh.roll(t)
+    x0 = px < 0.0 ? px : px - 1.0
+    mesh.skin_box(@x + mx * Math.cos(@yaw), @y + my, @z + mx * Math.sin(@yaw), @yaw, 0.0, 0.0, 0.0,
+                  x0 / 16.0, 7.0 / 16.0, -3.0 / 16.0, (x0 + 1.0) / 16.0, 11.0 / 16.0, 3.0 / 16.0,
+                  l, 24.0, 13.0, 1.0, 4.0, 6.0, false, 1.0, red, red, 1.0)
   end
 
   # A zombie or a skeleton: a person with the arms out to the front. A
