@@ -100,10 +100,22 @@ class World
   PLATEAU_HILLS = 3.0
   FLAT_HILLS = 4.5
   # The ridges of a mountain range follow the lines where the ridge noise
-  # is zero. RIDGE_SCALE is the size of that noise in blocks, and a ridge
-  # is RIDGE_RISE above the land around it.
-  RIDGE_SCALE = 90.0
-  RIDGE_RISE = 110.0
+  # is zero. RIDGE_SCALE is the size of that noise in blocks, and the
+  # highest ridge is RIDGE_RISE above the land around it. Smaller spurs
+  # of SPUR_SCALE branch off the ridges, SPUR as tall.
+  RIDGE_SCALE = 200.0
+  RIDGE_RISE = 160.0
+  SPUR_SCALE = 80.0
+  SPUR = 0.4
+  # The lines of a ridge close into loops. The peak noise, of PEAK_SCALE
+  # blocks, breaks them: it lifts some stretches of a ridge into peaks,
+  # and lowers the others to saddles SADDLE as tall. A range is lowest at
+  # its edge, RANGE_EDGE as tall, and reaches its full height RANGE_CORE
+  # of the landscape noise inside it.
+  PEAK_SCALE = 120.0
+  SADDLE = 0.2
+  RANGE_EDGE = 0.45
+  RANGE_CORE = 0.12
   # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
@@ -577,10 +589,8 @@ class World
               World.smooth((PLATEAU_HIGH - land) / PLATEAU_EDGE) * inland
     flat = World.smooth((land - FLATLAND) / LANDSCAPE_EDGE)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
-    ridge = 1.0 - @noise2.noise2(wx / RIDGE_SCALE, wz / RIDGE_SCALE).abs * 1.6
-    ridge = ridge < 0.0 ? 0.0 : ridge
     hill_height = HILLS + (MOUNTAIN_HILLS - HILLS) * mountains + (PLATEAU_HILLS - HILLS) * plateau + (FLAT_HILLS - HILLS) * flat
-    h = World.spline(CONTINENT, BASE, continent) + hills * hill_height + ridge * ridge * RIDGE_RISE * mountains
+    h = World.spline(CONTINENT, BASE, continent) + hills * hill_height + ridges(wx, wz, land) * mountains
     # A plateau lifts the land to a flat top.
     top = SEA + PLATEAU_RISE + hills * PLATEAU_HILLS
     h += (top - h) * plateau if top > h
@@ -627,6 +637,18 @@ class World
   def self.triangle(y, low, peak, high)
     return 0.0 if y <= low || y >= high
     y < peak ? (y - low) / (peak - low) : (high - y) / (high - peak)
+  end
+
+  # The height of the ridges, spurs and peaks of a mountain range at the
+  # warped position wx, wz, where the landscape noise is land.
+  def ridges(wx, wz, land)
+    ridge = 1.0 - @noise2.noise2(wx / RIDGE_SCALE, wz / RIDGE_SCALE).abs * 1.6
+    ridge = ridge < 0.0 ? 0.0 : ridge
+    spur = 1.0 - @noise3.noise2(wx / SPUR_SCALE + 70.0, wz / SPUR_SCALE).abs * 1.6
+    spur = spur < 0.0 ? 0.0 : spur
+    peak = World.smooth((@noise.noise2(wx / PEAK_SCALE + 120.0, wz / PEAK_SCALE) + 0.1) / 0.5)
+    core = World.smooth((MOUNTAINS - land) / RANGE_CORE)
+    (ridge * ridge + SPUR * spur * spur * ridge) * (SADDLE + (1.0 - SADDLE) * peak) * (RANGE_EDGE + (1.0 - RANGE_EDGE) * core) * RIDGE_RISE
   end
 
   # 0 below 0, 1 above 1, and an S curve between.
