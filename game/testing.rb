@@ -143,6 +143,7 @@ class Game
     test_chests(cx, cz)
     test_mob_drops
     test_mob_death
+    test_mob_panic
     test_items(cx, cz)
     test_light_sources(cx, cz)
     test_tint(cx, cz)
@@ -1299,6 +1300,46 @@ class Game
     smoke = @particles.count(Particle::SMOKE)
     40.times { update_mobs(1.0 / 60.0) }
     check("a dead mob goes up in smoke after DEATH_TIME", !pig.alive && @particles.count(Particle::SMOKE) > smoke)
+  end
+
+  # A hit pig runs away from the hit, and it panics for a while. The legs
+  # of a mob that stops come to rest.
+  def test_mob_panic
+    bx = @spawn_x.floor + 30
+    bz = @spawn_z.floor + 20
+    i = -10
+    while i <= 10
+      j = -10
+      while j <= 10
+        set_block(bx + i, 88, bz + j, Block::STONE)
+        j += 1
+      end
+      i += 1
+    end
+    pig = Mob.new(Mob::PIG, bx + 0.5, 89.0, bz + 0.5, 5)
+    @mobs.clear
+    @mobs << pig
+    pig.hit(1.0, pig.x - 1.0, pig.z)
+    60.times { update_mobs(1.0 / 60.0) }
+    away = pig.x > bx + 2.0
+    120.times { update_mobs(1.0 / 60.0) }
+    check("a hit pig runs away from the hit and panics for a while", away && pig.panic > 0.0)
+    @mobs.clear
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    @player.x = bx + 0.5
+    @player.y = 89.0
+    @player.z = bz - 8.5
+    zombie = Mob.new(Mob::ZOMBIE, bx + 0.5, 89.0, bz + 8.5, 3)
+    30.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0) }
+    walking = zombie.leg_swing > 0.5
+    @player.z = bz + 300.0
+    60.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0) }
+    check("the legs of a mob swing as it walks and come to rest when it stops", walking && zombie.leg_swing < 0.05)
+    @player.x = px
+    @player.y = py
+    @player.z = pz
   end
 
   # Stands the player on the first item until the ground is empty or the

@@ -20,6 +20,16 @@ class Mob
   TALL = [0.95, 1.9, 1.9, 1.2, 1.7]
   # Passive mobs wander, never attack, and do not count as monsters.
   PASSIVE = [1, 0, 0, 1, 0]
+  # A passive mob walks at WALK_SPEED. After damage it panics for PANIC
+  # seconds: it runs at PANIC_SPEED, first away from a hit and then to a
+  # new side about each second. The wiki says only that a pig "flees for a
+  # short time when harmed" (minecraft.wiki/w/Pig), so it does not confirm
+  # these values.
+  WALK_SPEED = 1.3
+  PANIC = 5.0
+  PANIC_SPEED = 2.6
+  # A passive mob that a wall stops for this many seconds turns to a new side.
+  STUCK = 0.5
   # After a hit, the mob takes for this many seconds only the part of a new
   # hit that is above the last one, as in Minecraft. minecraft.wiki/w/Damage
   IMMUNE = 0.5
@@ -46,6 +56,10 @@ class Mob
   attr_accessor :idle
   # Seconds since the mob died; 0.0 while it lives.
   attr_reader :death
+  # Seconds that a passive mob still panics.
+  attr_reader :panic
+  # How far the legs swing, from 0 at rest to 1 at a walk or faster.
+  attr_reader :leg_swing
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -81,6 +95,9 @@ class Mob
     @last_damage = 0.0
     @idle = 0.0
     @death = 0.0
+    @panic = 0.0
+    @leg_swing = 0.0
+    @stuck = 0.0
   end
 
   def passive? = PASSIVE[@kind] == 1
@@ -143,13 +160,18 @@ class Mob
       @death += dt
     elsif passive?
       @think -= dt
+      @panic -= dt
       if @think <= 0.0
-        @think = 2.0 + @rng.rand01 * 4.0
-        @walking = @rng.rand01 < 0.6
+        if @panic > 0.0
+          @think = 0.7 + @rng.rand01 * 0.8
+          @walking = true
+        else
+          @think = 2.0 + @rng.rand01 * 4.0
+          @walking = @rng.rand01 < 0.6
+        end
         @yaw = @rng.rand01 * 6.283
       end
-      speed = @walking ? 1.3 : 0.0
-      speed = 4.0 if @hurt > 0.0
+      speed = @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
     else
       dx = player.x - @x
       dz = player.z - @z
@@ -229,8 +251,16 @@ class Mob
     end
     bumped = move(world, @vx * dt, @vy * dt, @vz * dt)
     @vy = 8.2 if bumped && @on_ground && !dying?
+    @stuck = bumped ? @stuck + dt : 0.0
+    if passive? && @stuck > STUCK
+      @think = 0.0
+      @stuck = 0.0
+    end
     moving = Math.sqrt(@vx * @vx + @vz * @vz)
     @phase += moving * dt * 3.5
+    # The legs swing as far as the mob goes fast, and come to rest when it
+    # stops, as in Minecraft.
+    @leg_swing += ((moving / WALK_SPEED).clamp(0.0, 1.0) - @leg_swing) * (8.0 * dt).clamp(0.0, 1.0)
     if @on_ground && !dying?
       @step_dist += moving * dt
       if @step_dist > Player::STEP
@@ -274,6 +304,7 @@ class Mob
     end
     @last_damage = damage
     @hurt = 0.35
+    @panic = PANIC if passive?
     @ouch = true
     true
   end
@@ -287,8 +318,10 @@ class Mob
     @vx = dx / len * 7.0
     @vz = dz / len * 7.0
     @vy = 5.5
+    return unless passive?
+    face(dx, dz)
     @walking = true
-    @think = 3.0
+    @think = 1.0
   end
 
   # Distance along the ray to this mob's box, or -1.0 when the ray misses it.
@@ -299,7 +332,7 @@ class Mob
   # The mob as the boxes of its Minecraft model, with its skin (Tex::SKINS).
   # A hurt mob is red, and a creeper flashes white as its fuse burns down.
   def draw(mesh)
-    swing = Math.sin(@phase) * 0.7
+    swing = Math.sin(@phase) * 0.7 * @leg_swing
     red = @hurt > 0.0 || dying? ? 0.45 : 1.0
     # The fall follows the curve of the game's renderer, which the wiki does
     # not confirm: sqrt(1.6 * t / DEATH_TIME) of a right angle.
