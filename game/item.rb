@@ -5,6 +5,9 @@ class Item
   LIFE = 300.0
   # The player picks up items within this distance on x and z.
   REACH = 1.3
+  # The half width and the height of the item's box. minecraft.wiki/w/Item_(entity)
+  HALF = 0.125
+  TALL = 0.25
 
   attr_reader :block, :x, :y, :z, :age, :wait
   attr_accessor :count

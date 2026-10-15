@@ -1497,6 +1497,43 @@ class Game
     set_block(px + 3, SKY_Y, pz, Block::AIR)
     set_block(px + 3, SKY_Y - 1, pz, Block::AIR)
     @vitals = Vitals.new
+    # The player places a cactus on sand and on a cactus, but not on stone.
+    survival = @survival
+    @survival = false
+    held = @hotbar[0]
+    @slot = 0
+    @hotbar[0] = Block::CACTUS
+    pitch = @player.pitch
+    flying = @player.flying
+    @player.pitch = -1.55
+    @player.flying = true
+    @player.x = px + 5.5
+    @player.y = SKY_Y + 1.0
+    @player.z = pz + 0.5
+    set_block(px + 5, SKY_Y - 2, pz, Block::STONE)
+    @player.raycast(@world)
+    place
+    stone = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR
+    # Sand falls, so stone holds it up.
+    set_block(px + 5, SKY_Y - 3, pz, Block::STONE)
+    set_block(px + 5, SKY_Y - 2, pz, Block::SAND)
+    @player.raycast(@world)
+    place
+    sand = @world.get(px + 5, SKY_Y - 1, pz) == Block::CACTUS
+    @player.raycast(@world)
+    place
+    stacked = @world.get(px + 5, SKY_Y, pz) == Block::CACTUS
+    check("a cactus stands only on sand or on a cactus", stone && sand && stacked)
+    set_block(px + 5, SKY_Y, pz, Block::AIR)
+    set_block(px + 5, SKY_Y - 1, pz, Block::AIR)
+    set_block(px + 5, SKY_Y - 2, pz, Block::AIR)
+    set_block(px + 5, SKY_Y - 3, pz, Block::AIR)
+    @hotbar[0] = held
+    @survival = survival
+    @player.pitch = pitch
+    @player.flying = flying
+    @player.x = px + 0.5
+    @player.y = SKY_Y - 1.0
   end
 
   # The bottom of the rain in column x, z: the third vertex of the quad from
@@ -2045,6 +2082,13 @@ class Game
     drop_item(Block::SAND, 1, cx + 2.5, y + 1.2, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     run_items(0.2)
     check("lava burns an item", @items.empty?)
+    set_block(cx + 2, y + 1, cz, Block::CACTUS)
+    drop_item(Block::SAND, 1, cx + 2.5, y + 3.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
+    run_items(1.0)
+    top = @items.empty?
+    drop_item(Block::SAND, 1, cx + 0.5, y + 1.0, cz + 0.5, 2.0, 0.0, 0.0, 0.0)
+    run_items(1.5)
+    check("a cactus destroys an item that falls on it or slides into it", top && @items.empty?)
     set_block(cx + 2, y + 1, cz, Block::AIR)
     flush_dirty while !@later_list.empty? || !@dirty_list.empty?
   end

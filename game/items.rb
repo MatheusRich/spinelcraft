@@ -1,6 +1,6 @@
 # Items on the ground (game/item.rb): what breaks, dies or gets thrown
-# drops here. Items burn in lava, and go to the inventory when the player
-# walks over them.
+# drops here. Items burn in lava, a cactus destroys them, and they go to
+# the inventory when the player walks over them.
 class Game
   MAX_ITEMS = 256
   # Seconds before an item can go to the inventory. A thrown item waits
@@ -61,10 +61,13 @@ class Game
       # An item in a chunk that is not loaded waits there: it would fall
       # through the missing blocks.
       next unless @world.loaded?(item.x.floor, item.z.floor)
-      if item.update(@world, dt)
-        pick_up(item) if item.ready? && !@vitals.dead? && item.near?(@player)
-      else
+      if !item.update(@world, dt)
         burn_item(item)
+      elsif @world.cactus_in_box?(item.x, item.y, item.z, Item::HALF, Item::TALL)
+        # A cactus destroys an item that touches it. minecraft.wiki/w/Cactus
+        item.count = 0
+      elsif item.ready? && !@vitals.dead? && item.near?(@player)
+        pick_up(item)
       end
     end
     merge_items
