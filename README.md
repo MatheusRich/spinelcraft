@@ -46,6 +46,7 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | G | Switch between creative and survival |
 | F3 | Debug text |
 | F5 | Save |
+| T, / | Chat and commands |
 | Esc | Pause, play again |
 
 The pause menu has sliders for brightness, volume and render distance, and buttons for fullscreen, the debug text, a new world, and save and quit.
@@ -61,7 +62,27 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
 - Pumpkin patches. Shears cut leaves and wool fast, and carve a face into a pumpkin, and a carved pumpkin and a torch make a jack o'lantern, which lights the night. Pumpkin seeds grow a stem, and the stem grows new pumpkins. On October 31, some monsters wear a pumpkin on their heads.
 - A view distance of up to 5000 blocks.
+- A chat line with commands, as in Minecraft.
 - Sounds from VoxeLibre, under free licenses. `assets/sounds/CREDITS.md` names the author and the license of each file.
+
+## Commands
+
+T opens the chat line, and / opens it with a slash. Enter runs the line, Esc closes it, and Up and Down bring back the lines that you typed before. A line that starts with a slash is a command. The commands follow the syntax of Minecraft, and `~` gives a coordinate relative to the player.
+
+| Command | Effect |
+| --- | --- |
+| `/time set day\|noon\|night\|midnight\|<time>` | Set the time of day. A time is in ticks, or has the unit `d` (days), `s` (seconds) or `t` (ticks) |
+| `/time add <time>` | Move the clock forward |
+| `/time query` | Show the time in ticks and the day |
+| `/weather clear\|rain` | Stop or start the rain |
+| `/gamemode survival\|creative` | Switch the game mode |
+| `/tp <x> <y> <z>` | Go to a place, for example `/tp ~ ~10 ~` |
+| `/give <item> [count]` | Get an item, for example `/give diamond_pickaxe` |
+| `/summon <pig\|sheep\|zombie\|skeleton\|creeper> [x y z]` | Make a mob, 3 blocks in front of you or at a place |
+| `/kill` | Die |
+| `/seed` | Show the seed of the world |
+| `/spawn` | Go to the spawn point |
+| `/help` | List the commands |
 
 ## Layout
 

@@ -18,6 +18,7 @@ class Game
     draw_hotbar(x0, y0, size, gap, s)
     draw_survival_bars(x0, y0, total, s) if @survival
     draw_messages(w, y0, s)
+    draw_chat(w, h, y0, s)
     draw_debug(s) if @show_debug
     if @vitals.dead?
       draw_death_screen(w, h, s)
@@ -138,6 +139,48 @@ class Game
       tw = @ui.text_width(@message, 3.0 * s)
       @ui.text((w - tw) / 2.0, y0 - 64.0 * s, @message, 3.0 * s, 1.0, 1.0, 1.0, @message_time > 1.0 ? 1.0 : @message_time)
     end
+  end
+
+  # The chat lines at the left, above the hotbar and the bars, the newest
+  # at the bottom. A long line wraps at half the width of the screen. While
+  # the chat is open, all lines show, and the line that the player types
+  # shows at the bottom of the screen.
+  def draw_chat(w, h, y0, s)
+    ts = 2.0 * s
+    row = 12.0 * s
+    per = (w * 0.5 / (4.0 * ts)).to_i
+    per = 20 if per < 20
+    y = y0 - 120.0 * s
+    i = @chat_lines.size - 1
+    while i >= 0
+      age = @chat_ages[i]
+      if @chat_open || age < CHAT_SHOW
+        a = @chat_open ? 1.0 : (CHAT_SHOW - age).clamp(0.0, 1.0)
+        line = @chat_lines[i]
+        rows = (line.size + per - 1) / per
+        k = rows - 1
+        while k >= 0
+          part = line[k * per, per]
+          @ui.rect(4.0 * s, y - 2.0 * s, @ui.text_width(part, ts) + 6.0 * s, row, 0.0, 0.0, 0.0, 0.4 * a)
+          if @chat_errors[i] == 1
+            @ui.text(6.0 * s, y, part, ts, 1.0, 0.35, 0.3, a)
+          else
+            @ui.text(6.0 * s, y, part, ts, 1.0, 1.0, 1.0, a)
+          end
+          y -= row
+          k -= 1
+        end
+      end
+      i -= 1
+    end
+    return unless @chat_open
+    @ui.rect(4.0 * s, h - 18.0 * s, w - 8.0 * s, 14.0 * s, 0.0, 0.0, 0.0, 0.6)
+    cursor = (@anim_time * 3.0).to_i % 2 == 0 ? "_" : ""
+    shown = @chat_text.upcase + cursor
+    # A line wider than the screen shows its end.
+    fit = ((w - 16.0 * s) / (4.0 * ts)).to_i
+    shown = shown[shown.size - fit, fit] if shown.size > fit
+    @ui.text(8.0 * s, h - 15.0 * s, shown, ts, 1.0, 1.0, 1.0, 1.0)
   end
 
   def draw_debug(s)

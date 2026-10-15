@@ -15,6 +15,7 @@ class Mob
   # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper.
   # MOB_SOUND in game/combat.rb has the sounds.
   # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep and /w/Creeper
+  NAMES = ["PIG", "ZOMBIE", "SKELETON", "SHEEP", "CREEPER"]
   HP = [10.0, 20.0, 20.0, 8.0, 20.0]
   HALF = [0.45, 0.3, 0.3, 0.45, 0.3]
   TALL = [0.95, 1.9, 1.9, 1.2, 1.7]

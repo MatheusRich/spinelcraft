@@ -39,6 +39,8 @@ require_relative "game/combat"
 require_relative "game/render"
 require_relative "game/hud"
 require_relative "game/menu"
+require_relative "game/command"
+require_relative "game/chat"
 require_relative "game/testing"
 
 class Game
@@ -145,6 +147,18 @@ class Game
     @action_cooldown = 0.0
     @message = ""
     @message_time = 0.0
+    # The chat (game/chat.rb): the line that the player types, the lines
+    # typed before, the place in them that Up and Down reached, and the
+    # lines shown with their color and age.
+    @chat_open = false
+    @chat_text = ""
+    @chat_history = [""]
+    @chat_history.clear
+    @chat_back = 0
+    @chat_lines = [""]
+    @chat_lines.clear
+    @chat_errors = Array.new(0, 0)
+    @chat_ages = Array.new(0, 0.0)
     @fps = 0.0
     @cpu_ms = 0.0
     @mesh_ms = 0.0
@@ -442,7 +456,7 @@ class Game
     jump = false
     down = false
     sprint = false
-    if @captured && !@vitals.dead?
+    if @captured && !@vitals.dead? && !@chat_open
       fwd += 1.0 if Gfx.in_key(Key::W)
       fwd -= 1.0 if Gfx.in_key(Key::S)
       strafe += 1.0 if Gfx.in_key(Key::D)
@@ -519,6 +533,7 @@ class Game
     @fov += (target_fov - @fov) * (6.0 * dt).clamp(0.0, 1.0)
     update_clock(dt)
     @message_time -= dt
+    age_chat(dt)
     @damage_flash -= dt
     @swing -= dt
     @attack_time += dt

@@ -5,6 +5,10 @@ class Game
       handle_inventory
       return
     end
+    if @chat_open
+      handle_chat
+      return
+    end
     escape = Gfx.in_key_pressed(Key::ESCAPE)
     if (escape && @captured) || Gfx.in_focus_lost
       # Saving takes tens of milliseconds, so it happens when the game pauses, not mid-play.
@@ -58,7 +62,7 @@ class Game
     @slot = (@slot + HOTBAR - 1) % HOTBAR if wheel > 0.0
   end
 
-  # Keys that switch a mode or a setting, save, craft, or skip time.
+  # Keys that switch a mode or a setting, save, craft, or open the chat.
   def handle_keys
     if Gfx.in_key_pressed(Key::Q)
       if @survival
@@ -70,8 +74,7 @@ class Game
       end
     end
     if Gfx.in_key_pressed(Key::G)
-      @survival = !@survival
-      @player.flying = false if @survival
+      set_mode(!@survival)
       say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
     end
     if Gfx.in_key_pressed(Key::F) && !@survival
@@ -81,11 +84,17 @@ class Game
     @show_debug = !@show_debug if Gfx.in_key_pressed(Key::F3)
     save if Gfx.in_key_pressed(Key::F5)
     toggle_fullscreen if Gfx.in_key_pressed(Key::F11)
-    @time_of_day += 0.25 if Gfx.in_key_pressed(Key::T)
+    open_chat("") if Gfx.in_key_pressed(Key::T)
+    open_chat("/") if Gfx.in_key_pressed(Key::SLASH)
     if !@survival && Gfx.in_key_pressed(Key::R)
       @weather.set(!@weather.raining?)
       say(@weather.raining? ? "RAIN" : "CLEAR SKY")
     end
+  end
+
+  def set_mode(survival)
+    @survival = survival
+    @player.flying = false if @survival
   end
 
   def toggle_fullscreen

@@ -224,6 +224,8 @@ class Game
     test_hand_sway
     test_pause
     test_menu
+    test_command_words
+    test_commands
     test_chips
     test_boats
     test_sounds
@@ -253,6 +255,91 @@ class Game
     rising = (1...xs.size).all? { |i| xs[i] > xs[i - 1] }
     check("each terrain table has one entry for each biome or tree kind", biomes && kinds)
     check("the continent spline has rising points and one height for each", rising && World::BASE.size == xs.size)
+  end
+
+  # A command line splits into capital words, and its numbers, coordinates,
+  # times and names read as in Minecraft.
+  def test_command_words
+    words = Command.words("/tp  ~ ~5 -10")
+    check("a command splits into capital words without the slash",
+          words.size == 4 && words[0] == "TP" && words[1] == "~" && words[3] == "-10")
+    check("a coordinate is a number or ~ with a number or nothing",
+          Command.coord?("~") && Command.coord?("~-2.5") && Command.coord?("-7") && !Command.coord?("1X") &&
+          !Command.coord?("~~") && !Command.coord?("-") && !Command.coord?("1.2.3"))
+    check("~ is relative, and a whole x or z goes to the center of its block",
+          Command.coord("~5", 10.0, false) == 15.0 && Command.coord("~", 3.25, true) == 3.25 &&
+          Command.coord("10", 0.0, true) == 10.5 && Command.coord("10", 0.0, false) == 10.0 &&
+          Command.coord("-3", 0.0, true) == -2.5 && Command.coord("10.25", 0.0, true) == 10.25)
+    check("a time is a name or a number of days, seconds or ticks",
+          Command.ticks("NIGHT") == 13000 && Command.ticks("2D") == 48000 && Command.ticks("20S") == 400 &&
+          Command.ticks("100") == 100 && Command.ticks("5T") == 5 && Command.ticks("SOON") == -1 && Command.ticks("-5") == -1)
+    check("an item name is its name with _ for each space",
+          Command.item("DIAMOND_PICKAXE") == Block::DIAMOND_PICK && Command.item("MINECRAFT:WHEAT") == Block::WHEAT &&
+          Command.item("WATER") == Block::WATER && Command.item("AIR") == -1 && Command.item("DIRTT") == -1)
+    check("a mob name gives its kind", Command.mob("CREEPER") == Mob::CREEPER && Command.mob("MINECRAFT:PIG") == Mob::PIG &&
+          Command.mob("GHAST") == -1)
+  end
+
+  # The commands change the time, the inventory and the place of the
+  # player, and a bad command prints a red line.
+  def test_commands
+    survival = @survival
+    day = @day
+    @chat_lines.clear
+    @chat_errors.clear
+    @chat_ages.clear
+    run_chat("/time set midnight")
+    midnight = @time_of_day == 0.75
+    run_chat("/time add 6000")
+    added = @time_of_day == 0.0 && @day == day + 1
+    check("/time set and /time add move the clock, and a new day starts at 6:00", midnight && added)
+    @time_of_day = 0.3
+    @day = day
+    set_mode(true)
+    kept = @inv.copy
+    @inv.clear
+    run_chat("/give diamond_pickaxe")
+    run_chat("/give @s torch 70")
+    check("/give puts items in the inventory, with a count",
+          @inv.block(0) == Block::DIAMOND_PICK && @inv.count(0) == Block.uses(Block::DIAMOND_PICK) &&
+          @inv.total(Block::TORCH) == 70 && @chat_errors.last == 0)
+    run_chat("/give dirtt")
+    bad_item = @chat_errors.last == 1
+    run_chat("/give dirt 0")
+    bad_count = @chat_errors.last == 1
+    run_chat("/fly")
+    unknown = @chat_errors.last == 1 && @chat_lines.last == "UNKNOWN COMMAND: FLY"
+    check("a bad item, count or command prints an error line", bad_item && bad_count && unknown)
+    @inv = kept
+    run_chat("/gamemode creative")
+    creative = !@survival
+    run_chat("/gamemode s")
+    check("/gamemode switches survival and creative", creative && @survival)
+    set_mode(survival)
+    x = @player.x
+    y = @player.y
+    z = @player.z
+    run_chat("/tp ~ ~2 ~-3")
+    relative = @player.x == x && @player.y == y + 2.0 && @player.z == z - 3.0
+    tx = @spawn_x.floor + 1
+    tz = @spawn_z.floor - 1
+    run_chat("/tp #{tx} 150 #{tz}")
+    whole = @player.x == tx + 0.5 && @player.y == 150.0 && @player.z == tz + 0.5
+    check("/tp moves the player, with ~ for a place relative to the player", relative && whole)
+    @player.x = x
+    @player.y = y
+    @player.z = z
+    run_chat("/time set noon")
+    open_chat("")
+    recall_chat(-1)
+    back = @chat_text == "/time set noon"
+    recall_chat(-1)
+    further = @chat_text == "/tp #{tx} 150 #{tz}"
+    recall_chat(1)
+    recall_chat(1)
+    check("Up and Down walk through the lines typed before", back && further && @chat_text == "")
+    close_chat
+    @time_of_day = 0.3
   end
 
   # The pause screen stops the world, but the inventory and the death
