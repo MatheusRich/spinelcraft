@@ -803,6 +803,13 @@ module Gfx
       SDL_UploadToGPUBuffer(cp, &src, &dst, true);
     }
 
+    /* Draws count vertices of buf from first, with the bound pipeline. */
+    static void draw_buffer(SDL_GPUBuffer *buf, Uint32 first, Uint32 count) {
+      SDL_GPUBufferBinding b = {.buffer = buf};
+      SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
+      SDL_DrawGPUPrimitives(pass, count, 1, first, 0);
+    }
+
     /* uniforms: 16 view-projection (column-major), cam xyz + time, fog rgb + end,
        daylight, fog start, screen w, screen h, for each far terrain level the
        square x0 z0 x1 z1 that the next finer level covers, 8 for the far cloud
@@ -902,9 +909,7 @@ module Gfx
       if (sky_count) {
         /* The HUD pipeline writes no depth, so terrain drawn next covers the sky. */
         SDL_BindGPUGraphicsPipeline(pass, p_ui);
-        SDL_GPUBufferBinding b = {.buffer = sky_buf};
-        SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
-        SDL_DrawGPUPrimitives(pass, sky_count, 1, 0, 0);
+        draw_buffer(sky_buf, 0, sky_count);
       }
       return true;
     }
@@ -948,9 +953,7 @@ module Gfx
       SDL_BindGPUGraphicsPipeline(pass, p_dyn);
       SDL_GPUTextureSamplerBinding tsb[2] = {{.texture = atlas, .sampler = sampler}, {.texture = skins, .sampler = sampler}};
       SDL_BindGPUFragmentSamplers(pass, 0, tsb, 2);
-      SDL_GPUBufferBinding b = {.buffer = dyn_buf};
-      SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
-      SDL_DrawGPUPrimitives(pass, hand_first, 1, 0, 0);
+      draw_buffer(dyn_buf, 0, hand_first);
       return 0;
     }
 
@@ -958,9 +961,7 @@ module Gfx
     long gfx_draw_rain(void) {
       if (!pass || !rain_count || uni[RAIN_AT] <= 0.0f) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_rain);
-      SDL_GPUBufferBinding b = {.buffer = rain_buf};
-      SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
-      SDL_DrawGPUPrimitives(pass, rain_count, 1, 0, 0);
+      draw_buffer(rain_buf, 0, rain_count);
       return 0;
     }
 
@@ -970,9 +971,7 @@ module Gfx
       SDL_BindGPUGraphicsPipeline(pass, p_hand);
       SDL_GPUTextureSamplerBinding tsb[2] = {{.texture = atlas, .sampler = sampler}, {.texture = skins, .sampler = sampler}};
       SDL_BindGPUFragmentSamplers(pass, 0, tsb, 2);
-      SDL_GPUBufferBinding b = {.buffer = dyn_buf};
-      SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
-      SDL_DrawGPUPrimitives(pass, dyn_count - hand_first, 1, hand_first, 0);
+      draw_buffer(dyn_buf, hand_first, dyn_count - hand_first);
       return 0;
     }
 
@@ -980,10 +979,8 @@ module Gfx
     long gfx_draw_clouds(void) {
       if (!pass) return 0;
       if (cloud_count) {
-        SDL_GPUBufferBinding b = {.buffer = cloud_buf};
         SDL_BindGPUGraphicsPipeline(pass, p_cloud_depth);
-        SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
-        SDL_DrawGPUPrimitives(pass, cloud_count, 1, 0, 0);
+        draw_buffer(cloud_buf, 0, cloud_count);
         SDL_BindGPUGraphicsPipeline(pass, p_cloud_box);
         SDL_DrawGPUPrimitives(pass, cloud_count, 1, 0, 0);
       }
@@ -1002,9 +999,7 @@ module Gfx
       if (pass) {
         if (ui_count) {
           SDL_BindGPUGraphicsPipeline(pass, p_ui);
-          SDL_GPUBufferBinding b = {.buffer = ui_buf};
-          SDL_BindGPUVertexBuffers(pass, 0, &b, 1);
-          SDL_DrawGPUPrimitives(pass, ui_count, 1, 0, 0);
+          draw_buffer(ui_buf, 0, ui_count);
         }
         SDL_EndGPURenderPass(pass);
         pass = NULL;
