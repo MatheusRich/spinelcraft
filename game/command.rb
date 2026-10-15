@@ -7,6 +7,66 @@ module Command
   TIME_NAMES = ["DAY", "NOON", "NIGHT", "MIDNIGHT"]
   TIME_TICKS = [1000, 6000, 13000, 18000]
 
+  # The commands, in the order that Tab shows them.
+  NAMES = ["GAMEMODE", "GIVE", "HELP", "KILL", "SEED", "SPAWN", "SUMMON", "TELEPORT", "TIME", "TP", "WEATHER"]
+
+  # The names that complete the last word of a command line, in small
+  # letters, with _ for each space: a command, or a name that the command
+  # takes at that place. Empty when no name fits.
+  def self.complete(line)
+    out = [""]
+    out.clear
+    return out unless line.start_with?("/")
+    at = last_word_at(line)
+    word = line[at, line.size - at].to_s.upcase
+    choices(words(line[0, at].to_s), at == 1).each do |name|
+      typed = name.split(" ").join("_")
+      out << typed.downcase if typed.start_with?(word)
+    end
+    out
+  end
+
+  # Where the last word of a line starts: after the last space, or after
+  # the slash of a command.
+  def self.last_word_at(line)
+    i = line.size - 1
+    i -= 1 while i >= 0 && line[i] != " "
+    i < 0 && line.start_with?("/") ? 1 : i + 1
+  end
+
+  # The names that can come after the words before, or the commands when
+  # the word is the first (first).
+  def self.choices(before, first)
+    return NAMES if first
+    k = before.size - 1
+    k -= 1 if before.size > 1 && before[1].start_with?("@")
+    cmd = before.size > 0 ? before[0] : ""
+    if k == 0
+      return item_names if cmd == "GIVE"
+      return Mob::NAMES if cmd == "SUMMON"
+      return ["SURVIVAL", "CREATIVE"] if cmd == "GAMEMODE"
+      return ["SET", "ADD", "QUERY"] if cmd == "TIME"
+      return ["CLEAR", "RAIN"] if cmd == "WEATHER"
+    elsif k == 1 && cmd == "TIME" && before[before.size - 1] == "SET"
+      return TIME_NAMES
+    end
+    none = [""]
+    none.clear
+    none
+  end
+
+  # The name of each block and item once, without AIR.
+  def self.item_names
+    out = [""]
+    out.clear
+    i = 1
+    while i < Block::NAMES.size
+      out << Block::NAMES[i] if find(Block::NAMES, Block::NAMES[i]) == i
+      i += 1
+    end
+    out
+  end
+
   # The words of a line, without the slash at the start, in capitals.
   def self.words(line)
     s = line.start_with?("/") ? line[1, line.size - 1] : line

@@ -226,6 +226,7 @@ class Game
     test_menu
     test_command_words
     test_commands
+    test_tab_completion
     test_chips
     test_boats
     test_sounds
@@ -340,6 +341,32 @@ class Game
     check("Up and Down walk through the lines typed before", back && further && @chat_text == "")
     close_chat
     @time_of_day = 0.3
+  end
+
+  # Tab completes a command, then the names that the command takes, and
+  # each next Tab puts the next name on the line.
+  def test_tab_completion
+    commands = Command.complete("/t")
+    check("Tab completes the command names",
+          Command.complete("/gi") == ["give"] && commands == ["teleport", "time", "tp"] && Command.complete("hello").empty?)
+    items = Command.complete("/give ")
+    check("Tab completes item names in /give and mob names in /summon, also after @s",
+          Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper"] &&
+          items.size == Command.item_names.size && items.count("water") == 1 && items.count("wheat") == 1)
+    check("Tab completes the words of /time, /weather and /gamemode",
+          Command.complete("/time set n") == ["noon", "night"] && Command.complete("/time q") == ["query"] &&
+          Command.complete("/weather r") == ["rain"] && Command.complete("/gamemode c") == ["creative"] &&
+          Command.complete("/kill x").empty?)
+    open_chat("/summon ")
+    tab_chat
+    first = @chat_text == "/summon pig"
+    tab_chat
+    second = @chat_text == "/summon zombie"
+    3.times { tab_chat }
+    tab_chat
+    check("each Tab puts the next name on the line, and the last goes back to the first",
+          first && second && @chat_text == "/summon pig")
+    close_chat
   end
 
   # The pause screen stops the world, but the inventory and the death

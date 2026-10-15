@@ -1240,7 +1240,7 @@ module Gfx
           case SDL_EVENT_KEY_DOWN: {
             SDL_Scancode sc = e.key.scancode;
             long code = sc == SDL_SCANCODE_BACKSPACE ? 8 : sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_KP_ENTER ? 13 :
-                        sc == SDL_SCANCODE_ESCAPE ? 27 : sc == SDL_SCANCODE_UP ? 1 : sc == SDL_SCANCODE_DOWN ? 2 : 0;
+                        sc == SDL_SCANCODE_ESCAPE ? 27 : sc == SDL_SCANCODE_UP ? 1 : sc == SDL_SCANCODE_DOWN ? 2 : sc == SDL_SCANCODE_TAB ? 9 : 0;
             if (code && ntyped < TYPED_CAP) typed[ntyped++] = code;
             break;
           }
@@ -1331,6 +1331,7 @@ module Key
   TYPED_UP = 1
   TYPED_DOWN = 2
   TYPED_BACKSPACE = 8
+  TYPED_TAB = 9
   TYPED_ENTER = 13
   TYPED_ESCAPE = 27
   A = 4

@@ -9,6 +9,8 @@ class Game
   # The longest line that the player can type. Minecraft allows 256
   # characters, but 100 fit on a small window.
   CHAT_MAX = 100
+  # The most names of Tab completion that show at once.
+  CHAT_MATCHES = 10
   # The lines that Up and Down walk through.
   CHAT_HISTORY = 50
   # The lines of /help.
@@ -18,30 +20,34 @@ class Game
   # The names of the game modes in /gamemode: an even index is survival.
   GAME_MODES = ["SURVIVAL", "CREATIVE", "S", "C", "0", "1"]
 
+  # The chat frees the mouse, as in Minecraft, and takes it again when it
+  # closes.
   def open_chat(text)
     @chat_open = true
     @chat_text = text
     @chat_back = @chat_history.size
+    @tab_matches.clear
     Gfx.in_text(1)
+    Gfx.in_capture(0)
   end
 
   def close_chat
     @chat_open = false
     Gfx.in_text(0)
+    Gfx.in_capture(1)
   end
 
-  # The keys typed since the last frame edit the line. Enter runs it, and
-  # Esc closes the chat.
+  # The keys typed since the last frame edit the line. Enter runs it, Esc
+  # closes the chat, and Tab completes the last word.
   def handle_chat
-    if Gfx.in_focus_lost
-      close_chat
-      return
-    end
     n = Gfx.in_typed_count
     i = 0
     while i < n
       c = Gfx.in_typed(i)
-      if c == Key::TYPED_ESCAPE
+      @tab_matches.clear if c != Key::TYPED_TAB
+      if c == Key::TYPED_TAB
+        tab_chat
+      elsif c == Key::TYPED_ESCAPE
         close_chat
         return
       elsif c == Key::TYPED_ENTER
@@ -58,6 +64,24 @@ class Game
       i += 1
     end
   end
+
+  # Tab puts the first name that completes the last word on the line, and
+  # each next Tab the next name, as in Minecraft. The names come from
+  # Command.complete when the first Tab comes.
+  def tab_chat
+    if @tab_matches.empty?
+      @tab_matches = Command.complete(@chat_text)
+      return if @tab_matches.empty?
+      @tab_base = @chat_text[0, Command.last_word_at(@chat_text)].to_s
+      @tab_at = 0
+    end
+    @chat_text = @tab_base + @tab_matches[@tab_at]
+    @tab_at = (@tab_at + 1) % @tab_matches.size
+  end
+
+  # The names that Tab can put on the line now: the ones that it cycles
+  # through, or the ones that complete the last word.
+  def chat_matches = @tab_matches.empty? ? Command.complete(@chat_text) : @tab_matches
 
   # Puts the line step lines back or forward in the history on the line.
   # Past the newest line, the line is empty.

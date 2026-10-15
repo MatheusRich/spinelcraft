@@ -159,6 +159,12 @@ class Game
     @chat_lines.clear
     @chat_errors = Array.new(0, 0)
     @chat_ages = Array.new(0, 0.0)
+    # Tab completion: the names that Tab cycles through, the next one, and
+    # the line before the word that they replace.
+    @tab_matches = [""]
+    @tab_matches.clear
+    @tab_at = 0
+    @tab_base = ""
     @fps = 0.0
     @cpu_ms = 0.0
     @mesh_ms = 0.0

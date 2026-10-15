@@ -6,8 +6,12 @@ class Game
       return
     end
     if @chat_open
-      handle_chat
-      return
+      unless Gfx.in_focus_lost
+        handle_chat
+        return
+      end
+      # The game pauses below, as with a closed chat.
+      close_chat
     end
     escape = Gfx.in_key_pressed(Key::ESCAPE)
     if (escape && @captured) || Gfx.in_focus_lost

@@ -181,6 +181,33 @@ class Game
     fit = ((w - 16.0 * s) / (4.0 * ts)).to_i
     shown = shown[shown.size - fit, fit] if shown.size > fit
     @ui.text(8.0 * s, h - 15.0 * s, shown, ts, 1.0, 1.0, 1.0, 1.0)
+    draw_chat_matches(h, s, ts)
+  end
+
+  # The names that Tab can complete, above the chat line, as the
+  # suggestions of Minecraft. The name on the line is yellow.
+  def draw_chat_matches(h, s, ts)
+    names = chat_matches
+    return if names.empty? || (names.size == 1 && @tab_matches.empty? && @chat_text.end_with?(names[0]))
+    shown = names.size < CHAT_MATCHES ? names.size : CHAT_MATCHES
+    current = @tab_matches.empty? ? -1 : (@tab_at + names.size - 1) % names.size
+    first = current >= shown ? current - shown + 1 : 0
+    x = (8.0 + 4.0 * Command.last_word_at(@chat_text) * 2.0) * s
+    wide = 0.0
+    names.each { |n| wide = @ui.text_width(n, ts) if @ui.text_width(n, ts) > wide }
+    y = h - 18.0 * s - shown * 12.0 * s
+    @ui.rect(x - 2.0 * s, y - 2.0 * s, wide + 4.0 * s, shown * 12.0 * s, 0.0, 0.0, 0.0, 0.75)
+    k = 0
+    while k < shown
+      i = first + k
+      name = names[i].upcase
+      if i == current
+        @ui.text(x, y + k * 12.0 * s, name, ts, 1.0, 1.0, 0.3, 1.0)
+      else
+        @ui.text(x, y + k * 12.0 * s, name, ts, 0.65, 0.65, 0.65, 1.0)
+      end
+      k += 1
+    end
   end
 
   def draw_debug(s)
