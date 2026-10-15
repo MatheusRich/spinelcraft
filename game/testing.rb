@@ -2410,6 +2410,7 @@ class Game
     check("a falling attack is a critical hit: 1.5 times the damage, with sparks", falling.hp == 14.0 && @particles.count(Particle::CRIT) > sparks)
     @inv.clear
     @mobs.clear
+    @target_mob = -1
     @survival = survival
   end
 
