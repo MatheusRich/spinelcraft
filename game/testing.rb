@@ -2326,7 +2326,8 @@ class Game
     check("the player and a mob land on the top of a bed and of a chest", bed && chest && pig)
   end
 
-  # Water spreads 7 blocks over a floor and drains without its source.
+  # Water spreads 7 blocks and lava 3 over a floor, and both drain without
+  # their source.
   def test_water
     wx = @spawn_x.floor
     wz = @spawn_z.floor + 3
@@ -2343,6 +2344,12 @@ class Game
     set_block(wx, SKY_Y - 4, wz, Block::AIR)
     40.times { update_water }
     check("water drains when its source is gone", @world.get(wx + 3, SKY_Y - 4, wz) == Block::AIR && @world.get(wx - 6, SKY_Y - 4, wz) == Block::AIR)
+    set_block(wx, SKY_Y - 4, wz, Block::LAVA)
+    40.times { update_water }
+    check("lava spreads 3 blocks over a floor", Block.lava_level(@world.get(wx + 3, SKY_Y - 4, wz)) == 1 && @world.get(wx + 4, SKY_Y - 4, wz) == Block::AIR && Block.lava_level(@world.get(wx - 1, SKY_Y - 4, wz)) == 3)
+    set_block(wx, SKY_Y - 4, wz, Block::AIR)
+    40.times { update_water }
+    check("lava drains when its source is gone", @world.get(wx + 2, SKY_Y - 4, wz) == Block::AIR && @world.get(wx - 3, SKY_Y - 4, wz) == Block::AIR)
   end
 
   # Stacks spill into the backpack, and clicks move and merge them.
