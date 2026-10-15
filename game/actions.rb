@@ -90,10 +90,6 @@ class Game
     toggle_fullscreen if Gfx.in_key_pressed(Key::F11)
     open_chat("") if Gfx.in_key_pressed(Key::T)
     open_chat("/") if Gfx.in_key_pressed(Key::SLASH)
-    if !@survival && Gfx.in_key_pressed(Key::R)
-      @weather.set(!@weather.raining?)
-      say(@weather.raining? ? "RAIN" : "CLEAR SKY")
-    end
   end
 
   def set_mode(survival)
