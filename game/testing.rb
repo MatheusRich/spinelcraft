@@ -393,6 +393,11 @@ class Game
     hit_boat(0)
     check("a boat breaks after 5 hits in survival and drops itself, and after one in creative",
           held && dropped && @boats.empty? && @items.size == 1)
+    @inv.clear
+    @inv.add(Block::OAK_BOAT)
+    @inv.add(Block::OAK_BOAT)
+    check("each boat takes a slot of its own", @inv.count(0) == 1 && @inv.count(1) == 1 && @inv.room_for(Block::OAK_BOAT) == INV - 2)
+    @inv.clear
     @items.clear
     @survival = survival
     (x - 2..x + 3).each do |cx|

@@ -211,6 +211,9 @@ module Block
     b == MUTTON || b == COOKED_MUTTON || b == COAL || boat?(b)
   def self.bucket?(b) = b >= BUCKET && b <= LAVA_BUCKET
   def self.boat?(b) = b >= OAK_BOAT && b <= BIRCH_BOAT
+  # The most of b that one slot holds: a boat does not stack.
+  # minecraft.wiki/w/Boat
+  def self.stack(b) = boat?(b) ? 1 : Slots::STACK
   # Items, plants and the door, bed and ladder items are flat pictures; the
   # other blocks are cubes.
   def self.flat?(b) = item?(b) || plant?(b) || b == DOOR || b == BED || b == LADDER

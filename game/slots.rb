@@ -51,9 +51,9 @@ class Slots
     room = 0
     (0...@size).each do |i|
       if @counts[i] == 0
-        room += tool ? 1 : STACK
+        room += tool ? 1 : Block.stack(b)
       elsif @blocks[i] == b && !tool
-        room += STACK - @counts[i]
+        room += Block.stack(b) - @counts[i]
       end
     end
     room
@@ -73,7 +73,7 @@ class Slots
     return true if b == Block::AIR
     return put(b, Block.uses(b)) if Block.tool?(b)
     (0...@size).each do |i|
-      if @blocks[i] == b && @counts[i] > 0 && @counts[i] < STACK
+      if @blocks[i] == b && @counts[i] > 0 && @counts[i] < Block.stack(b)
         @counts[i] += 1
         return true
       end
@@ -111,8 +111,8 @@ class Slots
       k = lo
       while k < hi && @counts[i] > 0
         n = to.count(k)
-        if to.block(k) == b && n > 0 && n < STACK
-          moved = [STACK - n, @counts[i]].min
+        if to.block(k) == b && n > 0 && n < Block.stack(b)
+          moved = [Block.stack(b) - n, @counts[i]].min
           to.set(k, b, n + moved)
           take(i, moved)
         end

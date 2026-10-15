@@ -66,6 +66,6 @@ class Furnace
 
   # True when n of b fit in the output slot.
   def fits?(b, n)
-    @slots.empty?(OUTPUT) || (@slots.block(OUTPUT) == b && @slots.count(OUTPUT) + n <= Slots::STACK)
+    @slots.empty?(OUTPUT) || (@slots.block(OUTPUT) == b && @slots.count(OUTPUT) + n <= Block.stack(b))
   end
 end

@@ -135,7 +135,7 @@ class Game
       say("THE FURNACE HOLDS #{Block::NAMES[slots.block(Furnace::INPUT)]}")
       return
     end
-    n = Slots::STACK - slots.count(Furnace::INPUT)
+    n = Block.stack(b) - slots.count(Furnace::INPUT)
     n = want if want < n
     n = @inv.total(b) if @inv.total(b) < n
     return if n == 0
@@ -171,7 +171,7 @@ class Game
     slots = open_furnace.slots
     if i == Furnace::OUTPUT && @held_count > 0
       return if @held_block != slots.block(i) || slots.empty?(i)
-      moved = [Slots::STACK - @held_count, slots.count(i)].min
+      moved = [Block.stack(@held_block) - @held_count, slots.count(i)].min
       @held_count += moved
       slots.take(i, moved)
       return
@@ -439,7 +439,7 @@ class Game
       @held_count = 0
       @held_block = Block::AIR
     elsif b == @held_block && !Block.tool?(b)
-      moved = [Slots::STACK - n, @held_count].min
+      moved = [Block.stack(b) - n, @held_count].min
       slots.set(i, b, n + moved)
       @held_count -= moved
       @held_block = Block::AIR if @held_count == 0
@@ -464,7 +464,7 @@ class Game
       slots.take(i, taken)
     elsif Block.tool?(@held_block) || (n > 0 && b != @held_block)
       click_cell(slots, i)
-    elsif n < Slots::STACK
+    elsif n < Block.stack(@held_block)
       slots.set(i, @held_block, n + 1)
       @held_count -= 1
       @held_block = Block::AIR if @held_count == 0
@@ -552,7 +552,7 @@ class Game
       while k < CHEST_SLOTS && @held_count > 0
         n = @chest.count(k)
         if n == 0 || (@chest.block(k) == @held_block && !tool)
-          taken = tool || Slots::STACK - n >= @held_count ? @held_count : Slots::STACK - n
+          taken = tool || Block.stack(@held_block) - n >= @held_count ? @held_count : Block.stack(@held_block) - n
           @chest.set(k, @held_block, n + taken)
           @held_count -= taken
         end

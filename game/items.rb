@@ -104,7 +104,7 @@ class Game
       next if a.count <= 0 || Block.tool?(a.block)
       ((i + 1)...@items.size).each do |j|
         b = @items[j]
-        a.absorb(b) if b.block == a.block && b.count > 0 && a.count + b.count <= Slots::STACK && a.touches?(b)
+        a.absorb(b) if b.block == a.block && b.count > 0 && a.count + b.count <= Block.stack(a.block) && a.touches?(b)
       end
     end
   end
