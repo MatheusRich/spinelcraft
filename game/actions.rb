@@ -153,6 +153,15 @@ class Game
       end
       return
     end
+    if current_block == Block::SHEARS && @target_mob >= 0 && @mobs[@target_mob].shearable?
+      @eat_time = -1.0
+      @draw_time = -1.0
+      if held && @action_cooldown <= 0.0
+        shear(@mobs[@target_mob])
+        @action_cooldown = 0.22
+      end
+      return
+    end
     target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
     if edible? && !usable?(target)
       if held
@@ -199,6 +208,17 @@ class Game
       end
       @action_cooldown = 0.22
     end
+  end
+
+  # Shears take the wool of a sheep without a hit: 1 to 3 wool
+  # (minecraft.wiki/w/Sheep), for 1 use of the shears (minecraft.wiki/w/Shears).
+  # The sound table has no sound for shears, so the wool sound plays.
+  def shear(m)
+    m.sheared = true
+    loot(m, Block::WOOL, 1 + (@rng.rand01 * 3.0).to_i)
+    play_at(Sfx::CLOTH, m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
+    @swing = 0.25
+    wear_tool(1)
   end
 
   # Shears carve a face into the side of the pumpkin at x, y, z that the

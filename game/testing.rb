@@ -212,6 +212,7 @@ class Game
     test_buckets
     test_pumpkins
     test_seed_soil
+    test_shear_sheep
     test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -1516,6 +1517,16 @@ class Game
     n = ground_count(Block::MUTTON)
     check("a sheep that the player kills drops its wool and 1 to 2 mutton", ground_count(Block::WOOL) == 1 && n >= 1 && n <= 2)
     @items.clear
+    bare = Mob.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 6)
+    bare.sheared = true
+    bare.hp = 0.0
+    bare.by_player = true
+    @mobs << bare
+    update_mobs(1.0 / 60.0)
+    n = ground_count(Block::MUTTON)
+    check("a sheared sheep drops no wool when killed, and still drops 1 to 2 mutton", ground_count(Block::WOOL) == 0 && n >= 1 && n <= 2)
+    @items.clear
+    @mobs.clear
     # Raw mutton gives 2 hunger and 1.2 saturation, and cooked mutton 6 and
     # 9.6. A furnace cooks it.
     raw = Block.food(Block::MUTTON) == 2 && Block.saturation(Block::MUTTON) == 1.2
@@ -2516,6 +2527,53 @@ class Game
     soil = (0...plants.size - 1).all? { |i| planted[i] == [true, true, true, false, false, false] }
     torch = planted[plants.size - 1].all?
     check("seeds, saplings, flowers and tall grass go only on dirt, grass or snowy grass, and a torch on any solid block", soil && torch)
+  end
+
+  # Shears take 1 to 3 wool from a sheep without a hit, and a sheared sheep
+  # grows its wool back when it eats grass.
+  def test_shear_sheep
+    bx = @spawn_x.floor + 50
+    bz = @spawn_z.floor - 80
+    y = SKY_Y - 20
+    (-2..2).each { |dx| (-2..2).each { |dz| set_block(bx + dx, y, bz + dz, Block::GRASS) } }
+    survival = @survival
+    @survival = true
+    @inv.clear
+    @inv.add(Block::SHEARS)
+    @slot = 0
+    @items.clear
+    @mobs.clear
+    sheep = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    @mobs << sheep
+    @target_boat = -1
+    @target_mob = 0
+    @action_cooldown = 0.0
+    right_button(0.05, true)
+    wool = ground_count(Block::WOOL)
+    sheared = sheep.sheared && sheep.hp == Mob::HP[Mob::SHEEP] && wool >= 1 && wool <= 3 &&
+              @inv.count(0) == Block.uses(Block::SHEARS) - 1
+    @action_cooldown = 0.0
+    right_button(0.05, true)
+    once = ground_count(Block::WOOL) == wool && @inv.count(0) == Block.uses(Block::SHEARS) - 1
+    check("shears take 1 to 3 wool from a sheep without a hit, once, for 1 use", sheared && once)
+    @items.clear
+    try_graze(sheep)
+    on_grass = !sheep.sheared && sheep.graze > 0.0 && @world.get(bx, y, bz) == Block::DIRT
+    sheep.sheared = true
+    set_block(bx, y, bz, Block::GRASS)
+    set_block(bx, y + 1, bz, Block::TALL_GRASS)
+    try_graze(sheep)
+    on_tall = !sheep.sheared && @world.get(bx, y + 1, bz) == Block::AIR && @world.get(bx, y, bz) == Block::GRASS
+    sheep.sheared = true
+    set_block(bx, y, bz, Block::STONE)
+    try_graze(sheep)
+    on_stone = sheep.sheared
+    check("a sheared sheep grows its wool back when it eats tall grass or the grass under it, and grass turns to dirt",
+          on_grass && on_tall && on_stone && (GRAZE_CHANCE - 0.04).abs < 1.0e-9)
+    @mobs.clear
+    @inv.clear
+    @survival = survival
+    (-2..2).each { |dx| (-2..2).each { |dz| (0..1).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
   end
 
   # A ladder lifts the player at 2.35 m/s on jump, holds the player on

@@ -224,6 +224,26 @@ class Game
     r < HALLOWEEN_JACK + HALLOWEEN_CARVED ? Block::CARVED_PUMPKIN : 0
   end
 
+  # An adult sheep starts to eat grass with chance 1/500 each tick, so 20/500
+  # each second. minecraft.wiki/w/Sheep
+  GRAZE_CHANCE = 20.0 / 500.0
+
+  # The sheep m eats the tall grass in its cell, or else turns the grass
+  # under it into dirt. With no grass, it does not eat. minecraft.wiki/w/Sheep
+  def try_graze(m)
+    x = m.x.floor
+    y = (m.y + 0.01).floor
+    z = m.z.floor
+    if @world.get(x, y, z) == Block::TALL_GRASS
+      set_block(x, y, z, Block::AIR)
+    elsif @world.get(x, y - 1, z) == Block::GRASS
+      set_block(x, y - 1, z, Block::DIRT)
+    else
+      return
+    end
+    m.eat_grass
+  end
+
   # A random monster kind by MONSTER_WEIGHTS.
   def pick_monster
     r = @rng.rand01 * MONSTER_WEIGHTS.sum
@@ -338,6 +358,7 @@ class Game
         explode(m.x, m.y + 0.8, m.z)
       end
       m.douse if m.fire > 0.0 && @weather.rain > 0.5 && @world.under_sky?(m.x, m.y + m.tall, m.z)
+      try_graze(m) if m.kind == Mob::SHEEP && !m.dying? && m.graze <= 0.0 && @rng.rand01 < dt * GRAZE_CHANCE
       @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
@@ -390,7 +411,7 @@ class Game
       loot(m, Block::ARROW, (@rng.rand01 * 3.0).to_i)
       loot(m, Block::BOW, 1) if @rng.rand01 < 0.085
     elsif m.kind == Mob::SHEEP
-      loot(m, Block::WOOL, 1)
+      loot(m, Block::WOOL, 1) unless m.sheared
       loot(m, Block::MUTTON, 1 + (@rng.rand01 * 2.0).to_i)
     elsif m.kind == Mob::PIG
       loot(m, Block::PORKCHOP, 1 + (@rng.rand01 * 3.0).to_i)

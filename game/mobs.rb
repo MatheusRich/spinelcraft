@@ -63,6 +63,10 @@ class Mob
   # The block that the mob wears on its head (a carved pumpkin on
   # Halloween), or 0.
   attr_accessor :head
+  # True for a sheep that shears took the wool of, until it eats grass.
+  attr_accessor :sheared
+  # Seconds that a sheep still eats grass, with its head down.
+  attr_reader :graze
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -102,9 +106,26 @@ class Mob
     @leg_swing = 0.0
     @stuck = 0.0
     @head = 0
+    @sheared = false
+    @graze = 0.0
   end
 
   def passive? = PASSIVE[@kind] == 1
+
+  # A sheep eats for 40 ticks. The wiki does not give the time; 40 ticks is
+  # the time of the game code (EatBlockGoal).
+  GRAZE_TIME = 2.0
+  # How far a grazing sheep turns its head down, in radians.
+  GRAZE_NOD = 0.9
+
+  def shearable? = @kind == SHEEP && !@sheared && !dying?
+
+  # The sheep eats grass: it stands still with its head down, and its wool
+  # grows back. minecraft.wiki/w/Sheep
+  def eat_grass
+    @graze = GRAZE_TIME
+    @sheared = false
+  end
 
   # A dying mob lies on the ground until DEATH_TIME. It does not move on its
   # own, attack or take hits.
@@ -156,6 +177,7 @@ class Mob
   # parameter, and this one made the others untyped.
   def update_mob(world, dt, player, day)
     @hurt -= dt
+    @graze -= dt
     @immune -= dt
     @attack_wait -= dt
     speed = 0.0
@@ -258,6 +280,8 @@ class Mob
       end
       @yaw = @rng.rand01 * 6.283
     end
+    # A grazing sheep stands still.
+    return 0.0 if @graze > 0.0 && @panic <= 0.0
     @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
   end
 
@@ -404,13 +428,17 @@ class Mob
     legs(mesh, l, 3.0, 18.0, 7.0, -5.0, 6.0, 0.0, swing, 1.0, red)
   end
 
+  # A grazing sheep bows its head to the ground, and a sheared sheep has no
+  # fur.
   def draw_sheep(mesh, swing, red)
     l = Tex::SKINS + @kind
-    part(mesh, l, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+    nod = @graze > 0.0 ? GRAZE_NOD : 0.0
+    part(mesh, l, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
     part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
     legs(mesh, l, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, 1.0, red)
+    return if @sheared
     fur = Tex::SKINS + Tex::SKIN_FUR
-    part(mesh, fur, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
+    part(mesh, fur, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
     part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, 1.0, red, red)
     legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, 1.0, red)
   end
