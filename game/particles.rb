@@ -108,6 +108,8 @@ class Particle
       mesh.billboard(@x, @y, @z, 0.04, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::WHITE, 1.0, 0.45 + 0.3 * t, 0.1, 1.0)
       mesh.glow = 0.0
     end
+    # A nil return keeps Spinel from boxing the value of each branch.
+    nil
   end
 end
 
