@@ -210,6 +210,7 @@ class Game
     bz = @spawn_z.floor
     test_bow(bx, bz)
     test_sneak_and_bed(bx, bz)
+    test_bow_on_stations
     test_water
     test_inventory_clicks
     test_swim_out
@@ -2405,6 +2406,35 @@ class Game
     @inv.clear
     @mobs.clear
     @survival = survival
+  end
+
+  # A right click with a bow in hand opens a furnace or a crafting table,
+  # as with any other item, and does not draw the bow.
+  def test_bow_on_stations
+    x = @spawn_x.floor + 35
+    z = @spawn_z.floor - 45
+    y = SKY_Y - 20
+    keep_pose
+    survival = @survival
+    @survival = true
+    @inv.clear
+    @inv.add(Block::BOW)
+    @slot = 0
+    opened = [Block::FURNACE, Block::CRAFTING_TABLE].all? do |b|
+      set_block(x, y, z, b)
+      aim_down(x, y, z)
+      @action_cooldown = 0.0
+      @draw_time = -1.0
+      right_button(0.05, true)
+      open = @inventory_open && @station != BY_HAND && @draw_time < 0.0
+      toggle_inventory if @inventory_open
+      open
+    end
+    set_block(x, y, z, Block::AIR)
+    @inv.clear
+    @survival = survival
+    restore_pose
+    check("a bow in hand opens a furnace or a crafting table, and does not draw", opened)
   end
 
   # Sneaking, walking off an edge, and the bed, on the platform from test_bow.

@@ -174,7 +174,7 @@ class Game
       return
     end
     @eat_time = -1.0
-    if current_block == Block::BOW && Block::BASE[target] != Block::CHEST && !Block.bed?(target) && !Block.door?(target)
+    if current_block == Block::BOW && !usable?(target)
       if held
         @draw_time = 0.0 if @draw_time < 0.0
         @draw_time += dt
