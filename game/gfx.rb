@@ -649,65 +649,46 @@ module Gfx
       return true;
     }
 
-    /* layers of 16x16 RGBA pixels, one Integer per pixel (0xAABBGGRR). */
-    bool gfx_textures(const int64_t *px, long layers) {
-      SDL_GPUTextureCreateInfo ti = {0};
-      ti.type = SDL_GPU_TEXTURETYPE_2D_ARRAY;
-      ti.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-      ti.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-      ti.width = 16; ti.height = 16;
-      ti.layer_count_or_depth = (Uint32)layers;
-      ti.num_levels = 5;
-      atlas = SDL_CreateGPUTexture(dev, &ti);
-      if (!atlas) return fail("SDL_CreateGPUTexture");
-      Uint32 size = (Uint32)(layers * 256 * 4);
-      SDL_GPUTransferBuffer *tb = make_transfer(size);
-      stage_ints(tb, px, layers * 256, false);
+    /* Makes a texture of layers squares of side x side RGBA pixels and
+       uploads px, one Integer per pixel (0xAABBGGRR), into it. With more
+       than one level, the GPU makes the mipmaps. Returns NULL on a failure. */
+    static SDL_GPUTexture *upload_texture(const int64_t *px, SDL_GPUTextureType type, Uint32 side, Uint32 layers, Uint32 levels) {
+      SDL_GPUTextureCreateInfo ti = {.type = type, .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+        .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | (levels > 1 ? SDL_GPU_TEXTUREUSAGE_COLOR_TARGET : 0),
+        .width = side, .height = side, .layer_count_or_depth = layers, .num_levels = levels};
+      SDL_GPUTexture *t = SDL_CreateGPUTexture(dev, &ti);
+      if (!t) { fail("SDL_CreateGPUTexture"); return NULL; }
+      Uint32 layer_bytes = side * side * 4;
+      SDL_GPUTransferBuffer *tb = make_transfer(layer_bytes * layers);
+      stage_ints(tb, px, (long)side * side * layers, false);
       SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
       SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
-      SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb, .pixels_per_row = 16, .rows_per_layer = 16};
-      SDL_GPUTextureRegion region = {.texture = atlas, .w = 16, .h = 16, .d = 1};
-      for (long l = 0; l < layers; l++) {
-        src.offset = (Uint32)(l * 1024);
-        region.layer = (Uint32)l;
+      SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb, .pixels_per_row = side, .rows_per_layer = side};
+      SDL_GPUTextureRegion region = {.texture = t, .w = side, .h = side, .d = 1};
+      for (Uint32 l = 0; l < layers; l++) {
+        src.offset = l * layer_bytes;
+        region.layer = l;
         SDL_UploadToGPUTexture(cp, &src, &region, false);
       }
       SDL_EndGPUCopyPass(cp);
-      SDL_GenerateMipmapsForGPUTexture(c, atlas);
+      if (levels > 1) SDL_GenerateMipmapsForGPUTexture(c, t);
       SDL_SubmitGPUCommandBuffer(c);
       SDL_ReleaseGPUTransferBuffer(dev, tb);
-      return true;
+      return t;
+    }
+
+    /* layers of 16x16 RGBA pixels, one Integer per pixel (0xAABBGGRR). */
+    bool gfx_textures(const int64_t *px, long layers) {
+      atlas = upload_texture(px, SDL_GPU_TEXTURETYPE_2D_ARRAY, 16, (Uint32)layers, 5);
+      return atlas != NULL;
     }
 
     /* layers of 64x64 RGBA pixels (0xAABBGGRR): the mob skins. Mobs are
        small on the screen only when they are far, so the skins have no
        mipmaps. */
     bool gfx_skins(const int64_t *px, long layers) {
-      SDL_GPUTextureCreateInfo ti = {0};
-      ti.type = SDL_GPU_TEXTURETYPE_2D_ARRAY;
-      ti.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-      ti.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-      ti.width = 64; ti.height = 64;
-      ti.layer_count_or_depth = (Uint32)layers;
-      ti.num_levels = 1;
-      skins = SDL_CreateGPUTexture(dev, &ti);
-      if (!skins) return fail("SDL_CreateGPUTexture");
-      Uint32 size = (Uint32)(layers * 4096 * 4);
-      SDL_GPUTransferBuffer *tb = make_transfer(size);
-      stage_ints(tb, px, layers * 4096, false);
-      SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
-      SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
-      SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb, .pixels_per_row = 64, .rows_per_layer = 64};
-      SDL_GPUTextureRegion region = {.texture = skins, .w = 64, .h = 64, .d = 1};
-      for (long l = 0; l < layers; l++) {
-        src.offset = (Uint32)(l * 4096 * 4);
-        region.layer = (Uint32)l;
-        SDL_UploadToGPUTexture(cp, &src, &region, false);
-      }
-      SDL_EndGPUCopyPass(cp);
-      SDL_SubmitGPUCommandBuffer(c);
-      SDL_ReleaseGPUTransferBuffer(dev, tb);
-      return true;
+      skins = upload_texture(px, SDL_GPU_TEXTURETYPE_2D_ARRAY, 64, (Uint32)layers, 1);
+      return skins != NULL;
     }
 
     /* The pixels of the last image that gfx_png loaded (0xAABBGGRR). */
@@ -741,27 +722,8 @@ module Gfx
     bool gfx_clouds(const int64_t *px, long size) {
       int levels = 1;
       while ((1L << levels) <= size) levels++;
-      SDL_GPUTextureCreateInfo ti = {0};
-      ti.type = SDL_GPU_TEXTURETYPE_2D;
-      ti.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-      ti.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-      ti.width = (Uint32)size; ti.height = (Uint32)size;
-      ti.layer_count_or_depth = 1;
-      ti.num_levels = (Uint32)levels;
-      SDL_GPUTexture *t = SDL_CreateGPUTexture(dev, &ti);
-      if (!t) return fail("SDL_CreateGPUTexture");
-      Uint32 bytes = (Uint32)(size * size * 4);
-      SDL_GPUTransferBuffer *tb = make_transfer(bytes);
-      stage_ints(tb, px, size * size, false);
-      SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
-      SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
-      SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb};
-      SDL_GPUTextureRegion region = {.texture = t, .w = (Uint32)size, .h = (Uint32)size, .d = 1};
-      SDL_UploadToGPUTexture(cp, &src, &region, false);
-      SDL_EndGPUCopyPass(cp);
-      SDL_GenerateMipmapsForGPUTexture(c, t);
-      SDL_SubmitGPUCommandBuffer(c);
-      SDL_ReleaseGPUTransferBuffer(dev, tb);
+      SDL_GPUTexture *t = upload_texture(px, SDL_GPU_TEXTURETYPE_2D, (Uint32)size, 1, (Uint32)levels);
+      if (!t) return false;
       /* SDL frees the old texture when no frame on the GPU uses it. */
       if (cloud_tex) SDL_ReleaseGPUTexture(dev, cloud_tex);
       cloud_tex = t;
