@@ -2344,6 +2344,11 @@ class Game
       grown = (0...4).count { |d| @world.get(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d]) == Block::PUMPKIN }
     end
     check("a ripe stem grows one pumpkin next to it", grown == 1)
+    # A plant draws its top texture, and an item in the hand, on the ground
+    # or in a slot its side and front textures.
+    check("pumpkin seeds look like seeds as an item and like a stem when planted",
+          Block::TOP[Block::PUMPKIN_SEEDS] == Tex::PUMPKIN_STEM && Block::SIDE[Block::PUMPKIN_SEEDS] == Tex::PUMPKIN_SEEDS &&
+          Block::FRONT[Block::PUMPKIN_SEEDS] == Tex::PUMPKIN_SEEDS)
     halloween = @halloween
     @halloween = true
     heads = Array.new(Block::COUNT, 0)
