@@ -521,7 +521,8 @@ class World
     end
   end
 
-  # Lists the torches and the exposed lava below height top.
+  # Lists the torches, the jack o'lanterns and the exposed lava below
+  # height top.
   def find_torches(cx, cz, top)
     @chunk_torches[World.slot(cx, cz)].clear
     x = cx * CHUNK
@@ -532,7 +533,7 @@ class World
         y = 0
         while y < top
           b = block(base + y)
-          add_torch(x, y, z) if Block.torch?(b) || (b == Block::LAVA && exposed?(base + y))
+          add_torch(x, y, z) if Block.torch?(b) || Block.jack_o_lantern?(b) || (b == Block::LAVA && exposed?(base + y))
           y += 1
         end
         z += 1
@@ -990,10 +991,23 @@ class World
     c0 + (c1 - c0) * tz
   end
 
+  # A chunk has a pumpkin patch 1 time in 32 (minecraft.wiki/w/Pumpkin).
+  # The patch fills about a quarter of the grass PATCH_REACH blocks or
+  # less from its center. The wiki does not give the size of a patch. The
+  # center stays PATCH_REACH blocks from the chunk edges, so the patch
+  # does not need the chunks next door.
+  PATCH_ODDS = 65536 / 32
+  PATCH_REACH = 3
+  PATCH_FILL = 65536 / 4
+
   # Trees (also those that grow next door and reach in), then plants and cacti.
   def decorate(cx, cz)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
+    patch = Noise.hash3(cx, 0, cz, 40) < PATCH_ODDS
+    span = CHUNK - PATCH_REACH * 2
+    patch_x = x0 + PATCH_REACH + Noise.hash3(cx, 1, cz, 40) % span
+    patch_z = z0 + PATCH_REACH + Noise.hash3(cx, 2, cz, 40) % span
     x = x0 - TREE_REACH
     while x < x0 + CHUNK + TREE_REACH
       z = z0 - TREE_REACH
@@ -1016,7 +1030,9 @@ class World
         if ground == Block::GRASS && block(World.index(x, top + 1, z)) == Block::AIR
           p = Noise.hash3(x, 2, z, 25)
           meadow = @noise3.noise2(x / 30.0, z / 30.0 + 11.0)
-          if p < Biome::GRASS[biome] + (meadow * 12000.0).to_i
+          if patch && (x - patch_x).abs <= PATCH_REACH && (z - patch_z).abs <= PATCH_REACH && Noise.hash3(x, 3, z, 40) < PATCH_FILL
+            put(x, top + 1, z, Block::PUMPKIN, x0, z0)
+          elsif p < Biome::GRASS[biome] + (meadow * 12000.0).to_i
             put(x, top + 1, z, Block::TALL_GRASS, x0, z0)
           elsif p >= 65536 - Biome::FLOWERS[biome] && meadow > -0.05
             put(x, top + 1, z, (x + z) % 3 == 0 ? Block::ROSE : Block::DANDELION, x0, z0)

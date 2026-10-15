@@ -445,6 +445,8 @@ class Mesher
           w1 = tex | (ao0 << AO_AT) | (ao1 << (AO_AT + 2)) | (ao2 << (AO_AT + 4)) | (ao3 << (AO_AT + 6)) | (flip << FLIP_AT) | (sky << SKY_AT) |
                Mesher.tint_w1(tex)
           w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
+          # A jack o'lantern glows on each face, as lava does.
+          w1 = (w1 & ~(((1 << LIGHT_BITS) - 1) << LIGHT_AT)) | (LIGHT_MAX << LIGHT_AT) if Block.jack_o_lantern?(id)
           # A block with a shape has no AO. A shape without a facing
           # (a cactus) draws as if it faces +x.
           w1 |= (255 << AO_AT) | ((Block::FACING[id] < 0 ? 0 : Block::FACING[id]) << FACING_AT) | (shape << SHAPE_AT) if shape > 0

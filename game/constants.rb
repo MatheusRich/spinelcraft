@@ -19,7 +19,8 @@ class Game
                     Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
                     Block::COAL, Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
                     Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::ROTTEN_FLESH,
-                    Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT]
+                    Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
+                    Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::SHEARS]
   FOG_END = 1600.0
   # The range of the render distance slider, in blocks.
   VIEW_MIN = 200.0
@@ -126,7 +127,8 @@ class Game
   AT_TABLE = 1
   AT_FURNACE = 2
   # Each recipe: the ingredient, how many, the result, how many, and where.
-  # The ingredient is a block, or Block::ANY_PLANKS.
+  # The ingredient is a block, or Block::ANY_PLANKS. A recipe with a second
+  # ingredient has it and how many at the end.
   # The recipe list shows two recipes to a row. The planks and the crafting
   # table come first, as the first things to make. The tools come next, in
   # pairs of one material, so that each kind of tool is a column: the
@@ -150,7 +152,9 @@ class Game
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
              # A boat takes 5 planks of its wood. minecraft.wiki/w/Boat
              [Block::OAK_PLANKS, 5, Block::OAK_BOAT, 1, AT_TABLE], [Block::SPRUCE_PLANKS, 5, Block::SPRUCE_BOAT, 1, AT_TABLE],
-             [Block::BIRCH_PLANKS, 5, Block::BIRCH_BOAT, 1, AT_TABLE],
+             [Block::BIRCH_PLANKS, 5, Block::BIRCH_BOAT, 1, AT_TABLE], [Block::IRON_INGOT, 2, Block::SHEARS, 1, BY_HAND],
+             [Block::PUMPKIN, 1, Block::PUMPKIN_SEEDS, 4, BY_HAND],
+             [Block::CARVED_PUMPKIN, 1, Block::JACK_O_LANTERN, 1, BY_HAND, Block::TORCH, 1],
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::OAK_LOG, 1, Block::COAL, 1, AT_FURNACE],
              [Block::SPRUCE_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::BIRCH_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
              [Block::MUTTON, 1, Block::COOKED_MUTTON, 1, AT_FURNACE],

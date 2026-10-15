@@ -36,9 +36,9 @@ class Game
   # in time.
   def craft_recipe(k, want = 1)
     r = RECIPES[k]
-    have = ingredient_total(r[0]) / r[1]
+    have = recipe_times(r)
     if have == 0
-      say("NEED #{r[1]} #{Block.ingredient_name(r[0])}")
+      say("NEED #{recipe_need(r)}")
       return
     end
     unless station_makes?(r[4])
@@ -56,6 +56,7 @@ class Game
       @inv = saved.copy
       # Take the ingredients first: a slot that they empty is room for the result.
       remove_ingredient(r[0], r[1] * times)
+      remove_ingredient(second_ingredient(r), second_count(r) * times) if second_ingredient(r) > 0
       break if @inv.room_for(r[2]) >= r[3] * times
       times -= 1
     end
@@ -80,6 +81,26 @@ class Game
       i += 1
     end
     n
+  end
+
+  # The second ingredient of recipe r and how many it takes, or 0 for a
+  # recipe with one ingredient.
+  def second_ingredient(r) = r.size > 5 ? r[5].to_i : 0
+  def second_count(r) = r.size > 5 ? r[6].to_i : 0
+
+  # How many times the inventory has the ingredients of recipe r.
+  def recipe_times(r)
+    n = ingredient_total(r[0]) / r[1]
+    return n if second_ingredient(r) == 0
+    m = ingredient_total(second_ingredient(r)) / second_count(r)
+    m < n ? m : n
+  end
+
+  # The ingredients of recipe r as text, as "1 CARVED PUMPKIN + 1 TORCH".
+  def recipe_need(r)
+    need = "#{r[1]} #{Block.ingredient_name(r[0])}"
+    return need if second_ingredient(r) == 0
+    "#{need} + #{second_count(r)} #{Block.ingredient_name(second_ingredient(r))}"
   end
 
   # Takes n of the recipe ingredient ing: all that it needs of the first

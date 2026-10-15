@@ -44,6 +44,8 @@ These files are copies with no changes.
 | `hunger.png`, `hunger_empty.png`, `hunger_effect.png` | `hbhunger_icon.png`, `hbhunger_bgicon.png`, `mcl_hunger_icon_foodpoison.png` (9x9, as the HUD icons of Minecraft) |
 | `heart.png`, `heart_empty.png` | `hudbars_icon_health.png`, `hudbars_bgicon_health.png` (9x9, as the HUD icons of Minecraft) |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
+| `pumpkin_side.png`, `pumpkin_top.png`, `pumpkin_face.png`, `jack_face.png` | `farming_pumpkin_side.png`, `farming_pumpkin_top.png`, `farming_pumpkin_face.png`, `farming_pumpkin_face_light.png` |
+| `pumpkin_seeds.png`, `pumpkin_stem.png`, `shears.png` | `mcl_farming_pumpkin_seeds.png`, `mcl_farming_pumpkin_stem_disconnected.png`, `default_tool_shears.png` |
 
 ## Mob skins
 

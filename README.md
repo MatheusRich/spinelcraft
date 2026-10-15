@@ -59,6 +59,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
 - Animals, and monsters that come out in the dark.
 - Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
+- Pumpkin patches. Shears carve a face into a pumpkin, and a carved pumpkin and a torch make a jack o'lantern, which lights the night. Pumpkin seeds grow a stem, and the stem grows new pumpkins.
 - A view distance of up to 5000 blocks.
 - Sounds from VoxeLibre, under free licenses. `assets/sounds/CREDITS.md` names the author and the license of each file.
 

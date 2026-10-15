@@ -142,7 +142,7 @@ class Game
   end
 
   # The right button gets in a boat, draws the bow, opens a chest, uses a
-  # bed, eats, or places a block or a boat.
+  # bed, eats, carves a pumpkin, or places a block or a boat.
   def right_button(dt, held)
     if @target_boat >= 0 && !riding?
       @eat_time = -1.0
@@ -192,11 +192,31 @@ class Game
         use_bucket
       elsif Block.boat?(current_block.to_i)
         place_boat
+      elsif current_block == Block::SHEARS && target == Block::PUMPKIN
+        carve_pumpkin(@player.hx, @player.hy, @player.hz)
       elsif @player.hit
         place
       end
       @action_cooldown = 0.22
     end
+  end
+
+  # Shears carve a face into the side of the pumpkin at x, y, z that the
+  # player looks at. On the top or the bottom, the face turns to the
+  # player. The pumpkin drops 4 seeds. minecraft.wiki/w/Pumpkin
+  def carve_pumpkin(x, y, z)
+    d = if @player.px != x
+      @player.px > x ? 0 : 1
+    elsif @player.pz != z
+      @player.pz > z ? 2 : 3
+    else
+      look_direction ^ 1
+    end
+    set_block(x, y, z, Block.facing_id(Block::CARVED_PUMPKIN, d))
+    drop_from_block(Block::PUMPKIN_SEEDS, 4, x, y, z)
+    play(MATERIAL_DIG[M_WOOD], 0.7)
+    @swing = 0.25
+    wear_tool(1)
   end
 
   # An empty bucket takes the first water or lava source in view. A full
@@ -332,7 +352,7 @@ class Game
     return M_GRASS if b == Block::GRASS || b == Block::SNOW_GRASS
     return M_SNOW if b == Block::SNOW
     return M_CLOTH if b == Block::WOOL
-    return M_WOOD if b == Block::TORCH || b == Block::CACTUS
+    return M_WOOD if b == Block::TORCH || b == Block::CACTUS || Block.pumpkin?(b)
     return M_LEAVES if Block.leaves?(b) || Block.plant?(b)
     return M_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::BEDROCK || b == Block::FURNACE
     return M_WOOD if Block.log?(b) || Block.planks?(b) || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER

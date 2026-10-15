@@ -118,7 +118,15 @@ module Tex
   OAK_BOAT = 120
   SPRUCE_BOAT = 121
   BIRCH_BOAT = 122
-  FONT = 123
+  PUMPKIN_SIDE = 123
+  PUMPKIN_TOP = 124
+  # The carved face of a pumpkin, and of a jack o'lantern with its light.
+  PUMPKIN_FACE = 125
+  JACK_FACE = 126
+  SHEARS = 127
+  PUMPKIN_SEEDS = 128
+  PUMPKIN_STEM = 129
+  FONT = 130
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
   LAYERS = FONT + CHARS.size
 
@@ -181,7 +189,7 @@ module Tex
                   SPRUCE_LOG_SIDE, SPRUCE_LOG_TOP, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG_SIDE,
                   BIRCH_LOG_TOP, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING, MOON, MOON + 1, MOON + 2, MOON + 3,
                   MOON + 4, MOON + 5, MOON + 6, MOON + 7, MUTTON, COOKED_MUTTON, COAL, OAK_BOAT, SPRUCE_BOAT,
-                  BIRCH_BOAT]
+                  BIRCH_BOAT, PUMPKIN_SIDE, PUMPKIN_TOP, PUMPKIN_FACE, JACK_FACE, SHEARS, PUMPKIN_SEEDS, PUMPKIN_STEM]
   IMAGE_FILES = %w[grass_top grass_side dirt stone sand water oak_log_side oak_log_top oak_leaves oak_planks cobble glass snow
                    snow_side bedrock brick coal_ore iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
                    torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire oak_sapling apple
@@ -192,7 +200,8 @@ module Tex
                    bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
                    spruce_log_side spruce_log_top spruce_leaves spruce_planks spruce_sapling birch_log_side
                    birch_log_top birch_leaves birch_planks birch_sapling moon_0 moon_1 moon_2 moon_3 moon_4 moon_5
-                   moon_6 moon_7 mutton cooked_mutton coal oak_boat spruce_boat birch_boat]
+                   moon_6 moon_7 mutton cooked_mutton coal oak_boat spruce_boat birch_boat pumpkin_side pumpkin_top
+                   pumpkin_face jack_face shears pumpkin_seeds pumpkin_stem]
 
   # The HUD icons are 9 x 9 images, as in Minecraft. Each one fills the top
   # left corner of its layer, so the HUD draws ICON_PART of the layer.
@@ -282,6 +291,7 @@ module Tex
     bleed(px, WHEAT_1)
     bleed(px, WHEAT_2)
     bleed(px, WHEAT_RIPE)
+    bleed(px, PUMPKIN_STEM)
     bleed(px, CHEST_TOP)
     bleed(px, CHEST_SIDE)
     bleed(px, CHEST_FRONT)

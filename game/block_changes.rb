@@ -59,10 +59,29 @@ class Game
         b = @world.get(x, y, z)
         if (Block.sapling?(b) || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
           Block.sapling?(b) ? grow_tree(x, y, z, Block.wood(b)) : set_block(x, y, z, b + 1)
+        elsif b == Block::PUMPKIN_STEM_RIPE && @rng.rand01 < GROW_CHANCE
+          grow_pumpkin(x, y, z)
         end
       end
       n -= 1
     end
+  end
+
+  # A ripe stem grows a pumpkin on a cell next to it, in a random
+  # direction, when that cell is air over dirt or grass. A stem with a
+  # pumpkin next to it waits until the pumpkin goes. minecraft.wiki/w/Pumpkin_Seeds
+  def grow_pumpkin(x, y, z)
+    d = 0
+    while d < 4
+      return if @world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]) == Block::PUMPKIN
+      d += 1
+    end
+    d = (@rng.rand01 * 4).to_i
+    px = x + Block::DIR_DX[d]
+    pz = z + Block::DIR_DZ[d]
+    ground = @world.get(px, y - 1, pz)
+    return unless @world.get(px, y, pz) == Block::AIR && (ground == Block::DIRT || ground == Block::GRASS || ground == Block::SNOW_GRASS)
+    set_block(px, y, pz, Block::PUMPKIN)
   end
 
   # Each second, the game looks at this many of the 81 x 81 columns near

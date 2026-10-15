@@ -9,10 +9,10 @@ class Game
   MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT]
   MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH]
 
-  # Light in Minecraft: a torch has 14, lava 15, and a cell under the open
-  # sky 15 by day. Light goes down by 1 for each step to a cell that is
-  # not opaque, so walls stop it. A monster needs block light 0.
-  # minecraft.wiki/w/Light and /w/Mob_spawning
+  # Light in Minecraft: a torch has 14, lava and a jack o'lantern 15, and a
+  # cell under the open sky 15 by day. Light goes down by 1 for each step
+  # to a cell that is not opaque, so walls stop it. A monster needs block
+  # light 0. minecraft.wiki/w/Light, /w/Jack_o'Lantern and /w/Mob_spawning
   TORCH_LIGHT = 14
   LAVA_LIGHT = 15
   # The farthest that the light search goes from its cell. Sky light at
@@ -154,7 +154,7 @@ class Game
         if ny >= 0 && ny < WY && seen[m] != stamp
           seen[m] = stamp
           b = @world.get(nx, ny, nz)
-          return -1 if lamp && b == Block::LAVA && d + 1 < LAVA_LIGHT
+          return -1 if lamp && (b == Block::LAVA || Block.jack_o_lantern?(b)) && d + 1 < LAVA_LIGHT
           queue << m << d + 1 if Block::OPAQUE[b] == 0
         end
         k += 1

@@ -209,6 +209,7 @@ class Game
     test_plant_box
     test_bed
     test_buckets
+    test_pumpkins
     test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -2238,6 +2239,104 @@ class Game
     end
     set_block(x, y - 1, z, Block::STONE)
     check("a bucket takes a water or lava source and puts it back", ok)
+  end
+
+  # Shears carve a pumpkin on the side in view and drop 4 seeds. A carved
+  # pumpkin and a torch make a jack o'lantern, which lights its
+  # surroundings. A ripe stem grows one pumpkin next to it.
+  def test_pumpkins
+    bx = @spawn_x.floor + 50
+    bz = @spawn_z.floor - 60
+    y = SKY_Y - 20
+    (-3..3).each { |dx| (-3..3).each { |dz| set_block(bx + dx, y, bz + dz, Block::GRASS) } }
+    set_block(bx, y + 1, bz, Block::STONE)
+    set_block(bx, y + 2, bz, Block::PUMPKIN)
+    survival = @survival
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    yaw = @player.yaw
+    pitch = @player.pitch
+    flying = @player.flying
+    @survival = true
+    @inv.clear
+    @inv.add(Block::SHEARS)
+    @slot = 0
+    @items.clear
+    @player.x = bx - 1.5
+    @player.y = y + 1.0
+    @player.z = bz + 0.5
+    @player.yaw = 1.5708
+    @player.pitch = 0.0
+    @player.flying = true
+    @action_cooldown = 0.0
+    @player.raycast(@world)
+    right_button(0.05, true)
+    seeds = @items.size == 1 && @items[0].block == Block::PUMPKIN_SEEDS && @items[0].count == 4
+    side = @world.get(bx, y + 2, bz) == Block.facing_id(Block::CARVED_PUMPKIN, 1)
+    worn = @inv.count(0) == Block.uses(Block::SHEARS) - 1
+    # From above, the face turns to the player.
+    set_block(bx, y + 2, bz, Block::PUMPKIN)
+    @player.x = bx + 0.5
+    @player.y = y + 3.5
+    @player.pitch = -1.55
+    @action_cooldown = 0.0
+    @player.raycast(@world)
+    right_button(0.05, true)
+    top = @world.get(bx, y + 2, bz) == Block.facing_id(Block::CARVED_PUMPKIN, look_direction ^ 1)
+    @items.clear
+    @action_cooldown = 0.0
+    check("shears carve a pumpkin on the side in view, and it drops 4 seeds", seeds && side && worn && top)
+
+    @inv.clear
+    @inv.add(Block::CARVED_PUMPKIN)
+    k = recipe_for(Block::JACK_O_LANTERN)
+    craft_recipe(k)
+    refused = @inv.total(Block::JACK_O_LANTERN) == 0 && @inv.total(Block::CARVED_PUMPKIN) == 1
+    @inv.add(Block::TORCH)
+    @inv.add(Block::TORCH)
+    craft_recipe(k)
+    made = @inv.total(Block::JACK_O_LANTERN) == 1 && @inv.total(Block::CARVED_PUMPKIN) == 0 && @inv.total(Block::TORCH) == 1
+    check("a carved pumpkin and a torch make a jack o'lantern, and one without the other does not", refused && made)
+    @inv.clear
+    @survival = survival
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.yaw = yaw
+    @player.pitch = pitch
+    @player.flying = flying
+
+    set_block(bx, y + 2, bz, Block::AIR)
+    set_block(bx, y + 1, bz, Block.facing_id(Block::JACK_O_LANTERN, 2))
+    torches = @world.chunk_torches[World.slot(bx >> 4, bz >> 4)]
+    listed = (0...torches.size / 3).any? { |i| torches[i * 3] == bx && torches[i * 3 + 1] == y + 1 && torches[i * 3 + 2] == bz }
+    @mesher.build(bx / CHUNK, bz / CHUNK)
+    near = @mesher.torch_light(bx + 1, y + 1, bz) == Mesher::LIGHT_MAX - 1
+    glow = true
+    faces = 0
+    i = 0
+    while i < @mesher.opaque.size
+      w0 = @mesher.opaque[i]
+      if Mesher.face_x(w0) == (bx & LMASK) && Mesher.face_y(w0) == y + 1 && Mesher.face_z(w0) == (bz & LMASK)
+        faces += 1
+        glow = false if Mesher.face_light(@mesher.opaque[i + 1]) != Mesher::LIGHT_MAX
+      end
+      i += 2
+    end
+    lit = spawn_light(bx + 3, y + 1, bz, 0, true, 0) == -1
+    check("a jack o'lantern glows and lights its surroundings, so no monster spawns near it", listed && near && glow && faces > 0 && lit)
+    set_block(bx, y + 1, bz, Block::AIR)
+
+    set_block(bx, y + 1, bz, Block::PUMPKIN_STEM_RIPE)
+    grown = 0
+    40.times do
+      grow_pumpkin(bx, y + 1, bz)
+      grown = (0...4).count { |d| @world.get(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d]) == Block::PUMPKIN }
+    end
+    check("a ripe stem grows one pumpkin next to it", grown == 1)
+    (-3..3).each { |dx| (-3..3).each { |dz| (0..2).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
+    @items.clear
   end
 
   # A ladder lifts the player at 2.35 m/s on jump, holds the player on
