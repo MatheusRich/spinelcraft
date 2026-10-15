@@ -1,6 +1,6 @@
 # The view-projection matrix, the frustum planes, and screen projection.
 class Camera
-  attr_reader :vp, :sx, :sy
+  attr_reader :sx, :sy
 
   def initialize
     @vp = Array.new(16, 0.0)

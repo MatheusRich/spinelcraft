@@ -45,8 +45,6 @@ class Vitals
   attr_reader :air
   # Seconds that the player keeps burning after lava.
   attr_reader :fire
-  # Seconds of the Hunger effect left.
-  attr_reader :hunger_effect
 
   def initialize
     @health = MAX_HEALTH
@@ -55,6 +53,7 @@ class Vitals
     @exhaustion = 0.0
     @air = MAX_AIR
     @fire = 0.0
+    # Seconds of the Hunger effect left.
     @hunger_effect = 0.0
     # Seconds until the next point of fire damage, of lava damage, and of
     # cactus damage.

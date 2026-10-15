@@ -7,7 +7,7 @@ class Mesh3
 
   attr_reader :v
   # The least light of the next vertices: 1.0 for flames (see dyn_out in gfx.rb).
-  attr_accessor :glow
+  attr_writer :glow
   # The opaque pixels of the texture layers (see Tex.opaque), for item_model.
   attr_accessor :opaque
 

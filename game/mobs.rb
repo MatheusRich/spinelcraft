@@ -57,7 +57,7 @@ class Mob
   # in smoke. minecraft.wiki/w/Death
   DEATH_TIME = 1.0
 
-  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :shoot, :explode, :by_player
+  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :shoot, :explode, :by_player
   # True for one step after a creeper lights its fuse.
   attr_accessor :hiss
   # True after a hit, until Game#update_mobs plays the hurt sound.
@@ -67,7 +67,7 @@ class Mob
   attr_reader :fuse
   # Seconds that the mob still burns.
   attr_reader :fire
-  attr_reader :kind, :half, :tall
+  attr_reader :kind, :half, :tall, :hurt
   # Seconds that a monster has been far from the player (Game#despawn?).
   attr_accessor :idle
   # Seconds since the mob died; 0.0 while it lives.

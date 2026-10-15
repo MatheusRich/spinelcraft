@@ -4,8 +4,6 @@
 class Slots
   STACK = 64
 
-  attr_reader :size
-
   def initialize(size)
     @size = size
     @blocks = Array.new(size, 0)

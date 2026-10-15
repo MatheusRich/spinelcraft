@@ -115,10 +115,9 @@ class Game
   HOTBAR = 9
   CHEST_SLOTS = 27
 
-  # Chunks within LOAD_R of the player's chunk are loaded, and those within
-  # MESH_R are meshed. MESH_R is one less, so a chunk to mesh has its neighbors.
+  # Chunks within LOAD_R of the player's chunk are loaded. A chunk is meshed
+  # only when its neighbors are loaded too, so meshes reach one chunk less.
   LOAD_R = RING / 2 - 1
-  MESH_R = LOAD_R - 1
   # Loads that must finish before play goes on (start, respawn) stop at SYNC_R;
   # the rest stream in.
   SYNC_R = 8
