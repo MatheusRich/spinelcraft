@@ -116,7 +116,6 @@ module Block
   PLACED_LEAVES = [PLACED_OAK_LEAVES, PLACED_SPRUCE_LEAVES, PLACED_BIRCH_LEAVES]
   PLANKS = [OAK_PLANKS, SPRUCE_PLANKS, BIRCH_PLANKS]
   SAPLINGS = [OAK_SAPLING, SPRUCE_SAPLING, BIRCH_SAPLING]
-  BOATS = [OAK_BOAT, SPRUCE_BOAT, BIRCH_BOAT]
   # A recipe ingredient that the planks of any wood fill, as the planks tag
   # in Minecraft. It is not a block, so no table has an entry for it.
   ANY_PLANKS = 1000
