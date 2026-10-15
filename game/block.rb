@@ -258,6 +258,11 @@ module Block
     nil
   end
 
+  # Leaves let light through, but darken ambient occlusion corners. base is
+  # the leaves of the tree for leaves that the player placed.
+  def self.define_leaves(id, name, tex, base: id) =
+    define_block(id, name, tex, base: base, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR)
+
   # A door half (see DOOR_BLOCK) that faces +x, and its turns.
   def self.define_door(first, tex, shape)
     define_block(first, "DOOR", tex, facing: 0, base: DOOR, shape: shape, opaque: 0, hardness: 3.0, drops: DOOR, dig: DIG_AXE)
@@ -275,7 +280,7 @@ module Block
   define_block SAND, "SAND", Tex::SAND, hardness: 0.5, dig: DIG_SHOVEL
   define_block WATER, "WATER", Tex::WATER, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, water: 8
   define_block OAK_LOG, "OAK LOG", Tex::OAK_LOG_SIDE, top: Tex::OAK_LOG_TOP, hardness: 2.0, dig: DIG_AXE
-  define_block OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
+  define_leaves OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES
   define_block OAK_PLANKS, "OAK PLANKS", Tex::OAK_PLANKS, hardness: 2.0, dig: DIG_AXE
   define_block COBBLE, "COBBLESTONE", Tex::COBBLE, hardness: 2.0, needs_pick: 1, dig: DIG_PICK
   define_block GLASS, "GLASS", Tex::GLASS, opaque: 0, hardness: 0.3, drops: AIR
@@ -365,21 +370,19 @@ module Block
   define_turns BED_BLOCK + 5, BED_BLOCK + 4
   define_item ROTTEN_FLESH, "ROTTEN FLESH", Tex::ROTTEN_FLESH, food: 4, saturation: 0.8 # minecraft.wiki/w/Rotten_Flesh
   define_block SPRUCE_LOG, "SPRUCE LOG", Tex::SPRUCE_LOG_SIDE, top: Tex::SPRUCE_LOG_TOP, hardness: 2.0, dig: DIG_AXE
-  define_block SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
+  define_leaves SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES
   define_block SPRUCE_PLANKS, "SPRUCE PLANKS", Tex::SPRUCE_PLANKS, hardness: 2.0, dig: DIG_AXE
   define_plant SPRUCE_SAPLING, "SPRUCE SAPLING", Tex::SPRUCE_SAPLING
   define_block BIRCH_LOG, "BIRCH LOG", Tex::BIRCH_LOG_SIDE, top: Tex::BIRCH_LOG_TOP, hardness: 2.0, dig: DIG_AXE
-  define_block BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
+  define_leaves BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES
   define_block BIRCH_PLANKS, "BIRCH PLANKS", Tex::BIRCH_PLANKS, hardness: 2.0, dig: DIG_AXE
   define_plant BIRCH_SAPLING, "BIRCH SAPLING", Tex::BIRCH_SAPLING
   define_item MUTTON, "MUTTON", Tex::MUTTON, food: 2, saturation: 1.2 # minecraft.wiki/w/Raw_Mutton
   define_item COOKED_MUTTON, "COOKED MUTTON", Tex::COOKED_MUTTON, food: 6, saturation: 9.6 # minecraft.wiki/w/Cooked_Mutton
   define_item COAL, "COAL", Tex::COAL
-  define_block PLACED_OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES, base: OAK_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
-  define_block PLACED_SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, base: SPRUCE_LEAVES, opaque: 0, occludes: 1, hardness: 0.2,
-               drops: AIR
-  define_block PLACED_BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES, base: BIRCH_LEAVES, opaque: 0, occludes: 1, hardness: 0.2,
-               drops: AIR
+  define_leaves PLACED_OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES, base: OAK_LEAVES
+  define_leaves PLACED_SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, base: SPRUCE_LEAVES
+  define_leaves PLACED_BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES, base: BIRCH_LEAVES
   define_item OAK_BOAT, "OAK BOAT", Tex::OAK_BOAT
   define_item SPRUCE_BOAT, "SPRUCE BOAT", Tex::SPRUCE_BOAT
   define_item BIRCH_BOAT, "BIRCH BOAT", Tex::BIRCH_BOAT
