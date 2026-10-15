@@ -232,7 +232,10 @@ class Game
     @cave_fear = 0.0
     @ambient_wait = [0.0, 0.0, 0.0]
     @rng = Rng.new(@seed * 7 + 1)
-    @music = Music.new(@seed * 5 + 3)
+    # The clock seeds the music, so each session plays its own order, as
+    # in Minecraft. Near seeds give near first numbers in Rng, so a hash
+    # mixes the seconds first.
+    @music = Music.new(Noise.hash3(Time.now.to_i, 0, 0, 60))
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
     @swing = 0.0
