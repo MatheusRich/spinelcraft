@@ -154,6 +154,10 @@ class Game
     @changed = false
     # A scripted run (FRAMES) does not change the save or the options.
     @save_on_quit = ENV["FRAMES"].nil? || !ENV["SAVE"].nil?
+    prefix = file_prefix
+    @save_path = prefix + SAVE_PATH
+    @bad_save_path = prefix + BAD_SAVE_PATH
+    @options_path = prefix + OPTIONS_PATH
     load_options if @save_on_quit
     @fog_end = ENV["VIEW"].to_f if ENV["VIEW"]
     @sound = false
@@ -616,6 +620,15 @@ class Game
       @time_of_day -= 1.0
       @day += 1
     end
+  end
+
+  # The self-test writes and deletes its files in the temporary folder, so
+  # that it never changes the save or the options of the player.
+  def file_prefix
+    return "" unless ENV["SELFTEST"]
+    dir = ENV["TMPDIR"] || "/tmp"
+    dir += "/" unless dir.end_with?("/")
+    "#{dir}spinelcraft-selftest-"
   end
 
   def daylight

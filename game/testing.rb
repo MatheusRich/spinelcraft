@@ -221,7 +221,7 @@ class Game
     test_sounds
     test_streaming
     test_terrain_tables
-    File.delete(SAVE_PATH) if File.exist?(SAVE_PATH)
+    File.delete(@save_path) if File.exist?(@save_path)
     puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
   end
 
@@ -294,7 +294,7 @@ class Game
     @fov_degrees = fov
     @show_debug = true
     load_options
-    File.delete(OPTIONS_PATH)
+    File.delete(@options_path)
     check("the options load from the file that save_options writes",
           @brightness == 1.0 && @volume == 0.25 && @fog_end == 1200.0 && @fov_degrees == 90.0 && !@show_debug && !@fullscreen)
     @brightness = 0.0
@@ -1188,11 +1188,11 @@ class Game
     ok = load
     apply_loaded if ok
     check("loading a save made while dead respawns", ok && @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead? && @alive_time == 0.0)
-    File.write(SAVE_PATH, "NOT A SAVE\n")
+    File.write(@save_path, "NOT A SAVE\n")
     ok = load
     keep_bad_save
-    check("a save that does not load moves aside", !ok && !File.exist?(SAVE_PATH) && File.exist?(BAD_SAVE_PATH))
-    File.delete(BAD_SAVE_PATH) if File.exist?(BAD_SAVE_PATH)
+    check("a save that does not load moves aside", !ok && !File.exist?(@save_path) && File.exist?(@bad_save_path))
+    File.delete(@bad_save_path) if File.exist?(@bad_save_path)
   end
 
   # A right-click takes half a stack or puts down one item. A Shift-click

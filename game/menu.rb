@@ -102,10 +102,10 @@ class Game
   # The half angle of the view in radians for the field of view option.
   def option_fov = @fov_degrees * Math::PI / 360.0
 
-  # Writes the options to OPTIONS_PATH, one "name:value" line each, as in
+  # Writes the options to @options_path, one "name:value" line each, as in
   # the options.txt of Minecraft.
   def save_options
-    File.open(OPTIONS_PATH, "w") do |f|
+    File.open(@options_path, "w") do |f|
       f.write("brightness:#{@brightness}\nvolume:#{@volume}\nview:#{@fog_end}\nfov:#{@fov_degrees}\nfullscreen:#{@fullscreen}\ndebug:#{@show_debug}\n")
     end
   end
@@ -113,8 +113,8 @@ class Game
   # Reads the options that save_options wrote. An option that is not in the
   # file keeps its default.
   def load_options
-    return unless File.exist?(OPTIONS_PATH)
-    File.binread(OPTIONS_PATH).split("\n").each do |line|
+    return unless File.exist?(@options_path)
+    File.binread(@options_path).split("\n").each do |line|
       parts = line.split(":")
       next if parts.size != 2
       name = parts[0]

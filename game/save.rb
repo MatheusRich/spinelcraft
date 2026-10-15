@@ -57,20 +57,20 @@ class Game
     chunk_fields = [keys.size] + keys
     inv = (@inv.to_a + @hotbar + [@vitals.hunger, @vitals.saturation, @vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + boat_fields + chunk_fields).map(&:to_s).join(" ")
-    File.open(SAVE_PATH, "wb") do |f|
+    File.open(@save_path, "wb") do |f|
       f.write("#{SAVE_VERSION} #{header} #{inv}\n")
       keys.each { |k| f.write(chunks[k]) }
     end
     @changed = false
     say("WORLD SAVED")
-    puts "saved #{SAVE_PATH} in #{((Gfx.gfx_ns - t0) / 1.0e6).round} ms"
+    puts "saved #{@save_path} in #{((Gfx.gfx_ns - t0) / 1.0e6).round} ms"
   end
 
   # Returns true when a saved world was loaded. A save keeps only the chunks
   # that differ from the generator.
   def load
-    return false unless File.exist?(SAVE_PATH)
-    data = File.binread(SAVE_PATH)
+    return false unless File.exist?(@save_path)
+    data = File.binread(@save_path)
     nl = data.index("\n")
     return false if nl.nil?
     f = data[0, nl].split(" ")
@@ -96,12 +96,12 @@ class Game
     true
   end
 
-  # Moves a save that exists but did not load to BAD_SAVE_PATH. Otherwise the
+  # Moves a save that exists but did not load to @bad_save_path. Otherwise the
   # next save writes the new world over it.
   def keep_bad_save
-    return unless File.exist?(SAVE_PATH)
-    File.rename(SAVE_PATH, BAD_SAVE_PATH)
-    puts "#{SAVE_PATH} did not load, so the game moved it to #{BAD_SAVE_PATH}"
+    return unless File.exist?(@save_path)
+    File.rename(@save_path, @bad_save_path)
+    puts "#{@save_path} did not load, so the game moved it to #{@bad_save_path}"
   end
 
   # An empty world for @seed; stream_around fills it.

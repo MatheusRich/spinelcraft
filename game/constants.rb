@@ -158,6 +158,8 @@ class Game
 
   INV_COLS = 8
 
+  # The files of the game. Game#initialize puts Game#file_prefix in front
+  # of each name.
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
   SAVE_VERSION = "SPINELCRAFT17"
