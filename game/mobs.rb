@@ -159,59 +159,19 @@ class Mob
     if dying?
       @death += dt
     elsif passive?
-      @think -= dt
-      @panic -= dt
-      if @think <= 0.0
-        if @panic > 0.0
-          @think = 0.7 + @rng.rand01 * 0.8
-          @walking = true
-        else
-          @think = 2.0 + @rng.rand01 * 4.0
-          @walking = @rng.rand01 < 0.6
-        end
-        @yaw = @rng.rand01 * 6.283
-      end
-      speed = @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
+      speed = act_passive(dt)
     else
-      dx = player.x - @x
-      dz = player.z - @z
+      # to_f: Spinel cannot type the positions, and the act_ methods need Floats.
+      dx = (player.x - @x).to_f
+      dz = (player.z - @z).to_f
       dist = Math.sqrt(dx * dx + dz * dz)
       if @kind == SKELETON
-        # Keep a bow's distance and shoot when the player is in sight.
-        if dist < 26.0
-          face(dx, dz)
-          speed = dist > 12.0 ? 2.0 : (dist < 7.0 ? -1.6 : 0.0)
-          if @attack_wait <= 0.0 && dist < 18.0 && sees?(world, player)
-            # About one shot each 3 seconds. minecraft.wiki/w/Skeleton
-            @attack_wait = 3.0
-            @shoot = true
-          end
-        end
+        speed = act_skeleton(world, player, dx, dz, dist)
       elsif @kind == CREEPER
-        # Walk up to the player, then stand still while the fuse burns.
-        if dist < 24.0
-          face(dx, dz)
-          speed = dist > 2.2 && @fuse == 0.0 ? 2.2 : 0.0
-        end
-        lit = @fuse > 0.0 ? dist < FUSE_REACH : dist < LIGHT_REACH && (player.y - @y).abs < 2.5
-        if lit
-          @hiss = true if @fuse == 0.0
-          @fuse += dt
-          @explode = true if @fuse >= FUSE
-        else
-          @fuse -= dt
-          @fuse = 0.0 if @fuse < 0.0
-        end
+        speed = act_creeper(dt, player, dx, dz, dist)
       else
-        if dist < 28.0 && dist > 0.6
-          face(dx, dz)
-          speed = 2.4
-        end
-        if dist < 1.4 && (player.y - @y).abs < 1.8 && @attack_wait <= 0.0
-          @attack_wait = 1.0
-          # minecraft.wiki/w/Zombie
-          damage = 3
-        end
+        speed = act_zombie(dx, dz, dist)
+        damage = bite(player, dist)
       end
       exposed = world.height_at(@x.floor, @z.floor) <= (@y + 1.6).floor
       @fire = SUN_FIRE if day > 0.65 && exposed && @kind != CREEPER && @fire < SUN_FIRE
@@ -270,6 +230,73 @@ class Mob
     end
     @alive = false if @death >= DEATH_TIME || @y < -10.0
     damage
+  end
+
+  # The act_ methods are the AI of each kind. Each one can turn the mob,
+  # and returns the speed that it walks at. dx, dz is the step to the
+  # player, and dist is its length.
+
+  # A passive mob wanders, and after a hit it panics.
+  def act_passive(dt)
+    @think -= dt
+    @panic -= dt
+    if @think <= 0.0
+      if @panic > 0.0
+        @think = 0.7 + @rng.rand01 * 0.8
+        @walking = true
+      else
+        @think = 2.0 + @rng.rand01 * 4.0
+        @walking = @rng.rand01 < 0.6
+      end
+      @yaw = @rng.rand01 * 6.283
+    end
+    @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
+  end
+
+  # A skeleton keeps a bow's distance and shoots when the player is in sight.
+  def act_skeleton(world, player, dx, dz, dist)
+    return 0.0 unless dist < 26.0
+    face(dx, dz)
+    if @attack_wait <= 0.0 && dist < 18.0 && sees?(world, player)
+      # About one shot each 3 seconds. minecraft.wiki/w/Skeleton
+      @attack_wait = 3.0
+      @shoot = true
+    end
+    dist > 12.0 ? 2.0 : (dist < 7.0 ? -1.6 : 0.0)
+  end
+
+  # A creeper walks up to the player, then stands still while the fuse burns.
+  def act_creeper(dt, player, dx, dz, dist)
+    speed = 0.0
+    if dist < 24.0
+      face(dx, dz)
+      speed = dist > 2.2 && @fuse == 0.0 ? 2.2 : 0.0
+    end
+    lit = @fuse > 0.0 ? dist < FUSE_REACH : dist < LIGHT_REACH && (player.y - @y).abs < 2.5
+    if lit
+      @hiss = true if @fuse == 0.0
+      @fuse += dt
+      @explode = true if @fuse >= FUSE
+    else
+      @fuse -= dt
+      @fuse = 0.0 if @fuse < 0.0
+    end
+    speed
+  end
+
+  # A zombie walks up to the player.
+  def act_zombie(dx, dz, dist)
+    return 0.0 unless dist < 28.0 && dist > 0.6
+    face(dx, dz)
+    2.4
+  end
+
+  # The damage of a zombie's bite when the player is in reach, else 0.
+  def bite(player, dist)
+    return 0 unless dist < 1.4 && (player.y - @y).abs < 1.8 && @attack_wait <= 0.0
+    @attack_wait = 1.0
+    # minecraft.wiki/w/Zombie
+    3
   end
 
   # True when no solid block lies between this mob's eyes and the player's.
@@ -337,45 +364,66 @@ class Mob
     # The fall follows the curve of the game's renderer, which the wiki does
     # not confirm: sqrt(1.6 * t / DEATH_TIME) of a right angle.
     mesh.roll(Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5)
-    l = Tex::SKINS + @kind
     if @kind == CREEPER
-      flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.6 : 0.0
-      c = 1.0 + flash
-      grow = @fuse * 0.4
-      part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, grow, false, c, c * red, c * red)
-      part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, grow, false, c, c * red, c * red)
-      legs(mesh, l, 2.0, 18.0, 4.0, -4.0, 6.0, 0.0, swing, c, c * red)
+      draw_creeper(mesh, swing, red)
     elsif @kind == PIG
-      part(mesh, l, 0.0, 12.0, -6.0, 0.0, -4.0, -4.0, -8.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-      part(mesh, l, 0.0, 12.0, -6.0, 0.0, -2.0, 0.0, -9.0, 4.0, 3.0, 1.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
-      part(mesh, l, 0.0, 11.0, 2.0, Math::PI / 2.0, -5.0, -10.0, -7.0, 10.0, 16.0, 8.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
-      legs(mesh, l, 3.0, 18.0, 7.0, -5.0, 6.0, 0.0, swing, 1.0, red)
+      draw_pig(mesh, swing, red)
     elsif @kind == SHEEP
-      part(mesh, l, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-      part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
-      legs(mesh, l, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, 1.0, red)
-      fur = Tex::SKINS + Tex::SKIN_FUR
-      part(mesh, fur, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
-      part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, 1.0, red, red)
-      legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, 1.0, red)
+      draw_sheep(mesh, swing, red)
     else
-      # A zombie or a skeleton: a person with the arms out to the front. A
-      # skeleton has thin arms and legs, and holds a bow.
-      thin = @kind == SKELETON
-      t = thin ? 2.0 : 4.0
-      part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-      part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 32.0, 0.0, 0.5, false, 1.0, red, red)
-      part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
-      arm = thin ? -1.45 : -1.5 + swing * 0.2
-      part(mesh, l, -5.0, 2.0, 0.0, arm, thin ? -1.0 : -3.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, false, 1.0, red, red)
-      arm = thin ? -1.45 : -1.5 - swing * 0.2
-      part(mesh, l, 5.0, 2.0, 0.0, arm, -1.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, true, 1.0, red, red)
-      leg = thin ? 2.0 : 1.9
-      part(mesh, l, -leg, 12.0, 0.0, swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, false, 1.0, red, red)
-      part(mesh, l, leg, 12.0, 0.0, -swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, true, 1.0, red, red)
-      mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0) if thin
+      draw_humanoid(mesh, swing, red)
     end
     mesh.roll(0.0)
+  end
+
+  # The draw_ methods are the model of each kind. swing is the angle of the
+  # legs, and red is the green and blue of a hurt mob.
+  def draw_creeper(mesh, swing, red)
+    l = Tex::SKINS + @kind
+    flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.6 : 0.0
+    c = 1.0 + flash
+    grow = @fuse * 0.4
+    part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, grow, false, c, c * red, c * red)
+    part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, grow, false, c, c * red, c * red)
+    legs(mesh, l, 2.0, 18.0, 4.0, -4.0, 6.0, 0.0, swing, c, c * red)
+  end
+
+  def draw_pig(mesh, swing, red)
+    l = Tex::SKINS + @kind
+    part(mesh, l, 0.0, 12.0, -6.0, 0.0, -4.0, -4.0, -8.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 12.0, -6.0, 0.0, -2.0, 0.0, -9.0, 4.0, 3.0, 1.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 11.0, 2.0, Math::PI / 2.0, -5.0, -10.0, -7.0, 10.0, 16.0, 8.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
+    legs(mesh, l, 3.0, 18.0, 7.0, -5.0, 6.0, 0.0, swing, 1.0, red)
+  end
+
+  def draw_sheep(mesh, swing, red)
+    l = Tex::SKINS + @kind
+    part(mesh, l, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
+    legs(mesh, l, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, 1.0, red)
+    fur = Tex::SKINS + Tex::SKIN_FUR
+    part(mesh, fur, 0.0, 6.0, -8.0, 0.0, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
+    part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, 1.0, red, red)
+    legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, 1.0, red)
+  end
+
+  # A zombie or a skeleton: a person with the arms out to the front. A
+  # skeleton has thin arms and legs, and holds a bow.
+  def draw_humanoid(mesh, swing, red)
+    l = Tex::SKINS + @kind
+    thin = @kind == SKELETON
+    t = thin ? 2.0 : 4.0
+    part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 32.0, 0.0, 0.5, false, 1.0, red, red)
+    part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
+    arm = thin ? -1.45 : -1.5 + swing * 0.2
+    part(mesh, l, -5.0, 2.0, 0.0, arm, thin ? -1.0 : -3.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, false, 1.0, red, red)
+    arm = thin ? -1.45 : -1.5 - swing * 0.2
+    part(mesh, l, 5.0, 2.0, 0.0, arm, -1.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, true, 1.0, red, red)
+    leg = thin ? 2.0 : 1.9
+    part(mesh, l, -leg, 12.0, 0.0, swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, leg, 12.0, 0.0, -swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, true, 1.0, red, red)
+    mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0) if thin
   end
 
   # One box of the Minecraft model: w x h x d pixels at bx, by, bz from the
