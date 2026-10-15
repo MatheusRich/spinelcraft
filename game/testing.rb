@@ -24,7 +24,6 @@ class Game
     [Mob::PIG, Mob::SHEEP, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
       m = Mob.new(kind, bx - 4.0 + i * 2.0, y + 1.0, bz + 0.5, 1)
       m.yaw = 3.14159
-      # On Halloween, the zombie wears a carved pumpkin and the skeleton a jack o'lantern.
       m.head = kind == Mob::ZOMBIE ? Block::CARVED_PUMPKIN : Block::JACK_O_LANTERN if @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
       @mobs << m
     end
