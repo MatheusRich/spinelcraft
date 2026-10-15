@@ -128,11 +128,11 @@ class Game
     @fog_end = FOG_END.to_f
     @fov_degrees = FOV_NORMAL
     # The options of the pause menu (game/menu.rb), from 0 to 1. Brightness 0
-    # is the light without a lift. The volume starts at half, and the music
-    # at full, as in Minecraft.
-    @brightness = 0.0
+    # is the light without a lift. The brightness, the volume and the music
+    # start at half.
+    @brightness = 0.5
     @volume = 0.5
-    @music_volume = 1.0
+    @music_volume = 0.5
     # The slider that the mouse drags, or -1.
     @menu_drag = -1
     # True after one click on New world.

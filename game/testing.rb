@@ -565,7 +565,9 @@ class Game
   # second click.
   def test_menu
     view = @fog_end
+    brightness = @brightness
     volume = @volume
+    music = @music_volume
     fov = @fov_degrees
     set_slider(M_VIEW, 0.5)
     half = @fog_end
@@ -590,9 +592,9 @@ class Game
     @fog_end = 1200.0
     @show_debug = false
     save_options
-    @brightness = 0.0
+    @brightness = brightness
     @volume = volume
-    @music_volume = 1.0
+    @music_volume = music
     @fog_end = view
     @fov_degrees = fov
     @show_debug = true
@@ -600,9 +602,9 @@ class Game
     File.delete(@options_path)
     check("the options load from the file that save_options writes",
           @brightness == 1.0 && @volume == 0.25 && @music_volume == 0.0 && @fog_end == 1200.0 && @fov_degrees == 90.0 && !@show_debug && !@fullscreen)
-    @brightness = 0.0
+    @brightness = brightness
     @volume = volume
-    @music_volume = 1.0
+    @music_volume = music
     @fog_end = view
     @fov_degrees = fov
     @fov = option_fov
