@@ -281,6 +281,10 @@ class Game
           Command.item("DIAMOND_PICKAXE") == Block::DIAMOND_PICK && Command.item("MINECRAFT:WHEAT") == Block::WHEAT &&
           Command.item("WATER") == Block::WATER && Command.item("AIR") == -1 && Command.item("DIRTT") == -1 &&
           Command.item("WHEAT_CROPS") == -1)
+    check("the boats, the pumpkins and the shears have ids as in Minecraft",
+          Command.item("JACK_O_LANTERN") == Block::JACK_O_LANTERN && Command.item("CARVED_PUMPKIN") == Block::CARVED_PUMPKIN &&
+          Command.item("SPRUCE_BOAT") == Block::SPRUCE_BOAT && Command.item("SHEARS") == Block::SHEARS &&
+          Command.item("PUMPKIN_SEEDS") == Block::PUMPKIN_SEEDS && Command.item("PUMPKIN_STEM") == -1)
     check("a mob name gives its kind", Command.mob("CREEPER") == Mob::CREEPER && Command.mob("MINECRAFT:PIG") == Mob::PIG &&
           Command.mob("GHAST") == -1)
   end
@@ -335,6 +339,12 @@ class Game
     run_chat("/tp #{tx} 150 #{tz}")
     whole = @player.x == tx + 0.5 && @player.y == 150.0 && @player.z == tz + 0.5
     check("/tp moves the player, with ~ for a place relative to the player", relative && whole)
+    mobs = @mobs.size
+    run_chat("/summon creeper ~ ~ ~5")
+    m = @mobs.last
+    check("/summon puts a mob of the kind at the place",
+          @mobs.size == mobs + 1 && m.kind == Mob::CREEPER && m.x == @player.x && m.z == @player.z + 5.0 && m.hp == Mob::HP[Mob::CREEPER])
+    @mobs.pop
     run_chat("/tp 99999999 100 -99999999")
     check("/tp stops at the farthest x and z that the world holds",
           @player.x == TP_LIMIT && @player.z == -TP_LIMIT && @player.y == 100.0)
@@ -369,6 +379,7 @@ class Game
     items = Command.complete("/give ")
     check("Tab completes item names in /give and mob names in /summon, also after @s",
           Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper"] &&
+          Command.complete("/give pum") == ["pumpkin", "pumpkin_seeds"] && Command.complete("/give jack") == ["jack_o_lantern"] &&
           items.size == CREATIVE_ITEMS.size && items.count("water") == 1 && items.count("wheat") == 1 &&
           !items.include?("wheat_crops"))
     check("Tab completes the words of /time, /weather and /gamemode",

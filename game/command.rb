@@ -14,8 +14,8 @@ module Command
   NAMES = ["GAMEMODE", "GIVE", "HELP", "KILL", "SEED", "SPAWN", "SUMMON", "TELEPORT", "TIME", "TP", "WEATHER"]
 
   # The names that complete the last word of a command line, in small
-  # letters, with _ for each space: a command, or a name that the command
-  # takes at that place. Empty when no name fits.
+  # letters, as ids (see id_of): a command, or a name that the command takes
+  # at that place. Empty when no name fits.
   def self.complete(line)
     out = [""]
     out.clear
@@ -23,7 +23,7 @@ module Command
     at = last_word_at(line)
     word = line[at, line.size - at].to_s.upcase
     choices(words(line[0, at].to_s), at == 1).each do |name|
-      typed = name.split(" ").join("_")
+      typed = id_of(name)
       out << typed.downcase if typed.start_with?(word)
     end
     out
@@ -126,14 +126,23 @@ module Command
   end
 
   # The block or item of the creative picker that a name means: its name
-  # in Block::NAMES with _ for each space, with or without "minecraft:".
+  # as an id (see id_of), with or without "minecraft:".
   # -1 when the picker has no block with the name, so a part of a block,
   # such as a door half or a crop, is not an item.
   def self.item(name)
     n = name.start_with?("MINECRAFT:") ? name[10, name.size - 10] : name
-    i = find(item_names, n.split("_").join(" "))
-    i < 0 ? -1 : Game::CREATIVE_ITEMS[i]
+    i = 0
+    while i < Game::CREATIVE_ITEMS.size
+      b = Game::CREATIVE_ITEMS[i]
+      return b if id_of(Block::NAMES[b]) == n
+      i += 1
+    end
+    -1
   end
+
+  # The name as Minecraft writes an id: _ for each space and each
+  # apostrophe, so JACK O'LANTERN is JACK_O_LANTERN.
+  def self.id_of(name) = name.split(" ").join("_").split("'").join("_")
 
   # The kind of mob with the name, or -1.
   def self.mob(name)
