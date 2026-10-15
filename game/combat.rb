@@ -5,9 +5,13 @@ class Game
   # They follow VoxeLibre. MOB_SOUND plays now and then, MOB_HURT after a
   # hit, and MOB_DEATH when the mob dies. A creeper makes no sound now and
   # then, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
-  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1]
-  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT]
-  MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH]
+  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1, Sfx::MOO]
+  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT, Sfx::COW_HURT]
+  MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH, Sfx::COW_HURT]
+  # The animals that spawn on grass, and the weight of each, as in the
+  # plains biome. The chicken is not in the game. minecraft.wiki/w/Plains
+  ANIMAL_KINDS = [Mob::PIG, Mob::SHEEP, Mob::COW]
+  ANIMAL_WEIGHTS = [10.0, 12.0, 8.0]
 
   # Light in Minecraft: a torch has 14, lava and a jack o'lantern 15, and a
   # cell under the open sky 15 by day. Light goes down by 1 for each step
@@ -256,6 +260,7 @@ class Game
   end
 
   def pick_monster = pick_kind(MONSTER_KINDS, MONSTER_WEIGHTS)
+  def pick_animal = pick_kind(ANIMAL_KINDS, ANIMAL_WEIGHTS)
 
   def pick_kind(kinds, weights)
     r = @rng.rand01 * weights.sum
@@ -342,7 +347,7 @@ class Game
     if @spawn_timer <= 0.0
       @spawn_timer = 2.0
       pigs = @mobs.count(&:passive?)
-      spawn_mob(@rng.rand01 < 0.5 ? Mob::PIG : Mob::SHEEP, 40.0, 90.0) if pigs < PIGS / 2
+      spawn_mob(pick_animal, 40.0, 90.0) if pigs < PIGS / 2
     end
     @mobs.each do |m|
       if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
@@ -419,8 +424,10 @@ class Game
 
   # What a mob that the player killed drops, as in Minecraft: a zombie 0 to
   # 2 rotten flesh, a skeleton 0 to 2 arrows, 0 to 2 bones and now and then
-  # its bow, a sheep its wool and 1 to 2 mutton, and a pig 1 to 3 porkchops.
-  # minecraft.wiki/w/Rotten_Flesh, /w/Skeleton, /w/Sheep and /w/Pig
+  # its bow, a sheep its wool and 1 to 2 mutton, a pig 1 to 3 porkchops,
+  # and a cow 0 to 2 leather and 1 to 3 raw beef, or steak when it dies on
+  # fire. minecraft.wiki/w/Rotten_Flesh, /w/Skeleton, /w/Sheep, /w/Pig and
+  # /w/Cow
   def drop_loot(m)
     if m.kind == Mob::ZOMBIE
       loot(m, Block::ROTTEN_FLESH, (@rng.rand01 * 3.0).to_i)
@@ -433,6 +440,9 @@ class Game
       loot(m, Block::MUTTON, 1 + (@rng.rand01 * 2.0).to_i)
     elsif m.kind == Mob::PIG
       loot(m, Block::PORKCHOP, 1 + (@rng.rand01 * 3.0).to_i)
+    elsif m.kind == Mob::COW
+      loot(m, Block::LEATHER, (@rng.rand01 * 3.0).to_i)
+      loot(m, m.burning? ? Block::STEAK : Block::BEEF, 1 + (@rng.rand01 * 3.0).to_i)
     end
   end
 
@@ -442,11 +452,11 @@ class Game
     drop_item(b, n, m.x, m.y + 0.5, m.z, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
   end
 
-  # PIGS pigs and sheep around the player.
+  # PIGS animals around the player.
   def spawn_animals
     i = 0
     while i < PIGS
-      spawn_mob(i % 2 == 0 ? Mob::PIG : Mob::SHEEP, 10.0, 120.0)
+      spawn_mob(pick_animal, 10.0, 120.0)
       i += 1
     end
   end

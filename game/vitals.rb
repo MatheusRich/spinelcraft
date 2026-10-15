@@ -76,6 +76,11 @@ class Vitals
     @hunger_effect = HUNGER_EFFECT_TIME
   end
 
+  # The Hunger effect is the only effect in the game.
+  def clear_effects
+    @hunger_effect = 0.0
+  end
+
   def hurt(amount)
     return if dead?
     @health -= amount.to_f

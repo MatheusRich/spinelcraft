@@ -21,8 +21,8 @@ class Game
     set_block(bx - 3, y + 1, bz + 2, Block.bed_id(1, false))
     set_block(bx - 2, y + 1, bz + 2, Block.bed_id(0, true))
     set_block(bx + 3, y + 1, bz + 2, Block::TORCH)
-    [Mob::PIG, Mob::SHEEP, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
-      m = Mob.new(kind, bx - 4.0 + i * 2.0, y + 1.0, bz + 0.5, 1)
+    [Mob::PIG, Mob::SHEEP, Mob::COW, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
+      m = Mob.new(kind, bx - 4.0 + i * 1.6, y + 1.0, bz + 0.5, 1)
       m.yaw = 3.14159
       m.head = kind == Mob::ZOMBIE ? Block::CARVED_PUMPKIN : Block::JACK_O_LANTERN if @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
       @mobs << m
@@ -514,7 +514,7 @@ class Game
           Command.complete("/gi") == ["give"] && commands == ["teleport", "time", "tp"] && Command.complete("hello").empty?)
     items = Command.complete("/give ")
     check("Tab completes item names in /give and mob names in /summon, also after @s",
-          Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper"] &&
+          Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper", "cow"] &&
           Command.complete("/give pum") == ["pumpkin", "pumpkin_seeds"] && Command.complete("/give jack") == ["jack_o_lantern"] &&
           items.size == CREATIVE_ITEMS.size && items.count("water") == 1 && items.count("wheat") == 1 &&
           !items.include?("wheat_crops"))
@@ -527,7 +527,7 @@ class Game
     first = @chat_text == "/summon pig"
     tab_chat
     second = @chat_text == "/summon zombie"
-    3.times { tab_chat }
+    (Mob::NAMES.size - 2).times { tab_chat }
     tab_chat
     check("each Tab puts the next name on the line, and the last goes back to the first",
           first && second && @chat_text == "/summon pig")
@@ -1984,12 +1984,33 @@ class Game
     check("a sheared sheep drops no wool when killed, and still drops 1 to 2 mutton", ground_count(Block::WOOL) == 0 && n >= 1 && n <= 2)
     @items.clear
     @mobs.clear
-    # Raw mutton gives 2 hunger and 1.2 saturation, and cooked mutton 6 and
-    # 9.6. A furnace cooks it.
-    raw = Block.food(Block::MUTTON) == 2 && Block.saturation(Block::MUTTON) == 1.2
-    cooked = Block.food(Block::COOKED_MUTTON) == 6 && Block.saturation(Block::COOKED_MUTTON) == 9.6
-    smelts = RECIPES.any? { |r| r[0] == Block::MUTTON && r[2] == Block::COOKED_MUTTON && r[4] == AT_FURNACE }
-    check("mutton is food, and a furnace cooks it", raw && cooked && smelts)
+    check("mutton is food, and a furnace cooks it", cooks?(Block::MUTTON, 2, 1.2, Block::COOKED_MUTTON, 6, 9.6))
+    cow = Mob.new(Mob::COW, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
+    cow.hp = 0.0
+    cow.by_player = true
+    @mobs << cow
+    update_mobs(1.0 / 60.0)
+    n = ground_count(Block::BEEF)
+    check("a cow that the player kills drops 0 to 2 leather and 1 to 3 raw beef",
+          ground_count(Block::LEATHER) <= 2 && n >= 1 && n <= 3 && ground_count(Block::STEAK) == 0)
+    @items.clear
+    # The lava kills the cow inside Mob#update_mob, so a second drop would
+    # show as a second stack.
+    lx = (@spawn_x + 30.0).floor
+    lz = (@spawn_z + 3.0).floor
+    set_block(lx, SKY_Y, lz, Block::LAVA)
+    cow = Mob.new(Mob::COW, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
+    cow.hp = 1.0
+    cow.by_player = true
+    @mobs << cow
+    10.times { update_mobs(1.0 / 60.0) }
+    set_block(lx, SKY_Y, lz, Block::AIR)
+    stacks = @items.count { |i| i.block == Block::STEAK }
+    n = ground_count(Block::STEAK)
+    check("a cow that dies in lava drops steak once", cow.dying? && stacks == 1 && n >= 1 && n <= 3 && ground_count(Block::BEEF) == 0)
+    @items.clear
+    @mobs.clear
+    check("beef is food, and a furnace cooks it into steak", cooks?(Block::BEEF, 3, 1.8, Block::STEAK, 8, 12.8))
     # Each zombie drops 0 to 2, so 10 zombies drop none 1 time in 59049.
     10.times do |i|
       zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
@@ -2117,6 +2138,12 @@ class Game
 
   # Stands the player on the first item until the ground is empty or the
   # frames run out.
+  def cooks?(raw, raw_food, raw_saturation, cooked, cooked_food, cooked_saturation)
+    Block.food(raw) == raw_food && Block.saturation(raw) == raw_saturation &&
+      Block.food(cooked) == cooked_food && Block.saturation(cooked) == cooked_saturation &&
+      RECIPES.any? { |r| r[0] == raw && r[2] == cooked && r[4] == AT_FURNACE }
+  end
+
   def collect_items
     frames = 0
     while frames < 300 && !@items.empty?
@@ -2754,6 +2781,31 @@ class Game
     end
     set_block(x, y - 1, z, Block::STONE)
     check("a bucket takes a water or lava source and puts it back", ok)
+    @mobs.clear
+    @mobs << Mob.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
+    @player.yaw = 0.0
+    @player.pitch = -0.2
+    @player.raycast(@world)
+    find_target_mob
+    @inv.clear
+    @inv.add(Block::BUCKET)
+    use_bucket
+    milked = @inv.block(0) == Block::MILK_BUCKET && @inv.count(0) == 1
+    # With no cow in view, the held button does not milk again. Unlike
+    # food, milk needs no hunger.
+    @mobs.clear
+    @target_mob = -1
+    was = @survival
+    @survival = true
+    @vitals = Vitals.new
+    @vitals.give_hunger_effect
+    @eat_time = -1.0
+    34.times { right_button(0.05, true) }
+    right_button(0.05, false)
+    check("a bucket milks a cow, and the milk ends the Hunger effect", milked && !@vitals.hunger_effect? && @inv.block(0) == Block::BUCKET)
+    @survival = was
+    @vitals = Vitals.new
+    @inv.clear
   end
 
   # Shears carve a pumpkin on the side in view and drop 4 seeds. A carved

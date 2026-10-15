@@ -126,6 +126,10 @@ module Block
   BONE_MEAL = 147
   SANDSTONE = 148
   DRY_GRASS = 149
+  BEEF = 150
+  STEAK = 151
+  LEATHER = 152
+  MILK_BUCKET = 153
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -410,6 +414,10 @@ module Block
                needs_pick: 1, dig: DIG_PICK
   # The short dry grass of Minecraft drops nothing by hand. minecraft.wiki/w/Short_Dry_Grass
   define_plant DRY_GRASS, "DRY GRASS", Tex::DRY_GRASS, drops: AIR
+  define_item BEEF, "RAW BEEF", Tex::BEEF, food: 3, saturation: 1.8 # minecraft.wiki/w/Raw_Beef
+  define_item STEAK, "STEAK", Tex::STEAK, food: 8, saturation: 12.8 # minecraft.wiki/w/Steak
+  define_item LEATHER, "LEATHER", Tex::LEATHER
+  define_item MILK_BUCKET, "MILK BUCKET", Tex::MILK_BUCKET
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)

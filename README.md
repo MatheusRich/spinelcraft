@@ -56,7 +56,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - An endless generated world with continents, rivers, mountains and nine biomes, from snowy taiga to desert and jungle, plus caves, ores and trees.
 - A day and night cycle, rain, flowing water and lava, and torch light.
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
-- Animals, and monsters that come out in the dark. Shears take the wool of a sheep, and the sheep grows it back when it eats grass.
+- Animals, and monsters that come out in the dark. Shears take the wool of a sheep, and the sheep grows it back when it eats grass. A bucket milks a cow, and the milk ends the Hunger effect.
 - Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
 - Pumpkin patches. Shears cut leaves and wool fast, and carve a face into a pumpkin, and a carved pumpkin and a torch make a jack o'lantern, which lights the night. Pumpkin seeds grow a stem, and the stem grows new pumpkins. On October 31, some monsters wear a pumpkin on their heads.
 - Bone meal. Skeletons drop bones, and a bone makes 3 bone meal. Bone meal makes a crop, a pumpkin stem or a sapling grow, and grows tall grass and flowers on a grass block.
@@ -78,7 +78,7 @@ T opens the chat line, and / opens it with a slash. The chat frees the mouse whi
 | `/gamemode survival\|creative` | Switch between survival and creative. No key does this |
 | `/tp <x> <y> <z>` | Go to a place, for example `/tp ~ ~10 ~` |
 | `/give <item> [count]` | Get an item, for example `/give diamond_pickaxe` |
-| `/summon <pig\|sheep\|zombie\|skeleton\|creeper> [x y z]` | Make a mob, 3 blocks in front of you or at a place |
+| `/summon <pig\|sheep\|cow\|zombie\|skeleton\|creeper> [x y z]` | Make a mob, 3 blocks in front of you or at a place |
 | `/kill` | Die |
 | `/seed` | Show the seed of the world |
 | `/spawn` | Go to the spawn point |

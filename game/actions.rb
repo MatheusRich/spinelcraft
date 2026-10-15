@@ -247,7 +247,10 @@ class Game
   # bucket pours its source into the cell where a block would go.
   def use_bucket
     b = current_block.to_i
-    if b == Block::BUCKET
+    if b == Block::BUCKET && @target_mob >= 0 && @mobs[@target_mob].kind == Mob::COW
+      swap_bucket(Block::MILK_BUCKET)
+      play_from(@mobs[@target_mob], Sfx::MILK, 1.0)
+    elsif b == Block::BUCKET
       return unless fluid_in_view
       fluid = @world.get(@fluid_x, @fluid_y, @fluid_z)
       set_block(@fluid_x, @fluid_y, @fluid_z, Block::AIR)
@@ -495,7 +498,12 @@ class Game
   end
 
   # True when the player holds food and can eat it now.
-  def edible? = @survival && !@inv.empty?(@slot) && @vitals.hungry? && Block.food(current_block.to_i) > 0
+  # Milk needs no hunger. minecraft.wiki/w/Milk_Bucket
+  def edible?
+    return false if !@survival || @inv.empty?(@slot)
+    b = current_block.to_i
+    b == Block::MILK_BUCKET || (@vitals.hungry? && Block.food(b) > 0)
+  end
 
   # True for a block that the right button opens or uses.
   def usable?(b)
@@ -512,8 +520,9 @@ class Game
       eat
       @eat_time = -1.0
     elsif @eat_time >= CHEW_START && ((@eat_time - CHEW_START) / CHEW_EVERY).floor != ((before - CHEW_START) / CHEW_EVERY).floor
-      play(Sfx::EAT, 0.5)
-      @particles.shatter(@player, current_block.to_i)
+      milk = current_block == Block::MILK_BUCKET
+      play(milk ? Sfx::DRINK : Sfx::EAT, 0.5)
+      @particles.shatter(@player, current_block.to_i) unless milk
     end
   end
 
@@ -521,10 +530,19 @@ class Game
   # minecraft.wiki/w/Rotten_Flesh
   def eat
     b = current_block.to_i
+    return drink_milk if b == Block::MILK_BUCKET
     @vitals.eat(Block.food(b), Block.saturation(b))
     @vitals.give_hunger_effect if b == Block::ROTTEN_FLESH && @rng.rand01 < 0.8
     @inv.take(@slot, 1)
     play(Sfx::EAT, 0.6)
+  end
+
+  # Milk ends the effects and leaves the empty bucket.
+  # minecraft.wiki/w/Milk_Bucket
+  def drink_milk
+    @vitals.clear_effects
+    swap_bucket(Block::BUCKET)
+    play(Sfx::DRINK, 0.6)
   end
 
   def place

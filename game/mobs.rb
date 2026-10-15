@@ -1,10 +1,12 @@
-# Pigs, sheep, zombies, skeletons and creepers: behavior, physics and box models.
+# Pigs, sheep, cows, zombies, skeletons and creepers: behavior, physics and
+# box models.
 class Mob
   PIG = 0
   ZOMBIE = 1
   SKELETON = 2
   SHEEP = 3
   CREEPER = 4
+  COW = 5
   # Seconds of a creeper's fuse. minecraft.wiki/w/Creeper
   FUSE = 1.5
   # A creeper lights its fuse when the player is this near, and the fuse
@@ -12,15 +14,16 @@ class Mob
   # minecraft.wiki/w/Creeper
   LIGHT_REACH = 3.0
   FUSE_REACH = 7.0
-  # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper.
+  # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper, cow.
   # MOB_SOUND in game/combat.rb has the sounds.
-  # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep and /w/Creeper
-  NAMES = ["PIG", "ZOMBIE", "SKELETON", "SHEEP", "CREEPER"]
-  HP = [10.0, 20.0, 20.0, 8.0, 20.0]
-  HALF = [0.45, 0.3, 0.3, 0.45, 0.3]
-  TALL = [0.95, 1.9, 1.9, 1.2, 1.7]
+  # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep, /w/Creeper and
+  # /w/Cow
+  NAMES = ["PIG", "ZOMBIE", "SKELETON", "SHEEP", "CREEPER", "COW"]
+  HP = [10.0, 20.0, 20.0, 8.0, 20.0, 10.0]
+  HALF = [0.45, 0.3, 0.3, 0.45, 0.3, 0.45]
+  TALL = [0.95, 1.9, 1.9, 1.2, 1.7, 1.4]
   # Passive mobs wander, never attack, and do not count as monsters.
-  PASSIVE = [1, 0, 0, 1, 0]
+  PASSIVE = [1, 0, 0, 1, 0, 1]
   # A passive mob walks at WALK_SPEED. After damage it panics for PANIC
   # seconds: it runs at PANIC_SPEED, first away from a hit and then to a
   # new side about each second. The wiki says only that a pig "flees for a
@@ -115,6 +118,7 @@ class Mob
   end
 
   def passive? = PASSIVE[@kind] == 1
+  def burning? = @fire > 0.0
 
   # A sheep eats for 40 ticks, and it takes its bite 4 ticks before the end:
   # then the grass goes and the wool grows back. A panic stops the eating
@@ -423,6 +427,8 @@ class Mob
       draw_pig(mesh, swing, red)
     elsif @kind == SHEEP
       draw_sheep(mesh, swing, red)
+    elsif @kind == COW
+      draw_cow(mesh, swing, red)
     else
       draw_humanoid(mesh, swing, red)
     end
@@ -464,6 +470,18 @@ class Mob
     legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, 1.0, red)
   end
 
+  # The head with its horns, the body with the udder under it, and legs 12
+  # pixels long.
+  def draw_cow(mesh, swing, red)
+    l = Tex::SKINS + @kind
+    part(mesh, l, 0.0, 4.0, -8.0, 0.0, -4.0, -4.0, -6.0, 8.0, 8.0, 6.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 4.0, -8.0, 0.0, -5.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 4.0, -8.0, 0.0, 4.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -6.0, -10.0, -7.0, 12.0, 18.0, 10.0, 18.0, 4.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -2.0, 2.0, -8.0, 4.0, 6.0, 1.0, 52.0, 0.0, 0.0, false, 1.0, red, red)
+    legs(mesh, l, 4.0, 12.0, 7.0, -6.0, 12.0, 0.0, swing, 1.0, red)
+  end
+
   # A zombie or a skeleton: a person with the arms out to the front. A
   # skeleton has thin arms and legs, and holds a bow.
   def draw_humanoid(mesh, swing, red)
@@ -501,7 +519,7 @@ class Mob
                   layer, u, v, w, h, d, mirror, r, g, b, 1.0)
   end
 
-  # The four legs of a pig, a sheep or a creeper, in the numbers of part:
+  # The four legs of a pig, a sheep, a cow or a creeper, in the numbers of part:
   # 4 pixels wide and h high, with pivots at x -dx and dx, height py, and
   # z hind and front. The legs on one diagonal swing one way, and the other
   # two the other way.

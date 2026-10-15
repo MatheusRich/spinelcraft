@@ -51,6 +51,9 @@ Each file keeps its license.
 | `mobs_mc_skeleton_hurt.ogg` | Cribbler | CC0 1.0 | <https://freesound.org/people/Cribbler/sounds/381859/> |
 | `mobs_mc_skeleton_death.ogg` | spookymodem | CC0 1.0 | <https://freesound.org/people/spookymodem/sounds/202091/> |
 | `mobs_mc_creeper_death.ogg` | j1987 | CC0 1.0 | <https://freesound.org/people/j1987/sounds/111325> |
+| `mobs_mc_cow.ogg` | Zozzy | CC0 1.0 | <https://www.freesound.org/people/Zozzy/sounds/59245/> |
+| `mobs_mc_cow_hurt.ogg` | Bird_man, changed by the VoxeLibre contributors | CC0 1.0 | <https://freesound.org/people/Bird_man/packs/16972/> |
+| `mobs_mc_cow_milk.ogg` | Klaraschick, shortened by the VoxeLibre contributors | CC0 1.0 | <https://freesound.org/people/Klaraschick/sounds/415312/> |
 
 ## Doors, chests and caves
 
@@ -81,6 +84,7 @@ Each file keeps its license.
 | `weather_rain.ogg` | inchadney | CC BY-SA 3.0 | <http://freesound.org/people/inchadney/sounds/58835/> |
 | `item_drop_pickup.ogg` | VoxeLibre contributors (no author listed) | Free license (VoxeLibre `LEGAL.md`) | VoxeLibre `mcl_item_entity` |
 | `mesecons_button_push.ogg` | junggle | CC BY 3.0 | <https://freesound.org/people/junggle/sounds/29301/> |
+| `mcl_potions_drinking.ogg` | VoxeLibre contributors (no author listed) | CC0 1.0 (VoxeLibre `mcl_potions/README.txt`) | VoxeLibre `mcl_potions` |
 
 ## Licenses
 
