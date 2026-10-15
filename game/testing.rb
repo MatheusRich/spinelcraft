@@ -1092,11 +1092,15 @@ class Game
     @time_of_day = 0.25
     zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
+    capped = Mob.new(Mob::ZOMBIE, px + 11.5, SKY_Y - 1.0, pz + 0.5, 10)
+    capped.head = Block::CARVED_PUMPKIN
+    @mobs << capped
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @particles.count(Particle::FLAME) > 0)
+    check("a zombie with a carved pumpkin on its head does not burn in the sun", capped.fire == 0.0 && capped.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
     @survival = true
     @vitals.health = Vitals::MAX_HEALTH

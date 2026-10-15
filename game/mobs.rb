@@ -178,7 +178,11 @@ class Mob
         damage = bite(player, dist)
       end
       exposed = world.height_at(@x.floor, @z.floor) <= (@y + 1.6).floor
-      @fire = SUN_FIRE if day > 0.65 && exposed && @kind != CREEPER && @fire < SUN_FIRE
+      # Something on the head stops the sun. The wiki names head armor
+      # (minecraft.wiki/w/Zombie). That a carved pumpkin also counts comes
+      # from the game code, which checks for any head item; the wiki does
+      # not confirm it.
+      @fire = SUN_FIRE if day > 0.65 && exposed && @kind != CREEPER && @head == 0 && @fire < SUN_FIRE
     end
     fx = -Math.sin(@yaw)
     fz = Math.cos(@yaw)
