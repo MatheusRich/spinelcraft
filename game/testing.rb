@@ -3365,6 +3365,13 @@ class Game
     return_held
   end
 
+  # True when m is an animal that stands on grass or snowy grass, where
+  # spawn_mob puts animals.
+  def animal_on_grass?(m)
+    ground = @world.get(m.x.floor, m.y.floor - 1, m.z.floor)
+    m.passive? && (ground == Block::GRASS || ground == Block::SNOW_GRASS)
+  end
+
   # Chunk streaming, far terrain tiles, and a new world.
   def test_streaming
     # A chunk that unloads keeps its edits, and the generator gives the same chunk again.
@@ -3383,12 +3390,23 @@ class Game
     far = @lods[LEVELS - 1]
     slot = far.build(3, -2)
     check("a far tile has a top face for each cell, sorted by direction", far.faces.size / 2 == far.offsets[7] && far.offsets[3] - far.offsets[2] == Lod::CELLS * Lod::CELLS && slot == Lod.slot(3, -2))
+    # The world of the self-test has grass near the player, so animals
+    # spawn on it.
+    @mobs.clear
+    spawn_animals
+    check("animals spawn on the grass near the player", @mobs.size > 0 && @mobs.all? { |m| animal_on_grass?(m) })
     old_seed = @seed
     @inv.add(Block::DIAMOND)
     @hotbar[0] = Block::GLASS
+    @mobs << Mob.new(Mob::ZOMBIE, @player.x, @player.y, @player.z, 1)
     new_world
     h = @world.height_at(@player.x.floor, @player.z.floor)
-    check("a new world has a new seed and the player stands on it", @seed != old_seed && h > 0 && (@player.y - h).abs < 1.5 && @mobs.size > 0)
+    # A new world can start on sand with no grass in reach, which Java
+    # Edition allows (minecraft.wiki/w/World_spawn). Then no animal spawns,
+    # so the test does not count them. The mobs of the old world must go,
+    # and each new mob must be an animal on grass.
+    check("a new world has a new seed, the player stands on it, and the old mobs are gone",
+          @seed != old_seed && h > 0 && (@player.y - h).abs < 1.5 && @mobs.all? { |m| animal_on_grass?(m) })
     check("a new world starts with an empty inventory", @inv.room_for(Block::DIRT) == INV * Slots::STACK && @hotbar == HOTBAR_START)
   end
 end
