@@ -67,6 +67,8 @@ class Mob
   attr_accessor :sheared
   # Seconds that a sheep still eats grass, with its head down.
   attr_reader :graze
+  # True for one step when a grazing sheep takes its bite (Game#bite_grass).
+  attr_accessor :grass_bite
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -108,22 +110,31 @@ class Mob
     @head = 0
     @sheared = false
     @graze = 0.0
+    @grass_bite = false
   end
 
   def passive? = PASSIVE[@kind] == 1
 
-  # A sheep eats for 40 ticks. The wiki does not give the time; 40 ticks is
-  # the time of the game code (EatBlockGoal).
+  # A sheep eats for 40 ticks, and it takes its bite 4 ticks before the end:
+  # then the grass goes and the wool grows back. A panic stops the eating
+  # before the bite. The wiki does not give these times or the panic rule;
+  # they are those of the game code (EatBlockGoal, and PanicGoal, which
+  # runs first).
   GRAZE_TIME = 2.0
+  BITE_LEFT = 0.2
   # How far a grazing sheep turns its head down, in radians.
   GRAZE_NOD = 0.9
 
   def shearable? = @kind == SHEEP && !@sheared && !dying?
 
-  # The sheep eats grass: it stands still with its head down, and its wool
-  # grows back. minecraft.wiki/w/Sheep
-  def eat_grass
+  # The sheep starts to eat grass: it stands still with its head down.
+  def start_graze
     @graze = GRAZE_TIME
+  end
+
+  # The wool of a sheared sheep grows back after its bite of grass.
+  # minecraft.wiki/w/Sheep
+  def regrow
     @sheared = false
   end
 
@@ -177,7 +188,11 @@ class Mob
   # parameter, and this one made the others untyped.
   def update_mob(world, dt, player, day)
     @hurt -= dt
-    @graze -= dt
+    if @graze > 0.0
+      @graze = 0.0 if @panic > 0.0 || dying?
+      @grass_bite = true if @graze > BITE_LEFT && @graze - dt <= BITE_LEFT
+      @graze -= dt
+    end
     @immune -= dt
     @attack_wait -= dt
     speed = 0.0
@@ -281,7 +296,7 @@ class Mob
       @yaw = @rng.rand01 * 6.283
     end
     # A grazing sheep stands still.
-    return 0.0 if @graze > 0.0 && @panic <= 0.0
+    return 0.0 if @graze > 0.0
     @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
   end
 

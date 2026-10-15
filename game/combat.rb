@@ -228,20 +228,31 @@ class Game
   # each second. minecraft.wiki/w/Sheep
   GRAZE_CHANCE = 20.0 / 500.0
 
-  # The sheep m eats the tall grass in its cell, or else turns the grass
-  # under it into dirt. With no grass, it does not eat. minecraft.wiki/w/Sheep
-  def try_graze(m)
+  # A sheep starts to eat when it has grass to eat and does not panic.
+  def can_graze?(m) = m.kind == Mob::SHEEP && !m.dying? && m.graze <= 0.0 && m.panic <= 0.0 && grass_under(m) > 0
+
+  # What the sheep m can eat: 1 for the tall grass in its cell, 2 for the
+  # grass block under it, or 0. minecraft.wiki/w/Sheep
+  def grass_under(m)
     x = m.x.floor
     y = (m.y + 0.01).floor
     z = m.z.floor
-    if @world.get(x, y, z) == Block::TALL_GRASS
-      set_block(x, y, z, Block::AIR)
-    elsif @world.get(x, y - 1, z) == Block::GRASS
-      set_block(x, y - 1, z, Block::DIRT)
-    else
-      return
-    end
-    m.eat_grass
+    return 1 if @world.get(x, y, z) == Block::TALL_GRASS
+    @world.get(x, y - 1, z) == Block::GRASS ? 2 : 0
+  end
+
+  # The bite of a grazing sheep: the tall grass goes, or else the grass
+  # block turns into dirt, and the wool grows back. With the grass gone,
+  # nothing happens. minecraft.wiki/w/Sheep
+  def bite_grass(m)
+    m.grass_bite = false
+    eaten = grass_under(m)
+    return if eaten == 0
+    x = m.x.floor
+    y = (m.y + 0.01).floor
+    z = m.z.floor
+    eaten == 1 ? set_block(x, y, z, Block::AIR) : set_block(x, y - 1, z, Block::DIRT)
+    m.regrow
   end
 
   # A random monster kind by MONSTER_WEIGHTS.
@@ -358,7 +369,7 @@ class Game
         explode(m.x, m.y + 0.8, m.z)
       end
       m.douse if m.fire > 0.0 && @weather.rain > 0.5 && @world.under_sky?(m.x, m.y + m.tall, m.z)
-      try_graze(m) if m.kind == Mob::SHEEP && !m.dying? && m.graze <= 0.0 && @rng.rand01 < dt * GRAZE_CHANCE
+      m.start_graze if can_graze?(m) && @rng.rand01 < dt * GRAZE_CHANCE
       @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
@@ -380,6 +391,7 @@ class Game
         end
         k += 1
       end
+      bite_grass(m) if m.grass_bite
       # A mob drops its loot when it dies, and its body goes up in smoke
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player

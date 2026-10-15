@@ -2557,19 +2557,67 @@ class Game
     once = ground_count(Block::WOOL) == wool && @inv.count(0) == Block.uses(Block::SHEARS) - 1
     check("shears take 1 to 3 wool from a sheep without a hit, once, for 1 use", sheared && once)
     @items.clear
-    try_graze(sheep)
-    on_grass = !sheep.sheared && sheep.graze > 0.0 && @world.get(bx, y, bz) == Block::DIRT
+    # A grazing sheep stays bare until its bite near the end of the eating,
+    # then the grass under it is dirt and its wool is back.
+    sheep.start_graze
+    40.times { update_mobs(1.0 / 60.0) }
+    early = sheep.sheared && @world.get(bx, y, bz) == Block::GRASS && sheep.graze > 0.0
+    (Mob::GRAZE_TIME * 60.0).to_i.times { update_mobs(1.0 / 60.0) }
+    on_grass = !sheep.sheared && @world.get(bx, y, bz) == Block::DIRT
+    # The tall grass in its cell goes before the grass block.
     sheep.sheared = true
+    sheep.x = bx + 0.5
+    sheep.z = bz + 0.5
     set_block(bx, y, bz, Block::GRASS)
     set_block(bx, y + 1, bz, Block::TALL_GRASS)
-    try_graze(sheep)
+    sheep.grass_bite = true
+    bite_grass(sheep)
     on_tall = !sheep.sheared && @world.get(bx, y + 1, bz) == Block::AIR && @world.get(bx, y, bz) == Block::GRASS
     sheep.sheared = true
     set_block(bx, y, bz, Block::STONE)
-    try_graze(sheep)
-    on_stone = sheep.sheared
-    check("a sheared sheep grows its wool back when it eats tall grass or the grass under it, and grass turns to dirt",
-          on_grass && on_tall && on_stone && (GRAZE_CHANCE - 0.04).abs < 1.0e-9)
+    sheep.grass_bite = true
+    bite_grass(sheep)
+    on_stone = sheep.sheared && !can_graze?(sheep)
+    check("a sheared sheep grows its wool back when its bite of grass ends, and grass turns to dirt",
+          early && on_grass && on_tall && on_stone && (GRAZE_CHANCE - 0.04).abs < 1.0e-9)
+    # A hit makes the sheep panic: it stops eating before the bite, and it
+    # does not start again while it panics. So a sheep sheared in creative
+    # and then killed in survival stays bare and drops no wool.
+    set_block(bx, y, bz, Block::GRASS)
+    sheep.x = bx + 0.5
+    sheep.z = bz + 0.5
+    sheep.start_graze
+    @player.x = bx + 0.5
+    @player.y = y + 1.0
+    @player.z = bz + 2.5
+    @player.yaw = 0.0
+    @player.pitch = -0.35
+    @player.flying = false
+    @survival = true
+    @inv.clear
+    @slot = 0
+    @items.clear
+    @player.raycast(@world)
+    find_target_mob
+    aimed = @target_mob == 0
+    left_button(1.0 / 60.0, true, true)
+    update_mobs(1.0 / 60.0)
+    stopped = sheep.graze <= 0.0 && sheep.sheared && !can_graze?(sheep)
+    sheep.hp = 0.5
+    sheep.by_player = true
+    (Mob::IMMUNE * 60.0 + 2.0).to_i.times { update_mobs(1.0 / 60.0) }
+    # The panicked sheep ran off. The player catches up with it and waits
+    # for a full attack charge.
+    sheep.x = bx + 0.5
+    sheep.y = y + 1.0
+    sheep.z = bz + 0.5
+    @attack_time = 1.0
+    @player.raycast(@world)
+    find_target_mob
+    left_button(1.0 / 60.0, true, true)
+    update_mobs(1.0 / 60.0)
+    check("a hit stops a sheep from eating, so a sheared sheep killed while it grazes drops no wool",
+          aimed && stopped && sheep.dying? && ground_count(Block::WOOL) == 0 && ground_count(Block::MUTTON) >= 1)
     @mobs.clear
     @inv.clear
     @survival = survival
