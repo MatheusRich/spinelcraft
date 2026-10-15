@@ -99,6 +99,12 @@ module Gfx
     static float mouse_dx, mouse_dy, wheel;
     static Uint32 buttons_now, buttons_prev;
     static int quit_requested, focus_lost;
+    /* The keys typed since the last poll, for the chat line: printable
+       ASCII from text input, and the codes of TYPED_* for the edit keys,
+       with key repeat. */
+    #define TYPED_CAP 64
+    static long typed[TYPED_CAP];
+    static int ntyped;
 
     static const char *MSL =
       "#include <metal_stdlib>\n"
@@ -1219,6 +1225,7 @@ module Gfx
       buttons_prev = buttons_now;
       mouse_dx = mouse_dy = wheel = 0;
       focus_lost = 0;
+      ntyped = 0;
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
         switch (e.type) {
@@ -1226,6 +1233,17 @@ module Gfx
           case SDL_EVENT_MOUSE_MOTION: mouse_dx += e.motion.xrel; mouse_dy += e.motion.yrel; break;
           case SDL_EVENT_MOUSE_WHEEL: wheel += e.wheel.y; break;
           case SDL_EVENT_WINDOW_FOCUS_LOST: focus_lost = 1; break;
+          case SDL_EVENT_TEXT_INPUT:
+            for (const char *p = e.text.text; *p && ntyped < TYPED_CAP; p++)
+              if (*p >= 32 && *p < 127) typed[ntyped++] = *p;
+            break;
+          case SDL_EVENT_KEY_DOWN: {
+            SDL_Scancode sc = e.key.scancode;
+            long code = sc == SDL_SCANCODE_BACKSPACE ? 8 : sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_KP_ENTER ? 13 :
+                        sc == SDL_SCANCODE_ESCAPE ? 27 : sc == SDL_SCANCODE_UP ? 1 : sc == SDL_SCANCODE_DOWN ? 2 : 0;
+            if (code && ntyped < TYPED_CAP) typed[ntyped++] = code;
+            break;
+          }
           default: break;
         }
       }
@@ -1243,6 +1261,9 @@ module Gfx
     double in_mouse_dy(void) { return mouse_dy; }
     double in_wheel(void) { return wheel; }
     bool in_focus_lost(void) { return focus_lost; }
+    long in_typed_count(void) { return ntyped; }
+    long in_typed(long i) { return typed[i]; }
+    void in_text(long on) { if (on) SDL_StartTextInput(win); else SDL_StopTextInput(win); }
     /* Cursor position in swapchain pixels. */
     double in_mouse_x(void) { float x, y; SDL_GetMouseState(&x, &y); return x * SDL_GetWindowPixelDensity(win); }
     double in_mouse_y(void) { float x, y; SDL_GetMouseState(&x, &y); return y * SDL_GetWindowPixelDensity(win); }
@@ -1293,6 +1314,9 @@ module Gfx
   ffi_func :in_mouse_dy, [], :double
   ffi_func :in_wheel, [], :double
   ffi_func :in_focus_lost, [], :bool
+  ffi_func :in_typed_count, [], :long
+  ffi_func :in_typed, [:long], :long
+  ffi_func :in_text, [:long], :void
   ffi_func :in_mouse_x, [], :double
   ffi_func :in_mouse_y, [], :double
   ffi_func :in_capture, [:long], :void
@@ -1302,6 +1326,13 @@ module Gfx
 end
 
 module Key
+  # The codes of Gfx.in_typed for the keys that edit the chat line. The
+  # other codes are the printable ASCII characters.
+  TYPED_UP = 1
+  TYPED_DOWN = 2
+  TYPED_BACKSPACE = 8
+  TYPED_ENTER = 13
+  TYPED_ESCAPE = 27
   A = 4
   D = 7
   E = 8
@@ -1315,6 +1346,7 @@ module Key
   N1 = 30
   ESCAPE = 41
   SPACE = 44
+  SLASH = 56
   F3 = 60
   F5 = 62
   F11 = 68
