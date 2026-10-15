@@ -1,5 +1,5 @@
-# Particles: block chips, flames, smoke, embers, effect specks and the
-# sparks of a critical hit. Each one
+# Particles: block chips, flames, smoke, embers, effect specks, the
+# sparks of a critical hit and the sparkles of bone meal. Each one
 # is a small square that faces the camera. Burning mobs, torches, lava and
 # explosions make the flames and the smoke.
 class Particle
@@ -12,6 +12,7 @@ class Particle
   DROP = 4
   EFFECT = 5
   CRIT = 6
+  GROWTH = 7
 
   attr_reader :kind
 
@@ -43,13 +44,13 @@ class Particle
 
   def update(world, dt)
     @life -= dt
-    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT || @kind == CRIT
+    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT || @kind == CRIT || @kind == GROWTH
       # Flames, smoke and effect specks rise and slow down sideways. Sparks
       # slow down fast in all directions.
       k = 1.0 - ((@kind == CRIT ? 6.0 : 2.0) * dt).clamp(0.0, 1.0)
       @vx *= k
       @vz *= k
-      @vy *= k if @kind == CRIT
+      @vy *= k if @kind == CRIT || @kind == GROWTH
       @x += @vx * dt
       @y += @vy * dt
       @z += @vz * dt
@@ -87,6 +88,11 @@ class Particle
       mesh.billboard(@x, @y, @z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, c, c, c, 1.0)
     when DROP
       mesh.billboard(@x, @y, @z, 0.035, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.7, 0.78, 0.95, 1.0)
+    when GROWTH
+      # The green of the bone meal sparkle in VoxeLibre (#00EE00).
+      mesh.glow = 1.0
+      mesh.billboard(@x, @y, @z, 0.02 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.0, 0.93, 0.0, 1.0)
+      mesh.glow = 0.0
     when CRIT
       mesh.billboard(@x, @y, @z, 0.03 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.85, 0.85, 0.8, 1.0)
     when EFFECT
@@ -207,6 +213,21 @@ class Particles
       vy = @rng.rand01 * 2.0 - 1.0
       vz = @rng.rand01 * 2.0 - 1.0
       add(Particle::CRIT, x, y, z, vx * 4.0, vy * 4.0 + 1.0, vz * 4.0, 0.2 + @rng.rand01 * 0.3, Tex::PUFF)
+    end
+  end
+
+  # The green sparkles of bone meal on the block cell x, y, z. As in
+  # Minecraft (BoneMealItem.addGrowthParticles, not on the wiki), a plant
+  # gets 15 in its cell, and a grass block 45 in the layer of cells above
+  # it, 3 blocks out to each side. The life of 0.6 to 1.6 seconds is a guess.
+  def growth(x, y, z, grass)
+    n = grass ? 45 : 15
+    spread = grass ? 3.0 : 0.0
+    base = grass ? y + 1.0 : y.to_f
+    n.times do
+      add(Particle::GROWTH, x + 0.5 + (@rng.rand01 * 2.0 - 1.0) * (spread + 0.4), base + @rng.rand01 * 0.8,
+          z + 0.5 + (@rng.rand01 * 2.0 - 1.0) * (spread + 0.4), (@rng.rand01 - 0.5) * 0.2, (@rng.rand01 - 0.5) * 0.2,
+          (@rng.rand01 - 0.5) * 0.2, 0.6 + @rng.rand01, Tex::PUFF)
     end
   end
 

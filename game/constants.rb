@@ -20,7 +20,8 @@ class Game
                     Block::COAL, Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
                     Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::ROTTEN_FLESH,
                     Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
-                    Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::SHEARS]
+                    Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::SHEARS,
+                    Block::BONE, Block::BONE_MEAL]
   FOG_END = 1600.0
   # The range of the render distance slider, in blocks.
   VIEW_MIN = 200.0
@@ -157,7 +158,7 @@ class Game
              # A boat takes 5 planks of its wood. minecraft.wiki/w/Boat
              [Block::OAK_PLANKS, 5, Block::OAK_BOAT, 1, AT_TABLE], [Block::SPRUCE_PLANKS, 5, Block::SPRUCE_BOAT, 1, AT_TABLE],
              [Block::BIRCH_PLANKS, 5, Block::BIRCH_BOAT, 1, AT_TABLE], [Block::IRON_INGOT, 2, Block::SHEARS, 1, BY_HAND],
-             [Block::PUMPKIN, 1, Block::PUMPKIN_SEEDS, 4, BY_HAND],
+             [Block::PUMPKIN, 1, Block::PUMPKIN_SEEDS, 4, BY_HAND], [Block::BONE, 1, Block::BONE_MEAL, 3, BY_HAND],
              [Block::CARVED_PUMPKIN, 1, Block::JACK_O_LANTERN, 1, BY_HAND, Block::TORCH, 1],
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::OAK_LOG, 1, Block::COAL, 1, AT_FURNACE],
              [Block::SPRUCE_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::BIRCH_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
@@ -170,7 +171,7 @@ class Game
   # of each name.
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
-  SAVE_VERSION = "SPINELCRAFT18"
+  SAVE_VERSION = "SPINELCRAFT19"
   # The options of the pause menu (see Game#save_options).
   OPTIONS_PATH = "options.txt"
   # Where a save that does not load goes, so that the next save does not replace it.

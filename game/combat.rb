@@ -413,14 +413,15 @@ class Game
   end
 
   # What a mob that the player killed drops, as in Minecraft: a zombie 0 to
-  # 2 rotten flesh, a skeleton 0 to 2 arrows and now and then its bow, a
-  # sheep its wool and 1 to 2 mutton, and a pig 1 to 3 porkchops.
+  # 2 rotten flesh, a skeleton 0 to 2 arrows, 0 to 2 bones and now and then
+  # its bow, a sheep its wool and 1 to 2 mutton, and a pig 1 to 3 porkchops.
   # minecraft.wiki/w/Rotten_Flesh, /w/Skeleton, /w/Sheep and /w/Pig
   def drop_loot(m)
     if m.kind == Mob::ZOMBIE
       loot(m, Block::ROTTEN_FLESH, (@rng.rand01 * 3.0).to_i)
     elsif m.kind == Mob::SKELETON
       loot(m, Block::ARROW, (@rng.rand01 * 3.0).to_i)
+      loot(m, Block::BONE, (@rng.rand01 * 3.0).to_i)
       loot(m, Block::BOW, 1) if @rng.rand01 < 0.085
     elsif m.kind == Mob::SHEEP
       loot(m, Block::WOOL, 1) unless m.sheared

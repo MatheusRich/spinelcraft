@@ -205,6 +205,8 @@ class Game
         place_boat
       elsif current_block == Block::SHEARS && target == Block::PUMPKIN
         carve_pumpkin(@player.hx, @player.hy, @player.hz)
+      elsif current_block == Block::BONE_MEAL && @player.hit
+        use_bone_meal
       elsif @player.hit
         place
       end
@@ -479,6 +481,18 @@ class Game
 
   # The y of the other half of the door at x, y, z.
   def door_partner(x, y, z) = Block.door?(@world.get(x, y + 1, z)) ? y + 1 : y - 1
+
+  # Bone meal on the block in view: it spends one in survival when the
+  # block grows, and green sparkles show where it worked.
+  def use_bone_meal
+    x = @player.hx.to_i
+    y = @player.hy.to_i
+    z = @player.hz.to_i
+    grass = @world.get(x, y, z) == Block::GRASS
+    return unless fertilize(x, y, z)
+    @inv.take(@slot, 1) if @survival
+    @particles.growth(x, y, z, grass)
+  end
 
   # True when the player holds food and can eat it now.
   def edible? = @survival && !@inv.empty?(@slot) && @vitals.hungry? && Block.food(current_block.to_i) > 0

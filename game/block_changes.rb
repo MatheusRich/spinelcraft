@@ -67,6 +67,77 @@ class Game
     end
   end
 
+  # Bone meal makes a plant grow. A sapling grows into its tree with this
+  # chance. In Minecraft, a sapling has 2 stages, and each bone meal moves
+  # it one stage with this chance. Here a sapling has 1 stage, as when it
+  # grows by itself. minecraft.wiki/w/Bone_Meal
+  SAPLING_MEAL_CHANCE = 0.45
+
+  # Uses bone meal on the block at x, y, z. A sapling may grow into a tree,
+  # a crop or a pumpkin stem grows, and a grass block with air above it
+  # grows plants around it. It returns false for a block that bone meal
+  # does not change, so that the bone meal is not spent. Ripe wheat and a
+  # ripe stem take none. minecraft.wiki/w/Bone_Meal does not say this for
+  # a stem; in the code of Minecraft (StemBlock), a stem of age 7 takes no
+  # bone meal.
+  def fertilize(x, y, z)
+    b = @world.get(x, y, z)
+    if Block.sapling?(b)
+      grow_tree(x, y, z, Block.wood(b)) if @rng.rand01 < SAPLING_MEAL_CHANCE
+    elsif Block.growing?(b)
+      first = b >= Block::PUMPKIN_SEEDS ? Block::PUMPKIN_SEEDS : Block::SEEDS
+      last = (first == Block::SEEDS ? Block::WHEAT_RIPE : Block::PUMPKIN_STEM_RIPE) - first
+      set_block(x, y, z, first + Game.meal_stage(b - first, 2 + (@rng.rand01 * 4.0).to_i, last))
+    elsif b == Block::GRASS && @world.get(x, y + 1, z) == Block::AIR
+      scatter_plants(x, y + 1, z)
+    else
+      return false
+    end
+    true
+  end
+
+  # The stage of a crop at stage after bone meal adds ages. Its stages go
+  # from 0 to last: 3 for wheat, and 2 for pumpkin seeds, a stem and a ripe
+  # stem. Wheat and a stem have 8 ages in Minecraft, 0 to 7, and bone meal
+  # adds 2 to 5 of them (minecraft.wiki/w/Bone_Meal, /w/Pumpkin_Seeds).
+  # Here the 7 steps of age become the last steps of stage, so ages move
+  # the crop ages * last / 7 stages, to the nearest stage. Wheat grows 1
+  # stage for 2 or 3 ages and 2 stages for 4 or 5. A stem grows 1 stage.
+  def self.meal_stage(stage, ages, last) = (stage + (ages * last * 2 + 7) / 14).clamp(0, last)
+
+  # Bone meal on a grass block: tall grass and flowers grow on the grass
+  # blocks around the cell x, y, z above it. As in Minecraft
+  # (GrassBlock.performBonemeal, not on the wiki), 128 tries each walk
+  # try / 16 random steps from the cell, along grass blocks with no solid
+  # block on them, so the plants reach 7 blocks out: the 15 x 15 x 15 area
+  # of minecraft.wiki/w/Bone_Meal. A try that ends in air grows tall grass,
+  # or a flower 1 time in 8. The flower is a poppy 2 times in 3 and a
+  # dandelion 1 time in 3, the flower_default feature of Minecraft (not on
+  # the wiki). A plant grows only on a grass block, never on dirt or snow.
+  def scatter_plants(x, y, z)
+    i = 0
+    while i < 128
+      px = x
+      py = y
+      pz = z
+      ok = true
+      j = 0
+      while ok && j < i / 16
+        px += (@rng.rand01 * 3.0).to_i - 1
+        py += ((@rng.rand01 * 3.0).to_i - 1) * ((@rng.rand01 * 3.0).to_i / 2)
+        pz += (@rng.rand01 * 3.0).to_i - 1
+        ok = @world.get(px, py - 1, pz) == Block::GRASS && !Block.solid?(@world.get(px, py, pz))
+        j += 1
+      end
+      if ok && @world.get(px, py, pz) == Block::AIR
+        plant = Block::TALL_GRASS
+        plant = @rng.rand01 < 2.0 / 3.0 ? Block::ROSE : Block::DANDELION if @rng.rand01 < 0.125
+        set_block(px, py, pz, plant)
+      end
+      i += 1
+    end
+  end
+
   # A ripe stem grows a pumpkin on a cell next to it, in a random
   # direction, when that cell is air over soil (Block.soil?). A stem with a
   # pumpkin next to it waits until the pumpkin goes. minecraft.wiki/w/Pumpkin_Seeds

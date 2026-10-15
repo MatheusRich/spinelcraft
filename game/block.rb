@@ -122,6 +122,8 @@ module Block
   PUMPKIN_SEEDS = 143
   PUMPKIN_STEM = 144
   PUMPKIN_STEM_RIPE = 145
+  BONE = 146
+  BONE_MEAL = 147
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -399,6 +401,8 @@ module Block
                solid: 0, plant: 1
   define_plant PUMPKIN_STEM, "PUMPKIN STEM", Tex::PUMPKIN_STEM, drops: PUMPKIN_SEEDS
   define_plant PUMPKIN_STEM_RIPE, "PUMPKIN STEM", Tex::PUMPKIN_STEM_RIPE, drops: PUMPKIN_SEEDS
+  define_item BONE, "BONE", Tex::BONE
+  define_item BONE_MEAL, "BONE MEAL", Tex::BONE_MEAL
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)

@@ -59,6 +59,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - Animals, and monsters that come out in the dark. Shears take the wool of a sheep, and the sheep grows it back when it eats grass.
 - Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
 - Pumpkin patches. Shears cut leaves and wool fast, and carve a face into a pumpkin, and a carved pumpkin and a torch make a jack o'lantern, which lights the night. Pumpkin seeds grow a stem, and the stem grows new pumpkins. On October 31, some monsters wear a pumpkin on their heads.
+- Bone meal. Skeletons drop bones, and a bone makes 3 bone meal. Bone meal makes a crop, a pumpkin stem or a sapling grow, and grows tall grass and flowers on a grass block.
 - A view distance of up to 5000 blocks.
 - A chat line with commands, as in Minecraft.
 - Sounds from VoxeLibre, under free licenses. `assets/sounds/CREDITS.md` names the author and the license of each file.

@@ -211,6 +211,7 @@ class Game
     test_bed
     test_buckets
     test_pumpkins
+    test_bone_meal
     test_seed_soil
     test_shear_sheep
     test_far_items
@@ -2525,6 +2526,143 @@ class Game
   # Shears carve a pumpkin on the side in view and drop 4 seeds. A carved
   # pumpkin and a torch make a jack o'lantern, which lights its
   # surroundings. A ripe stem grows one pumpkin next to it.
+  # Skeletons drop bones, a bone makes 3 bone meal, and bone meal grows a
+  # crop, a pumpkin stem, a sapling, and plants on a grass block.
+  def test_bone_meal
+    recipe = RECIPES.any? { |r| r[0] == Block::BONE && r[1] == 1 && r[2] == Block::BONE_MEAL && r[3] == 3 && r[4] == BY_HAND }
+    # Each skeleton drops 0 to 2, so 10 skeletons drop none 1 time in 59049.
+    @items.clear
+    @mobs.clear
+    10.times do |i|
+      skeleton = Mob.new(Mob::SKELETON, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
+      skeleton.hp = 0.0
+      skeleton.by_player = true
+      @mobs << skeleton
+    end
+    update_mobs(1.0 / 60.0)
+    n = ground_count(Block::BONE)
+    check("skeletons drop 0 to 2 bones each, and a bone makes 3 bone meal", recipe && n >= 1 && n <= 20)
+    @items.clear
+    @mobs.clear
+    # A stone floor high in the air, with a field of grass 9 blocks wide in
+    # the middle, and dirt for the crops.
+    x = @spawn_x.floor - 40
+    z = @spawn_z.floor + 40
+    g = SKY_Y - 20
+    dx = -10
+    while dx <= 10
+      dz = -10
+      while dz <= 10
+        set_block(x + dx, g - 1, z + dz, Block::STONE)
+        set_block(x + dx, g, z + dz, dx.abs <= 4 && dz.abs <= 4 ? Block::GRASS : Block::STONE)
+        (1..8).each { |dy| set_block(x + dx, g + dy, z + dz, Block::AIR) }
+        dz += 1
+      end
+      dx += 1
+    end
+    # Bone meal adds 2 to 5 of the 8 ages of a Minecraft crop or stem. Wheat
+    # has 3 steps of stage here, and a stem 2.
+    wheat = [2, 3, 4, 5].map { |a| Game.meal_stage(0, a, 3) } == [1, 1, 2, 2] && Game.meal_stage(2, 5, 3) == 3
+    stem = [2, 3, 4, 5].map { |a| Game.meal_stage(0, a, 2) } == [1, 1, 1, 1]
+    survival = @survival
+    @survival = true
+    @inv.set(5, Block::BONE_MEAL, 20)
+    @slot = 5
+    set_block(x + 7, g, z, Block::DIRT)
+    set_block(x + 7, g + 1, z, Block::SEEDS)
+    aim_down(x + 7, g + 1, z)
+    use_bone_meal
+    grew = @world.get(x + 7, g + 1, z) != Block::SEEDS && @inv.count(5) == 19
+    2.times { use_bone_meal }
+    ripe = @world.get(x + 7, g + 1, z) == Block::WHEAT_RIPE
+    left = @inv.count(5)
+    use_bone_meal
+    check("bone meal grows a crop 1 or 2 stages, and ripe wheat does not spend it", wheat && grew && ripe && @inv.count(5) == left)
+    set_block(x + 7, g, z + 2, Block::DIRT)
+    set_block(x + 7, g + 1, z + 2, Block::PUMPKIN_SEEDS)
+    aim_down(x + 7, g + 1, z + 2)
+    seeds_left = @inv.count(5)
+    use_bone_meal
+    young = @world.get(x + 7, g + 1, z + 2) == Block::PUMPKIN_STEM
+    use_bone_meal
+    old = @world.get(x + 7, g + 1, z + 2) == Block::PUMPKIN_STEM_RIPE
+    left = @inv.count(5)
+    use_bone_meal
+    check("bone meal grows a pumpkin stem 1 stage, and a ripe stem does not spend it",
+          stem && young && old && @inv.count(5) == left && left == seeds_left - 2)
+    # 45% of bone meal grows a sapling, so 10 tries fail 1 time in 400.
+    set_block(x - 7, g, z, Block::DIRT)
+    set_block(x - 7, g + 1, z, Block::OAK_SAPLING)
+    aim_down(x - 7, g + 1, z)
+    tries = 0
+    while tries < 10 && @world.get(x - 7, g + 1, z) == Block::OAK_SAPLING
+      use_bone_meal
+      tries += 1
+    end
+    check("bone meal grows a sapling into a tree", @world.get(x - 7, g + 1, z) == Block::OAK_LOG && @inv.count(5) == left - tries)
+    @inv.set(5, Block::BONE_MEAL, 20)
+    # Bone meal on a grass block grows tall grass and some flowers on the
+    # grass around it, and none on the stone. A flower is 1 plant in 8, so
+    # the test counts the plants of 4 uses.
+    aim_down(x, g, z)
+    fewest = 1000
+    flowers = 0
+    on_stone = 0
+    spent = true
+    4.times do
+      before = @inv.count(5)
+      use_bone_meal
+      spent &&= @inv.count(5) == before - 1
+      plants = 0
+      dx = -10
+      while dx <= 10
+        dz = -10
+        while dz <= 10
+          b = @world.get(x + dx, g + 1, z + dz)
+          if b == Block::TALL_GRASS || b == Block::ROSE || b == Block::DANDELION
+            if dx.abs <= 4 && dz.abs <= 4
+              plants += 1
+              flowers += 1 if b != Block::TALL_GRASS
+            else
+              on_stone += 1
+            end
+          end
+          set_block(x + dx, g + 1, z + dz, Block::AIR) if Block.plant?(b) && b != Block::OAK_SAPLING && !Block.growing?(b) && b != Block::WHEAT_RIPE && b != Block::PUMPKIN_STEM_RIPE
+          dz += 1
+        end
+        dx += 1
+      end
+      fewest = plants if plants < fewest
+    end
+    # With a plant on it, the grass block takes no bone meal.
+    set_block(x, g + 1, z, Block::TALL_GRASS)
+    before = @inv.count(5)
+    use_bone_meal
+    check("bone meal on grass grows tall grass and flowers around it, only on grass",
+          fewest >= 15 && flowers >= 1 && on_stone == 0 && spent && @inv.count(5) == before)
+    @inv.set(5, Block::AIR, 0)
+    @survival = survival
+    dx = -10
+    while dx <= 10
+      dz = -10
+      while dz <= 10
+        (-1..8).each { |dy| set_block(x + dx, g + dy, z + dz, Block::AIR) }
+        dz += 1
+      end
+      dx += 1
+    end
+  end
+
+  # Puts the player 2 blocks above the cell x, y, z, looking straight down
+  # at it.
+  def aim_down(x, y, z)
+    @player.x = x + 0.5
+    @player.y = y + 2.0
+    @player.z = z + 0.5
+    @player.pitch = -Math::PI / 2.0 + 0.001
+    @player.raycast(@world)
+  end
+
   def test_pumpkins
     bx = @spawn_x.floor + 50
     bz = @spawn_z.floor - 60

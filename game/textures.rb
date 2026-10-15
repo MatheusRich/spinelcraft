@@ -175,6 +175,8 @@ module Tex
   # A young stem is green, and a ripe stem yellow.
   PUMPKIN_STEM = image("pumpkin_stem", bleed: 1)
   PUMPKIN_STEM_RIPE = image("pumpkin_stem_ripe", bleed: 1)
+  BONE = image("bone")
+  BONE_MEAL = image("bone_meal")
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size
