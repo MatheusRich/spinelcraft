@@ -7,7 +7,7 @@ class Game
   CREATIVE_ITEMS = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::OAK_PLANKS, Block::OAK_LOG,
                     Block::OAK_LEAVES, Block::SPRUCE_PLANKS, Block::SPRUCE_LOG, Block::SPRUCE_LEAVES,
                     Block::BIRCH_PLANKS, Block::BIRCH_LOG, Block::BIRCH_LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
-                    Block::SNOW_GRASS, Block::CACTUS, Block::COAL, Block::IRON, Block::DIAMOND, Block::WATER,
+                    Block::SNOW_GRASS, Block::CACTUS, Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::WATER,
                     Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
                     Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::OAK_SAPLING,
                     Block::SPRUCE_SAPLING, Block::BIRCH_SAPLING,
@@ -17,7 +17,7 @@ class Game
                     Block::WOOD_AXE, Block::STONE_AXE, Block::IRON_AXE, Block::DIAMOND_AXE,
                     Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL,
                     Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
-                    Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
+                    Block::COAL, Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
                     Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::ROTTEN_FLESH]
   FOG_END = 1600.0
   # The range of the render distance slider, in blocks.
@@ -139,7 +139,8 @@ class Game
              [Block::ANY_PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::ANY_PLANKS, 3, Block::LADDER, 4, AT_TABLE],
              [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE], [Block::IRON_INGOT, 3, Block::BUCKET, 1, AT_TABLE],
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
-             [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
+             [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::OAK_LOG, 1, Block::COAL, 1, AT_FURNACE],
+             [Block::SPRUCE_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::BIRCH_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
              [Block::MUTTON, 1, Block::COOKED_MUTTON, 1, AT_FURNACE],
              [Block::SAND, 1, Block::GLASS, 1, AT_FURNACE], [Block::COBBLE, 1, Block::STONE, 1, AT_FURNACE]]
 

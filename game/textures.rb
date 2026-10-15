@@ -17,7 +17,7 @@ module Tex
   SNOW_SIDE = 14
   BEDROCK = 15
   BRICK = 16
-  COAL = 17
+  COAL_ORE = 17
   IRON = 18
   GRAVEL = 19
   DIAMOND = 20
@@ -25,6 +25,7 @@ module Tex
   CACTUS_TOP = 22
   HEART = 23
   HEART_EMPTY = 24
+  COAL = 25
   CRACK = 26
   CRACK_STAGES = 8
   TALL_GRASS = 34
@@ -166,7 +167,7 @@ module Tex
   # The layers that come from the images in assets/pixel-perfection, and the
   # name of each image, in the same order.
   IMAGE_LAYERS = [GRASS_TOP, GRASS_SIDE, DIRT, STONE, SAND, WATER, OAK_LOG_SIDE, OAK_LOG_TOP, OAK_LEAVES, OAK_PLANKS, COBBLE, GLASS,
-                  SNOW, SNOW_SIDE, BEDROCK, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS_SIDE, CACTUS_TOP, TALL_GRASS,
+                  SNOW, SNOW_SIDE, BEDROCK, BRICK, COAL_ORE, IRON, GRAVEL, DIAMOND, CACTUS_SIDE, CACTUS_TOP, TALL_GRASS,
                   ROSE, DANDELION, TORCH, PORKCHOP, WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, BOW, ARROW, LAVA,
                   WOOL, FIRE, OAK_SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
                   COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL,
@@ -176,9 +177,9 @@ module Tex
                   BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH,
                   SPRUCE_LOG_SIDE, SPRUCE_LOG_TOP, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG_SIDE,
                   BIRCH_LOG_TOP, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING, MOON, MOON + 1, MOON + 2, MOON + 3,
-                  MOON + 4, MOON + 5, MOON + 6, MOON + 7, MUTTON, COOKED_MUTTON]
+                  MOON + 4, MOON + 5, MOON + 6, MOON + 7, MUTTON, COOKED_MUTTON, COAL]
   IMAGE_FILES = %w[grass_top grass_side dirt stone sand water oak_log_side oak_log_top oak_leaves oak_planks cobble glass snow
-                   snow_side bedrock brick coal iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
+                   snow_side bedrock brick coal_ore iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
                    torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire oak_sapling apple
                    wood_sword stone_sword iron_sword diamond_sword iron_ingot furnace cooked_porkchop wood_axe
                    stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
@@ -187,7 +188,7 @@ module Tex
                    bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
                    spruce_log_side spruce_log_top spruce_leaves spruce_planks spruce_sapling birch_log_side
                    birch_log_top birch_leaves birch_planks birch_sapling moon_0 moon_1 moon_2 moon_3 moon_4 moon_5
-                   moon_6 moon_7 mutton cooked_mutton]
+                   moon_6 moon_7 mutton cooked_mutton coal]
 
   # The HUD icons are 9 x 9 images, as in Minecraft. Each one fills the top
   # left corner of its layer, so the HUD draws ICON_PART of the layer.

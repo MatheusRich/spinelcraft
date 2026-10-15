@@ -7,8 +7,7 @@ class Game
   # the other rows into view.
   RECIPE_ROWS = 10
   # What a furnace burns, and the ticks of burn time of one of each.
-  # minecraft.wiki/w/Smelting (Fuel). The game has no coal item, so coal
-  # ore burns as coal.
+  # minecraft.wiki/w/Smelting (Fuel)
   FUEL_BLOCKS = [Block::OAK_PLANKS, Block::SPRUCE_PLANKS, Block::BIRCH_PLANKS, Block::OAK_LOG, Block::SPRUCE_LOG,
                  Block::BIRCH_LOG, Block::COAL]
   FUEL_TICKS = [300, 300, 300, 300, 300, 300, 1600]

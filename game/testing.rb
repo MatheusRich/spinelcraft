@@ -1069,10 +1069,10 @@ class Game
     @inv.add(Block::OAK_LOG)
     note_seen
     logs = shown_recipes == [recipe_for(Block::OAK_PLANKS)]
-    told = @message == "NEW RECIPE: OAK PLANKS - PRESS E" && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 1
+    told = @message == "2 NEW RECIPES - PRESS E, AT A FURNACE" && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 1
     toggle_inventory
     toggle_inventory
-    check("a new recipe shows a message and a tag until the inventory closes", told && !@recipe_new.include?(1))
+    check("a new recipe shows a message and a tag until the inventory closes", told && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 0)
     @inv.add(Block::OAK_PLANKS)
     note_seen
     both = @message.include?("NEW RECIPES - PRESS E, AT A CRAFTING TABLE")
@@ -1098,7 +1098,7 @@ class Game
     toggle_inventory
     set_block(x, y, z, Block::FURNACE)
     open_station(x, y, z, AT_FURNACE)
-    furnace = shown_recipes == [recipe_for(Block::IRON_INGOT)]
+    furnace = shown_recipes == [recipe_for(Block::IRON_INGOT), recipe_for(Block::COAL)]
     toggle_inventory
     set_block(x, y, z, old)
     check("the E screen, a crafting table and a furnace each show their own recipes", hand && table && furnace && @station == BY_HAND)
@@ -1839,6 +1839,18 @@ class Game
     @survival = survival
     toggle_inventory
     check("the furnace slots take only what fits them, and a broken furnace drops what it holds", not_fuel && not_smelted && no_output && dropped)
+    # A log smelts into coal, and coal burns for 1600 ticks.
+    set_block(x + 2, y, z + 3, Block::FURNACE)
+    open_station(x + 2, y, z + 3, AT_FURNACE)
+    f = open_furnace
+    @furnace_clock = 0.0
+    f.slots.set(Furnace::INPUT, Block::OAK_LOG, 1)
+    f.slots.set(Furnace::FUEL, Block::COAL, 1)
+    update_furnaces(10.0)
+    coal = f.slots.block(Furnace::OUTPUT) == Block::COAL && f.slots.count(Furnace::OUTPUT) == 1 && f.slots.empty?(Furnace::FUEL) && f.burn > 1300
+    toggle_inventory
+    set_block(x + 2, y, z + 3, Block::AIR)
+    check("a log smelts into coal, coal burns for 1600 ticks, and coal ore drops coal", coal && Block::DROPS[Block::COAL_ORE] == Block::COAL)
     set_block(x, y, z, Block::OAK_SAPLING)
     # The crop stands out of reach of the tree's leaves, on top of its column.
     cy = @world.height_at(x + 4, z)
