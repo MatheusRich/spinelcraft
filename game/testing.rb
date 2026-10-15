@@ -3387,12 +3387,12 @@ class Game
           loved && again && still && !cow.in_love?)
     @slot = 1
     right_click_mob(cow)
-    seeds_on_cow = !cow.in_love? && @inv.count(1) == 10
+    seeds_on_cow = @target_mob == 0 && !cow.in_love? && @inv.count(1) == 10
     hen = Mob.new(Mob::CHICKEN, bx + 0.5, fy, bz - 4.5, 3)
     @mobs << hen
     @slot = 0
     right_click_mob(hen)
-    wheat_on_hen = !hen.in_love? && @inv.count(0) == 9
+    wheat_on_hen = @target_mob == 1 && !hen.in_love? && @inv.count(0) == 9
     @slot = 1
     right_click_mob(hen)
     check("a cow takes no seeds and a chicken no wheat, but a chicken takes seeds",
