@@ -2164,6 +2164,16 @@ class Game
     @mobs.clear
     @eggs.clear
     @inv.clear
+    @items.clear
+    drop_item(Block::EGG, 20, @player.x.to_f, @player.y.to_f, @player.z.to_f, 0.0, 0.0, 0.0, 0.0)
+    collect_items
+    picked = @inv.count(0) == 16 && @inv.block(1) == Block::EGG && @inv.count(1) == 4
+    @inv.clear
+    run_chat("/give egg 20")
+    check("eggs stack to 16 when the player picks them up and from /give",
+          picked && @inv.count(0) == 16 && @inv.block(1) == Block::EGG && @inv.count(1) == 4 && @chat_errors.last == 0)
+    @items.clear
+    @inv.clear
     @survival = was
   end
 
