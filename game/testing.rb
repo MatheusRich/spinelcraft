@@ -697,9 +697,9 @@ class Game
   end
 
   # Every track opens, and Music picks the tracks as in Minecraft: a long
-  # quiet gap after each track, and never the same track twice in a row.
-  # Underground the tracks are mining tracks, and at night no track starts
-  # on the surface.
+  # quiet gap after each track. Each track plays once before a track plays
+  # again, and never twice in a row. Underground the tracks are mining
+  # tracks, and at night no track starts on the surface.
   def test_music
     opened = 0
     Music::FILES.size.times { |id| opened += 1 if Music.start(id) }
@@ -715,16 +715,22 @@ class Game
     night = m.next_track(Music::GAP_MAX, false, false, true)
     deep = m.next_track(0.0, false, true, true)
     check("at night a track starts underground but not on the surface", night == -1 && deep >= Music::MINING)
-    last = deep
+    # Each round of Music::MINING surface picks holds each surface track once.
+    m = Music.new(2)
+    last = -1
     repeats = 0
-    picked = 0
-    50.times do
-      track = m.next_track(Music::GAP_MAX, false, false, false)
-      picked += 1 if track >= 0 && track < Music::MINING
-      repeats += 1 if track == last
-      last = track
+    full_rounds = 0
+    20.times do
+      seen = Array.new(Music::MINING, false)
+      Music::MINING.times do
+        track = m.next_track(Music::GAP_MAX, false, false, false)
+        seen[track] = true if track >= 0 && track < Music::MINING
+        repeats += 1 if track == last
+        last = track
+      end
+      full_rounds += 1 if seen.all? { |s| s }
     end
-    check("a track never plays twice in a row", picked == 50 && repeats == 0)
+    check("each track plays once in a round, and never twice in a row", full_rounds == 20 && repeats == 0)
   end
 
   # A jump lifts the feet 1.2522 blocks, and sprint-jumps move faster than

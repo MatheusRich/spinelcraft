@@ -19,13 +19,15 @@ class Music
   GAP_MIN = 600.0
   GAP_MAX = 1200.0
 
-  # The track that played last, or -1.
-  attr_reader :last
-
   def initialize(seed)
     @rng = Rng.new(seed)
     @wait = FIRST_WAIT
+    # The track that played last, or -1.
     @last = -1
+    # A bag for each pool: the tracks that have yet to play in this round,
+    # in a random order. The next track is the last one in the bag.
+    @surface_bag = Array.new(0, 0)
+    @mining_bag = Array.new(0, 0)
   end
 
   # Counts down the quiet gap while no track plays. Returns the track to
@@ -35,13 +37,33 @@ class Music
     return -1 if playing
     @wait -= dt
     return -1 if @wait > 0.0 || (night && !underground)
-    first = underground ? MINING : 0
-    count = underground ? FILES.size - MINING : MINING
-    track = first + (@rng.rand01 * count).to_i
-    track = first + (track - first + 1) % count if track == @last
+    bag = underground ? @mining_bag : @surface_bag
+    if bag.empty?
+      underground ? fill(bag, MINING, FILES.size) : fill(bag, 0, MINING)
+    end
+    track = bag.pop
     @last = track
     @wait = GAP_MIN + @rng.rand01 * (GAP_MAX - GAP_MIN)
     track
+  end
+
+  # Puts the tracks from first up to (not with) stop in the bag, in a random
+  # order. Each track plays once before a track plays again, and the first
+  # track of a round is not the track that played last.
+  def fill(bag, first, stop)
+    (first...stop).each { |id| bag << id }
+    i = bag.size - 1
+    while i > 0
+      j = (@rng.rand01 * (i + 1)).to_i
+      t = bag[i]
+      bag[i] = bag[j]
+      bag[j] = t
+      i -= 1
+    end
+    if bag.size > 1 && bag[bag.size - 1] == @last
+      bag[bag.size - 1] = bag[0]
+      bag[0] = @last
+    end
   end
 
   # Starts track id. Returns false when its file does not open.
