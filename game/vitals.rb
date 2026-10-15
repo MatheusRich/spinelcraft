@@ -7,7 +7,7 @@
 # point of hunger when the saturation is empty. Food gives back hunger and
 # saturation.
 class Vitals
-  MAX_HEALTH = 20
+  MAX_HEALTH = 20.0
   MAX_HUNGER = 20
   # Seconds of air under water. minecraft.wiki/w/Damage (Drowning)
   MAX_AIR = 15.0
@@ -29,6 +29,8 @@ class Vitals
   MINE_COST = 0.005
   # Exhaustion for each point of health that comes back.
   HEAL_COST = 6.0
+  # A heal with saturation uses at most this much of it. minecraft.wiki/w/Hunger
+  HEAL_SATURATION = 6.0
   # The player cannot sprint with this much hunger or less.
   # minecraft.wiki/w/Sprinting
   SPRINT_HUNGER = 6
@@ -61,7 +63,7 @@ class Vitals
     @regen = 0.0
   end
 
-  def dead? = @health <= 0
+  def dead? = @health <= 0.0
   def burning? = @fire > 0.0
   def hungry? = @hunger < MAX_HUNGER
   def can_sprint? = @hunger > SPRINT_HUNGER
@@ -74,9 +76,13 @@ class Vitals
 
   def hurt(amount)
     return if dead?
-    @health -= amount
-    @health = 0 if @health < 0
+    @health -= amount.to_f
+    @health = 0.0 if @health < 0.0
     exhaust(HURT_COST)
+  end
+
+  def heal(amount)
+    @health = [@health + amount, MAX_HEALTH].min
   end
 
   def exhaust(amount)
@@ -159,12 +165,15 @@ class Vitals
     end
   end
 
-  # With full hunger and saturation left, the player heals each half
-  # second. With 18 hunger or more, the player heals each 4 seconds. With
-  # no hunger, the player starves each 4 seconds, down to 1 health.
+  # As in Minecraft (minecraft.wiki/w/Hunger): with full hunger and
+  # saturation left, the player heals each half second, by a sixth of the
+  # saturation up to 6, and that much saturation goes to exhaustion. With
+  # 18 hunger or more, the player heals 1 each 4 seconds for 6 exhaustion.
+  # With no hunger, the player starves 1 each 4 seconds, down to 1 health.
   def update_regen(dt)
     wounded = @health < MAX_HEALTH
-    wait = if wounded && @saturation > 0.0 && @hunger >= MAX_HUNGER
+    saturated = wounded && @saturation > 0.0 && @hunger >= MAX_HUNGER
+    wait = if saturated
       0.5
     elsif wounded && @hunger >= 18
       4.0
@@ -180,12 +189,16 @@ class Vitals
     @regen += dt
     return if @regen < wait
     @regen = 0.0
-    if @hunger > 0
-      @health += 1
+    if saturated
+      used = [@saturation, HEAL_SATURATION].min
+      heal(used / HEAL_SATURATION)
+      exhaust(used)
+    elsif @hunger > 0
+      heal(1.0)
       exhaust(HEAL_COST)
-    elsif @health > 1
+    elsif @health > 1.0
       # Starving costs no exhaustion.
-      @health -= 1
+      @health -= 1.0
     end
   end
 end

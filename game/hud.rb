@@ -94,7 +94,8 @@ class Game
     while i < 10
       hx = x0 + i * 20.0 * s
       @ui.icon(hx, hy, 18.0 * s, Tex::HEART_EMPTY, 1.0)
-      hp = @vitals.health - i * 2
+      # A part of a half heart shows as a half heart, as in Minecraft.
+      hp = @vitals.health.ceil - i * 2
       if hp >= 2
         @ui.icon(hx, hy, 18.0 * s, Tex::HEART, 1.0)
       elsif hp == 1

@@ -205,7 +205,7 @@ class Game
     @inventory_open = true
     inventory = paused?
     @inventory_open = false
-    @vitals.health = 0
+    @vitals.health = 0.0
     dead = paused?
     @vitals.health = Vitals::MAX_HEALTH
     @captured = true
@@ -683,12 +683,12 @@ class Game
     check("stacks split at 64", @inv.count(2) == 64 && @inv.block(3) == Block::DIRT && @inv.count(3) == 6)
     @vitals.health = Vitals::MAX_HEALTH
     hurt(5, Sfx::HURT)
-    check("hurt lowers health", @vitals.health == 15 && !@vitals.dead?)
+    check("hurt lowers health", @vitals.health == 15.0 && !@vitals.dead?)
     kept = @inv.copy
     @items.clear
     toggle_inventory
     hurt(30, Sfx::HURT)
-    check("death at zero health, and it closes the inventory", @vitals.health == 0 && @vitals.dead? && !@inventory_open)
+    check("death at zero health, and it closes the inventory", @vitals.health == 0.0 && @vitals.dead? && !@inventory_open)
     check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::OAK_PLANKS) == 4)
     @items.clear
     @inv = kept
@@ -791,6 +791,22 @@ class Game
     @vitals.give_hunger_effect
     update_survival(0.5)
     check("the Hunger effect makes green specks around the player", @particles.count(Particle::EFFECT) > before)
+    # Full hunger with 3 saturation heals 3 / 6 each half second, for 3
+    # exhaustion. 18 hunger heals 1 each 4 seconds, for 6 exhaustion.
+    @vitals = Vitals.new
+    @vitals.health = 10.0
+    @vitals.saturation = 3.0
+    11.times { @vitals.update_vitals(0.05, false, false) }
+    saturated = @vitals.health == 10.5 && (@vitals.exhaustion - 3.0).abs < 0.01
+    @vitals = Vitals.new
+    @vitals.health = 10.0
+    @vitals.hunger = 18
+    @vitals.saturation = 0.0
+    79.times { @vitals.update_vitals(0.05, false, false) }
+    early = @vitals.health == 10.0
+    2.times { @vitals.update_vitals(0.05, false, false) }
+    check("a full stomach heals as in Minecraft", saturated && early && @vitals.health == 11.0)
+    @vitals = Vitals.new
   end
 
   # Frames of 0.05 seconds that it takes to break block b at x, y, z (which
@@ -856,14 +872,14 @@ class Game
     @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
     # A blast this near kills a player with full health, so the player
     # gets more health for the test.
-    @vitals.health = 100
+    @vitals.health = 100.0
     @items.clear
     frames = 0
     while frames < 300 && @world.get(px + 2, 88, pz) == Block::STONE
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @vitals.health < 100 && frames > 60)
+    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @vitals.health < 100.0 && frames > 60)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
     @items.clear
     @mobs.clear
@@ -977,7 +993,7 @@ class Game
     @alive_time = 1500.0
     save
     @world.set(x, ground + 1, z, Block::GLASS)
-    @vitals.health = 3
+    @vitals.health = 3.0
     @inv.set(1, Block::AIR, 0)
     @items.clear
     @weather.set_now(false)
@@ -1000,7 +1016,7 @@ class Game
     @furnaces = {}
     @items.clear
     @weather.set_now(false)
-    @vitals.health = 0
+    @vitals.health = 0.0
     save
     ok = load
     apply_loaded if ok

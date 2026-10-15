@@ -126,7 +126,7 @@ class Game
     @time_of_day = f[F_TIME].to_f
     @day = f[F_DAY].to_i
     @survival = f[F_SURVIVAL] == "1"
-    @vitals.health = f[F_HEALTH].to_i
+    @vitals.health = f[F_HEALTH].to_f
     @alive_time = f[F_ALIVE].to_f
     @spawn_x = f[F_SPAWN].to_f
     @spawn_z = f[F_SPAWN + 1].to_f
