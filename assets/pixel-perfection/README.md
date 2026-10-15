@@ -72,6 +72,7 @@ In Minecraft, grass, leaves and water are gray, and the biome gives them their c
 | `grass_top.png` | `mcl_core_grass_block_top.png` with the grass tint |
 | `grass_side.png` | `default_dirt.png` with `mcl_core_grass_block_side_overlay.png` on top. The overlay has the grass tint. The dirt pixels have alpha 254, so the biome color does not change them. |
 | `tall_grass.png` | `mcl_flowers_tallgrass.png` with the grass tint |
+| `dry_grass.png` | `mcl_flowers_tallgrass.png` with the grass color of the badlands, `#90814D` (minecraft.wiki/w/Badlands). The biome does not change this color. |
 | `oak_leaves.png` | `default_leaves.png` with the foliage tint |
 | `spruce_leaves.png` | `mcl_core_leaves_spruce.png` made gray, with the spruce tint `#619961` (minecraft.wiki/w/Leaves). The biome does not change this color in Minecraft. |
 | `birch_leaves.png` | `mcl_core_leaves_birch.png` made gray, with the birch tint `#80A755` (minecraft.wiki/w/Leaves). The biome does not change this color in Minecraft. |

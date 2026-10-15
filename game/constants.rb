@@ -9,7 +9,7 @@ class Game
                     Block::BIRCH_PLANKS, Block::BIRCH_LOG, Block::BIRCH_LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::SANDSTONE,
                     Block::GRAVEL, Block::SNOW,
                     Block::SNOW_GRASS, Block::CACTUS, Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::WATER,
-                    Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
+                    Block::BEDROCK, Block::TALL_GRASS, Block::DRY_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
                     Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::OAK_SAPLING,
                     Block::SPRUCE_SAPLING, Block::BIRCH_SAPLING,
                     Block::FURNACE, Block::SEEDS, Block::CRAFTING_TABLE, Block::LADDER,

@@ -1272,11 +1272,12 @@ class Game
     @particles.update(@world, 60.0)
     @inv.set(8, Block::AIR, 0)
     drops = ground_count(Block::OAK_LEAVES) == 20 && @items.all? { |item| item.block == Block::OAK_LEAVES } &&
-            Block.shear_drop(Block::TALL_GRASS) == Block::TALL_GRASS && Block.shear_drop(Block::STONE) == Block::COBBLE
+            Block.shear_drop(Block::TALL_GRASS) == Block::TALL_GRASS && Block.shear_drop(Block::DRY_GRASS) == Block::DRY_GRASS &&
+            Block::DROPS[Block::DRY_GRASS] == Block::AIR && Block.shear_drop(Block::STONE) == Block::COBBLE
     @items.clear
     check("shears cut wool 5 times and leaves 15 times as fast, and other blocks as fast as a hand",
           wool_shears < wool_hand / 4 && leaves_shears == 1 && leaves_hand > 4 && dirt_shears == dirt_hand)
-    check("leaves and tall grass that shears cut drop themselves and nothing else, and each cut takes 1 use", drops && worn)
+    check("leaves, tall grass and dry grass that shears cut drop themselves and nothing else, and each cut takes 1 use", drops && worn)
     # 1.5 hardness * 1.5 seconds / speed 4 = 0.5625 seconds, as in Minecraft.
     check("a stone pickaxe breaks stone in 12 frames", frames_to_mine(x, ground + 1, z, Block::STONE, Block::STONE_PICK) == 12)
     @items.clear
@@ -1568,6 +1569,26 @@ class Game
     check("a cactus breaks and drops when the block under it goes", removed && dropped && fell)
     @items.clear
     @falling.clear
+    # Dry grass goes on sand, but not on stone, and a placed block takes
+    # its cell.
+    @hotbar[0] = Block::DRY_GRASS
+    set_block(px + 5, SKY_Y - 2, pz, Block::STONE)
+    @player.raycast(@world)
+    place
+    stone = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR
+    set_block(px + 5, SKY_Y - 3, pz, Block::STONE)
+    set_block(px + 5, SKY_Y - 2, pz, Block::SAND)
+    @player.raycast(@world)
+    place
+    sand = @world.get(px + 5, SKY_Y - 1, pz) == Block::DRY_GRASS
+    @hotbar[0] = Block::COBBLE
+    @player.raycast(@world)
+    place
+    replaced = @world.get(px + 5, SKY_Y - 1, pz) == Block::COBBLE
+    check("dry grass goes on sand, and a placed block takes its cell", stone && sand && replaced)
+    set_block(px + 5, SKY_Y - 1, pz, Block::AIR)
+    set_block(px + 5, SKY_Y - 2, pz, Block::AIR)
+    set_block(px + 5, SKY_Y - 3, pz, Block::AIR)
     @hotbar[0] = held
     @survival = survival
     @player.pitch = pitch

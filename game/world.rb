@@ -145,6 +145,9 @@ class World
   # sandstone.
   SOIL_DEPTH = 4
   SANDSTONE_DEPTH = 4
+  # Dry grass per 65536 columns of desert sand. minecraft.wiki/w/Short_Dry_Grass
+  # says only that it generates often in deserts, so the number is a guess.
+  DESERT_DRY_GRASS = 1500
   SNOW_LINE = SEA + 110
   # The air gets colder by COOLING for each block above COLD_LINE, so
   # mountains get snowy biomes.
@@ -1075,12 +1078,17 @@ class World
           elsif p >= 65536 - Biome::FLOWERS[biome] && meadow > -0.05
             put(x, top + 1, z, (x + z) % 3 == 0 ? Block::ROSE : Block::DANDELION, x0, z0)
           end
-        elsif ground == Block::SAND && biome == Biome::DESERT && !beach?(top) && Noise.hash3(x, 0, z, 21) < 350
-          tall = 1 + Noise.hash3(x, 1, z, 22) % 3
-          i = 0
-          while i < tall
-            put(x, top + 1 + i, z, Block::CACTUS, x0, z0)
-            i += 1
+        elsif ground == Block::SAND && biome == Biome::DESERT && !beach?(top)
+          r = Noise.hash3(x, 0, z, 21)
+          if r < 350
+            tall = 1 + Noise.hash3(x, 1, z, 22) % 3
+            i = 0
+            while i < tall
+              put(x, top + 1 + i, z, Block::CACTUS, x0, z0)
+              i += 1
+            end
+          elsif r < 350 + DESERT_DRY_GRASS
+            put(x, top + 1, z, Block::DRY_GRASS, x0, z0)
           end
         end
         lz += 1

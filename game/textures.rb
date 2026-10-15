@@ -180,6 +180,7 @@ module Tex
   SANDSTONE_SIDE = image("sandstone_side")
   SANDSTONE_TOP = image("sandstone_top")
   SANDSTONE_BOTTOM = image("sandstone_bottom")
+  DRY_GRASS = image("dry_grass", bleed: 1)
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size

@@ -536,7 +536,7 @@ class Game
     x = @player.px
     y = @player.py
     z = @player.pz
-    # A block placed on tall grass takes its cell, as in Minecraft.
+    # A block placed on grass (Block.replaceable?) takes its cell, as in Minecraft.
     if Block.replaceable?(@world.get(@player.hx, @player.hy, @player.hz))
       x = @player.hx
       y = @player.hy
@@ -573,12 +573,14 @@ class Game
       end
       return if !Block.solid?(held) || Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z))
       return if Block::SOIL_PLANTS.include?(b) && !Block.soil?(held)
+      # Dry grass also goes on sand. minecraft.wiki/w/Short_Dry_Grass
+      return if b == Block::DRY_GRASS && !Block.soil?(held) && held != Block::SAND
     end
     # A cactus stands only on sand or on another cactus. minecraft.wiki/w/Cactus
     return if b == Block::CACTUS && @world.get(x, y - 1, z) != Block::SAND && @world.get(x, y - 1, z) != Block::CACTUS
     return if Block.solid?(b) && mob_in?(x, y, z, Block.door?(b) ? 2 : 1)
     current = @world.get(x, y, z)
-    # The view ray can pass a flower, so a block only replaces tall grass.
+    # The view ray can pass a flower, so a block only replaces grass.
     # It passes water and lava, and a block replaces them, as in Minecraft.
     return unless current == Block::AIR || Block.water?(current) || Block.lava?(current) || Block.replaceable?(current)
     if Block.door?(b)

@@ -125,6 +125,7 @@ module Block
   BONE = 146
   BONE_MEAL = 147
   SANDSTONE = 148
+  DRY_GRASS = 149
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -407,13 +408,15 @@ module Block
   # Any pickaxe mines sandstone. Without one it drops nothing. minecraft.wiki/w/Sandstone
   define_block SANDSTONE, "SANDSTONE", Tex::SANDSTONE_SIDE, top: Tex::SANDSTONE_TOP, bottom: Tex::SANDSTONE_BOTTOM, hardness: 0.8,
                needs_pick: 1, dig: DIG_PICK
+  # The short dry grass of Minecraft drops nothing by hand. minecraft.wiki/w/Short_Dry_Grass
+  define_plant DRY_GRASS, "DRY GRASS", Tex::DRY_GRASS, drops: AIR
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
   def self.solid?(b) = SOLID[b] == 1
   def self.plant?(b) = PLANT[b] == 1
   # A placed block takes the cell of grass, as in Minecraft.
-  def self.replaceable?(b) = b == TALL_GRASS
+  def self.replaceable?(b) = b == TALL_GRASS || b == DRY_GRASS
   def self.water?(b) = WATER_LEVEL[b] > 0
   def self.log?(b) = LOGS.include?(b)
   # Leaves of a tree or leaves that the player placed.
@@ -552,10 +555,9 @@ module Block
   # gives 2 for some other blocks, but not which ones, so the others take
   # 1. minecraft.wiki/w/Shears
   def self.shear_speed(b) = leaves?(b) ? 15.0 : (b == WOOL ? 5.0 : 1.0)
-  # What breaking b with shears gives: leaves and tall grass give
-  # themselves, and the rest give what they give by hand.
-  # minecraft.wiki/w/Shears
-  def self.shear_drop(b) = leaves?(b) ? BASE[b] : (b == TALL_GRASS ? TALL_GRASS : DROPS[b])
+  # What breaking b with shears gives: leaves and grass give themselves,
+  # and the rest give what they give by hand. minecraft.wiki/w/Shears
+  def self.shear_drop(b) = leaves?(b) ? BASE[b] : (replaceable?(b) ? b : DROPS[b])
 
   # Uses before a wooden, stone, iron or diamond tool breaks, and a bow.
   # minecraft.wiki/w/Item_durability
