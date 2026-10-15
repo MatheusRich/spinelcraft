@@ -24,7 +24,9 @@ class Game
   VIEW_MIN = 200.0
   VIEW_MAX = 5000.0
   # Full-detail chunks reach this far at most; far terrain (lod.rb) draws the rest.
-  DETAIL_VIEW = 400.0
+  # This is the limit of the chunk ring: Game#view_radius adds 20 blocks and
+  # one ring, and 460 gives LOAD_R.
+  DETAIL_VIEW = 460.0
   # Far terrain levels: level L has cells of 4 << L blocks and reaches
   # LOD_REACH << L blocks, so each level has about the same number of tiles.
   LEVELS = 4
@@ -148,7 +150,7 @@ class Game
 
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
-  SAVE_VERSION = "SPINELCRAFT14"
+  SAVE_VERSION = "SPINELCRAFT15"
   # The options of the pause menu (see Game#save_options).
   OPTIONS_PATH = "options.txt"
   # Where a save that does not load goes, so that the next save does not replace it.

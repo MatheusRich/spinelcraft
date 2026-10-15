@@ -7,6 +7,20 @@ class Lod
   # Tiles live in a ring like chunks do; the shader wraps Mesher::COLUMNS cells.
   TRING = Mesher::COLUMNS / CELLS
   TMASK = TRING - 1
+  # A face record of far terrain has the first word of a chunk face record
+  # (Mesher.pack). Its second word holds the texture, the height of the
+  # face in blocks, the cell size as a shift, the tint of the texture
+  # (Tex.tint) and the biome. The fields follow the layout of
+  # Mesher::X_AT and the others.
+  TALL_AT = Mesher::TEX_AT + Mesher::TEX_BITS
+  TALL_BITS = 8
+  CELL_AT = TALL_AT + TALL_BITS
+  CELL_BITS = 3
+  TINT_AT = CELL_AT + CELL_BITS
+  TINT_BITS = 2
+  BIOME_AT = TINT_AT + TINT_BITS
+  BIOME_BITS = 4
+  TALL_MAX = (1 << TALL_BITS) - 1
 
   attr_reader :tile_x, :tile_z, :built, :faces, :tile, :tile_shift
 
@@ -33,10 +47,16 @@ class Lod
 
   def self.slot(tx, tz) = (tx & TMASK) * TRING + (tz & TMASK)
 
-  # Bits 18-19 of the second word of a face record hold the tint of the
-  # texture (Tex.tint), and bits 20-23 hold the biome. The shader takes the
+  # The tint and the biome fields of a face record. The shader takes the
   # ratio of that biome from the uniforms (Tint#write_uniforms).
-  def self.tint(tex, biome) = (Tex.tint(tex) << 18) | (biome << 20)
+  def self.tint(tex, biome) = (Tex.tint(tex) << TINT_AT) | (biome << BIOME_AT)
+
+  # The fields of the second word as #defines for the shaders, as
+  # Mesher.shader_defines gives them.
+  def self.shader_defines
+    Mesher.define_field("TALL", TALL_AT, TALL_BITS) + Mesher.define_field("CELL", CELL_AT, CELL_BITS) +
+      Mesher.define_field("LOD_TINT", TINT_AT, TINT_BITS) + Mesher.define_field("BIOME", BIOME_AT, BIOME_BITS)
+  end
 
   def ready?(tx, tz)
     s = Lod.slot(tx, tz)
@@ -97,16 +117,16 @@ class Lod
         cz = (c0z + j) & Mesher::COLUMN_MASK
         # The top face: the cell's top block is at y = h - 1.
         @lists[2] << Mesher.pack(cx, h - 1, cz, 2)
-        @lists[2] << (@top[k] | (1 << 8) | (@shift << 15) | Lod.tint(@top[k], @biome[k]))
+        @lists[2] << (@top[k] | (1 << TALL_AT) | (@shift << CELL_AT) | Lod.tint(@top[k], @biome[k]))
         f = 0
         while f < 6
           if f != 2 && f != 3
             n = @h[(i + @nx[f]) * (CELLS + 2) + j + @nz[f]]
             if n < h
               tall = h - n
-              tall = 127 if tall > 127
+              tall = TALL_MAX if tall > TALL_MAX
               @lists[f] << Mesher.pack(cx, n, cz, f)
-              @lists[f] << (@side[k] | (tall << 8) | (@shift << 15) | Lod.tint(@side[k], @biome[k]))
+              @lists[f] << (@side[k] | (tall << TALL_AT) | (@shift << CELL_AT) | Lod.tint(@side[k], @biome[k]))
             end
           end
           f += 1

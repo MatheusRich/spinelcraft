@@ -1,7 +1,9 @@
 # Chunk generation, block storage, and the store of changed chunks.
-WY = 96
+WY = 256
 PY = WY + 2
-SEA = 34
+# The y of the top water block of the sea. Minecraft has it at y 62, but
+# its world goes down to y -64 (minecraft.wiki/w/Altitude).
+SEA = 64
 CHUNK = 16
 # The loaded area is a ring of RING x RING chunk slots that moves with the
 # player: world chunk (cx, cz) lives in slot (cx & RING_MASK, cz & RING_MASK).
@@ -39,18 +41,33 @@ class World
   # surface and opens a separate, rarer set of entrances.
   ENTRANCE = 0.25
   ENTRANCE_SCALE = 48.0
-  # Caves at this height and below fill with lava.
+  # Caves at this height and below fill with lava. Minecraft fills them
+  # below y -54, 10 layers above the bottom of its world
+  # (minecraft.wiki/w/Altitude).
   LAVA_LEVEL = 9
+  # Ores follow the y of Minecraft, which has its sea at about the same
+  # height. This world has no layers below 0, so the deep ores stop at
+  # the bedrock. A 2 x 2 x 2 cell of stone holds a clump of an ore at
+  # the odds of that ore at the y of the block, out of 65536. COAL_ODDS
+  # and IRON_ODDS are the odds where the ore is most common (coal_share
+  # and iron_share give the rest).
+  COAL_ODDS = 1400
+  IRON_ODDS = 800
+  # Diamonds are below DIAMOND_TOP (minecraft.wiki/w/Diamond_Ore).
+  DIAMOND_ODDS = 160
+  DIAMOND_TOP = 16
   # The base height of the land (BASE) at each continent noise value
   # (CONTINENT): deep ocean, ocean, coast, lowland, then highland.
   CONTINENT = [-0.25, -0.17, -0.135, -0.12, -0.07, 0.06, 0.2, 0.34]
-  BASE = [SEA - 17.0, SEA - 14.0, SEA - 4.0, SEA + 0.0, SEA + 5.0, SEA + 9.0, SEA + 16.0, SEA + 21.0]
+  BASE = [SEA - 34.0, SEA - 26.0, SEA - 8.0, SEA + 0.0, SEA + 8.0, SEA + 14.0, SEA + 28.0, SEA + 40.0]
   # Islands rise in open ocean where the island noise is above ISLE. ISLE_RISE
   # is the height of a dome for each step of the noise above ISLE, and
   # ISLE_SCALE is the size of the noise in blocks.
   ISLE = 0.15
-  ISLE_RISE = 100.0
+  ISLE_RISE = 180.0
   ISLE_SCALE = 220.0
+  # How tall the hills on an island are.
+  ISLE_HILLS = 5.0
   # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
   # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
@@ -58,6 +75,8 @@ class World
   # puts the rivers farther apart.
   RIVER_VALLEY = 0.021
   RIVER_SCALE = 900.0
+  # The height of a river bed.
+  RIVER_BED = SEA - 5.0
   # Rivers fade out over RIVER_FADE of the continent noise and end where it
   # reaches RIVER_INLAND, so the middle of a continent has no rivers.
   RIVER_INLAND = 0.1
@@ -81,14 +100,51 @@ class World
   FLATLAND = 0.08
   LANDSCAPE_EDGE = 0.02
   PLATEAU_EDGE = 0.006
-  PLATEAU_RISE = 20.0
+  PLATEAU_RISE = 55.0
+  # How tall the hills are on each kind of land: HILLS on rolling hills,
+  # and the others in mountain ranges, on plateaus and on flat lowland.
+  # The hill noise goes from about -1 to 1.
+  HILLS = 9.0
+  MOUNTAIN_HILLS = 35.0
+  PLATEAU_HILLS = 3.0
+  FLAT_HILLS = 4.5
+  # The ridges of a mountain range follow the lines where the ridge noise
+  # is zero. RIDGE_SCALE is the size of that noise in blocks, and the
+  # highest ridge is RIDGE_RISE above the land around it. Smaller spurs
+  # of SPUR_SCALE branch off the ridges, SPUR as tall.
+  RIDGE_SCALE = 200.0
+  RIDGE_RISE = 160.0
+  SPUR_SCALE = 80.0
+  SPUR = 0.4
+  # The lines of a ridge close into loops. The peak noise, of PEAK_SCALE
+  # blocks, breaks them: it lifts some stretches of a ridge into peaks,
+  # and lowers the others to saddles SADDLE as tall. A range is lowest at
+  # its edge, RANGE_EDGE as tall, and reaches its full height RANGE_CORE
+  # of the landscape noise inside it.
+  PEAK_SCALE = 120.0
+  SADDLE = 0.2
+  RANGE_EDGE = 0.45
+  RANGE_CORE = 0.12
   # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
   SHIFT = 5000.5
   # Land never reaches TOP, and heights above PEAK squeeze toward it.
   TOP = WY - 14.0
-  PEAK = SEA + 34.0
+  PEAK = SEA + 100.0
+  # Heights of the ground. Land up to BEACH_TOP next to water is a
+  # beach, and swamps grow up to SWAMP_TOP. The floor of the sea below
+  # GRAVEL_LINE has patches of gravel. High land is bare stone above
+  # ROCK_LINE and snow above SNOW_LINE.
+  BEACH_TOP = SEA + 2
+  SWAMP_TOP = SEA + 8
+  GRAVEL_LINE = SEA - 2
+  ROCK_LINE = SEA + 95
+  SNOW_LINE = SEA + 110
+  # The air gets colder by COOLING for each block above COLD_LINE, so
+  # mountains get snowy biomes.
+  COLD_LINE = SEA + 30
+  COOLING = 0.004
   # The shortest trunk of each tree kind (Biome::OAK and so on), one
   # entry for each of Biome::TREE_KINDS.
   TRUNK = [4, 5, 5, 4]
@@ -119,8 +175,18 @@ class World
     @col_b = Array.new(CHUNK * CHUNK, 0)
     @cave_a = Array.new(GX * GY * GX, 0.0)
     @cave_b = Array.new(GX * GY * GX, 0.0)
+    # 1 for each cell of the cave grid that can hold a cave (see cave_cell).
+    @cave_cell = Array.new(GX * GY * GX, 0)
     @corner_a = Array.new(8, 0.0)
     @corner_b = Array.new(8, 0.0)
+    @coal_odds = Array.new(WY, 0)
+    @iron_odds = Array.new(WY, 0)
+    y = 0
+    while y < WY
+      @coal_odds[y] = (COAL_ODDS * World.coal_share(y)).to_i
+      @iron_odds[y] = (IRON_ODDS * World.iron_share(y)).to_i
+      y += 1
+    end
     @noise = Noise.new(seed)
     @noise2 = Noise.new(seed * 31 + 7)
     @noise3 = Noise.new(seed * 17 + 3)
@@ -155,7 +221,7 @@ class World
 
   def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)
   # A unique Integer for a block anywhere in the world (chest keys).
-  def self.key(x, y, z) = ((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 7) | y
+  def self.key(x, y, z) = ((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y
   def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)
 
   def chunk_loaded?(cx, cz)
@@ -464,11 +530,47 @@ class World
 
   def update_height(x, z)
     base = World.index(x, 0, z)
-    y = WY - 1
+    y = column_top(base)
     while y >= 0 && !Block.blocks_light(block(base + y))
       y -= 1
     end
     @height[(x & LMASK) * WZ + (z & LMASK)] = y + 1
+  end
+
+  # The y of the highest block that is not air in the column at index
+  # base, or -1. Most of a column is air, so it skips 8 blocks of air at a
+  # time where an Integer of the store holds only air.
+  def column_top(base)
+    y = WY - 1
+    while y >= 0 && ((base + y) & 7) != 7 && block(base + y) == Block::AIR
+      y -= 1
+    end
+    while y >= 7 && @blocks[(base + y) >> 3] == 0
+      y -= 8
+    end
+    while y >= 0 && block(base + y) == Block::AIR
+      y -= 1
+    end
+    y
+  end
+
+  # Fills the column at index base with air from y to the top, 8 blocks
+  # at a time where it can.
+  def clear_above(base, y)
+    i = base + y
+    top = base + WY
+    while i < top && (i & 7) != 0
+      put_block(i, Block::AIR)
+      i += 1
+    end
+    while i + 8 <= top
+      @blocks[i >> 3] = 0
+      i += 8
+    end
+    while i < top
+      put_block(i, Block::AIR)
+      i += 1
+    end
   end
 
   # The large-scale noise fields read warped positions, so coasts and
@@ -496,26 +598,24 @@ class World
               World.smooth((PLATEAU_HIGH - land) / PLATEAU_EDGE) * inland
     flat = World.smooth((land - FLATLAND) / LANDSCAPE_EDGE)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
-    ridge = 1.0 - @noise2.noise2(wx / 90.0, wz / 90.0).abs * 1.6
-    ridge = ridge < 0.0 ? 0.0 : ridge
-    h = World.spline(CONTINENT, BASE, continent) + hills * (6.0 + 13.0 * mountains - 4.0 * plateau - 3.0 * flat) +
-        ridge * ridge * 46.0 * mountains
+    hill_height = HILLS + (MOUNTAIN_HILLS - HILLS) * mountains + (PLATEAU_HILLS - HILLS) * plateau + (FLAT_HILLS - HILLS) * flat
+    h = World.spline(CONTINENT, BASE, continent) + hills * hill_height + ridges(wx, wz, land) * mountains
     # A plateau lifts the land to a flat top.
-    top = SEA + PLATEAU_RISE + hills * 2.0
+    top = SEA + PLATEAU_RISE + hills * PLATEAU_HILLS
     h += (top - h) * plateau if top > h
     # Away from the coast, the island noise lifts domes out of the deep
     # ocean. Lower domes stay under the water as shoals.
     ocean = World.smooth((CONTINENT[2] - continent) / (CONTINENT[2] - CONTINENT[1]))
     if ocean > 0.0
-      dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * 3.0
+      dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * ISLE_HILLS
       h += (dome - h) * ocean if dome > h
     end
     # A river cuts its full valley near the coast. Farther inland the
     # valley gets shallower, and it ends at RIVER_INLAND.
     river = @noise3.fbm2(wx / RIVER_SCALE + 90.0, wz / RIVER_SCALE, 2).abs
     fade = World.smooth((RIVER_INLAND - continent) / RIVER_FADE)
-    if fade > 0.0 && river < RIVER_VALLEY && h > SEA - 3.0
-      bed = SEA - 3.0 + (h - SEA + 3.0) * World.smooth(river / RIVER_VALLEY)
+    if fade > 0.0 && river < RIVER_VALLEY && h > RIVER_BED
+      bed = RIVER_BED + (h - RIVER_BED) * World.smooth(river / RIVER_VALLEY)
       h += (bed - h) * fade if bed < h
     end
     # Above PEAK, heights squeeze toward the top limit and never reach it,
@@ -525,6 +625,39 @@ class World
       h = PEAK + over * (TOP - PEAK) / (over + TOP - PEAK)
     end
     h.to_i.clamp(4, TOP.to_i)
+  end
+
+  # How common coal is at y, as a share of the most. Minecraft has 20
+  # tries in a triangle from y 0 to 192 that peaks at 96, and 30 tries
+  # spread evenly from y 136 to 320. Per layer, the even spread has 0.78
+  # of the peak of the triangle. minecraft.wiki/w/Coal_Ore
+  def self.coal_share(y) = World.triangle(y, 0.0, 96.0, 192.0) + (y >= 136 ? 0.78 : 0.0)
+
+  # How common iron is at y, as a share of its deep peak. Minecraft has 10
+  # tries in a triangle from y -24 to 56 that peaks at 16, 90 tries in a
+  # triangle from y 80 to 384 that peaks at 232 (2.37 times as many per
+  # layer), and 10 tries of small clumps spread evenly from y -64 to 72
+  # (about 0.12). minecraft.wiki/w/Iron_Ore
+  def self.iron_share(y)
+    World.triangle(y, -24.0, 16.0, 56.0) + 2.37 * World.triangle(y, 80.0, 232.0, 384.0) + (y <= 72 ? 0.12 : 0.0)
+  end
+
+  # 1 at peak, 0 at low and high and beyond, and a straight line between.
+  def self.triangle(y, low, peak, high)
+    return 0.0 if y <= low || y >= high
+    y < peak ? (y - low) / (peak - low) : (high - y) / (high - peak)
+  end
+
+  # The height of the ridges, spurs and peaks of a mountain range at the
+  # warped position wx, wz, where the landscape noise is land.
+  def ridges(wx, wz, land)
+    ridge = 1.0 - @noise2.noise2(wx / RIDGE_SCALE, wz / RIDGE_SCALE).abs * 1.6
+    ridge = ridge < 0.0 ? 0.0 : ridge
+    spur = 1.0 - @noise3.noise2(wx / SPUR_SCALE + 70.0, wz / SPUR_SCALE).abs * 1.6
+    spur = spur < 0.0 ? 0.0 : spur
+    peak = World.smooth((@noise.noise2(wx / PEAK_SCALE + 120.0, wz / PEAK_SCALE) + 0.1) / 0.5)
+    core = World.smooth((MOUNTAINS - land) / RANGE_CORE)
+    (ridge * ridge + SPUR * spur * spur * ridge) * (SADDLE + (1.0 - SADDLE) * peak) * (RANGE_EDGE + (1.0 - RANGE_EDGE) * core) * RIDGE_RISE
   end
 
   # 0 below 0, 1 above 1, and an S curve between.
@@ -552,15 +685,15 @@ class World
     wx = warp_x(nx, nz)
     wz = warp_z(nx, nz)
     t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2
-    t -= (h - SEA - 12) * 0.012 if h > SEA + 12
+    t -= (h - COLD_LINE) * COOLING if h > COLD_LINE
     w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2
-    Biome.pick(t, w, h <= SEA + 5)
+    Biome.pick(t, w, h <= SWAMP_TOP)
   end
 
   # Height bands. top is the y of the column's top block.
-  def beach?(top) = top <= SEA + 1
+  def beach?(top) = top <= BEACH_TOP
   # High peaks are bare stone at the top and below it.
-  def bare_rock?(top) = top > SEA + 37
+  def bare_rock?(top) = top > ROCK_LINE
 
   # The block at the top of a column before caves and plants. Swamps hold
   # pools at sea level.
@@ -573,9 +706,9 @@ class World
     elsif beach?(top)
       b = Block::SAND
     end
-    b = Block::GRAVEL if top < SEA - 2 && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
+    b = Block::GRAVEL if top < GRAVEL_LINE && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
     b = Block::STONE if bare_rock?(top)
-    b = Block::SNOW if top > SEA + 39
+    b = Block::SNOW if top > SNOW_LINE
     b
   end
 
@@ -644,6 +777,7 @@ class World
   def generate_chunk(cx, cz)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
+    highest = 0
     lx = 0
     while lx < CHUNK
       lz = 0
@@ -651,23 +785,42 @@ class World
         h = surface_height(x0 + lx, z0 + lz)
         @col_h[lx * CHUNK + lz] = h
         @col_b[lx * CHUNK + lz] = biome(x0 + lx, z0 + lz, h)
+        highest = h if h > highest
         lz += 1
       end
       lx += 1
     end
 
     # Coarse 3D noise for caves, sampled every 4 blocks and interpolated.
+    # Caves stay below the top block of a column, so the grid stops at the
+    # layer above the highest top block.
     gx0 = x0 >> 2
     gz0 = z0 >> 2
+    gy = (highest - 1) / 4 + 2
+    gy = GY if gy > GY
     i = 0
     while i < GX
       j = 0
-      while j < GY
+      while j < gy
         k = 0
         while k < GX
           n = (i * GY + j) * GX + k
           @cave_a[n] = cave_a(gx0 + i, j, gz0 + k)
           @cave_b[n] = cave_b(gx0 + i, j, gz0 + k)
+          k += 1
+        end
+        j += 1
+      end
+      i += 1
+    end
+    i = 0
+    while i < GX - 1
+      j = 0
+      while j < gy - 1
+        k = 0
+        while k < GX - 1
+          n = (i * GY + j) * GX + k
+          @cave_cell[n] = cave_cell(n)
           k += 1
         end
         j += 1
@@ -699,12 +852,17 @@ class World
             b = Block::STONE if bare_rock?(top)
           end
           if b == Block::STONE
-            if Noise.hash3(x >> 1, y >> 1, z >> 1, 11) < 1100 && Noise.hash3(x, y, z, 12) < 40000
-              b = Block::COAL_ORE
-            elsif y < 50 && Noise.hash3(x >> 1, y >> 1, z >> 1, 13) < 600 && Noise.hash3(x, y, z, 14) < 36000
-              b = Block::IRON
-            elsif y < 16 && Noise.hash3(x >> 1, y >> 1, z >> 1, 15) < 160 && Noise.hash3(x, y, z, 16) < 30000
-              b = Block::DIAMOND
+            # One roll for the cell picks its ore, and a second roll for
+            # the block leaves gaps in the clump.
+            r = Noise.hash3(x >> 1, y >> 1, z >> 1, 11)
+            coal = @coal_odds[y]
+            iron = coal + @iron_odds[y]
+            if r < coal
+              b = Block::COAL_ORE if Noise.hash3(x, y, z, 12) < 40000
+            elsif r < iron
+              b = Block::IRON if Noise.hash3(x, y, z, 14) < 36000
+            elsif y < DIAMOND_TOP && r < iron + DIAMOND_ODDS
+              b = Block::DIAMOND if Noise.hash3(x, y, z, 16) < 30000
             end
           end
           if y > 1 && (y < top - 2 || (!beach?(top) && y <= top))
@@ -715,25 +873,53 @@ class World
             iy = fy.to_i
             iz = fz.to_i
             n = (ix * GY + iy) * GX + iz
-            width = entrance ? CAVE_WIDTH : cave_width(top - y)
-            a = trilinear(@cave_a, n, GY, GX, fx - ix, fy - iy, fz - iz)
-            if cave_possible?(a, width)
-              c = trilinear(@cave_b, n, GY, GX, fx - ix, fy - iy, fz - iz)
-              b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c, width)
+            if @cave_cell[n] == 1
+              width = entrance ? CAVE_WIDTH : cave_width(top - y)
+              a = trilinear(@cave_a, n, GY, GX, fx - ix, fy - iy, fz - iz)
+              if cave_possible?(a, width)
+                c = trilinear(@cave_b, n, GY, GX, fx - ix, fy - iy, fz - iz)
+                b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c, width)
+              end
             end
           end
           put_block(base + y, b)
           y += 1
         end
-        while y < WY
-          put_block(base + y, y <= SEA ? Block::WATER : Block::AIR)
+        while y <= SEA
+          put_block(base + y, Block::WATER)
           y += 1
         end
+        clear_above(base, y)
         lz += 1
       end
       lx += 1
     end
     decorate(cx, cz)
+  end
+
+  # 1 when the cell of the cave grid from point n can hold a cave, else 0.
+  # Inside the cell, the first cave field mixes the values at its 8
+  # corners. When all of them are too far from zero on one side, every
+  # block of the cell is too.
+  def cave_cell(n)
+    low = 1.0
+    high = -1.0
+    di = 0
+    while di < 2
+      dj = 0
+      while dj < 2
+        dk = 0
+        while dk < 2
+          a = @cave_a[n + (di * GY + dj) * GX + dk]
+          low = a if a < low
+          high = a if a > high
+          dk += 1
+        end
+        dj += 1
+      end
+      di += 1
+    end
+    cave_possible?(low, CAVE_WIDTH) || cave_possible?(high, CAVE_WIDTH) || (low < 0.0 && high > 0.0) ? 1 : 0
   end
 
   def trilinear(g, n, gy, gz, tx, ty, tz)

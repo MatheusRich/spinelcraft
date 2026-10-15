@@ -9,9 +9,57 @@ class Mesher
     [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]]
   ]
 
-  # The x and z fields of a face record are 10 bits, so records hold columns
-  # of a ring this wide. The shaders wrap at the same width (COLUMNS in gfx.rb).
-  COLUMNS = 1024
+  # The fields of a face record. Each field starts at bit NAME_AT of its
+  # word and is NAME_BITS wide, and it starts where the field before it
+  # ends. The shaders read the fields through Mesher.shader_defines, so
+  # these constants are the only copy of the layout.
+  # The first word: the storage column x and z, y, and the face (see
+  # NORMALS and CORNER in the shader).
+  X_AT = 0
+  X_BITS = 10
+  Y_AT = X_AT + X_BITS
+  Y_BITS = 8
+  Z_AT = Y_AT + Y_BITS
+  Z_BITS = X_BITS
+  FACE_AT = Z_AT + Z_BITS
+  FACE_BITS = 4
+  # The second word: the texture, the AO of the 4 corners (2 bits each),
+  # the flip of the diagonal, the sky bit, the torch light, the scroll of
+  # the texture (Tex.scroll), the facing and the shape of a block
+  # (Block::SHAPE), and the tint (Tex.tint). A wall torch has the shape
+  # TORCH_SHAPE and the facing of the torch. Only a fluid face scrolls, and
+  # it has no AO, flip, facing, shape or tint: those bits hold the heights
+  # of its corners (Mesher.fluid_w1).
+  TEX_AT = 0
+  TEX_BITS = 8
+  AO_AT = TEX_AT + TEX_BITS
+  AO_BITS = 8
+  FLIP_AT = AO_AT + AO_BITS
+  FLIP_BITS = 1
+  SKY_AT = FLIP_AT + FLIP_BITS
+  SKY_BITS = 1
+  LIGHT_AT = SKY_AT + SKY_BITS
+  LIGHT_BITS = 4
+  SCROLL_AT = LIGHT_AT + LIGHT_BITS
+  SCROLL_BITS = 2
+  FACING_AT = SCROLL_AT + SCROLL_BITS
+  FACING_BITS = 2
+  SHAPE_AT = FACING_AT + FACING_BITS
+  SHAPE_BITS = 3
+  TINT_AT = SHAPE_AT + SHAPE_BITS
+  TINT_BITS = 2
+  # The 16 bits of the corner heights of a fluid face: the low ones where
+  # other faces hold the AO and the flip, the high ones where they hold the
+  # facing, the shape and the tint.
+  HEIGHTS_LOW_AT = AO_AT
+  HEIGHTS_LOW_BITS = AO_BITS + FLIP_BITS
+  HEIGHTS_HIGH_AT = FACING_AT
+  HEIGHTS_HIGH_BITS = 16 - HEIGHTS_LOW_BITS
+  # Blocks have shapes from 0 to 5 (Block::SHAPE).
+  TORCH_SHAPE = 7
+  # Records hold columns of a ring as wide as the x field. The shaders wrap
+  # at the same width (COLUMNS in gfx.rb).
+  COLUMNS = 1 << X_BITS
   COLUMN_MASK = COLUMNS - 1
 
   # Torch light is LIGHT_MAX at a torch and one less for each step, so it
@@ -21,18 +69,34 @@ class Mesher
   MARGIN = LIGHT_MAX + 1
   LW = CHUNK + MARGIN * 2
 
-  # The first word of a face record: x and z (10 bits each), y (7 bits), and the face.
-  def self.pack(x, y, z, f) = x | (y << 10) | (z << 17) | (f << 27)
-  # Bit 31 of the second word and bit 31 of the first word hold the low and
-  # the high bit of the tint of a face (Tex.tint). The shader multiplies the
-  # face by the color of that kind in the tint map.
-  def self.tint_w0(tex) = (Tex.tint(tex) >> 1) << 31
-  def self.tint_w1(tex) = (Tex.tint(tex) & 1) << 31
-  def self.face_x(w0) = w0 & COLUMN_MASK
-  def self.face_y(w0) = (w0 >> 10) & 127
-  def self.face_z(w0) = (w0 >> 17) & COLUMN_MASK
-  # The torch light in the second word of a record.
-  def self.face_light(w1) = (w1 >> 19) & 15
+  # The first word of a face record.
+  def self.pack(x, y, z, f) = (x << X_AT) | (y << Y_AT) | (z << Z_AT) | (f << FACE_AT)
+  # The tint field of the second word. The shader multiplies the face by
+  # the color of that kind in the tint map.
+  def self.tint_w1(tex) = Tex.tint(tex) << TINT_AT
+  def self.face_x(w0) = Mesher.field(w0, X_AT, X_BITS)
+  def self.face_y(w0) = Mesher.field(w0, Y_AT, Y_BITS)
+  def self.face_z(w0) = Mesher.field(w0, Z_AT, Z_BITS)
+  def self.face_dir(w0) = Mesher.field(w0, FACE_AT, FACE_BITS)
+  def self.face_light(w1) = Mesher.field(w1, LIGHT_AT, LIGHT_BITS)
+  def self.face_tint(w1) = Mesher.field(w1, TINT_AT, TINT_BITS)
+  def self.field(w, at, bits) = (w >> at) & ((1 << bits) - 1)
+
+  # The fields of a face record as #defines for the shaders: NAME_AT and
+  # NAME_MASK for each, and TORCH_SHAPE.
+  def self.shader_defines
+    "#define TORCH_SHAPE #{TORCH_SHAPE}u\n" +
+      Mesher.define_field("X", X_AT, X_BITS) + Mesher.define_field("Y", Y_AT, Y_BITS) + Mesher.define_field("Z", Z_AT, Z_BITS) +
+      Mesher.define_field("FACE", FACE_AT, FACE_BITS) + Mesher.define_field("TEX", TEX_AT, TEX_BITS) + Mesher.define_field("AO", AO_AT, AO_BITS) +
+      Mesher.define_field("FLIP", FLIP_AT, FLIP_BITS) + Mesher.define_field("SKY", SKY_AT, SKY_BITS) +
+      Mesher.define_field("LIGHT", LIGHT_AT, LIGHT_BITS) +
+      Mesher.define_field("SCROLL", SCROLL_AT, SCROLL_BITS) + Mesher.define_field("FACING", FACING_AT, FACING_BITS) +
+      Mesher.define_field("SHAPE", SHAPE_AT, SHAPE_BITS) + Mesher.define_field("TINT", TINT_AT, TINT_BITS) +
+      Mesher.define_field("HEIGHTS_LOW", HEIGHTS_LOW_AT, HEIGHTS_LOW_BITS) +
+      Mesher.define_field("HEIGHTS_HIGH", HEIGHTS_HIGH_AT, HEIGHTS_HIGH_BITS) + "#define HEIGHTS_LOW_BITS #{HEIGHTS_LOW_BITS}u\n"
+  end
+
+  def self.define_field(name, at, bits) = "#define #{name}_AT #{at}u\n#define #{name}_MASK #{(1 << bits) - 1}u\n"
 
   attr_reader :opaque, :water, :offsets
 
@@ -109,10 +173,9 @@ class Mesher
   # The fluid kind of block b: 1 water, 2 lava, 0 not a fluid.
   def self.fluid(b) = Block::WATER_LEVEL[b] > 0 ? 1 : (Block.lava?(b) ? 2 : 0)
 
-  # The 16 bits of the corner heights of a fluid face (fluid_corners) go to
-  # bits 8-16 and 25-31 of the second word, which a fluid face does not
-  # use for AO, shape or tint. vchunk in gfx.rb reads them back.
-  def self.fluid_w1(h) = ((h & 511) << 8) | ((h >> 9) << 25)
+  # The second-word bits of the corner heights h of a fluid face
+  # (fluid_corners), in HEIGHTS_LOW and HEIGHTS_HIGH.
+  def self.fluid_w1(h) = ((h & ((1 << HEIGHTS_LOW_BITS) - 1)) << HEIGHTS_LOW_AT) | ((h >> HEIGHTS_LOW_BITS) << HEIGHTS_HIGH_AT)
 
   # The height of the surface of fluid kind k in the cell of block b, with
   # block over above it, as the fluid renderer of Minecraft reads it: 1
@@ -229,10 +292,7 @@ class Mesher
         # Vertices hold the storage column; the shader finds the world one.
         lx = x & LMASK
         lz = z & LMASK
-        ymax = WY - 1
-        while ymax > 0 && World.byte(blocks, base + ymax) == Block::AIR
-          ymax -= 1
-        end
+        ymax = @world.column_top(base)
         # Going up the column, the block above becomes the next block, and
         # the block becomes the one below.
         id = World.byte(blocks, base)
@@ -243,14 +303,13 @@ class Mesher
           above = World.byte(blocks, i + 1)
           if Block.plant?(id)
             sky = y >= height[lx * WZ + lz] ? 1 : 0
-            w1 = top_tex[id] | (255 << 8) | (sky << 17) | Mesher.tint_w1(top_tex[id])
-            w1 |= torch_light(x, y, z) << 19 if lit
-            # Bits 25-27 hold 1 + the facing of a wall torch.
-            w1 |= (Block::FACING[id] + 1) << 25 if Block.wall_torch?(id)
+            w1 = top_tex[id] | (255 << AO_AT) | (sky << SKY_AT) | Mesher.tint_w1(top_tex[id])
+            w1 |= torch_light(x, y, z) << LIGHT_AT if lit
+            w1 |= (Block::FACING[id] << FACING_AT) | (TORCH_SHAPE << SHAPE_AT) if Block.wall_torch?(id)
             plants = @lists[6]
             f = 6
             while f < 10
-              plants << (Mesher.pack(lx, y, lz, f) | Mesher.tint_w0(top_tex[id]))
+              plants << Mesher.pack(lx, y, lz, f)
               plants << w1
               f += 1
             end
@@ -279,16 +338,16 @@ class Mesher
                 sx = x + @nx[f]
                 sz = z + @nz[f]
                 sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
-                w0 = Mesher.pack(lx, y, lz, f) | Mesher.tint_w0(tex)
+                w0 = Mesher.pack(lx, y, lz, f)
                 if kind > 0
                   # A fluid face has no AO: it holds the heights of its corners.
-                  w1 = tex | Mesher.fluid_w1(corners) | (sky << 17) | (Tex.scroll(tex) << 23)
-                  w1 |= torch_light(sx, ny, sz) << 19 if lit
+                  w1 = tex | Mesher.fluid_w1(corners) | (sky << SKY_AT) | (Tex.scroll(tex) << SCROLL_AT)
+                  w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
                   if kind == 1
                     @water << w0
                     @water << w1
                   else
-                    w1 = (w1 & ~(15 << 19)) | (LIGHT_MAX << 19)
+                    w1 = (w1 & ~(((1 << LIGHT_BITS) - 1) << LIGHT_AT)) | (LIGHT_MAX << LIGHT_AT)
                     list = @lists[f]
                     list << w0
                     list << w1
@@ -300,12 +359,12 @@ class Mesher
                   ao2 = ao_value(occludes[World.byte(blocks, i + @ao[a + 6])], occludes[World.byte(blocks, i + @ao[a + 7])], occludes[World.byte(blocks, i + @ao[a + 8])])
                   ao3 = ao_value(occludes[World.byte(blocks, i + @ao[a + 9])], occludes[World.byte(blocks, i + @ao[a + 10])], occludes[World.byte(blocks, i + @ao[a + 11])])
                   flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
-                  w1 = tex | (ao0 << 8) | (ao1 << 10) | (ao2 << 12) | (ao3 << 14) | (flip << 16) | (sky << 17) | Mesher.tint_w1(tex)
-                  w1 |= torch_light(sx, ny, sz) << 19 if lit
-                  # Bits 25-27 hold 1 + the facing and bits 28-30 the shape of a
-                  # block with a shape, which has no AO. A shape without a
-                  # facing (a cactus) draws as if it faces +x.
-                  w1 |= (255 << 8) | ((facing[id] < 0 ? 1 : facing[id] + 1) << 25) | (shape << 28) if shape > 0
+                  w1 = tex | (ao0 << AO_AT) | (ao1 << (AO_AT + 2)) | (ao2 << (AO_AT + 4)) | (ao3 << (AO_AT + 6)) | (flip << FLIP_AT) | (sky << SKY_AT) |
+                       Mesher.tint_w1(tex)
+                  w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
+                  # A block with a shape has no AO. A shape without a facing
+                  # (a cactus) draws as if it faces +x.
+                  w1 |= (255 << AO_AT) | ((facing[id] < 0 ? 0 : facing[id]) << FACING_AT) | (shape << SHAPE_AT) if shape > 0
                   list = @lists[f]
                   list << w0
                   list << w1

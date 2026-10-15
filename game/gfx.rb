@@ -139,42 +139,43 @@ module Gfx
       "vertex VOut vchunk(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]],\n"
       "                  texture2d_array<float> tints [[texture(0)]], sampler tsmp [[sampler(0)]]) {\n"
       "  uint w0 = in.d.x, w1 = in.d.y;\n"
-      "  float3 bp = float3(w0 & 1023u, (w0 >> 10) & 127u, (w0 >> 17) & 1023u);\n"
+      "  float3 bp = float3((w0 >> X_AT) & X_MASK, (w0 >> Y_AT) & Y_MASK, (w0 >> Z_AT) & Z_MASK);\n"
       "  // x and z are storage columns of a ring of COLUMNS blocks; use the copy nearest the camera.\n"
       "  bp.x += " STR(COLUMNS) ".0 * floor((u.cam.x - bp.x) / " STR(COLUMNS) ".0 + 0.5);\n"
       "  bp.z += " STR(COLUMNS) ".0 * floor((u.cam.z - bp.z) / " STR(COLUMNS) ".0 + 0.5);\n"
-      "  uint face = (w0 >> 27) & 15u;\n"
-      "  // Bits 23-24 scroll the texture: 1 like water, 2 like lava (Tex.scroll). Only fluids scroll.\n"
-      "  uint scroll = (w1 >> 23) & 3u;\n"
+      "  uint face = (w0 >> FACE_AT) & FACE_MASK;\n"
+      "  // The scroll of the texture: 1 like water, 2 like lava (Tex.scroll). Only fluids scroll.\n"
+      "  uint scroll = (w1 >> SCROLL_AT) & SCROLL_MASK;\n"
       "  bool fluid = scroll != 0u;\n"
-      "  uint c = (vid + (fluid ? 0u : (w1 >> 16) & 1u)) & 3u;\n"
+      "  uint c = (vid + (fluid ? 0u : (w1 >> FLIP_AT) & FLIP_MASK)) & 3u;\n"
       "  float3 corner = CORNER[face][c];\n"
       "  float3 p = bp + corner;\n"
-      "  // Bits 25-27 of a plant hold 1 + the facing of a wall torch (Block::FACING). BACK is the\n"
+      "  // A wall torch has the shape TORCH_SHAPE and its facing (Block::FACING). BACK is the\n"
       "  // step to its wall. The torch moves up and toward the wall, and leans out of it (Block.wall_lean).\n"
-      "  uint facing = (w1 >> 25) & 7u;\n"
-      "  uint shape = (w1 >> 28) & 7u;\n"
+      "  uint facing = (w1 >> FACING_AT) & FACING_MASK;\n"
+      "  uint shape = (w1 >> SHAPE_AT) & SHAPE_MASK;\n"
       "  float2 uv = UV[c];\n"
       "  if (fluid) {\n"
-      "    // Bits 8-16 and 25-31 of a fluid face hold the heights of the top corners of its cell\n"
-      "    // in fifteenths, 4 bits each: corner (x, z) at bit 4 (x + 2 z) (Mesher#fluid_corners).\n"
-      "    // A side takes the part of the texture under its top edge.\n"
-      "    uint h = ((w1 >> 8) & 511u) | ((w1 >> 25) << 9);\n"
+      "    // A fluid face holds the heights of the top corners of its cell in fifteenths, 4 bits\n"
+      "    // each: corner (x, z) at bit 4 (x + 2 z) (Mesher#fluid_corners). The low bits are in\n"
+      "    // HEIGHTS_LOW and the high bits in HEIGHTS_HIGH (Mesher.fluid_w1). A side takes the\n"
+      "    // part of the texture under its top edge.\n"
+      "    uint h = ((w1 >> HEIGHTS_LOW_AT) & HEIGHTS_LOW_MASK) | (((w1 >> HEIGHTS_HIGH_AT) & HEIGHTS_HIGH_MASK) << HEIGHTS_LOW_BITS);\n"
       "    if (corner.y > 0.5) {\n"
       "      float top = float((h >> (4u * (uint(corner.x) + 2u * uint(corner.z)))) & 15u) / 15.0;\n"
       "      p.y = bp.y + top;\n"
       "      if (face != 2u) uv.y = 1.0 - top;\n"
       "    }\n"
-      "  } else if (facing != 0u && face >= 6u) {\n"
-      "    p.xz += BACK[facing - 1u] * (0.42 - 0.4 * corner.y);\n"
+      "  } else if (shape == TORCH_SHAPE) {\n"
+      "    p.xz += BACK[facing] * (0.42 - 0.4 * corner.y);\n"
       "    p.y += 0.2;\n"
       "  } else if (shape != 0u) {\n"
-      "    // Bits 28-30 of a cube face hold the shape of its block (Block::SHAPE), and bits 25-27\n"
-      "    // hold 1 + its facing. The corner turns back to the block that faces +x, moves onto the\n"
+      "    // A cube face holds the shape of its block (Block::SHAPE), and its facing.\n"
+      "    // The corner turns back to the block that faces +x, moves onto the\n"
       "    // box of the shape, and turns to the facing again. The face takes the part of the\n"
       "    // texture under it on that block: u along x (along z on an x face), and v down from\n"
       "    // the top (along z on the top and the bottom).\n"
-      "    uint d = facing - 1u;\n"
+      "    uint d = facing;\n"
       "    float2 m = turn(d < 2u ? d : d ^ 1u, corner.xz - 0.5) + 0.5;\n"
       "    float3 lo = float3(SHAPE[shape][0], SHAPE[shape][1], SHAPE[shape][2]) / 16.0;\n"
       "    float3 hi = float3(SHAPE[shape][3], SHAPE[shape][4], SHAPE[shape][5]) / 16.0;\n"
@@ -185,11 +186,11 @@ module Gfx
       "    bool xface = (face < 2u) == (d < 2u);\n"
       "    uv = face == 2u || face == 3u ? q.xz : float2(xface ? q.z : q.x, 1.0 - q.y);\n"
       "  }\n"
-      "  float ao = fluid ? 1.0 : 0.5 + float((w1 >> (8 + 2 * c)) & 3u) * 0.5 / 3.0;\n"
+      "  float ao = fluid ? 1.0 : 0.5 + float((w1 >> (AO_AT + 2 * c)) & 3u) * 0.5 / 3.0;\n"
       "  float day = u.misc.x;\n"
-      "  float light = ((w1 >> 17) & 1u) != 0u ? (0.12 + 0.88 * day) : (0.08 + 0.37 * day);\n"
+      "  float light = ((w1 >> SKY_AT) & SKY_MASK) != 0u ? (0.12 + 0.88 * day) : (0.08 + 0.37 * day);\n"
       "  // 14 is Mesher::LIGHT_MAX, the light at a torch.\n"
-      "  float torch = pow(float((w1 >> 19) & 15u) / 14.0, 1.6);\n"
+      "  float torch = pow(float((w1 >> LIGHT_AT) & LIGHT_MASK) / 14.0, 1.6);\n"
       "  float warm = clamp((torch - light) * 3.0, 0.0, 1.0);\n"
       "  light = bright(max(light, torch), u);\n"
       "  float s = SHADE[face] * ao * light;\n"
@@ -198,30 +199,29 @@ module Gfx
       "  o.uv = uv;\n"
       "  if (scroll == 1u) o.uv += float2(u.cam.w * 0.06, u.cam.w * 0.1);\n"
       "  if (scroll == 2u) o.uv += float2(u.cam.w * 0.02, u.cam.w * 0.035);\n"
-      "  o.layer = float(w1 & 255u);\n"
+      "  o.layer = float((w1 >> TEX_AT) & TEX_MASK);\n"
       "  o.color = float4(float3(s) * mix(float3(1.0), float3(1.0, 0.82, 0.6), warm), 1.0);\n"
       "  o.fog = fog_of(p, u);\n"
-      "  // Bit 31 of w1 and bit 31 of w0 are the low and the high bit of the tint (Mesher.tint_w1).\n"
       "  // A fluid has no tint.\n"
-      "  uint tint = fluid ? 0u : (w1 >> 31) | ((w0 >> 31) << 1);\n"
+      "  uint tint = fluid ? 0u : (w1 >> TINT_AT) & TINT_MASK;\n"
       "  o.tint = tint == 0u ? float3(1.0) : tints.sample(tsmp, p.xz / " STR(COLUMNS) ".0, tint - 1u, level(0.0)).rgb * (255.0 / 64.0);\n"
       "  return o;\n"
       "}\n"
       "// Far terrain: one record per face of a cell of 2^s x 2^s blocks (level s - 2).\n"
       "// w0 holds the cell column in a ring of COLUMNS cells, the base y and the face;\n"
-      "// w1 the texture, the face height in blocks, s, the tint and the biome (Lod.tint).\n"
+      "// w1 the texture, the face height in blocks, s, the tint and the biome (Lod::TALL_AT and the others).\n"
       "struct VOutL { float4 pos [[position]]; float2 uv; float layer [[flat]]; float4 color; float fog; float2 wp; uint level [[flat]]; float3 tint [[flat]]; };\n"
       "vertex VOutL vlod(VChunk in [[stage_in]], uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
       "  uint w0 = in.d.x, w1 = in.d.y;\n"
-      "  uint sh = (w1 >> 15) & 7u;\n"
+      "  uint sh = (w1 >> CELL_AT) & CELL_MASK;\n"
       "  float cs = float(1u << sh);\n"
       "  float ring = " STR(COLUMNS) ".0 * cs;\n"
-      "  float3 bp = float3(float(w0 & 1023u) * cs, float((w0 >> 10) & 127u), float((w0 >> 17) & 1023u) * cs);\n"
+      "  float3 bp = float3(float((w0 >> X_AT) & X_MASK) * cs, float((w0 >> Y_AT) & Y_MASK), float((w0 >> Z_AT) & Z_MASK) * cs);\n"
       "  bp.x += ring * floor((u.cam.x - bp.x) / ring + 0.5);\n"
       "  bp.z += ring * floor((u.cam.z - bp.z) / ring + 0.5);\n"
-      "  uint face = (w0 >> 27) & 15u;\n"
+      "  uint face = (w0 >> FACE_AT) & FACE_MASK;\n"
       "  uint c = vid & 3u;\n"
-      "  float hgt = float((w1 >> 8) & 127u);\n"
+      "  float hgt = float((w1 >> TALL_AT) & TALL_MASK);\n"
       "  float3 corner = CORNER[face][c];\n"
       "  float3 p = bp + corner * float3(cs, hgt, cs);\n"
       "  float day = u.misc.x;\n"
@@ -229,13 +229,13 @@ module Gfx
       "  VOutL o;\n"
       "  o.pos = u.vp * float4(p, 1.0);\n"
       "  o.uv = face == 2u ? UV[c] * cs : UV[c] * float2(cs, hgt);\n"
-      "  o.layer = float(w1 & 255u);\n"
+      "  o.layer = float((w1 >> TEX_AT) & TEX_MASK);\n"
       "  o.color = float4(float3(s), 1.0);\n"
       "  o.fog = fog_of(p, u);\n"
       "  o.wp = p.xz;\n"
       "  o.level = sh - 2u;\n"
-      "  uint tint = (w1 >> 18) & 3u;\n"
-      "  o.tint = tint == 0u ? float3(1.0) : u.tint[((w1 >> 20) & 15u) * 2u + tint - 1u].rgb;\n"
+      "  uint tint = (w1 >> LOD_TINT_AT) & LOD_TINT_MASK;\n"
+      "  o.tint = tint == 0u ? float3(1.0) : u.tint[((w1 >> BIOME_AT) & BIOME_MASK) * 2u + tint - 1u].rgb;\n"
       "  return o;\n"
       "}\n"
       "float3 tinted(float4 c, float3 tint) {\n"
@@ -350,10 +350,21 @@ module Gfx
       return false;
     }
 
+    /* The shader source: the #defines of the record fields from Ruby
+       (gfx_shader_defines), then MSL. */
+    static char *msl;
+    void gfx_shader_defines(const char *defines) {
+      size_t n = strlen(defines);
+      free(msl);
+      msl = malloc(n + strlen(MSL) + 1);
+      memcpy(msl, defines, n);
+      strcpy(msl + n, MSL);
+    }
+
     static SDL_GPUShader *shader(const char *entry, SDL_GPUShaderStage stage, int samplers) {
       SDL_GPUShaderCreateInfo info = {0};
-      info.code = (const Uint8 *)MSL;
-      info.code_size = SDL_strlen(MSL);
+      info.code = (const Uint8 *)msl;
+      info.code_size = SDL_strlen(msl);
       info.entrypoint = entry;
       info.format = SDL_GPU_SHADERFORMAT_MSL;
       info.stage = stage;
@@ -511,8 +522,8 @@ module Gfx
       SDL_GPUShader *vcloud = shader("vcloud", SDL_GPU_SHADERSTAGE_VERTEX, 0);
       SDL_GPUShader *fcloud = shader("fcloud", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
       SDL_GPUShaderCreateInfo fui_info = {0};
-      fui_info.code = (const Uint8 *)MSL;
-      fui_info.code_size = SDL_strlen(MSL);
+      fui_info.code = (const Uint8 *)msl;
+      fui_info.code_size = SDL_strlen(msl);
       fui_info.entrypoint = "fui";
       fui_info.format = SDL_GPU_SHADERFORMAT_MSL;
       fui_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
@@ -1288,6 +1299,7 @@ module Gfx
   ffi_func :in_capture, [:long], :void
   ffi_func :gfx_fullscreen, [:long], :void
   ffi_func :gfx_limit, [:long], :long
+  ffi_func :gfx_shader_defines, [:str], :void
 end
 
 module Key
