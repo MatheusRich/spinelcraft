@@ -186,17 +186,20 @@ class Game
     @flow_queue << x << y << z - 1
   end
 
-  # The level a cell should have: 7 under falling water, else one less than the
-  # best neighbor that spreads sideways (a source, or water resting on a solid block).
-  def flow_target(x, y, z)
-    return 7 if Block.water?(@world.get(x, y + 1, z))
+  # The level of water (or of lava, when lava is true) that a cell should
+  # have: one less than a source under falling fluid, else one less than
+  # the best neighbor that spreads sideways (a source, or fluid resting on a
+  # solid block). Water spreads 7 blocks and lava 3.
+  def flow_target(x, y, z, lava)
+    source = lava ? 4 : 8
+    return source - 1 if fluid_level(@world.get(x, y + 1, z), lava) > 0
     best = 0
     d = 0
     while d < 4
-      nx = x + (d == 0 ? 1 : (d == 1 ? -1 : 0))
-      nz = z + (d == 2 ? 1 : (d == 3 ? -1 : 0))
-      level = Block::WATER_LEVEL[@world.get(nx, y, nz)]
-      if level > 0 && (level == 8 || Block.solid?(@world.get(nx, y - 1, nz)))
+      nx = x + Block::DIR_DX[d]
+      nz = z + Block::DIR_DZ[d]
+      level = fluid_level(@world.get(nx, y, nz), lava)
+      if level > 0 && (level == source || Block.solid?(@world.get(nx, y - 1, nz)))
         best = level - 1 if level - 1 > best
       end
       d += 1
@@ -204,22 +207,9 @@ class Game
     best
   end
 
-  # Lava's version of flow_target: it spreads 3 blocks.
-  def lava_target(x, y, z)
-    return 3 if Block.lava?(@world.get(x, y + 1, z))
-    best = 0
-    d = 0
-    while d < 4
-      nx = x + (d == 0 ? 1 : (d == 1 ? -1 : 0))
-      nz = z + (d == 2 ? 1 : (d == 3 ? -1 : 0))
-      level = Block.lava_level(@world.get(nx, y, nz))
-      if level > 0 && (level == 4 || Block.solid?(@world.get(nx, y - 1, nz)))
-        best = level - 1 if level - 1 > best
-      end
-      d += 1
-    end
-    best
-  end
+  # The level of block b as water (8 for a source), or as lava (4 for a
+  # source) when lava is true; 0 when it is not that fluid.
+  def fluid_level(b, lava) = lava ? Block.lava_level(b) : Block::WATER_LEVEL[b]
 
   def touches_water?(x, y, z)
     Block.water?(@world.get(x + 1, y, z)) || Block.water?(@world.get(x - 1, y, z)) ||
@@ -250,8 +240,8 @@ class Game
       lava = Block.lava_level(b)
       next if level == 8 || lava == 4
       next unless b == Block::AIR || level > 0 || lava > 0 || Block.plant?(b)
-      target = flow_target(x, y, z)
-      lava_to = lava_target(x, y, z)
+      target = flow_target(x, y, z, false)
+      lava_to = flow_target(x, y, z, true)
       want = if lava_to > 0
         Block::LAVA_FLOW + lava_to - 1
       elsif target > 0
