@@ -146,12 +146,14 @@ class Boat
   # turn, as in Minecraft.
   def paddle(dt, fwd, turn)
     step = PADDLE * dt * (fwd < 0.0 ? -1.0 : 1.0)
-    before = (@paddle_l / (Math::PI * 2.0)).floor + (@paddle_r / (Math::PI * 2.0)).floor
+    before = turns
     @paddle_l += step if fwd != 0.0 || turn > 0.0
     @paddle_r += step if fwd != 0.0 || turn < 0.0
-    after = (@paddle_l / (Math::PI * 2.0)).floor + (@paddle_r / (Math::PI * 2.0)).floor
-    @strokes += 1 if after != before
+    @strokes += 1 if turns != before
   end
+
+  # The full turns of both paddles together.
+  def turns = (@paddle_l / (Math::PI * 2.0)).floor + (@paddle_r / (Math::PI * 2.0)).floor
 
   # A hit of amount points of damage. Returns true when the boat breaks.
   def hit(amount)
