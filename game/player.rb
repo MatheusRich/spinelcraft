@@ -73,7 +73,7 @@ class Player
   FLY = 11.0
   SPRINT_FLY = 22.0
   FLY_UP = 7.49
-  FLY_BOOST = 4.0
+  FLY_BOOST = 8.0
   FLY_HIGH = 64.0
   # Swim speeds at the surface, under water, and in a sprint.
   SWIM = 2.2

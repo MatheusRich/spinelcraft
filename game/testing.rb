@@ -120,7 +120,7 @@ class Game
     high = @player.fly_boost(@world)
     @player.y = y
     check("flight is slow near the ground and fast high above it",
-          low == 1.0 && mid > 2.0 && mid < 3.0 && high == Player::FLY_BOOST)
+          low == 1.0 && mid == (1.0 + Player::FLY_BOOST) / 2.0 && high == Player::FLY_BOOST)
   end
 
   def check(name, ok)
