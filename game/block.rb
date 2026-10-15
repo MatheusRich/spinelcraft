@@ -197,6 +197,12 @@ module Block
   PICK_TIER = []
   # Water level: 8 for a source, 1..7 for flowing water, 0 for anything else.
   WATER_LEVEL = []
+  # 1 for a thing that lives in the inventory but is never placed.
+  ITEM = []
+  # Hunger points that eating the block gives back; 0 for what is not food.
+  FOOD = []
+  # Saturation points that eating the block gives back.
+  SATURATION = []
 
   # Adds block id to the tables above, which name its arguments. The
   # blocks come in the order of their ids. A block is an opaque, solid
@@ -204,7 +210,7 @@ module Block
   # the arguments say something else.
   def self.define_block(id, name, side, top: side, bottom: top, front: side, facing: -1, base: id, shape: 0, opaque: 1,
                         occludes: opaque, solid: 1, plant: 0, hardness: 0.0, drops: id, needs_pick: 0, dig: 0, pick_tier: 0,
-                        water: 0)
+                        water: 0, item: 0, food: 0, saturation: 0.0)
     abort "Block.define_block: block #{id} comes out of order" if id != NAMES.size
     NAMES << name
     TOP << top
@@ -224,11 +230,15 @@ module Block
     DIG_KIND << dig
     PICK_TIER << pick_tier
     WATER_LEVEL << water
+    ITEM << item
+    FOOD << food
+    SATURATION << saturation
   end
 
   # A thing that lives in the inventory, but never in the world.
-  def self.define_item(id, name, tex, pick_tier: 0) =
-    define_block(id, name, tex, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, pick_tier: pick_tier)
+  def self.define_item(id, name, tex, pick_tier: 0, food: 0, saturation: 0.0) =
+    define_block(id, name, tex, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, pick_tier: pick_tier, item: 1, food: food,
+                 saturation: saturation)
 
   # A plant: two crossed quads that do not stop the player and break at once.
   def self.define_plant(id, name, tex, drops: id) = define_block(id, name, tex, opaque: 0, solid: 0, plant: 1, drops: drops)
@@ -241,7 +251,7 @@ module Block
       define_block(first + d - FACING[of] - 1, NAMES[of], SIDE[of], top: TOP[of], bottom: BOTTOM[of], front: FRONT[of],
                    facing: d, base: BASE[of], shape: SHAPE[of], opaque: OPAQUE[of], occludes: OCCLUDES[of], solid: SOLID[of],
                    plant: PLANT[of], hardness: HARDNESS[of], drops: DROPS[of], needs_pick: NEEDS_PICK[of], dig: DIG_KIND[of],
-                   pick_tier: PICK_TIER[of], water: WATER_LEVEL[of])
+                   pick_tier: PICK_TIER[of], water: WATER_LEVEL[of], item: ITEM[of], food: FOOD[of], saturation: SATURATION[of])
       d += 1
     end
     # A while loop gives an untyped value, so Spinel would box the return.
@@ -250,6 +260,8 @@ module Block
 
   # The hardness values come from minecraft.wiki/w/Breaking, and /w/Leaves,
   # /w/Snow_Block, /w/Bed, /w/Pumpkin and /w/Jack_o'Lantern for those blocks.
+  # The food and saturation values come from minecraft.wiki/w/Food, and
+  # the page of each food.
   define_block AIR, "AIR", Tex::WHITE, opaque: 0, solid: 0
   define_block GRASS, "GRASS", Tex::GRASS_SIDE, top: Tex::GRASS_TOP, bottom: Tex::DIRT, hardness: 0.6, drops: DIRT, dig: DIG_SHOVEL
   define_block DIRT, "DIRT", Tex::DIRT, hardness: 0.5, dig: DIG_SHOVEL
@@ -274,7 +286,7 @@ module Block
   define_plant ROSE, "ROSE", Tex::ROSE
   define_plant DANDELION, "DANDELION", Tex::DANDELION
   define_plant TORCH, "TORCH", Tex::TORCH
-  define_item PORKCHOP, "PORKCHOP", Tex::PORKCHOP
+  define_item PORKCHOP, "PORKCHOP", Tex::PORKCHOP, food: 3, saturation: 1.8 # minecraft.wiki/w/Raw_Porkchop
   define_item WOOD_PICK, "WOODEN PICKAXE", Tex::WOOD_PICK, pick_tier: 1
   define_item STONE_PICK, "STONE PICKAXE", Tex::STONE_PICK, pick_tier: 2
   define_item IRON_PICK, "IRON PICKAXE", Tex::IRON_PICK, pick_tier: 3
@@ -298,7 +310,7 @@ module Block
                hardness: 2.5, dig: DIG_AXE
   define_block DOOR, "DOOR", Tex::DOOR_ITEM, opaque: 0, solid: 0, hardness: 3.0, dig: DIG_AXE
   define_plant OAK_SAPLING, "OAK SAPLING", Tex::OAK_SAPLING
-  define_item APPLE, "APPLE", Tex::APPLE
+  define_item APPLE, "APPLE", Tex::APPLE, food: 4, saturation: 2.4 # minecraft.wiki/w/Apple
   define_item WOOD_SWORD, "WOODEN SWORD", Tex::WOOD_SWORD
   define_item STONE_SWORD, "STONE SWORD", Tex::STONE_SWORD
   define_item IRON_SWORD, "IRON SWORD", Tex::IRON_SWORD
@@ -306,7 +318,7 @@ module Block
   define_item IRON_INGOT, "IRON INGOT", Tex::IRON_INGOT
   define_block FURNACE, "FURNACE", Tex::FURNACE_SIDE, top: Tex::FURNACE_TOP, front: Tex::FURNACE, facing: 0, hardness: 3.5,
                needs_pick: 1, dig: DIG_PICK
-  define_item COOKED_PORKCHOP, "COOKED PORKCHOP", Tex::COOKED_PORKCHOP
+  define_item COOKED_PORKCHOP, "COOKED PORKCHOP", Tex::COOKED_PORKCHOP, food: 8, saturation: 12.8 # minecraft.wiki/w/Cooked_Porkchop
   define_item WOOD_AXE, "WOODEN AXE", Tex::WOOD_AXE
   define_item STONE_AXE, "STONE AXE", Tex::STONE_AXE
   define_item IRON_AXE, "IRON AXE", Tex::IRON_AXE
@@ -320,7 +332,7 @@ module Block
   define_plant WHEAT_2, "WHEAT", Tex::WHEAT_2, drops: SEEDS
   define_plant WHEAT_RIPE, "WHEAT", Tex::WHEAT_RIPE, drops: WHEAT
   define_item WHEAT, "WHEAT", Tex::WHEAT
-  define_item BREAD, "BREAD", Tex::BREAD
+  define_item BREAD, "BREAD", Tex::BREAD, food: 5, saturation: 6.0 # minecraft.wiki/w/Bread
   define_block CRAFTING_TABLE, "CRAFTING TABLE", Tex::CRAFT_SIDE, top: Tex::CRAFT_TOP, bottom: Tex::OAK_PLANKS, hardness: 2.5,
                dig: DIG_AXE
   define_block LADDER, "LADDER", Tex::LADDER, top: Tex::CLEAR, facing: 0, shape: 3, opaque: 0, solid: 0, hardness: 0.4, dig: DIG_AXE
@@ -353,7 +365,7 @@ module Block
   define_block BED_BLOCK + 4, "BED", Tex::BED_HEAD_SIDE, top: Tex::BED_HEAD_TOP, bottom: Tex::OAK_PLANKS, front: Tex::BED_HEAD_END,
                facing: 0, base: BED, shape: 5, opaque: 0, hardness: 0.2, drops: BED, dig: DIG_AXE
   define_turns BED_BLOCK + 5, BED_BLOCK + 4
-  define_item ROTTEN_FLESH, "ROTTEN FLESH", Tex::ROTTEN_FLESH
+  define_item ROTTEN_FLESH, "ROTTEN FLESH", Tex::ROTTEN_FLESH, food: 4, saturation: 0.8 # minecraft.wiki/w/Rotten_Flesh
   define_block SPRUCE_LOG, "SPRUCE LOG", Tex::SPRUCE_LOG_SIDE, top: Tex::SPRUCE_LOG_TOP, hardness: 2.0, dig: DIG_AXE
   define_block SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
   define_block SPRUCE_PLANKS, "SPRUCE PLANKS", Tex::SPRUCE_PLANKS, hardness: 2.0, dig: DIG_AXE
@@ -362,8 +374,8 @@ module Block
   define_block BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
   define_block BIRCH_PLANKS, "BIRCH PLANKS", Tex::BIRCH_PLANKS, hardness: 2.0, dig: DIG_AXE
   define_plant BIRCH_SAPLING, "BIRCH SAPLING", Tex::BIRCH_SAPLING
-  define_item MUTTON, "MUTTON", Tex::MUTTON
-  define_item COOKED_MUTTON, "COOKED MUTTON", Tex::COOKED_MUTTON
+  define_item MUTTON, "MUTTON", Tex::MUTTON, food: 2, saturation: 1.2 # minecraft.wiki/w/Raw_Mutton
+  define_item COOKED_MUTTON, "COOKED MUTTON", Tex::COOKED_MUTTON, food: 6, saturation: 9.6 # minecraft.wiki/w/Cooked_Mutton
   define_item COAL, "COAL", Tex::COAL
   define_block PLACED_OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES, base: OAK_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
   define_block PLACED_SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, base: SPRUCE_LEAVES, opaque: 0, occludes: 1, hardness: 0.2,
@@ -412,9 +424,7 @@ module Block
     -1
   end
   # Things that live in the inventory but are never placed.
-  def self.item?(b) = (b >= PORKCHOP && b <= DIAMOND_PICK) || b == BOW || b == ARROW || (b >= APPLE && b <= IRON_INGOT) ||
-    (b >= COOKED_PORKCHOP && b <= DIAMOND_SHOVEL) || b == WHEAT || b == BREAD || bucket?(b) || b == ROTTEN_FLESH ||
-    b == MUTTON || b == COOKED_MUTTON || b == COAL || boat?(b) || b == SHEARS
+  def self.item?(b) = ITEM[b] == 1
   def self.bucket?(b) = b >= BUCKET && b <= LAVA_BUCKET
   def self.boat?(b) = b >= OAK_BOAT && b <= BIRCH_BOAT
   # The most of b that one slot holds: a boat does not stack.
@@ -478,14 +488,9 @@ module Block
     d < 2 ? DIR_DX[d] * shape_mid(b, 2) : DIR_DZ[d] * shape_mid(b, 0)
   end
   def self.box_dy(b) = wall_torch?(b) ? WALL_LIFT : 0.0
-  # Hunger points that eating b gives back; 0 for what is not food.
-  # minecraft.wiki/w/Apple, /w/Bread, /w/Raw_Porkchop, /w/Rotten_Flesh,
-  # /w/Raw_Mutton, /w/Cooked_Mutton, /w/Food
-  def self.food(b) = b == COOKED_PORKCHOP ? 8 : (b == COOKED_MUTTON ? 6 : (b == BREAD ? 5 : (b == APPLE || b == ROTTEN_FLESH ? 4 :
-    (b == PORKCHOP ? 3 : (b == MUTTON ? 2 : 0)))))
-  # Saturation points that eating b gives back.
-  def self.saturation(b) = b == COOKED_PORKCHOP ? 12.8 : (b == COOKED_MUTTON ? 9.6 : (b == BREAD ? 6.0 : (b == APPLE ? 2.4 :
-    (b == PORKCHOP ? 1.8 : (b == MUTTON ? 1.2 : (b == ROTTEN_FLESH ? 0.8 : 0.0))))))
+  # Hunger and saturation points that eating b gives back.
+  def self.food(b) = FOOD[b]
+  def self.saturation(b) = SATURATION[b]
   # A crop that has not ripened yet.
   def self.growing?(b) = (b >= SEEDS && b < WHEAT_RIPE) || (b >= PUMPKIN_SEEDS && b < PUMPKIN_STEM_RIPE)
   def self.sword?(b) = b >= WOOD_SWORD && b <= DIAMOND_SWORD
