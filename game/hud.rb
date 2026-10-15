@@ -177,12 +177,7 @@ class Game
       if i == @slot
         @ui.rect(c[0] - 3.0 * s, c[1] - 3.0 * s, c[2] + 6.0 * s, c[2] + 6.0 * s, 1.0, 1.0, 1.0, 0.9)
       end
-      shade = i == hover ? 0.55 : 0.32
-      @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      unless @inv.empty?(i)
-        @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, @inv.block(i), 1.0)
-        draw_count(@inv.block(i), @inv.count(i), c[0], c[1], c[2], 2.0 * s, s)
-      end
+      draw_slot(c, i == hover, @inv, i, 6.0 * s, 2.0 * s, s)
       i += 1
     end
     if @chest_key >= 0
@@ -211,14 +206,19 @@ class Game
     k = 0
     while k < CHEST_SLOTS
       c = chest_cell(k, w, h, s)
-      shade = k == chover ? 0.55 : 0.32
-      @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      unless @chest.empty?(k)
-        @ui.item(c[0] + 3.0 * s, c[1] + 3.0 * s, c[2] - 6.0 * s, @chest.block(k), 1.0)
-        draw_count(@chest.block(k), @chest.count(k), c[0], c[1], c[2], 1.5 * s, s)
-      end
+      draw_slot(c, k == chover, @chest, k, 3.0 * s, 1.5 * s, s)
       k += 1
     end
+  end
+
+  # Slot i of slots in cell c (x, y, size), lighter under the mouse. The
+  # item is inset by margin, and its count has text of size ts.
+  def draw_slot(c, hover, slots, i, margin, ts, s)
+    shade = hover ? 0.55 : 0.32
+    @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
+    return if slots.empty?(i)
+    @ui.item(c[0] + margin, c[1] + margin, c[2] - margin * 2.0, slots.block(i), 1.0)
+    draw_count(slots.block(i), slots.count(i), c[0], c[1], c[2], ts, s)
   end
 
   # The count of a stack of b at the lower right of the cell at x, y, in
@@ -295,12 +295,7 @@ class Game
       else
         @ui.text(c[0], c[1] - 14.0 * s, i == Furnace::INPUT ? "IN" : "OUT", 2.0 * s, 1.0, 1.0, 1.0, 1.0)
       end
-      shade = i == hover ? 0.55 : 0.32
-      @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
-      unless f.slots.empty?(i)
-        @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, f.slots.block(i), 1.0)
-        draw_count(f.slots.block(i), f.slots.count(i), c[0], c[1], c[2], 2.0 * s, s)
-      end
+      draw_slot(c, i == hover, f.slots, i, 6.0 * s, 2.0 * s, s)
       i += 1
     end
     # The flame is 2 pixels to a texture pixel, on whole pixels: a texture
