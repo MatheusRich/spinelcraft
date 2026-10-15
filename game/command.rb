@@ -129,7 +129,7 @@ module Command
   # as an id (see id_of), with or without "minecraft:".
   # -1 when the picker has no block with the name, so a part of a block,
   # such as a door half or a crop, is not an item.
-  def self.item(name)
+  def self.item_id(name)
     n = name.start_with?("MINECRAFT:") ? name[10, name.size - 10] : name
     i = 0
     while i < Game::CREATIVE_ITEMS.size

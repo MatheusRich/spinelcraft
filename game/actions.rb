@@ -99,6 +99,7 @@ class Game
   def set_mode(survival)
     @survival = survival
     @player.flying = false if @survival
+    nil
   end
 
   def toggle_fullscreen

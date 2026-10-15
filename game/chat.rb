@@ -225,7 +225,7 @@ class Game
   # item goes to the selected slot of the hotbar.
   def command_give(args)
     return chat_error("USE /GIVE ITEM [COUNT]") if args.size < 1 || args.size > 2
-    b = Command.item(args[0])
+    b = Command.item_id(args[0])
     return chat_error("UNKNOWN ITEM: #{args[0]}") if b < 0
     n = args.size == 2 ? Command.whole(args[1]) : 1
     return chat_error("BAD COUNT: #{args[1]}") if n < 1 || n > INV * Slots::STACK

@@ -278,13 +278,13 @@ class Game
           Command.ticks("2147483647") == 2147483647 && Command.ticks("2147483648") == -1 &&
           Command.ticks("99999999999999999999D") == -1)
     check("an item name is its name with _ for each space, and only the creative picker has items",
-          Command.item("DIAMOND_PICKAXE") == Block::DIAMOND_PICK && Command.item("MINECRAFT:WHEAT") == Block::WHEAT &&
-          Command.item("WATER") == Block::WATER && Command.item("AIR") == -1 && Command.item("DIRTT") == -1 &&
-          Command.item("WHEAT_CROPS") == -1)
+          Command.item_id("DIAMOND_PICKAXE") == Block::DIAMOND_PICK && Command.item_id("MINECRAFT:WHEAT") == Block::WHEAT &&
+          Command.item_id("WATER") == Block::WATER && Command.item_id("AIR") == -1 && Command.item_id("DIRTT") == -1 &&
+          Command.item_id("WHEAT_CROPS") == -1)
     check("the boats, the pumpkins and the shears have ids as in Minecraft",
-          Command.item("JACK_O_LANTERN") == Block::JACK_O_LANTERN && Command.item("CARVED_PUMPKIN") == Block::CARVED_PUMPKIN &&
-          Command.item("SPRUCE_BOAT") == Block::SPRUCE_BOAT && Command.item("SHEARS") == Block::SHEARS &&
-          Command.item("PUMPKIN_SEEDS") == Block::PUMPKIN_SEEDS && Command.item("PUMPKIN_STEM") == -1)
+          Command.item_id("JACK_O_LANTERN") == Block::JACK_O_LANTERN && Command.item_id("CARVED_PUMPKIN") == Block::CARVED_PUMPKIN &&
+          Command.item_id("SPRUCE_BOAT") == Block::SPRUCE_BOAT && Command.item_id("SHEARS") == Block::SHEARS &&
+          Command.item_id("PUMPKIN_SEEDS") == Block::PUMPKIN_SEEDS && Command.item_id("PUMPKIN_STEM") == -1)
     check("a mob name gives its kind", Command.mob("CREEPER") == Mob::CREEPER && Command.mob("MINECRAFT:PIG") == Mob::PIG &&
           Command.mob("GHAST") == -1)
   end
