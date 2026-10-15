@@ -492,12 +492,13 @@ class Game
       else
         @world.get(x, y - 1, z)
       end
-      return if !Block.solid?(held) || Block.water?(@world.get(x, y, z))
+      return if !Block.solid?(held) || Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z))
     end
     return if Block.solid?(b) && mob_in?(x, y, z, Block.door?(b) ? 2 : 1)
     current = @world.get(x, y, z)
     # The view ray can pass a flower, so a block only replaces tall grass.
-    return unless current == Block::AIR || Block.water?(current) || current == Block::TALL_GRASS
+    # It passes water and lava, and a block replaces them, as in Minecraft.
+    return unless current == Block::AIR || Block.water?(current) || Block.lava?(current) || current == Block::TALL_GRASS
     if Block.door?(b)
       return unless door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)

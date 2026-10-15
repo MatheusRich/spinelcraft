@@ -709,6 +709,10 @@ class Game
     @player.raycast(@world)
     place
     check("a block placed on tall grass takes its cell", @world.get(x, ground + 1, z) == Block::OAK_PLANKS && @world.get(x, ground + 2, z) == Block::AIR)
+    set_block(x, ground + 1, z, Block::LAVA)
+    @player.raycast(@world)
+    place
+    check("a block placed in lava takes its cell", @world.get(x, ground + 1, z) == Block::OAK_PLANKS)
     # Stone drops cobblestone only to a pickaxe. Off the ground, mining is
     # slow, so the player stands while it mines.
     @inv.clear
