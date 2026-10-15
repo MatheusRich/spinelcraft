@@ -118,11 +118,14 @@ class Game
   AT_FURNACE = 2
   # Each recipe: the ingredient, how many, the result, how many, and where.
   # The ingredient is a block, or Block::ANY_PLANKS.
-  # The recipe list shows two recipes to a row. The tools come first, in
+  # The recipe list shows two recipes to a row. The planks and the crafting
+  # table come first, as the first things to make. The tools come next, in
   # pairs of one material, so that each kind of tool is a column: the
   # pickaxes and then the axes at the left, the swords and then the
   # shovels at the right.
-  RECIPES = [[Block::ANY_PLANKS, 3, Block::WOOD_PICK, 1, AT_TABLE], [Block::ANY_PLANKS, 2, Block::WOOD_SWORD, 1, AT_TABLE],
+  RECIPES = [[Block::OAK_LOG, 1, Block::OAK_PLANKS, 4, BY_HAND], [Block::SPRUCE_LOG, 1, Block::SPRUCE_PLANKS, 4, BY_HAND],
+             [Block::BIRCH_LOG, 1, Block::BIRCH_PLANKS, 4, BY_HAND], [Block::ANY_PLANKS, 4, Block::CRAFTING_TABLE, 1, BY_HAND],
+             [Block::ANY_PLANKS, 3, Block::WOOD_PICK, 1, AT_TABLE], [Block::ANY_PLANKS, 2, Block::WOOD_SWORD, 1, AT_TABLE],
              [Block::COBBLE, 3, Block::STONE_PICK, 1, AT_TABLE], [Block::COBBLE, 2, Block::STONE_SWORD, 1, AT_TABLE],
              [Block::IRON_INGOT, 3, Block::IRON_PICK, 1, AT_TABLE], [Block::IRON_INGOT, 2, Block::IRON_SWORD, 1, AT_TABLE],
              [Block::DIAMOND, 3, Block::DIAMOND_PICK, 1, AT_TABLE], [Block::DIAMOND, 2, Block::DIAMOND_SWORD, 1, AT_TABLE],
@@ -130,9 +133,7 @@ class Game
              [Block::COBBLE, 3, Block::STONE_AXE, 1, AT_TABLE], [Block::COBBLE, 1, Block::STONE_SHOVEL, 1, AT_TABLE],
              [Block::IRON_INGOT, 3, Block::IRON_AXE, 1, AT_TABLE], [Block::IRON_INGOT, 1, Block::IRON_SHOVEL, 1, AT_TABLE],
              [Block::DIAMOND, 3, Block::DIAMOND_AXE, 1, AT_TABLE], [Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, AT_TABLE],
-             [Block::OAK_LOG, 1, Block::OAK_PLANKS, 4, BY_HAND], [Block::SPRUCE_LOG, 1, Block::SPRUCE_PLANKS, 4, BY_HAND],
-             [Block::BIRCH_LOG, 1, Block::BIRCH_PLANKS, 4, BY_HAND], [Block::COAL, 1, Block::TORCH, 4, BY_HAND],
-             [Block::ANY_PLANKS, 4, Block::CRAFTING_TABLE, 1, BY_HAND], [Block::GRAVEL, 1, Block::ARROW, 4, AT_TABLE],
+             [Block::COAL, 1, Block::TORCH, 4, BY_HAND], [Block::GRAVEL, 1, Block::ARROW, 4, AT_TABLE],
              [Block::STONE, 2, Block::BRICK, 1, AT_TABLE], [Block::WOOL, 3, Block::BED, 1, AT_TABLE],
              [Block::ANY_PLANKS, 5, Block::BOW, 1, AT_TABLE], [Block::ANY_PLANKS, 8, Block::CHEST, 1, AT_TABLE],
              [Block::ANY_PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::ANY_PLANKS, 3, Block::LADDER, 4, AT_TABLE],
