@@ -140,9 +140,7 @@ class Particles
       len = Math.sqrt(vx * vx + vy * vy + vz * vz)
       len = 1.0 if len < 0.001
       speed = (@rng.rand01 + @rng.rand01 + 1.0) * 1.2
-      chip = Particle.new(Particle::CHIP, x + dx, y + dy, z + dz, vx / len * speed, vy / len * speed + 2.0, vz / len * speed, 0.3 + @rng.rand01 * 0.7, layer)
-      chip.piece((@rng.rand01 * 13.0).floor / 16.0, (@rng.rand01 * 13.0).floor / 16.0, 0.05 + @rng.rand01 * 0.05)
-      @all << chip if @all.size < MAX
+      chip(x + dx, y + dy, z + dz, vx / len * speed, vy / len * speed + 2.0, vz / len * speed, layer)
       i += 1
     end
   end
@@ -167,12 +165,18 @@ class Particles
       down = -0.3 - @rng.rand01 * 0.6
       vside = (@rng.rand01 - 0.5) * 2.0
       vup = 2.0 + @rng.rand01 * 2.0
-      chip = Particle.new(Particle::CHIP, player.x + cy * side + ux * down + fx * 0.6, player.eye_y + cp * down + sp * 0.6,
-                          player.z + sy * side + uz * down + fz * 0.6, cy * vside + ux * vup, cp * vup + 1.0, sy * vside + uz * vup,
-                          0.3 + @rng.rand01 * 0.7, Block::SIDE[b])
-      chip.piece((@rng.rand01 * 13.0).floor / 16.0, (@rng.rand01 * 13.0).floor / 16.0, 0.05 + @rng.rand01 * 0.05)
-      @all << chip if @all.size < MAX
+      chip(player.x + cy * side + ux * down + fx * 0.6, player.eye_y + cp * down + sp * 0.6,
+           player.z + sy * side + uz * down + fz * 0.6, cy * vside + ux * vup, cp * vup + 1.0, sy * vside + uz * vup, Block::SIDE[b])
     end
+  end
+
+  # A chip that lives 0.3 to 1 second and shows a random piece of 4 x 4
+  # pixels of the texture layer.
+  def chip(x, y, z, vx, vy, vz, layer)
+    return if @all.size >= MAX
+    c = Particle.new(Particle::CHIP, x, y, z, vx, vy, vz, 0.3 + @rng.rand01 * 0.7, layer)
+    c.piece((@rng.rand01 * 13.0).floor / 16.0, (@rng.rand01 * 13.0).floor / 16.0, 0.05 + @rng.rand01 * 0.05)
+    @all << c
   end
 
   # Flames and smoke for dt seconds of a burning body: the box of half width
