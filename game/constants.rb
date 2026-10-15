@@ -24,7 +24,9 @@ class Game
   VIEW_MIN = 200.0
   VIEW_MAX = 5000.0
   # Full-detail chunks reach this far at most; far terrain (lod.rb) draws the rest.
-  DETAIL_VIEW = 400.0
+  # This is the limit of the chunk ring: Game#view_radius adds 20 blocks and
+  # one ring, and 460 gives LOAD_R.
+  DETAIL_VIEW = 460.0
   # Far terrain levels: level L has cells of 4 << L blocks and reaches
   # LOD_REACH << L blocks, so each level has about the same number of tiles.
   LEVELS = 4
