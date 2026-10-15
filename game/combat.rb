@@ -343,6 +343,7 @@ class Game
     # Rain dims the day, so monsters do not burn in it.
     day = daylight * (1.0 - 0.5 * @weather.rain)
     spawn_monsters(dt)
+    court_mates
     @spawn_timer -= dt
     if @spawn_timer <= 0.0
       @spawn_timer = 2.0
@@ -469,6 +470,70 @@ class Game
     m.lay = false
     drop_item(Block::EGG, 1, m.x, m.y.to_f + 0.2, m.z, 0.0, 1.0, 0.0, PICKUP_WAIT)
     play_from(m, Sfx::LAY_EGG, 1.0)
+  end
+
+  # Each adult in love mode walks to the nearest adult of its kind in love
+  # mode within Mob::MATE_REACH. Two mates near each other make a baby.
+  # minecraft.wiki/w/Breeding
+  def court_mates
+    n = @mobs.size
+    i = 0
+    while i < n
+      m = @mobs[i]
+      j = m.in_love? ? nearest_mate(i) : -1
+      i += 1
+      next unless m.in_love?
+      if j < 0
+        m.alone
+        next
+      end
+      mate = @mobs[j]
+      m.court(mate.x.to_f, mate.z.to_f)
+      dx = (mate.x - m.x).to_f
+      dz = (mate.z - m.z).to_f
+      breed(m, mate) if m.court_time >= Mob::COURT_TIME && dx * dx + dz * dz < Mob::MATE_NEAR * Mob::MATE_NEAR
+    end
+    # A nil return keeps Spinel from boxing the loop.
+    nil
+  end
+
+  # The index of the nearest other adult of the kind of mob i in love mode,
+  # within Mob::MATE_REACH, or -1.
+  def nearest_mate(i)
+    m = @mobs[i]
+    best = -1
+    best_d2 = Mob::MATE_REACH * Mob::MATE_REACH
+    j = 0
+    while j < @mobs.size
+      o = @mobs[j]
+      if j != i && o.kind == m.kind && o.in_love? && !o.dying?
+        # to_f: Spinel cannot type the positions of the mobs.
+        dx = (o.x - m.x).to_f
+        dy = (o.y - m.y).to_f
+        dz = (o.z - m.z).to_f
+        d2 = dx * dx + dy * dy + dz * dz
+        if d2 < best_d2
+          best = j
+          best_d2 = d2
+        end
+      end
+      j += 1
+    end
+    best
+  end
+
+  # Two mates make one baby of their kind where the first one stands. Both
+  # show a burst of hearts, as in Minecraft since 1.15.
+  # minecraft.wiki/w/Breeding
+  def breed(a, b)
+    a.bred
+    b.bred
+    baby = Mob.new(a.kind, a.x, a.y, a.z, (@rng.rand01 * 100000.0).to_i)
+    baby.make_baby
+    @mobs << baby
+    # to_f: Spinel cannot type the mobs, and the particles need Floats.
+    @particles.hearts(a.x.to_f, a.y.to_f, a.z.to_f, a.half.to_f, a.tall.to_f)
+    @particles.hearts(b.x.to_f, b.y.to_f, b.z.to_f, b.half.to_f, b.tall.to_f)
   end
 
   # PIGS animals around the player.

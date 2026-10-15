@@ -1,5 +1,6 @@
 # Particles: block chips, flames, smoke, embers, effect specks, the
-# sparks of a critical hit and the sparkles of bone meal. Each one
+# sparks of a critical hit, the sparkles of bone meal and the hearts of
+# animals in love. Each one
 # is a small square that faces the camera. Burning mobs, torches, lava and
 # explosions make the flames and the smoke.
 class Particle
@@ -13,6 +14,7 @@ class Particle
   EFFECT = 5
   CRIT = 6
   GROWTH = 7
+  HEART = 8
 
   attr_reader :kind
 
@@ -44,13 +46,13 @@ class Particle
 
   def update(world, dt)
     @life -= dt
-    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT || @kind == CRIT || @kind == GROWTH
+    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT || @kind == CRIT || @kind == GROWTH || @kind == HEART
       # Flames, smoke and effect specks rise and slow down sideways. Sparks
       # slow down fast in all directions.
       k = 1.0 - ((@kind == CRIT ? 6.0 : 2.0) * dt).clamp(0.0, 1.0)
       @vx *= k
       @vz *= k
-      @vy *= k if @kind == CRIT || @kind == GROWTH
+      @vy *= k if @kind == CRIT || @kind == GROWTH || @kind == HEART
       @x += @vx * dt
       @y += @vy * dt
       @z += @vz * dt
@@ -93,6 +95,9 @@ class Particle
       mesh.glow = 1.0
       mesh.billboard(@x, @y, @z, 0.02 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.0, 0.93, 0.0, 1.0)
       mesh.glow = 0.0
+    when HEART
+      # The heart of the HUD, whose icon fills the top left of its layer.
+      mesh.billboard(@x, @y, @z, 0.12, rx, rz, ux, uy, uz, 0.0, 0.0, Tex::ICON_PART, Tex::HEART, 1.0, 1.0, 1.0, 1.0)
     when CRIT
       mesh.billboard(@x, @y, @z, 0.03 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.85, 0.85, 0.8, 1.0)
     when EFFECT
@@ -241,6 +246,17 @@ class Particles
       add(Particle::GROWTH, x + 0.5 + (@rng.rand01 * 2.0 - 1.0) * (spread + 0.4), base + @rng.rand01 * 0.8,
           z + 0.5 + (@rng.rand01 * 2.0 - 1.0) * (spread + 0.4), (@rng.rand01 - 0.5) * 0.2, (@rng.rand01 - 0.5) * 0.2,
           (@rng.rand01 - 0.5) * 0.2, 0.6 + @rng.rand01, Tex::PUFF)
+    end
+  end
+
+  # The 7 hearts of an animal that enters love mode or breeds, in the box
+  # of half width half and height tall on x, y, z. They rise 0.5 above it
+  # and live 16 ticks, as in the game code (Animal.handleEntityEvent and
+  # HeartParticle); the wiki does not give these values.
+  def hearts(x, y, z, half, tall)
+    7.times do
+      add(Particle::HEART, x + (@rng.rand01 * 2.0 - 1.0) * half, y + 0.5 + @rng.rand01 * tall, z + (@rng.rand01 * 2.0 - 1.0) * half,
+          (@rng.rand01 - 0.5) * 0.4, 2.0, (@rng.rand01 - 0.5) * 0.4, 0.8, Tex::HEART)
     end
   end
 

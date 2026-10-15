@@ -205,6 +205,7 @@ class Game
     test_bone_meal
     test_seed_soil
     test_shear_sheep
+    test_breeding
     test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -3326,6 +3327,139 @@ class Game
     @inv.clear
     @survival = survival
     fill_box(bx - 2, y, bz - 2, bx + 2, y + 1, bz + 2, Block::AIR)
+  end
+
+  # The player stands 2 blocks south of the mob m, looks at its middle,
+  # and presses the right button once with the selected item.
+  def right_click_mob(m)
+    @player.x = m.x.to_f
+    @player.y = m.y.to_f
+    @player.z = m.z.to_f + 2.0
+    @player.yaw = 0.0
+    @player.pitch = Math.atan2(m.y.to_f + m.tall * 0.5 - @player.eye_y.to_f, 2.0).to_f
+    @player.flying = false
+    @player.raycast(@world)
+    @target_boat = -1
+    find_target_mob
+    @action_cooldown = 0.0
+    right_button(0.05, true)
+  end
+
+  # Puts the mob m back on the floor at x, z.
+  def put_mob(m, x, y, z)
+    m.x = x
+    m.y = y
+    m.z = z
+    m.vx = 0.0
+    m.vy = 0.0
+    m.vz = 0.0
+  end
+
+  # An adult that eats its food from the hand enters love mode, and two
+  # lovers make one baby. The parents then wait 5 minutes, and a baby
+  # only grows up faster. Survival uses the food, and creative keeps it.
+  def test_breeding
+    bx = @spawn_x.floor - 40
+    bz = @spawn_z.floor + 40
+    y = SKY_Y - 12
+    (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::STONE) } }
+    fy = y + 1.0
+    survival = @survival
+    @survival = true
+    @inv.clear
+    @inv.set(0, Block::WHEAT, 10)
+    @inv.set(1, Block::SEEDS, 10)
+    @slot = 0
+    @mobs.clear
+    @items.clear
+    cow = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)
+    @mobs << cow
+    hearts = @particles.count(Particle::HEART)
+    right_click_mob(cow)
+    loved = cow.in_love? && cow.love == Mob::LOVE_TIME && @inv.count(0) == 9 &&
+            @particles.count(Particle::HEART) == hearts + 7
+    right_click_mob(cow)
+    again = @inv.count(0) == 9
+    cow.love_clock(Mob::LOVE_TIME - 1.0)
+    still = cow.in_love?
+    cow.love_clock(1.0)
+    check("wheat from the hand puts a cow in love mode for 30 seconds and uses 1 wheat, once",
+          loved && again && still && !cow.in_love?)
+    @slot = 1
+    right_click_mob(cow)
+    seeds_on_cow = !cow.in_love? && @inv.count(1) == 10
+    hen = Mob.new(Mob::CHICKEN, bx + 0.5, fy, bz - 4.5, 3)
+    @mobs << hen
+    @slot = 0
+    right_click_mob(hen)
+    wheat_on_hen = !hen.in_love? && @inv.count(0) == 9
+    @slot = 1
+    right_click_mob(hen)
+    check("a cow takes no seeds and a chicken no wheat, but a chicken takes seeds",
+          seeds_on_cow && wheat_on_hen && hen.in_love? && @inv.count(1) == 9)
+    @mobs.clear
+    @slot = 0
+    a = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)
+    b = Mob.new(Mob::COW, bx + 5.5, fy, bz + 0.5, 4)
+    @mobs << a
+    @mobs << b
+    right_click_mob(a)
+    right_click_mob(b)
+    frames = 0
+    while frames < 600 && @mobs.none?(&:baby?)
+      update_mobs(1.0 / 60.0)
+      frames += 1
+    end
+    babies = @mobs.select(&:baby?)
+    near = (a.x - b.x).abs < Mob::MATE_NEAR
+    check("two cows in love mode walk to each other and make one baby cow",
+          babies.size == 1 && babies[0].kind == Mob::COW && near && frames >= (Mob::COURT_TIME * 60.0).to_i &&
+          !a.in_love? && !b.in_love? && a.breed_wait > Mob::BREED_WAIT - 0.1 && b.breed_wait > Mob::BREED_WAIT - 0.1)
+    calf = babies[0]
+    put_mob(a, bx + 0.5, fy, bz + 0.5)
+    left = @inv.count(0)
+    right_click_mob(a)
+    waits = !a.in_love? && @inv.count(0) == left
+    a.love_clock(Mob::BREED_WAIT - 1.0)
+    right_click_mob(a)
+    waits &&= !a.in_love?
+    a.love_clock(1.0)
+    right_click_mob(a)
+    check("a parent takes no food for 5 minutes, then enters love mode again",
+          waits && a.in_love? && @inv.count(0) == left - 1)
+    @mobs.clear
+    @mobs << calf
+    put_mob(calf, bx + 0.5, fy, bz + 0.5)
+    grow = calf.grow_left
+    left = @inv.count(0)
+    right_click_mob(calf)
+    faster = (calf.grow_left - grow * (1.0 - Mob::FEED_GROWTH)).abs < 0.001 && @inv.count(0) == left - 1
+    calf.grow_up(calf.grow_left - 8.0)
+    right_click_mob(calf)
+    late = (calf.grow_left - 8.0).abs < 0.001 && @inv.count(0) == left - 2
+    check("a baby eats wheat but does not enter love mode, and each wheat takes 10% off its growth time",
+          faster && late && calf.baby? && !calf.in_love?)
+    calf2 = Mob.new(Mob::COW, bx + 2.5, fy, bz + 0.5, 5)
+    calf2.make_baby
+    @mobs << calf2
+    right_click_mob(calf2)
+    300.times { update_mobs(1.0 / 60.0) }
+    check("two babies fed wheat make no baby", @mobs.count(&:baby?) == 2)
+    @mobs.clear
+    @survival = false
+    held = @hotbar[@slot]
+    @hotbar[@slot] = Block::WHEAT
+    @inv.clear
+    cow = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 6)
+    @mobs << cow
+    right_click_mob(cow)
+    check("in creative, wheat puts a cow in love mode and stays in the hand",
+          cow.in_love? && @hotbar[@slot] == Block::WHEAT && @inv.empty?(0))
+    @hotbar[@slot] = held
+    @mobs.clear
+    @inv.clear
+    @survival = survival
+    (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::AIR) } }
   end
 
   # A ladder lifts the player at 2.35 m/s on jump, holds the player on

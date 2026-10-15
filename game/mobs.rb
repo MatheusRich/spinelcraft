@@ -36,6 +36,24 @@ class Mob
   # A baby animal is half as wide and half as tall, and grows up after 20
   # minutes. minecraft.wiki/w/Breeding and /w/Chicken
   GROW_TIME = 1200.0
+  # An animal that eats its food stays in love mode for 30 seconds, and
+  # finds a mate in love mode up to 8 blocks away. After the baby comes,
+  # the parents wait 5 minutes before they can breed again.
+  # minecraft.wiki/w/Breeding
+  LOVE_TIME = 30.0
+  MATE_REACH = 8.0
+  BREED_WAIT = 300.0
+  # Two mates make the baby when they are nearer than 3 blocks and have
+  # walked to each other for 3 seconds. The wiki does not give these
+  # values; they are those of the game code (BreedGoal: distanceToSqr < 9
+  # and loveTime >= 60 ticks).
+  MATE_NEAR = 3.0
+  COURT_TIME = 3.0
+  # Each feeding takes 10% off the time that a baby has left to grow up,
+  # and does nothing when less than 9 seconds are left.
+  # minecraft.wiki/w/Breeding
+  FEED_GROWTH = 0.1
+  FEED_MIN = 9.0
   # A passive mob walks at WALK_SPEED. After damage it panics for PANIC
   # seconds: it runs at PANIC_SPEED, first away from a hit and then to a
   # new side about each second. The wiki says only that a pig "flees for a
@@ -89,6 +107,14 @@ class Mob
   attr_accessor :egg_time
   # True after a chicken lays an egg, until Game#update_mobs drops it.
   attr_accessor :lay
+  # Seconds until a baby grows up; 0.0 for a grown mob.
+  attr_reader :grow_left
+  # Seconds that the animal still stays in love mode.
+  attr_reader :love
+  # Seconds before a parent can enter love mode again.
+  attr_reader :breed_wait
+  # Seconds that the animal has walked to its mate.
+  attr_reader :court_time
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -137,10 +163,16 @@ class Mob
     # open: 1 in the air, and down to 0 on the ground (flapSpeed).
     @flap = 0.0
     @flap_open = 0.0
-    # Seconds until a baby grows up; 0.0 for a grown mob.
     @grow_left = 0.0
     # The scale of the next parts of the model (see part).
     @size = 1.0
+    @love = 0.0
+    @breed_wait = 0.0
+    # The place of the mate that a lover walks to (see court).
+    @courting = false
+    @mate_x = 0.0
+    @mate_z = 0.0
+    @court_time = 0.0
   end
 
   def baby? = @grow_left > 0.0
@@ -163,6 +195,62 @@ class Mob
   end
 
   def passive? = PASSIVE[@kind] == 1
+
+  # True when b is the breeding food of this animal: wheat for a cow, a
+  # sheep and a pig, and seeds for a chicken. minecraft.wiki/w/Breeding
+  # Minecraft breeds pigs with carrots since 1.4.2. From Beta 1.9
+  # Prerelease 2 until then, wheat bred them (minecraft.wiki/w/Pig). The
+  # game has no carrots, so pigs take wheat. A chicken also takes pumpkin
+  # seeds. minecraft.wiki/w/Chicken
+  def food?(b)
+    return b == Block::SEEDS || b == Block::PUMPKIN_SEEDS if @kind == CHICKEN
+    b == Block::WHEAT && (@kind == COW || @kind == SHEEP || @kind == PIG)
+  end
+
+  def in_love? = @love > 0.0
+
+  # The animal eats its food from the player's hand, and returns true when
+  # it takes the item. An adult enters love mode, but not while it is in
+  # love mode or waits after breeding. A baby grows up faster. The rules
+  # come from the game code (Animal.mobInteract); the wiki does not give
+  # them all.
+  def feed
+    if baby?
+      grow_up(@grow_left * FEED_GROWTH) if @grow_left >= FEED_MIN
+      return true
+    end
+    return false if in_love? || @breed_wait > 0.0
+    @love = LOVE_TIME
+    true
+  end
+
+  # dt more seconds of love mode and of the wait after breeding.
+  def love_clock(dt)
+    @love -= dt if @love > 0.0
+    alone unless in_love?
+    @breed_wait -= dt if @breed_wait > 0.0
+  end
+
+  # This lover walks to its mate at x, z.
+  def court(x, z)
+    @courting = true
+    @mate_x = x
+    @mate_z = z
+  end
+
+  # This lover has no mate in reach.
+  def alone
+    @courting = false
+    @court_time = 0.0
+  end
+
+  # The baby came: the parent leaves love mode and waits BREED_WAIT.
+  def bred
+    alone
+    @love = 0.0
+    @breed_wait = BREED_WAIT
+  end
+
   def burning? = @fire > 0.0
 
   # A sheep eats for 40 ticks, and it takes its bite 4 ticks before the end:
@@ -268,6 +356,7 @@ class Mob
     @attack_wait -= dt
     grow_up(dt)
     lay_eggs(dt)
+    love_clock(dt)
     speed = 0.0
     damage = 0
     if dying?
@@ -361,10 +450,12 @@ class Mob
   # and returns the speed that it walks at. dx, dz is the step to the
   # player, and dist is its length.
 
-  # A passive mob wanders, and after a hit it panics.
+  # A passive mob wanders, and after a hit it panics. A lover that does
+  # not panic walks to its mate.
   def act_passive(dt)
     @think -= dt
     @panic -= dt
+    return walk_to_mate(dt) if @courting && @panic <= 0.0
     if @think <= 0.0
       if @panic > 0.0
         @think = 0.7 + @rng.rand01 * 0.8
@@ -378,6 +469,17 @@ class Mob
     # A grazing sheep stands still.
     return 0.0 if @graze > 0.0
     @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
+  end
+
+  # The lover walks to its mate at the walk speed, as in the game code
+  # (BreedGoal, speed 1.0), until the two touch. The wiki does not say.
+  def walk_to_mate(dt)
+    @court_time += dt
+    @graze = 0.0
+    dx = @mate_x - @x.to_f
+    dz = @mate_z - @z.to_f
+    face(dx, dz)
+    dx * dx + dz * dz > 4.0 * @half * @half ? WALK_SPEED : 0.0
   end
 
   # A skeleton keeps a bow's distance and shoots when the player is in sight.
@@ -459,6 +561,9 @@ class Mob
     @last_damage = damage
     @hurt = 0.35
     @panic = PANIC if passive?
+    # A hit ends love mode. The wiki does not say; this is the game code
+    # (Animal.hurt calls resetLove).
+    @love = 0.0
     @ouch = true
     true
   end

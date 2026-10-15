@@ -143,8 +143,8 @@ class Game
     end
   end
 
-  # The right button gets in a boat, draws the bow, opens a chest, uses a
-  # bed, eats, carves a pumpkin, or places a block or a boat.
+  # The right button gets in a boat, feeds an animal, draws the bow, opens
+  # a chest, uses a bed, eats, carves a pumpkin, or places a block or a boat.
   def right_button(dt, held)
     if @target_boat >= 0 && !riding?
       @eat_time = -1.0
@@ -160,6 +160,15 @@ class Game
       @draw_time = -1.0
       if held && @action_cooldown <= 0.0
         shear(@mobs[@target_mob])
+        @action_cooldown = 0.22
+      end
+      return
+    end
+    if @target_mob >= 0 && @mobs[@target_mob].food?(current_block.to_i)
+      @eat_time = -1.0
+      @draw_time = -1.0
+      if held && @action_cooldown <= 0.0
+        feed_animal(@mobs[@target_mob])
         @action_cooldown = 0.22
       end
       return
@@ -225,6 +234,25 @@ class Game
     play_from(m, Sfx::CLOTH, 1.0)
     @swing = 0.25
     wear_tool(1)
+  end
+
+  # The animal m eats the food in the hand. Survival uses one item, and
+  # creative keeps it, as in the game code (ItemStack.consume); the wiki
+  # does not say. An adult in love mode shows a burst of hearts, and a baby
+  # green sparkles (the game code: entity event 18, and the particles of
+  # AgeableMob.ageUp). The eating sound is not on the wiki either.
+  def feed_animal(m)
+    return unless m.feed
+    @inv.take(@slot, 1) if @survival
+    @swing = 0.25
+    play_from(m, Sfx::EAT, 0.6)
+    # to_i and to_f: Spinel cannot type the mob. The sparkles fill the
+    # block cell of the baby.
+    if m.baby?
+      @particles.growth(m.x.floor.to_i, m.y.floor.to_i, m.z.floor.to_i, false)
+    else
+      @particles.hearts(m.x.to_f, m.y.to_f, m.z.to_f, m.half.to_f, m.tall.to_f)
+    end
   end
 
   # Shears carve a face into the side of the pumpkin at x, y, z that the
