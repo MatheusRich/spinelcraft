@@ -4,13 +4,14 @@ class Game
   M_BRIGHTNESS = 1
   M_VOLUME = 2
   M_VIEW = 3
-  M_FULLSCREEN = 4
-  M_DEBUG = 5
-  M_NEW_WORLD = 6
-  M_QUIT = 7
-  MENU_ITEMS = 8
+  M_FOV = 4
+  M_FULLSCREEN = 5
+  M_DEBUG = 6
+  M_NEW_WORLD = 7
+  M_QUIT = 8
+  MENU_ITEMS = 9
 
-  def slider?(i) = i == M_BRIGHTNESS || i == M_VOLUME || i == M_VIEW
+  def slider?(i) = i == M_BRIGHTNESS || i == M_VOLUME || i == M_VIEW || i == M_FOV
 
   # The input on the pause screen. Esc goes back to the game. A click on a
   # button acts at once, and a slider follows the mouse while the button is
@@ -74,28 +75,38 @@ class Game
       @brightness
     elsif i == M_VOLUME
       @volume
-    else
+    elsif i == M_VIEW
       (@fog_end - VIEW_MIN) / (VIEW_MAX - VIEW_MIN)
+    else
+      (@fov_degrees - FOV_MIN) / (FOV_MAX - FOV_MIN)
     end
   end
 
   # Sets slider i to t, from 0 to 1. The render distance goes in steps of
-  # 100 blocks.
+  # 100 blocks, and the field of view in steps of 1 degree.
   def set_slider(i, t)
     if i == M_BRIGHTNESS
       @brightness = t
     elsif i == M_VOLUME
       @volume = t
-    else
+    elsif i == M_VIEW
       @fog_end = ((VIEW_MIN + t * (VIEW_MAX - VIEW_MIN)) / 100.0).round * 100.0
+    else
+      @fov_degrees = (FOV_MIN + t * (FOV_MAX - FOV_MIN)).round.to_f
+      # The world stops while the menu is open, so the view takes the new
+      # angle here and does not ease to it.
+      @fov = option_fov
     end
   end
+
+  # The half angle of the view in radians for the field of view option.
+  def option_fov = @fov_degrees * Math::PI / 360.0
 
   # Writes the options to OPTIONS_PATH, one "name:value" line each, as in
   # the options.txt of Minecraft.
   def save_options
     File.open(OPTIONS_PATH, "w") do |f|
-      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nview:#{@fog_end}\nfullscreen:#{@fullscreen}\ndebug:#{@show_debug}\n")
+      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nview:#{@fog_end}\nfov:#{@fov_degrees}\nfullscreen:#{@fullscreen}\ndebug:#{@show_debug}\n")
     end
   end
 
@@ -114,6 +125,8 @@ class Game
         @volume = value.to_f.clamp(0.0, 1.0)
       elsif name == "view"
         @fog_end = value.to_f.clamp(VIEW_MIN, VIEW_MAX)
+      elsif name == "fov"
+        @fov_degrees = value.to_f.clamp(FOV_MIN, FOV_MAX)
       elsif name == "fullscreen"
         @fullscreen = value == "true"
       elsif name == "debug"
@@ -133,6 +146,9 @@ class Game
       "VOLUME: #{v == 0 ? "OFF" : "#{v}%"}"
     elsif i == M_VIEW
       "RENDER DISTANCE: #{@fog_end.to_i} BLOCKS"
+    elsif i == M_FOV
+      f = @fov_degrees.to_i
+      "FIELD OF VIEW: #{f == FOV_NORMAL.to_i ? "NORMAL" : (f == FOV_MAX.to_i ? "QUAKE PRO" : f.to_s)}"
     elsif i == M_FULLSCREEN
       "FULLSCREEN: #{@fullscreen ? "ON" : "OFF"}"
     elsif i == M_DEBUG

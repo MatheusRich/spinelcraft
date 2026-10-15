@@ -23,6 +23,12 @@ class Game
   # The range of the render distance slider, in blocks.
   VIEW_MIN = 200.0
   VIEW_MAX = 5000.0
+  # The range of the field of view slider, and its start, in degrees from
+  # the bottom to the top of the view. Minecraft shows 70 as "Normal" and
+  # 110 as "Quake Pro". minecraft.wiki/w/Options
+  FOV_MIN = 30.0
+  FOV_MAX = 110.0
+  FOV_NORMAL = 70.0
   # Full-detail chunks reach this far at most; far terrain (lod.rb) draws the rest.
   # This is the limit of the chunk ring: Game#view_radius adds 20 blocks and
   # one ring, and 460 gives LOAD_R.

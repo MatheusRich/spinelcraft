@@ -239,6 +239,7 @@ class Game
   def test_menu
     view = @fog_end
     volume = @volume
+    fov = @fov_degrees
     set_slider(M_VIEW, 0.5)
     half = @fog_end
     set_slider(M_VIEW, 0.0)
@@ -248,20 +249,32 @@ class Game
     set_slider(M_BRIGHTNESS, 1.0)
     set_slider(M_VOLUME, 0.25)
     check("the brightness and volume sliders set the options", @brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")
+    set_slider(M_FOV, 0.5)
+    normal = menu_label(M_FOV)
+    set_slider(M_FOV, 1.0)
+    quake = menu_label(M_FOV)
+    set_slider(M_FOV, 0.0)
+    check("the field of view slider goes from 30 to 110 degrees, with 70 as normal",
+          @fov_degrees == FOV_MIN && menu_label(M_FOV) == "FIELD OF VIEW: 30" && normal == "FIELD OF VIEW: NORMAL" && quake == "FIELD OF VIEW: QUAKE PRO")
+    check("the view takes the new field of view at once", @fov == FOV_MIN * Math::PI / 360.0)
+    @fov_degrees = 90.0
     @fog_end = 1200.0
     @show_debug = false
     save_options
     @brightness = 0.0
     @volume = volume
     @fog_end = view
+    @fov_degrees = fov
     @show_debug = true
     load_options
     File.delete(OPTIONS_PATH)
     check("the options load from the file that save_options writes",
-          @brightness == 1.0 && @volume == 0.25 && @fog_end == 1200.0 && !@show_debug && !@fullscreen)
+          @brightness == 1.0 && @volume == 0.25 && @fog_end == 1200.0 && @fov_degrees == 90.0 && !@show_debug && !@fullscreen)
     @brightness = 0.0
     @volume = volume
     @fog_end = view
+    @fov_degrees = fov
+    @fov = option_fov
     @show_debug = true
     seed = @seed
     click_menu(M_NEW_WORLD)

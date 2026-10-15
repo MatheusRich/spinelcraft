@@ -123,6 +123,7 @@ class Game
     @anim_time = 0.0
     @fullscreen = false
     @fog_end = FOG_END.to_f
+    @fov_degrees = FOV_NORMAL
     # The options of the pause menu (game/menu.rb), from 0 to 1. Brightness 0
     # is the light without a lift. The volume starts at half.
     @brightness = 0.0
@@ -161,7 +162,8 @@ class Game
     @clouds = Clouds.new(@seed)
     @cloud_drift = 0.0
     @bob = 0.0
-    @fov = 0.6
+    # The half angle of the view in radians. It follows the option and widens in a sprint.
+    @fov = option_fov
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
     @was_swimming = false
@@ -494,7 +496,7 @@ class Game
     @anim_time = (@anim_time + dt) % 1000.0
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
     @bob += speed * dt * 2.6
-    target_fov = speed > 5.0 ? 0.66 : 0.6
+    target_fov = option_fov * (speed > 5.0 ? 1.1 : 1.0)
     @fov += (target_fov - @fov) * (6.0 * dt).clamp(0.0, 1.0)
     update_clock(dt)
     @message_time -= dt
