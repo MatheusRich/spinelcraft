@@ -158,7 +158,7 @@ class World
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :store
 
   def initialize(seed)
-    # Eight blocks per Integer (block ids fit in 7 bits); see block.
+    # Eight blocks per Integer, one byte each; see block.
     @blocks = Array.new(PX * PY * PZ / 8 + 1, 0)
     @height = Array.new(WX * WZ, 0)
     # Torch and exposed lava cells as x, y, z triples, one list for each slot.
@@ -215,12 +215,21 @@ class World
   # the mesher stay unboxed. The to_i in index lets Spinel type block and
   # put_block before its inference stops at its round limit.
   def self.index(x, y, z) = ((((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1).to_i
-  def block(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 127
+  # Block i of a packed store: byte i & 7 of Integer i >> 3. The shift
+  # keeps the sign, and the mask drops it.
+  def block(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 255
+
+  # The bits that put_block keeps of an Integer of the store, for each byte.
+  # Byte 7 holds the sign bit, and 255 << 56 is too large for an Integer.
+  KEEP = [~255, ~(255 << 8), ~(255 << 16), ~(255 << 24), ~(255 << 32), ~(255 << 40), ~(255 << 48), (1 << 56) - 1]
 
   def put_block(i, b)
     j = i >> 3
-    s = (i & 7) << 3
-    @blocks[j] = (@blocks[j] & ~(127 << s)) | (b << s)
+    k = i & 7
+    # An id from 128 goes into byte 7 as a negative number, so the shift
+    # does not pass the sign bit.
+    v = k == 7 ? ((b ^ 128) - 128) << 56 : b << (k << 3)
+    @blocks[j] = (@blocks[j] & KEEP[k]) | v
   end
 
   def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)

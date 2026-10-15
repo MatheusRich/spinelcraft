@@ -189,7 +189,7 @@ class Mesher
   # The block in cell i of the world store: byte i & 7 of Integer i >> 3.
   # World#block reads the same, but its callers make its i a nullable
   # Integer, and the mesher calls this for each cell.
-  def cell(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 127
+  def cell(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 255
 
   # The fluid kind of block b: 1 water, 2 lava, 0 not a fluid.
   def self.fluid(b) = Block::WATER_LEVEL[b] > 0 ? 1 : (Block.lava?(b) ? 2 : 0)

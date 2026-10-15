@@ -175,6 +175,7 @@ class Game
       end
     end
     land_falling
+    test_block_bytes
     test_falling_and_torches(x, z, ground)
     test_fly_speed(x, z, ground)
     test_survival(x, z, ground)
@@ -744,6 +745,30 @@ class Game
       update_falling(0.02)
       t += 0.02
     end
+  end
+
+  # The store keeps each block id in its own byte, also the ids from 128
+  # and the byte that holds the sign bit. A column of 16 cells covers each
+  # byte of an Integer twice.
+  def test_block_bytes
+    x = @spawn_x.floor + 30
+    z = @spawn_z.floor + 30
+    ids = [Block::COUNT - 1, Block::STONE, Block::PLACED_SPRUCE_LEAVES, Block::AIR]
+    y = 0
+    while y < 16
+      @world.set(x, SKY_Y - 16 + y, z, ids[y % 4])
+      y += 1
+    end
+    kept = (0...16).all? { |k| @world.get(x, SKY_Y - 16 + k, z) == ids[k % 4] }
+    @world.set(x, SKY_Y - 9, z, Block::STONE)
+    changed = (0...16).all? { |k| @world.get(x, SKY_Y - 16 + k, z) == (k == 7 ? Block::STONE : ids[k % 4]) }
+    y = 0
+    while y < 16
+      @world.set(x, SKY_Y - 16 + y, z, Block::AIR)
+      y += 1
+    end
+    cleared = (0...16).all? { |k| @world.get(x, SKY_Y - 16 + k, z) == Block::AIR }
+    check("the store keeps each block id in its own byte, also ids from 128", kept && changed && cleared)
   end
 
   # Falling sand, the torch list, and how far torch light goes.
