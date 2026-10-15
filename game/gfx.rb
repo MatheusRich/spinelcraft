@@ -366,7 +366,8 @@ module Gfx
       strcpy(msl + n, MSL);
     }
 
-    static SDL_GPUShader *shader(const char *entry, SDL_GPUShaderStage stage, int samplers) {
+    /* uniforms is 1 for a shader that reads the uniforms of gfx_begin, else 0. */
+    static SDL_GPUShader *shader(const char *entry, SDL_GPUShaderStage stage, int samplers, int uniforms) {
       SDL_GPUShaderCreateInfo info = {0};
       info.code = (const Uint8 *)msl;
       info.code_size = SDL_strlen(msl);
@@ -374,7 +375,7 @@ module Gfx
       info.format = SDL_GPU_SHADERFORMAT_MSL;
       info.stage = stage;
       info.num_samplers = samplers;
-      info.num_uniform_buffers = 1;
+      info.num_uniform_buffers = uniforms;
       return SDL_CreateGPUShader(dev, &info);
     }
 
@@ -522,26 +523,19 @@ module Gfx
         SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET)
         ? SDL_GPU_TEXTUREFORMAT_D32_FLOAT : SDL_GPU_TEXTUREFORMAT_D16_UNORM;
 
-      SDL_GPUShader *vchunk = shader("vchunk", SDL_GPU_SHADERSTAGE_VERTEX, 1);
-      SDL_GPUShader *vdyn = shader("vdyn", SDL_GPU_SHADERSTAGE_VERTEX, 0);
-      SDL_GPUShader *vcloud_box = shader("vcloud_box", SDL_GPU_SHADERSTAGE_VERTEX, 0);
-      SDL_GPUShader *vhand = shader("vhand", SDL_GPU_SHADERSTAGE_VERTEX, 0);
-      SDL_GPUShader *vrain = shader("vrain", SDL_GPU_SHADERSTAGE_VERTEX, 0);
-      SDL_GPUShader *vui = shader("vui", SDL_GPU_SHADERSTAGE_VERTEX, 0);
-      SDL_GPUShader *fworld = shader("fworld", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
-      SDL_GPUShader *fdyn = shader("fdyn", SDL_GPU_SHADERSTAGE_FRAGMENT, 2);
-      SDL_GPUShader *vlod = shader("vlod", SDL_GPU_SHADERSTAGE_VERTEX, 0);
-      SDL_GPUShader *flod = shader("flod", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
-      SDL_GPUShader *vcloud = shader("vcloud", SDL_GPU_SHADERSTAGE_VERTEX, 0);
-      SDL_GPUShader *fcloud = shader("fcloud", SDL_GPU_SHADERSTAGE_FRAGMENT, 1);
-      SDL_GPUShaderCreateInfo fui_info = {0};
-      fui_info.code = (const Uint8 *)msl;
-      fui_info.code_size = SDL_strlen(msl);
-      fui_info.entrypoint = "fui";
-      fui_info.format = SDL_GPU_SHADERFORMAT_MSL;
-      fui_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-      fui_info.num_samplers = 1;
-      SDL_GPUShader *fui = SDL_CreateGPUShader(dev, &fui_info);
+      SDL_GPUShader *vchunk = shader("vchunk", SDL_GPU_SHADERSTAGE_VERTEX, 1, 1);
+      SDL_GPUShader *vdyn = shader("vdyn", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
+      SDL_GPUShader *vcloud_box = shader("vcloud_box", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
+      SDL_GPUShader *vhand = shader("vhand", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
+      SDL_GPUShader *vrain = shader("vrain", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
+      SDL_GPUShader *vui = shader("vui", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
+      SDL_GPUShader *fworld = shader("fworld", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1);
+      SDL_GPUShader *fdyn = shader("fdyn", SDL_GPU_SHADERSTAGE_FRAGMENT, 2, 1);
+      SDL_GPUShader *vlod = shader("vlod", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
+      SDL_GPUShader *flod = shader("flod", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1);
+      SDL_GPUShader *vcloud = shader("vcloud", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
+      SDL_GPUShader *fcloud = shader("fcloud", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1);
+      SDL_GPUShader *fui = shader("fui", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0);
       if (!vchunk || !vdyn || !vui || !fworld || !fdyn || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box || !vhand || !vrain) return fail("SDL_CreateGPUShader");
 
       SDL_GPUVertexBufferDescription chunk_vb = {.slot = 0, .pitch = 8, .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE};
