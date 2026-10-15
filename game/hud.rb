@@ -93,13 +93,15 @@ class Game
     i = 0
     while i < 10
       hx = x0 + i * 20.0 * s
-      @ui.icon(hx, hy, 18.0 * s, Tex::HEART_EMPTY, 1.0)
-      # A part of a half heart shows as a half heart, as in Minecraft.
+      p = Tex::ICON_PART
+      @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART_EMPTY, p, p, 1.0, 1.0, 1.0, 1.0)
+      # A part of a half heart shows as a half heart, as in Minecraft. A half
+      # heart is the left 5 of the 9 columns.
       hp = @vitals.health.ceil - i * 2
       if hp >= 2
-        @ui.icon(hx, hy, 18.0 * s, Tex::HEART, 1.0)
+        @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART, p, p, 1.0, 1.0, 1.0, 1.0)
       elsif hp == 1
-        @ui.quad(hx, hy, 9.0 * s, 18.0 * s, Tex::HEART, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0)
+        @ui.quad(hx, hy, 10.0 * s, 18.0 * s, Tex::HEART, 5.0 / 16.0, p, 1.0, 1.0, 1.0, 1.0)
       end
       i += 1
     end

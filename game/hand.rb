@@ -121,6 +121,19 @@ class Game
     # The view sees the back of the sprite, so a blade or a bow string above
     # the handle faces the player. A tool mirrors across its handle, so that
     # part faces forward.
+    # The arm of the skin is long in y, with the hand at -y and the front at
+    # +z. Its y goes back along the view, and its front faces down.
+    if b == Block::AIR
+      t0 = m01
+      t1 = m11
+      t2 = m21
+      m01 = m02
+      m11 = m12
+      m21 = m22
+      m02 = -t0
+      m12 = -t1
+      m22 = -t2
+    end
     if Block.tool?(b)
       t0 = m00
       t1 = m10
@@ -148,8 +161,9 @@ class Game
                    (m01 * rx + m11 * ux - m21 * fx) * size, (m11 * uy - m21 * fy) * size, (m01 * rz + m11 * uz - m21 * fz) * size,
                    (m02 * rx + m12 * ux - m22 * fx) * size, (m12 * uy - m22 * fy) * size, (m02 * rz + m12 * uz - m22 * fz) * size)
     if b == Block::AIR
-      # The arm reaches forward from below the view.
-      @dyn.frame_box(-0.5, -0.5, -2.6, 0.5, 0.5, 0.5, 63, Tex::SKIN, Tex::SKIN, Tex::SKIN, 0.86, 0.66, 0.52, 1.0)
+      # The right arm of the skin of the player, 4 x 12 x 4 pixels, reaches
+      # forward from below the view.
+      @dyn.frame_skin_box(-0.5, -2.5, -0.5, 0.5, 0.5, 0.5, Tex::SKINS + Tex::SKIN_PLAYER, 40.0, 16.0, 4.0, 12.0, 4.0, false, 1.0, 1.0, 1.0, 1.0)
     else
       @dyn.item_model(b)
     end

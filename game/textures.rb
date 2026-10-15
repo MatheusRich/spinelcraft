@@ -25,7 +25,6 @@ module Tex
   CACTUS_TOP = 22
   HEART = 23
   HEART_EMPTY = 24
-  SKIN = 25
   CRACK = 26
   CRACK_STAGES = 8
   TALL_GRASS = 34
@@ -160,19 +159,6 @@ module Tex
     (h ^ (h >> 16)) & 255
   end
 
-  def self.noisy(px, layer, r, g, b, amount, salt)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
-        v = (rnd(x, y, salt) - 128) * amount / 128
-        px[layer * 256 + y * 16 + x] = rgba(r + v, g + v, b + v, 255)
-        x += 1
-      end
-      y += 1
-    end
-  end
-
   def self.set(px, layer, x, y, r, g, b, a)
     px[layer * 256 + y * 16 + x] = rgba(r, g, b, a)
   end
@@ -205,8 +191,8 @@ module Tex
 
   # The HUD icons are 9 x 9 images, as in Minecraft. Each one fills the top
   # left corner of its layer, so the HUD draws ICON_PART of the layer.
-  ICON_LAYERS = [HUNGER, HUNGER_EMPTY, HUNGER_EFFECT]
-  ICON_FILES = %w[hunger hunger_empty hunger_effect]
+  ICON_LAYERS = [HUNGER, HUNGER_EMPTY, HUNGER_EFFECT, HEART, HEART_EMPTY]
+  ICON_FILES = %w[hunger hunger_empty hunger_effect heart heart_empty]
   ICON_SIZE = 9
   ICON_PART = ICON_SIZE / 16.0
 
@@ -237,13 +223,14 @@ module Tex
 
   # The mob skins: a second texture array of 64 x 64 layers. A dynamic
   # vertex with layer SKINS + k takes layer k of it (fdyn in gfx.rb). Layer k
-  # is the skin of the mob kind k (Mob::PIG and the others), and the last
-  # layer is the fur of a sheep. A skin of 64 x 32 fills the top half of its
-  # layer.
+  # is the skin of the mob kind k (Mob::PIG and the others). Then come the
+  # fur of a sheep and the skin of the player, whose arm the view shows. A
+  # skin of 64 x 32 fills the top half of its layer.
   SKINS = 256
   SKIN_FUR = 5
-  SKIN_FILES = %w[skin_pig skin_zombie skin_skeleton skin_sheep skin_creeper skin_sheep_fur]
-  SKIN_HEIGHTS = [32, 64, 32, 32, 32, 32]
+  SKIN_PLAYER = 6
+  SKIN_FILES = %w[skin_pig skin_zombie skin_skeleton skin_sheep skin_creeper skin_sheep_fur skin_player]
+  SKIN_HEIGHTS = [32, 64, 32, 32, 32, 32, 32]
 
   def self.skins
     px = Array.new(SKIN_FILES.size * 4096, 0)
@@ -268,11 +255,8 @@ module Tex
       px[i] = rgba(255, 255, 255, 255)
       i += 1
     end
-    noisy(px, SKIN, 220, 220, 220, 25, 9)
     puff(px)
     rain(px)
-    heart(px, HEART, 220, 30, 40)
-    heart(px, HEART_EMPTY, 50, 20, 20)
     font(px)
     cracks(px)
     images(px)
@@ -418,29 +402,6 @@ module Tex
       i += 1
     end
     masks
-  end
-
-  HEART_ROWS = [
-    "................", "................", "..####....####..", ".######..######.",
-    "################", "################", "################", ".##############.",
-    "..############..", "...##########...", "....########....", ".....######.....",
-    "......####......", ".......##.......", "................", "................"
-  ]
-
-  def self.heart(px, layer, r, g, b)
-    y = 0
-    while y < 16
-      row = HEART_ROWS[y]
-      x = 0
-      while x < 16
-        if row[x] == "#"
-          shine = y < 6 && x > 2 && x < 6 ? 60 : 0
-          set(px, layer, x, y, r + shine, g + shine, b + shine, 255)
-        end
-        x += 1
-      end
-      y += 1
-    end
   end
 
   # Each glyph is 3 x 5 cells of 3 x 3 pixels, so it fills a 9 x 15 corner of its layer.

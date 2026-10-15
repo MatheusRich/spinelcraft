@@ -40,6 +40,7 @@ These files are copies with no changes.
 | `rotten_flesh.png` | `mcl_mobitems_rotten_flesh.png` |
 | `mutton.png`, `cooked_mutton.png` | `mcl_mobitems_mutton_raw.png`, `mcl_mobitems_mutton_cooked.png` |
 | `hunger.png`, `hunger_empty.png`, `hunger_effect.png` | `hbhunger_icon.png`, `hbhunger_bgicon.png`, `mcl_hunger_icon_foodpoison.png` (9x9, as the HUD icons of Minecraft) |
+| `heart.png`, `heart_empty.png` | `hudbars_icon_health.png`, `hudbars_bgicon_health.png` (9x9, as the HUD icons of Minecraft) |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 
 ## Mob skins
@@ -52,6 +53,7 @@ VoxeLibre replaced the creeper with another mob, so the creeper skin comes from 
 | --- | --- |
 | `skin_pig.png`, `skin_sheep.png`, `skin_sheep_fur.png` | VoxeLibre `mobs_mc_pig.png`, `mobs_mc_sheep.png`, `mobs_mc_sheep_fur.png` |
 | `skin_zombie.png`, `skin_skeleton.png` | VoxeLibre `mobs_mc_zombie.png`, `mobs_mc_skeleton.png`, changed by MysticTempest for VoxeLibre |
+| `skin_player.png` | VoxeLibre `character.png`, the default skin of the player. The view shows its right arm. |
 | `skin_creeper.png` | Mineclonia `mods/ENTITIES/mobs_mc/textures/mobs_mc_creeper.png` (<https://codeberg.org/mineclonia/mineclonia>, the `main` branch, October 2026) |
 
 ## Changed images

@@ -85,6 +85,18 @@ class Mesh3
   # left, as on the left legs of Minecraft models.
   def skin_box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, u, v, w, h, d, mirror, r, g, b, a)
     body_corners(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1)
+    skin_faces(layer, u, v, w, h, d, mirror, r, g, b, a)
+  end
+
+  # The box of frame_box with a skin, as skin_box: +z is the front of the box.
+  def frame_skin_box(x0, y0, z0, x1, y1, z1, layer, u, v, w, h, d, mirror, r, g, b, a)
+    frame_corners(x0, y0, z0, x1, y1, z1)
+    skin_faces(layer, u, v, w, h, d, mirror, r, g, b, a)
+  end
+
+  # The six faces of the corners in @cx, @cy and @cz, with the skin of a box
+  # of w x h x d skin pixels at u, v.
+  def skin_faces(layer, u, v, w, h, d, mirror, r, g, b, a)
     k = 1.0 / 64.0
     # Under the top and the bottom, the skin has the right side, the front,
     # the left side and the back in a row. A mirror takes the right side
