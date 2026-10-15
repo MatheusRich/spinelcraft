@@ -794,6 +794,15 @@ module Gfx
       return 0;
     }
 
+    /* Uploads the first bytes of tb to buf. The upload cycles buf, so a
+       frame on the GPU keeps the old contents. */
+    static void upload_buffer(SDL_GPUCopyPass *cp, SDL_GPUTransferBuffer *tb, SDL_GPUBuffer *buf, Uint32 bytes) {
+      if (!bytes) return;
+      SDL_GPUTransferBufferLocation src = {.transfer_buffer = tb};
+      SDL_GPUBufferRegion dst = {.buffer = buf, .size = bytes};
+      SDL_UploadToGPUBuffer(cp, &src, &dst, true);
+    }
+
     /* uniforms: 16 view-projection (column-major), cam xyz + time, fog rgb + end,
        daylight, fog start, screen w, screen h, for each far terrain level the
        square x0 z0 x1 z1 that the next finer level covers, 8 for the far cloud
@@ -838,27 +847,11 @@ module Gfx
         SDL_ReleaseGPUTransferBuffer(dev, pending[i].tb);
       }
       npending = 0;
-      if (dyn_count) {
-        SDL_GPUTransferBufferLocation src = {.transfer_buffer = dyn_tb};
-        SDL_GPUBufferRegion dst = {.buffer = dyn_buf, .size = dyn_count * DYN_FLOATS * 4};
-        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
-      }
-      if (ui_count) {
-        SDL_GPUTransferBufferLocation src = {.transfer_buffer = ui_tb};
-        SDL_GPUBufferRegion dst = {.buffer = ui_buf, .size = ui_count * 36};
-        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
-      }
-      if (cloud_changed && cloud_count) {
-        SDL_GPUTransferBufferLocation src = {.transfer_buffer = cloud_tb};
-        SDL_GPUBufferRegion dst = {.buffer = cloud_buf, .size = cloud_count * DYN_FLOATS * 4};
-        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
-      }
+      upload_buffer(cp, dyn_tb, dyn_buf, dyn_count * DYN_FLOATS * 4);
+      upload_buffer(cp, ui_tb, ui_buf, ui_count * 36);
+      if (cloud_changed) upload_buffer(cp, cloud_tb, cloud_buf, cloud_count * DYN_FLOATS * 4);
       cloud_changed = 0;
-      if (rain_changed && rain_count) {
-        SDL_GPUTransferBufferLocation src = {.transfer_buffer = rain_tb};
-        SDL_GPUBufferRegion dst = {.buffer = rain_buf, .size = rain_count * DYN_FLOATS * 4};
-        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
-      }
+      if (rain_changed) upload_buffer(cp, rain_tb, rain_buf, rain_count * DYN_FLOATS * 4);
       rain_changed = 0;
       if (tint_changed) {
         /* The first layer cycles the texture, so a frame on the GPU keeps the old map. */
@@ -871,11 +864,7 @@ module Gfx
         }
       }
       tint_changed = 0;
-      if (sky_count) {
-        SDL_GPUTransferBufferLocation src = {.transfer_buffer = sky_tb};
-        SDL_GPUBufferRegion dst = {.buffer = sky_buf, .size = sky_count * 36};
-        SDL_UploadToGPUBuffer(cp, &src, &dst, true);
-      }
+      upload_buffer(cp, sky_tb, sky_buf, sky_count * 36);
       SDL_EndGPUCopyPass(cp);
 
       swap_tex = NULL;
