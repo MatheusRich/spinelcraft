@@ -33,7 +33,7 @@ class Slots
 
   def copy
     c = Slots.new(@size)
-    c.load(to_a, 0)
+    (0...@size).each { |i| c.set(i, @blocks[i], @counts[i]) }
     c
   end
 
@@ -64,7 +64,7 @@ class Slots
   def put(b, n)
     i = @counts.index(0)
     return false if i.nil?
-    set(i, b, n)
+    set(i.to_i, b, n)
     true
   end
 

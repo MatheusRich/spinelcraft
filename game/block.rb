@@ -192,7 +192,7 @@ module Block
   def self.planks?(b) = PLANKS.include?(b)
   def self.sapling?(b) = SAPLINGS.include?(b)
   # The blocks that fill the recipe ingredient ing.
-  def self.fillers(ing) = ing == ANY_PLANKS ? PLANKS : [ing]
+  def self.fillers(ing) = ing == ANY_PLANKS ? PLANKS : Array.new(1, ing.to_i)
   def self.ingredient_name(ing) = ing == ANY_PLANKS ? "PLANKS" : NAMES[ing]
   # The wood of a log, leaves, planks or sapling (Block::OAK_WOOD and so
   # on), or -1.
