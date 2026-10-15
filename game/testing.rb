@@ -426,6 +426,27 @@ class Game
     (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, b) } } }
   end
 
+  # Saves the place, the view and the flight of the player. restore_pose
+  # puts them back at the end of a test.
+  def keep_pose
+    @kept_x = @player.x
+    @kept_y = @player.y
+    @kept_z = @player.z
+    @kept_yaw = @player.yaw
+    @kept_pitch = @player.pitch
+    @kept_flying = @player.flying
+  end
+
+  def restore_pose
+    @player.x = @kept_x
+    @player.y = @kept_y
+    @player.z = @kept_z
+    @player.yaw = @kept_yaw
+    @player.pitch = @kept_pitch
+    # == true: a Bool, so Spinel keeps Player#flying typed.
+    @player.flying = @kept_flying == true
+  end
+
   # Puts the player at rest on the block x, y - 1, z, not flying.
   def stand_at(x, y, z)
     @player.move_to(x + 0.5, y.to_f, z + 0.5)
@@ -771,13 +792,9 @@ class Game
   # A jump lifts the feet 1.2522 blocks, and sprint-jumps move faster than
   # a sprint, at 7.127 m/s on average.
   def test_jump
-    px = @player.x
-    py = @player.y
-    pz = @player.z
-    yaw = @player.yaw
-    flying = @player.flying
-    x = px.floor
-    z = pz.floor
+    keep_pose
+    x = @player.x.floor
+    z = @player.z.floor
     y = WY - 4
     (0..40).each { |d| set_block(x, y, z - d, Block::STONE) }
     @player.flying = false
@@ -795,11 +812,7 @@ class Game
     150.times { @player.update(@world, 0.02, 1.0, 0.0, true, false, true) }
     speed = (z0 - @player.z) / 3.0
     (0..40).each { |d| set_block(x, y, z - d, Block::AIR) }
-    @player.x = px
-    @player.y = py
-    @player.z = pz
-    @player.yaw = yaw
-    @player.flying = flying
+    restore_pose
     check("a jump lifts the feet 1.25 blocks, and sprint-jumps move at 7.1 m/s",
           (height - 1.2522).abs < 0.01 && (speed - 7.127).abs < 0.15)
   end
@@ -809,13 +822,9 @@ class Game
   # in water, and a sprint does not make it faster. A held jump does not
   # make the player faster in water or in lava.
   def test_swim_speed
-    px = @player.x
-    py = @player.y
-    pz = @player.z
-    yaw = @player.yaw
-    flying = @player.flying
-    x = px.floor
-    z = pz.floor
+    keep_pose
+    x = @player.x.floor
+    z = @player.z.floor
     y = WY - 4
     (0..20).each do |d|
       set_block(x, y, z - d, Block::STONE)
@@ -841,11 +850,7 @@ class Game
       set_block(x, y + 2, z - d, Block::AIR)
     end
     @flow_queue.clear
-    @player.x = px
-    @player.y = py
-    @player.z = pz
-    @player.yaw = yaw
-    @player.flying = flying
+    restore_pose
     check("the player swims at 2.2 m/s, 1.97 m/s under water, and 3.918 m/s in a sprint",
           (speeds[0] - 2.2).abs < 0.05 && (speeds[1] - 3.918).abs < 0.05 && (speeds[2] - 1.97).abs < 0.05)
     check("the player swims in lava at 0.88 m/s, also in a sprint", (speeds[3] - 0.88).abs < 0.03)
@@ -854,13 +859,9 @@ class Game
 
   # A player who eats or draws the bow walks at sneaking speed.
   def test_eat_slowdown
-    px = @player.x
-    py = @player.y
-    pz = @player.z
-    yaw = @player.yaw
-    flying = @player.flying
-    x = px.floor
-    z = pz.floor
+    keep_pose
+    x = @player.x.floor
+    z = @player.z.floor
     y = WY - 4
     (0..30).each { |d| set_block(x, y, z - d, Block::STONE) }
     @player.flying = false
@@ -873,11 +874,7 @@ class Game
     end
     (0..30).each { |d| set_block(x, y, z - d, Block::AIR) }
     @player.slowed = false
-    @player.x = px
-    @player.y = py
-    @player.z = pz
-    @player.yaw = yaw
-    @player.flying = flying
+    restore_pose
     @draw_time = 0.5
     bow = using_item?
     @draw_time = -1.0
@@ -888,12 +885,9 @@ class Game
   # The player swims in lava as in water, but only water counts for the
   # splash and the swim sound.
   def test_lava_swim
-    px = @player.x
-    py = @player.y
-    pz = @player.z
-    flying = @player.flying
-    x = px.floor
-    z = pz.floor
+    keep_pose
+    x = @player.x.floor
+    z = @player.z.floor
     y = WY - 4
     @player.flying = false
     @player.x = x + 0.5
@@ -907,10 +901,7 @@ class Game
     @player.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false)
     water = @player.in_water && !@player.in_lava
     set_block(x, y, z, Block::AIR)
-    @player.x = px
-    @player.y = py
-    @player.z = pz
-    @player.flying = flying
+    restore_pose
     check("lava is not water for the swim sounds", lava && water)
   end
 
@@ -982,9 +973,7 @@ class Game
     end
     @world.set(cx, 5, cz, Block::AIR)
     @world.set(cx, 6, cz, Block::AIR)
-    px = @player.x
-    py = @player.y
-    pz = @player.z
+    keep_pose
     @player.x = cx + 0.5
     @player.y = 5.0
     @player.z = cz + 0.5
@@ -996,9 +985,7 @@ class Game
     @cave_timer = 0.0
     update_cave_sound(0.0)
     check("the dark builds fear, and full fear plays a cave sound", grew && @cave_fear == 0.0)
-    @player.x = px
-    @player.y = py
-    @player.z = pz
+    restore_pose
   end
 
   # A broken block throws 64 chips, as in Minecraft.
@@ -2163,9 +2150,7 @@ class Game
     120.times { update_mobs(1.0 / 60.0) }
     check("a hit pig runs away from the hit and panics for a while", away && pig.panic > 0.0)
     @mobs.clear
-    px = @player.x
-    py = @player.y
-    pz = @player.z
+    keep_pose
     @player.x = bx + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = bz - 8.5
@@ -2175,9 +2160,7 @@ class Game
     @player.z = bz + 300.0
     60.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0) }
     check("the legs of a mob swing as it walks and come to rest when it stops", walking && zombie.leg_swing < 0.05)
-    @player.x = px
-    @player.y = py
-    @player.z = pz
+    restore_pose
   end
 
   # Leaves with no log within 6 steps through leaves decay, and leaves
@@ -2193,11 +2176,7 @@ class Game
       set_block(bx + i, y, bz, Block::OAK_LEAVES)
       i += 1
     end
-    px = @player.x
-    py = @player.y
-    pz = @player.z
-    pitch = @player.pitch
-    flying = @player.flying
+    keep_pose
     survival = @survival
     @survival = false
     held = @hotbar[0]
@@ -2215,11 +2194,7 @@ class Game
     placed = @world.get(bx + 10, y, bz) == Block::PLACED_OAK_LEAVES
     @hotbar[0] = held
     @survival = survival
-    @player.x = px
-    @player.y = py
-    @player.z = pz
-    @player.pitch = pitch
-    @player.flying = flying
+    restore_pose
     decay_leaves(1200.0)
     near = (1..6).all? { |k| @world.get(bx + k, y, bz) == Block::OAK_LEAVES }
     far = @world.get(bx + 7, y, bz) == Block::AIR && @world.get(bx + 8, y, bz) == Block::AIR
@@ -3020,12 +2995,7 @@ class Game
     set_block(bx, y + 1, bz, Block::STONE)
     set_block(bx, y + 2, bz, Block::PUMPKIN)
     survival = @survival
-    px = @player.x
-    py = @player.y
-    pz = @player.z
-    yaw = @player.yaw
-    pitch = @player.pitch
-    flying = @player.flying
+    keep_pose
     @survival = true
     @inv.clear
     @inv.add(Block::SHEARS)
@@ -3114,12 +3084,7 @@ class Game
     check("a recipe with two ingredients takes each of them for each result, and names both", all && short && text)
     @inv.clear
     @survival = survival
-    @player.x = px
-    @player.y = py
-    @player.z = pz
-    @player.yaw = yaw
-    @player.pitch = pitch
-    @player.flying = flying
+    restore_pose
 
     set_block(bx, y + 2, bz, Block::AIR)
     set_block(bx, y + 1, bz, Block.facing_id(Block::JACK_O_LANTERN, 2))
@@ -3203,11 +3168,7 @@ class Game
     bx = @spawn_x.floor + 50
     bz = @spawn_z.floor - 70
     y = SKY_Y - 20
-    px = @player.x
-    py = @player.y
-    pz = @player.z
-    pitch = @player.pitch
-    flying = @player.flying
+    keep_pose
     survival = @survival
     held = @hotbar[0]
     @survival = false
@@ -3236,11 +3197,7 @@ class Game
     set_block(bx, y - 1, bz, Block::AIR)
     @hotbar[0] = held
     @survival = survival
-    @player.x = px
-    @player.y = py
-    @player.z = pz
-    @player.pitch = pitch
-    @player.flying = flying
+    restore_pose
     soil = (0...plants.size - 1).all? { |i| planted[i] == [true, true, true, false, false, false] }
     torch = planted[plants.size - 1].all?
     check("seeds, saplings, flowers and tall grass go only on dirt, grass or snowy grass, and a torch on any solid block", soil && torch)
