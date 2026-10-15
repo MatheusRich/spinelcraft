@@ -140,6 +140,11 @@ class World
   SWAMP_TOP = SEA + 8
   GRAVEL_LINE = SEA - 2
   ROCK_LINE = SEA + 95
+  # Dirt and sand lie SOIL_DEPTH deep, and sand lies on sandstone
+  # (minecraft.wiki/w/Sand). The wiki does not give the depth of the
+  # sandstone.
+  SOIL_DEPTH = 4
+  SANDSTONE_DEPTH = 4
   SNOW_LINE = SEA + 110
   # The air gets colder by COOLING for each block above COLD_LINE, so
   # mountains get snowy biomes.
@@ -918,9 +923,11 @@ class World
             b = Block::BEDROCK
           elsif y == top
             b = surface
-          elsif y > top - 4
+          elsif y > top - SOIL_DEPTH
             b = surface == Block::SAND ? Block::SAND : Block::DIRT
             b = Block::STONE if bare_rock?(top)
+          elsif y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
+            b = Block::SANDSTONE
           end
           if b == Block::STONE
             # One roll for the cell picks its ore, and a second roll for

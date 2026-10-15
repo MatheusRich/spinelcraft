@@ -6,7 +6,8 @@ class Game
   # The creative inventory screen: the blocks, then the items.
   CREATIVE_ITEMS = [Block::GRASS, Block::DIRT, Block::STONE, Block::COBBLE, Block::OAK_PLANKS, Block::OAK_LOG,
                     Block::OAK_LEAVES, Block::SPRUCE_PLANKS, Block::SPRUCE_LOG, Block::SPRUCE_LEAVES,
-                    Block::BIRCH_PLANKS, Block::BIRCH_LOG, Block::BIRCH_LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::GRAVEL, Block::SNOW,
+                    Block::BIRCH_PLANKS, Block::BIRCH_LOG, Block::BIRCH_LEAVES, Block::GLASS, Block::BRICK, Block::SAND, Block::SANDSTONE,
+                    Block::GRAVEL, Block::SNOW,
                     Block::SNOW_GRASS, Block::CACTUS, Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::WATER,
                     Block::BEDROCK, Block::TALL_GRASS, Block::ROSE, Block::DANDELION, Block::TORCH,
                     Block::LAVA, Block::WOOL, Block::BED, Block::CHEST, Block::DOOR, Block::OAK_SAPLING,
@@ -155,6 +156,9 @@ class Game
              [Block::ANY_PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::ANY_PLANKS, 3, Block::LADDER, 4, AT_TABLE],
              [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE], [Block::IRON_INGOT, 3, Block::BUCKET, 1, AT_TABLE],
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
+             # minecraft.wiki/w/Sandstone shows 4 sand in the grid. It does not
+             # give the count of sandstone in text; 1 is the count in Minecraft.
+             [Block::SAND, 4, Block::SANDSTONE, 1, BY_HAND],
              # A boat takes 5 planks of its wood. minecraft.wiki/w/Boat
              [Block::OAK_PLANKS, 5, Block::OAK_BOAT, 1, AT_TABLE], [Block::SPRUCE_PLANKS, 5, Block::SPRUCE_BOAT, 1, AT_TABLE],
              [Block::BIRCH_PLANKS, 5, Block::BIRCH_BOAT, 1, AT_TABLE], [Block::IRON_INGOT, 2, Block::SHEARS, 1, BY_HAND],

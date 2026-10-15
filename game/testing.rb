@@ -162,6 +162,7 @@ class Game
     @checks = 0
     @failures = 0
     test_spawn
+    test_sandstone
     x = @spawn_x.floor + 2
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
@@ -248,6 +249,33 @@ class Game
     h = @world.height_at(x, z)
     b = @world.get(x, h - 1, z)
     check("the player spawns on dry land", h > SEA + 2 && Block.solid?(b) && !Block.leaves?(b) && !Block.water?(b))
+  end
+
+  # Each sand column near spawn has SOIL_DEPTH of sand on SANDSTONE_DEPTH
+  # of sandstone, where no cave cuts it. 4 sand make a sandstone.
+  def test_sandstone
+    sand = 0
+    held = 0
+    depth = World::SOIL_DEPTH + World::SANDSTONE_DEPTH
+    x = @spawn_x.floor - 128
+    while x < @spawn_x.floor + 128
+      z = @spawn_z.floor - 128
+      while z < @spawn_z.floor + 128
+        top = @world.height_at(x, z) - 1
+        if @world.loaded?(x, z) && @world.get(x, top, z) == Block::SAND && (1...depth).none? { |d| @world.get(x, top - d, z) == Block::AIR }
+          sand += 1
+          held += 1 if (0...depth).all? { |d| @world.get(x, top - d, z) == (d < World::SOIL_DEPTH ? Block::SAND : Block::SANDSTONE) }
+        end
+        z += 1
+      end
+      x += 1
+    end
+    check("sand lies on sandstone", sand > 0 && held == sand)
+    @inv.clear
+    5.times { @inv.add(Block::SAND) }
+    craft_recipe(recipe_for(Block::SANDSTONE))
+    check("4 sand make a sandstone", @inv.total(Block::SAND) == 1 && @inv.total(Block::SANDSTONE) == 1)
+    @inv.clear
   end
 
   # The terrain tables are read by position, so each must have one entry

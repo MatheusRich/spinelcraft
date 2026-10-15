@@ -177,6 +177,9 @@ module Tex
   PUMPKIN_STEM_RIPE = image("pumpkin_stem_ripe", bleed: 1)
   BONE = image("bone")
   BONE_MEAL = image("bone_meal")
+  SANDSTONE_SIDE = image("sandstone_side")
+  SANDSTONE_TOP = image("sandstone_top")
+  SANDSTONE_BOTTOM = image("sandstone_bottom")
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size

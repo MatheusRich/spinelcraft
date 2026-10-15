@@ -21,6 +21,7 @@ These files are copies with no changes.
 | `bow.png` | `mcl_bows_bow.png` |
 | `arrow.png` | `mcl_bows_arrow_inv.png` |
 | `dirt.png`, `stone.png`, `sand.png`, `gravel.png` | `default_dirt.png`, `default_stone.png`, `default_sand.png`, `default_gravel.png` |
+| `sandstone_top.png`, `sandstone_side.png`, `sandstone_bottom.png` | `mcl_core_sandstone_top.png`, `mcl_core_sandstone_normal.png`, `mcl_core_sandstone_bottom.png` |
 | `snow.png`, `snow_side.png`, `bedrock.png` | `default_snow.png`, `mcl_core_grass_side_snowed.png`, `mcl_core_bedrock.png` |
 | `coal_ore.png`, `iron.png`, `diamond.png` | `mcl_core_coal_ore.png`, `mcl_core_iron_ore.png`, `mcl_core_diamond_ore.png` |
 | `coal.png` | `default_coal_lump.png` |
