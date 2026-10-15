@@ -1,16 +1,16 @@
 # Save and load: the world.sav format.
 class Game
-  # Field positions in the first line of a save. Field 0 is the format and
-  # fields 1-3 are the world size. save writes the fields in this order.
-  F_SEED = 4
-  F_PLAYER = 5 # x, y, z, yaw, pitch
-  F_TIME = 10
-  F_DAY = 11
-  F_SURVIVAL = 12
-  F_HEALTH = 13
-  F_ALIVE = 14 # the seconds since the last respawn
-  F_SPAWN = 15 # x, z
-  F_INV = 17 # INV blocks, then INV counts
+  # Field positions in the first line of a save. Field 0 is the format.
+  # save writes the fields in this order.
+  F_SEED = 1
+  F_PLAYER = 2 # x, y, z, yaw, pitch
+  F_TIME = 7
+  F_DAY = 8
+  F_SURVIVAL = 9
+  F_HEALTH = 10
+  F_ALIVE = 11 # the seconds since the last respawn
+  F_SPAWN = 12 # x, z
+  F_INV = 14 # INV blocks, then INV counts
   F_HOTBAR = F_INV + INV * 2
   F_HUNGER = F_HOTBAR + HOTBAR # hunger, saturation, exhaustion
   F_WEATHER = F_HUNGER + 3 # raining (1 or 0), seconds to the next change
@@ -25,7 +25,7 @@ class Game
   BOAT_FIELDS = 5 # item, x, y, z, yaw
 
   def save
-    header = [WX, WY, WZ, @seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
+    header = [@seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
               @time_of_day, @day, @survival ? 1 : 0, @vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
     close_chest
