@@ -3,15 +3,16 @@ class Game
   M_RESUME = 0
   M_BRIGHTNESS = 1
   M_VOLUME = 2
-  M_VIEW = 3
-  M_FOV = 4
-  M_FULLSCREEN = 5
-  M_DEBUG = 6
-  M_NEW_WORLD = 7
-  M_QUIT = 8
-  MENU_ITEMS = 9
+  M_MUSIC = 3
+  M_VIEW = 4
+  M_FOV = 5
+  M_FULLSCREEN = 6
+  M_DEBUG = 7
+  M_NEW_WORLD = 8
+  M_QUIT = 9
+  MENU_ITEMS = 10
 
-  def slider?(i) = i == M_BRIGHTNESS || i == M_VOLUME || i == M_VIEW || i == M_FOV
+  def slider?(i) = i == M_BRIGHTNESS || i == M_VOLUME || i == M_MUSIC || i == M_VIEW || i == M_FOV
 
   # The input on the pause screen. Esc goes back to the game. A click on a
   # button acts at once, and a slider follows the mouse while the button is
@@ -75,6 +76,8 @@ class Game
       @brightness
     elsif i == M_VOLUME
       @volume
+    elsif i == M_MUSIC
+      @music_volume
     elsif i == M_VIEW
       (@fog_end - VIEW_MIN) / (VIEW_MAX - VIEW_MIN)
     else
@@ -89,6 +92,8 @@ class Game
       @brightness = t
     elsif i == M_VOLUME
       @volume = t
+    elsif i == M_MUSIC
+      @music_volume = t
     elsif i == M_VIEW
       @fog_end = ((VIEW_MIN + t * (VIEW_MAX - VIEW_MIN)) / 100.0).round * 100.0
     else
@@ -106,7 +111,7 @@ class Game
   # the options.txt of Minecraft.
   def save_options
     File.open(@options_path, "w") do |f|
-      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nview:#{@fog_end}\nfov:#{@fov_degrees}\nfullscreen:#{@fullscreen}\ndebug:#{@show_debug}\n")
+      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nmusic:#{@music_volume}\nview:#{@fog_end}\nfov:#{@fov_degrees}\nfullscreen:#{@fullscreen}\ndebug:#{@show_debug}\n")
     end
   end
 
@@ -123,6 +128,8 @@ class Game
         @brightness = value.to_f.clamp(0.0, 1.0)
       elsif name == "volume"
         @volume = value.to_f.clamp(0.0, 1.0)
+      elsif name == "music"
+        @music_volume = value.to_f.clamp(0.0, 1.0)
       elsif name == "view"
         @fog_end = value.to_f.clamp(VIEW_MIN, VIEW_MAX)
       elsif name == "fov"
@@ -144,6 +151,9 @@ class Game
     elsif i == M_VOLUME
       v = (@volume * 100.0).round
       "VOLUME: #{v == 0 ? "OFF" : "#{v}%"}"
+    elsif i == M_MUSIC
+      v = (@music_volume * 100.0).round
+      "MUSIC: #{v == 0 ? "OFF" : "#{v}%"}"
     elsif i == M_VIEW
       "RENDER DISTANCE: #{@fog_end.to_i} BLOCKS"
     elsif i == M_FOV

@@ -515,7 +515,9 @@ class Game
     check("the render distance slider goes in steps of 100 blocks", half == 2600.0 && near == VIEW_MIN)
     set_slider(M_BRIGHTNESS, 1.0)
     set_slider(M_VOLUME, 0.25)
+    set_slider(M_MUSIC, 0.0)
     check("the brightness and volume sliders set the options", @brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")
+    check("the music slider sets the music volume", slider_value(M_MUSIC) == 0.0 && menu_label(M_MUSIC) == "MUSIC: OFF")
     set_slider(M_FOV, 0.5)
     normal = menu_label(M_FOV)
     set_slider(M_FOV, 1.0)
@@ -530,15 +532,17 @@ class Game
     save_options
     @brightness = 0.0
     @volume = volume
+    @music_volume = 1.0
     @fog_end = view
     @fov_degrees = fov
     @show_debug = true
     load_options
     File.delete(@options_path)
     check("the options load from the file that save_options writes",
-          @brightness == 1.0 && @volume == 0.25 && @fog_end == 1200.0 && @fov_degrees == 90.0 && !@show_debug && !@fullscreen)
+          @brightness == 1.0 && @volume == 0.25 && @music_volume == 0.0 && @fog_end == 1200.0 && @fov_degrees == 90.0 && !@show_debug && !@fullscreen)
     @brightness = 0.0
     @volume = volume
+    @music_volume = 1.0
     @fog_end = view
     @fov_degrees = fov
     @fov = option_fov
@@ -689,6 +693,38 @@ class Game
     test_jump
     test_swim_speed
     test_cave_sound
+    test_music
+  end
+
+  # Every track opens, and Music picks the tracks as in Minecraft: a long
+  # quiet gap after each track, and never the same track twice in a row.
+  # Underground the tracks are mining tracks, and at night no track starts
+  # on the surface.
+  def test_music
+    opened = 0
+    Music::FILES.size.times { |id| opened += 1 if Music.start(id) }
+    Gfx.au_music_stop
+    check("every music track opens", opened == Music::FILES.size && !Gfx.au_music_playing)
+    m = Music.new(1)
+    early = m.next_track(Music::FIRST_WAIT - 0.5, false, false, false)
+    first = m.next_track(1.0, false, false, false)
+    busy = m.next_track(Music::GAP_MAX, true, false, false)
+    soon = m.next_track(Music::GAP_MIN - 1.0, false, false, false)
+    check("the next track waits for the track to end and then for the gap",
+          early == -1 && first >= 0 && first < Music::MINING && busy == -1 && soon == -1)
+    night = m.next_track(Music::GAP_MAX, false, false, true)
+    deep = m.next_track(0.0, false, true, true)
+    check("at night a track starts underground but not on the surface", night == -1 && deep >= Music::MINING)
+    last = deep
+    repeats = 0
+    picked = 0
+    50.times do
+      track = m.next_track(Music::GAP_MAX, false, false, false)
+      picked += 1 if track >= 0 && track < Music::MINING
+      repeats += 1 if track == last
+      last = track
+    end
+    check("a track never plays twice in a row", picked == 50 && repeats == 0)
   end
 
   # A jump lifts the feet 1.2522 blocks, and sprint-jumps move faster than

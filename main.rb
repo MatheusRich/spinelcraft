@@ -20,6 +20,7 @@ require_relative "game/item"
 require_relative "game/falling_block"
 require_relative "game/boat"
 require_relative "game/sounds"
+require_relative "game/music"
 require_relative "game/clouds"
 require_relative "game/lod"
 require_relative "game/constants"
@@ -126,9 +127,11 @@ class Game
     @fog_end = FOG_END.to_f
     @fov_degrees = FOV_NORMAL
     # The options of the pause menu (game/menu.rb), from 0 to 1. Brightness 0
-    # is the light without a lift. The volume starts at half.
+    # is the light without a lift. The volume starts at half, and the music
+    # at full, as in Minecraft.
     @brightness = 0.0
     @volume = 0.5
+    @music_volume = 1.0
     # The slider that the mouse drags, or -1.
     @menu_drag = -1
     # True after one click on New world.
@@ -229,6 +232,7 @@ class Game
     @cave_fear = 0.0
     @ambient_wait = [0.0, 0.0, 0.0]
     @rng = Rng.new(@seed * 7 + 1)
+    @music = Music.new(@seed * 5 + 3)
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
     @target_mob = -1
     @swing = 0.0
@@ -449,6 +453,23 @@ class Game
     dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
     return 0.0 if dist < 0.001
     (dx * Math.cos(@player.yaw) + dz * Math.sin(@player.yaw)) / dist
+  end
+
+  # Starts a track when Music says so, and feeds the track that plays. The
+  # music goes on in the pause menu, as in Minecraft. At a volume of 0 the
+  # track stops.
+  def update_music(dt)
+    return unless @sound
+    volume = @volume * @music_volume
+    if volume <= 0.0
+      Gfx.au_music_stop
+      return
+    end
+    y = @player.eye_y
+    underground = y < SEA && !@world.under_sky?(@player.x, y, @player.z)
+    track = @music.next_track(dt, Gfx.au_music_playing, underground, @time_of_day >= 0.5)
+    Music.start(track) if track >= 0
+    Gfx.au_music_feed(volume)
   end
 
   def say(text)
@@ -704,6 +725,7 @@ class Game
       handle_input(dt) unless @scripted
       demo(frames) if @demo
       update_game(dt) unless paused?
+      update_music(dt)
       t_stream = Gfx.gfx_ns
       stream_around(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
       left = STREAM_BUDGET_NS - (Gfx.gfx_ns - t_stream)

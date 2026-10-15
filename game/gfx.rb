@@ -1123,6 +1123,8 @@ module Gfx
     #define AU_RATE 44100
     static SDL_AudioDeviceID audio_dev;
     static SDL_AudioStream *voice[VOICES];
+    /* The stream of the music (au_music_play). */
+    static SDL_AudioStream *music;
     static float *sound_data[SOUNDS];
     static int sound_len[SOUNDS];
     static int next_voice;
@@ -1136,6 +1138,8 @@ module Gfx
         voice[i] = SDL_CreateAudioStream(&spec, NULL);
         if (!voice[i] || !SDL_BindAudioStream(audio_dev, voice[i])) return fail("SDL_BindAudioStream");
       }
+      music = SDL_CreateAudioStream(&spec, NULL);
+      if (!music || !SDL_BindAudioStream(audio_dev, music)) return fail("SDL_BindAudioStream");
       return true;
     }
 
@@ -1212,6 +1216,71 @@ module Gfx
       SDL_SetAudioStreamGain(v, (float)volume);
       SDL_PutAudioStreamData(v, lr, n * 2 * (int)sizeof(float));
       SDL_free(lr);
+    }
+
+    /* Music: the music stream plays one track at a time. au_music_feed
+       decodes the open file a little at a time, so a track of minutes
+       never sits in memory whole. */
+    #define MUSIC_AHEAD 1.0
+    #define MUSIC_CHUNK 4096
+    static OggVorbis_File music_file;
+    static bool music_open;
+    static float music_gain;
+
+    void au_music_stop(void) {
+      if (music_open) ov_clear(&music_file);
+      music_open = false;
+      if (music) SDL_ClearAudioStream(music);
+    }
+
+    /* Starts the OGG file at path, relative to the folder of the game, in
+       place of the track that plays, louder by gain dB. It needs no audio
+       device, so a muted game can test the tracks. Returns 0, or -1 when it
+       fails. */
+    long au_music_play(const char *path, double gain) {
+      au_music_stop();
+      char full[1024];
+      SDL_snprintf(full, sizeof full, "%s%s", SDL_GetBasePath(), path);
+      if (ov_fopen(full, &music_file) != 0) { fail(full); return -1; }
+      vorbis_info *vi = ov_info(&music_file, -1);
+      if (vi->channels > 2) { ov_clear(&music_file); fail(full); return -1; }
+      SDL_AudioSpec src = {SDL_AUDIO_F32, vi->channels, (int)vi->rate};
+      if (music && !SDL_SetAudioStreamFormat(music, &src, NULL)) { ov_clear(&music_file); fail(full); return -1; }
+      music_open = true;
+      music_gain = powf(10.0f, (float)gain / 20.0f);
+      return 0;
+    }
+
+    /* True while a track plays: its file has more to decode, or its
+       stream has sound left. */
+    bool au_music_playing(void) { return music_open || (music && SDL_GetAudioStreamQueued(music) > 0); }
+
+    /* Sets the volume of the music, and decodes the track until
+       MUSIC_AHEAD seconds of it wait in the stream. The game calls it
+       each frame. At the end of the file it closes the file. */
+    void au_music_feed(double volume) {
+      if (!music) return;
+      SDL_SetAudioStreamGain(music, music_gain * (float)volume);
+      if (!music_open) return;
+      vorbis_info *vi = ov_info(&music_file, -1);
+      int ch = vi->channels;
+      int ahead = (int)(MUSIC_AHEAD * vi->rate) * ch * (int)sizeof(float);
+      float buf[MUSIC_CHUNK * 2];
+      while (SDL_GetAudioStreamQueued(music) < ahead) {
+        float **pcm;
+        int section;
+        long n = ov_read_float(&music_file, &pcm, MUSIC_CHUNK, &section);
+        if (n == OV_HOLE) continue;
+        if (n <= 0) {
+          ov_clear(&music_file);
+          music_open = false;
+          SDL_FlushAudioStream(music);
+          return;
+        }
+        for (long i = 0; i < n; i++)
+          for (int c = 0; c < ch; c++) buf[i * ch + c] = pcm[c][i];
+        SDL_PutAudioStreamData(music, buf, (int)(n * ch * (long)sizeof(float)));
+      }
     }
 
     long gfx_width(void) { return swap_w; }
@@ -1304,6 +1373,10 @@ module Gfx
   ffi_func :au_load_ogg, [:long, :str, :double], :long
   ffi_func :au_seconds, [:long], :double
   ffi_func :au_play, [:long, :double, :double], :void
+  ffi_func :au_music_play, [:str, :double], :long
+  ffi_func :au_music_stop, [], :void
+  ffi_func :au_music_playing, [], :bool
+  ffi_func :au_music_feed, [:double], :void
   ffi_func :gfx_width, [], :long
   ffi_func :gfx_height, [], :long
   ffi_func :gfx_ns, [], :long

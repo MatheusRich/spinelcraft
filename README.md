@@ -63,6 +63,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - A view distance of up to 5000 blocks.
 - A chat line with commands, as in Minecraft.
 - Sounds from VoxeLibre, under free licenses. `assets/sounds/CREDITS.md` names the author and the license of each file.
+- Music from VoxeLibre, under free licenses. `assets/music/CREDITS.md` names the author and the license of each track.
 
 ## Commands
 
@@ -85,7 +86,7 @@ T opens the chat line, and / opens it with a slash. The chat frees the mouse whi
 
 ## Layout
 
-`build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module. The game loads the OGG files in `assets/sounds` from the folder of the executable.
+`build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module. The game loads the OGG files in `assets/sounds` and `assets/music` from the folder of the executable.
 
 Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the block cracks, the smoke, the rain and the font. Each texture layer is one line in `game/textures.rb`, such as `COAL = image("coal")`, and it takes the next free layer number.
 
