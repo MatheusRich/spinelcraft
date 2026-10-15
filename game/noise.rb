@@ -64,8 +64,10 @@ class Noise
     ab = @perm[@perm[xa] + ya + 1]
     ba = @perm[@perm[xa + 1] + ya]
     bb = @perm[@perm[xa + 1] + ya + 1]
-    x1 = grad2(aa, xf, yf) + (grad2(ba, xf - 1.0, yf) - grad2(aa, xf, yf)) * u
-    x2 = grad2(ab, xf, yf - 1.0) + (grad2(bb, xf - 1.0, yf - 1.0) - grad2(ab, xf, yf - 1.0)) * u
+    gaa = grad2(aa, xf, yf)
+    gab = grad2(ab, xf, yf - 1.0)
+    x1 = gaa + (grad2(ba, xf - 1.0, yf) - gaa) * u
+    x2 = gab + (grad2(bb, xf - 1.0, yf - 1.0) - gab) * u
     (x1 + (x2 - x1) * v) * 0.7
   end
 

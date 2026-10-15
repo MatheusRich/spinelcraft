@@ -190,6 +190,11 @@ class World
     @noise2 = Noise.new(seed * 31 + 7)
     @noise3 = Noise.new(seed * 17 + 3)
     @noise4 = Noise.new(seed * 43 + 11)
+    # The warp of the last column (see warp), first that of column 0, 0.
+    @warp_nx = SHIFT
+    @warp_nz = SHIFT
+    @wx = warp_x(SHIFT, SHIFT)
+    @wz = warp_z(SHIFT, SHIFT)
     # The log and the leaves of the tree that the generator grows (see use_wood).
     @log = Block::OAK_LOG
     @leaves = Block::OAK_LEAVES
@@ -576,6 +581,16 @@ class World
   # biome edges bend instead of making round blobs. (Noise goes back into
   # noise here, and without to_f Spinel cannot type that loop.)
   def warp_x(x, z) = x + @noise4.noise2(x / 160.0, z / 160.0).to_f * WARP
+  # The warped position of column (nx, nz), into @wx and @wz. The last
+  # column is kept, as biome follows surface_height on the same column.
+  def warp(nx, nz)
+    return if nx == @warp_nx && nz == @warp_nz
+    @warp_nx = nx
+    @warp_nz = nz
+    @wx = warp_x(nx, nz)
+    @wz = warp_z(nx, nz)
+  end
+
   def warp_z(x, z) = z + @noise4.noise2(x / 160.0 + 70.0, z / 160.0).to_f * WARP
 
   # The height of the column's top block plus one, after Minecraft 1.18.
@@ -587,8 +602,9 @@ class World
   def surface_height(x, z)
     nx = x + SHIFT
     nz = z + SHIFT
-    wx = warp_x(nx, nz)
-    wz = warp_z(nx, nz)
+    warp(nx, nz)
+    wx = @wx
+    wz = @wz
     continent = @noise.fbm2(wx / CONTINENT_SCALE, wz / CONTINENT_SCALE, 4)
     land = @noise4.fbm2(wx / LANDSCAPE_SCALE + 30.0, wz / LANDSCAPE_SCALE, 3)
     inland = World.smooth((continent + 0.1) / 0.2)
@@ -598,7 +614,8 @@ class World
     flat = World.smooth((land - FLATLAND) / LANDSCAPE_EDGE)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
     hill_height = HILLS + (MOUNTAIN_HILLS - HILLS) * mountains + (PLATEAU_HILLS - HILLS) * plateau + (FLAT_HILLS - HILLS) * flat
-    h = World.spline(CONTINENT, BASE, continent) + hills * hill_height + ridges(wx, wz, land) * mountains
+    h = World.spline(CONTINENT, BASE, continent) + hills * hill_height
+    h += ridges(wx, wz, land) * mountains if mountains > 0.0
     # A plateau lifts the land to a flat top.
     top = SEA + PLATEAU_RISE + hills * PLATEAU_HILLS
     h += (top - h) * plateau if top > h
@@ -611,11 +628,13 @@ class World
     end
     # A river cuts its full valley near the coast. Farther inland the
     # valley gets shallower, and it ends at RIVER_INLAND.
-    river = @noise3.fbm2(wx / RIVER_SCALE + 90.0, wz / RIVER_SCALE, 2).abs
     fade = World.smooth((RIVER_INLAND - continent) / RIVER_FADE)
-    if fade > 0.0 && river < RIVER_VALLEY && h > RIVER_BED
-      bed = RIVER_BED + (h - RIVER_BED) * World.smooth(river / RIVER_VALLEY)
-      h += (bed - h) * fade if bed < h
+    if fade > 0.0 && h > RIVER_BED
+      river = @noise3.fbm2(wx / RIVER_SCALE + 90.0, wz / RIVER_SCALE, 2).abs
+      if river < RIVER_VALLEY
+        bed = RIVER_BED + (h - RIVER_BED) * World.smooth(river / RIVER_VALLEY)
+        h += (bed - h) * fade if bed < h
+      end
     end
     # Above PEAK, heights squeeze toward the top limit and never reach it,
     # so the highest peaks stay pointed instead of flat.
@@ -681,8 +700,9 @@ class World
   def biome(x, z, h)
     nx = x + SHIFT
     nz = z + SHIFT
-    wx = warp_x(nx, nz)
-    wz = warp_z(nx, nz)
+    warp(nx, nz)
+    wx = @wx
+    wz = @wz
     t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2
     t -= (h - COLD_LINE) * COOLING if h > COLD_LINE
     w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2
