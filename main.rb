@@ -277,6 +277,7 @@ class Game
     abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + LEVELS * TILE_SLOTS
     abort "gfx.rb UNIFORMS is not #{UNIFORMS}" if Gfx.gfx_limit(3) != UNIFORMS
     abort "gfx.rb TINT_SIZE is not #{Tint::SIZE}" if Gfx.gfx_limit(4) != Tint::SIZE
+    abort "gfx.rb SOUNDS is too small" if Gfx.gfx_limit(5) < Sfx::FILES.size
     # The fields of a face record must fit in its two 32-bit words, and the
     # y field must hold every y of the world.
     abort "a face record is wider than 32 bits" if Mesher::FACE_AT + Mesher::FACE_BITS > 32 ||

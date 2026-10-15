@@ -25,7 +25,7 @@ module Gfx
     static Uint32 swap_w = 1280, swap_h = 720;
     /* These sizes must match the Ruby side. gfx_limit returns them, and
        Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS,
-       Tint::SIZE and the GPU slots that the game uses. */
+       Tint::SIZE, the GPU slots and the sounds that the game uses. */
     #define LEVELS 4
     #define BIOMES 9
     #define UNIFORMS (44 + 4 * LEVELS + 8 * BIOMES)
@@ -1119,7 +1119,7 @@ module Gfx
     /* Audio: a few stereo voices bound to one device; SDL mixes them. The
        sounds are mono, and au_play pans each one into the two channels. */
     #define VOICES 16
-    #define SOUNDS 64
+    #define SOUNDS 128
     #define AU_RATE 44100
     static SDL_AudioDeviceID audio_dev;
     static SDL_AudioStream *voice[VOICES];
@@ -1343,7 +1343,7 @@ module Gfx
     void gfx_fullscreen(long on) { SDL_SetWindowFullscreen(win, on != 0); }
     /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms, 4: the tint map size. */
     long gfx_limit(long which) {
-      return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : (which == 3 ? UNIFORMS : TINT_SIZE)));
+      return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : (which == 3 ? UNIFORMS : (which == 4 ? TINT_SIZE : SOUNDS))));
     }
   C
   ffi_func :gfx_init, [:long, :long, :long, :long], :bool
