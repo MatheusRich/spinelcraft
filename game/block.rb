@@ -339,9 +339,9 @@ module Block
   define_item IRON_SHOVEL, "IRON SHOVEL", Tex::IRON_SHOVEL
   define_item DIAMOND_SHOVEL, "DIAMOND SHOVEL", Tex::DIAMOND_SHOVEL
   define_plant SEEDS, "SEEDS", Tex::SEEDS
-  define_plant WHEAT_1, "WHEAT", Tex::WHEAT_1, drops: SEEDS
-  define_plant WHEAT_2, "WHEAT", Tex::WHEAT_2, drops: SEEDS
-  define_plant WHEAT_RIPE, "WHEAT", Tex::WHEAT_RIPE, drops: WHEAT
+  define_plant WHEAT_1, "WHEAT CROPS", Tex::WHEAT_1, drops: SEEDS
+  define_plant WHEAT_2, "WHEAT CROPS", Tex::WHEAT_2, drops: SEEDS
+  define_plant WHEAT_RIPE, "WHEAT CROPS", Tex::WHEAT_RIPE, drops: WHEAT
   define_item WHEAT, "WHEAT", Tex::WHEAT
   define_item BREAD, "BREAD", Tex::BREAD, food: 5, saturation: 6.0 # minecraft.wiki/w/Bread
   define_block CRAFTING_TABLE, "CRAFTING TABLE", Tex::CRAFT_SIDE, top: Tex::CRAFT_TOP, bottom: Tex::OAK_PLANKS, hardness: 2.5,
