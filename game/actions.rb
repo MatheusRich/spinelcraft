@@ -322,7 +322,8 @@ class Game
     # The tier of the tool when it is the kind that digs b fast, else 0.
     tier = Block::DIG_KIND[b] != 0 && Block.tool_kind(tool) == Block::DIG_KIND[b] ? Block.tool_tier(tool) : 0
     need = Block::NEEDS_PICK[b]
-    speed = tier > 0 ? TOOL_SPEED[tier - 1] : 1.0
+    shears = tool == Block::SHEARS
+    speed = shears ? Block.shear_speed(b) : (tier > 0 ? TOOL_SPEED[tier - 1] : 1.0)
     speed /= 5.0 if Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
     speed /= 5.0 unless @player.on_ground
     seconds = hardness * (tier >= need ? 1.5 : 5.0)
@@ -332,8 +333,8 @@ class Game
       play(MATERIAL_BREAK[material(b)], 0.7)
       set_block(x, y, z, Block::AIR)
       @attack_time = 0.0
-      drop_from_block(Block::DROPS[b], 1, x, y, z) if tier >= need
-      drop_extra(b, x, y, z)
+      drop_from_block(shears ? Block.shear_drop(b) : Block::DROPS[b], 1, x, y, z) if tier >= need
+      drop_extra(b, x, y, z) unless shears && (Block.leaves?(b) || b == Block::TALL_GRASS)
       if hardness > 0.0
         wear_tool(Block.wear(tool, false))
         @mine_delay = MINE_DELAY

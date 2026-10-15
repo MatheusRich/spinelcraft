@@ -940,6 +940,14 @@ class Game
     by_axe = frames_to_mine(x, ground + 1, z, Block::OAK_LOG, Block::STONE_AXE)
     by_pick = frames_to_mine(x, ground + 1, z, Block::OAK_LOG, Block::STONE_PICK)
     check("an axe chops a log faster than a hand or a pickaxe", by_axe < by_hand && by_pick == by_hand)
+    @items.clear
+    wool_hand = frames_to_mine(x, ground + 1, z, Block::WOOL, Block::AIR)
+    wool_shears = frames_to_mine(x, ground + 1, z, Block::WOOL, Block::SHEARS)
+    @items.clear
+    frames_to_mine(x, ground + 1, z, Block::OAK_LEAVES, Block::SHEARS)
+    leaves = ground_count(Block::OAK_LEAVES) == 1 && @items.size == 1
+    @items.clear
+    check("shears cut wool 5 times as fast, and leaves drop themselves", wool_shears < wool_hand / 4 && leaves)
     # 1.5 hardness * 1.5 seconds / speed 4 = 0.5625 seconds, as in Minecraft.
     check("a stone pickaxe breaks stone in 12 frames", frames_to_mine(x, ground + 1, z, Block::STONE, Block::STONE_PICK) == 12)
     @items.clear

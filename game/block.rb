@@ -319,9 +319,19 @@ module Block
   # the other job. minecraft.wiki/w/Item_durability
   def self.wear(b, attack)
     return attack ? 1 : 2 if sword?(b)
+    return attack ? 0 : 1 if b == SHEARS
     return attack ? 2 : 1 if tool_kind(b) > 0
     0
   end
+  # How fast shears dig b: 15 times on leaves and 5 times on wool. The wiki
+  # gives 2 for some other blocks, but not which ones, so the others take
+  # 1. minecraft.wiki/w/Shears
+  def self.shear_speed(b) = leaves?(b) ? 15.0 : (b == WOOL ? 5.0 : 1.0)
+  # What breaking b with shears gives: leaves and tall grass give
+  # themselves, and the rest give what they give by hand.
+  # minecraft.wiki/w/Shears
+  def self.shear_drop(b) = leaves?(b) ? BASE[b] : (b == TALL_GRASS ? TALL_GRASS : DROPS[b])
+
   # Uses before a wooden, stone, iron or diamond tool breaks, and a bow.
   # minecraft.wiki/w/Item_durability
   TOOL_USES = [59, 131, 250, 1561]
