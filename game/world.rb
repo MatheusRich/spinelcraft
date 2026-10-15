@@ -176,6 +176,9 @@ class World
     @cave_b = Array.new(GX * GY * GX, 0.0)
     # 1 for each cell of the cave grid that can hold a cave (see cave_cell).
     @cave_cell = Array.new(GX * GY * GX, 0)
+    # The edges along x of a cave grid cell, of the two fields (x_edges).
+    @edges_a = Array.new(4, 0.0)
+    @edges_c = Array.new(4, 0.0)
     @corner_a = Array.new(8, 0.0)
     @corner_b = Array.new(8, 0.0)
     @coal_odds = Array.new(WY, 0)
@@ -856,6 +859,17 @@ class World
         surface = top_block(x, z, h, biome)
         entrance = entrance?(x, z)
         base = World.index(x, 0, z)
+        # The column's place in the cave grid. The 4 layers of a grid cell
+        # share its edges along x (x_edges), so they are read once a layer.
+        fx = lx / 4.0
+        fz = lz / 4.0
+        ix = fx.to_i
+        iz = fz.to_i
+        a_layer = -1
+        c_layer = -1
+        # Two layers share the roll for ore.
+        roll_y = -1
+        r = 0
         y = 0
         while y < h
           b = Block::STONE
@@ -870,7 +884,10 @@ class World
           if b == Block::STONE
             # One roll for the cell picks its ore, and a second roll for
             # the block leaves gaps in the clump.
-            r = Noise.hash3(x >> 1, y >> 1, z >> 1, 11)
+            if (y >> 1) != roll_y
+              roll_y = y >> 1
+              r = Noise.hash3(x >> 1, roll_y, z >> 1, 11)
+            end
             coal = @coal_odds[y]
             iron = coal + @iron_odds[y]
             if r < coal
@@ -882,18 +899,22 @@ class World
             end
           end
           if y > 1 && (y < top - 2 || (!beach?(top) && y <= top))
-            fx = lx / 4.0
             fy = y / 4.0
-            fz = lz / 4.0
-            ix = fx.to_i
             iy = fy.to_i
-            iz = fz.to_i
             n = (ix * GY + iy) * GX + iz
             if @cave_cell[n] == 1
               width = entrance ? CAVE_WIDTH : cave_width(top - y)
-              a = trilinear(@cave_a, n, GY, GX, fx - ix, fy - iy, fz - iz)
+              if iy != a_layer
+                a_layer = iy
+                x_edges(@cave_a, n, GY, GX, fx - ix, @edges_a)
+              end
+              a = yz_lerp(@edges_a, fy - iy, fz - iz)
               if cave_possible?(a, width)
-                c = trilinear(@cave_b, n, GY, GX, fx - ix, fy - iy, fz - iz)
+                if iy != c_layer
+                  c_layer = iy
+                  x_edges(@cave_b, n, GY, GX, fx - ix, @edges_c)
+                end
+                c = yz_lerp(@edges_c, fy - iy, fz - iz)
                 b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c, width)
               end
             end
@@ -939,13 +960,24 @@ class World
   end
 
   def trilinear(g, n, gy, gz, tx, ty, tz)
+    x_edges(g, n, gy, gz, tx, @edges_a)
+    yz_lerp(@edges_a, ty, tz)
+  end
+
+  # The first step of trilinear: the 4 edges along x of the cell of grid g
+  # from point n, at tx, into e (y, z: 0 0, 1 0, 0 1, 1 1).
+  def x_edges(g, n, gy, gz, tx, e)
     sx = gy * gz
-    c00 = g[n] + (g[n + sx] - g[n]) * tx
-    c10 = g[n + gz] + (g[n + sx + gz] - g[n + gz]) * tx
-    c01 = g[n + 1] + (g[n + sx + 1] - g[n + 1]) * tx
-    c11 = g[n + gz + 1] + (g[n + sx + gz + 1] - g[n + gz + 1]) * tx
-    c0 = c00 + (c10 - c00) * ty
-    c1 = c01 + (c11 - c01) * ty
+    e[0] = g[n] + (g[n + sx] - g[n]) * tx
+    e[1] = g[n + gz] + (g[n + sx + gz] - g[n + gz]) * tx
+    e[2] = g[n + 1] + (g[n + sx + 1] - g[n + 1]) * tx
+    e[3] = g[n + gz + 1] + (g[n + sx + gz + 1] - g[n + gz + 1]) * tx
+  end
+
+  # The rest of trilinear: the edges e lerped along y at ty, then along z at tz.
+  def yz_lerp(e, ty, tz)
+    c0 = e[0] + (e[1] - e[0]) * ty
+    c1 = e[2] + (e[3] - e[2]) * ty
     c0 + (c1 - c0) * tz
   end
 
