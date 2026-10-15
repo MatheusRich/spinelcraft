@@ -1,11 +1,14 @@
 # Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, and DEMO.
 class Game
+  # A height above the land and the trees, where the tests and the
+  # screenshot scenes build in open air.
+  SKY_Y = WY - 6
   # SHOWMOBS=1 lines up one mob of each kind on a stone floor in front of the player.
   def show_mobs
     @mobs.clear
     bx = @player.x.floor
     bz = @player.z.floor - 6
-    y = 80
+    y = SKY_Y - 10
     dx = -4
     while dx <= 4
       dz = -3
@@ -38,7 +41,7 @@ class Game
   def show_items
     bx = @player.x.floor
     bz = @player.z.floor - 4
-    y = 80
+    y = SKY_Y - 10
     dx = -4
     while dx <= 4
       dz = -3
@@ -541,7 +544,7 @@ class Game
   # A broken block throws 64 chips, as in Minecraft.
   def test_chips
     before = @particles.count(Particle::CHIP)
-    @particles.burst(@spawn_x.floor, 90, @spawn_z.floor, Block::STONE)
+    @particles.burst(@spawn_x.floor, SKY_Y, @spawn_z.floor, Block::STONE)
     check("a broken block throws 64 chips", @particles.count(Particle::CHIP) - before == 64)
   end
 
@@ -813,7 +816,7 @@ class Game
     pz = @spawn_z.floor
     i = -2
     while i <= 16
-      set_block(px + i, 88, pz, Block::STONE)
+      set_block(px + i, SKY_Y - 2, pz, Block::STONE)
       i += 1
     end
     flush_dirty
@@ -821,9 +824,9 @@ class Game
     @time_of_day = 0.75
     @vitals.health = Vitals::MAX_HEALTH
     @player.x = px + 0.5
-    @player.y = 89.0
+    @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
-    @mobs << Mob.new(Mob::SKELETON, px + 12.5, 89.0, pz + 0.5, 7)
+    @mobs << Mob.new(Mob::SKELETON, px + 12.5, SKY_Y - 1.0, pz + 0.5, 7)
     frames = 0
     while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
       update_mobs(1.0 / 60.0)
@@ -831,7 +834,7 @@ class Game
     end
     check("skeleton arrow hurts the player", @vitals.health < Vitals::MAX_HEALTH)
     @mobs.clear
-    @mobs << Mob.new(Mob::ZOMBIE, px + 1.5, 89.0, pz + 0.5, 9)
+    @mobs << Mob.new(Mob::ZOMBIE, px + 1.5, SKY_Y - 1.0, pz + 0.5, 9)
     @vitals.health = Vitals::MAX_HEALTH
     frames = 0
     while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
@@ -845,20 +848,20 @@ class Game
     # known seed.
     @rng = Rng.new(5)
     (0..5).each do |dx|
-      set_block(px + dx, 88, pz - 1, Block::STONE)
-      set_block(px + dx, 88, pz + 1, Block::STONE)
+      set_block(px + dx, SKY_Y - 2, pz - 1, Block::STONE)
+      set_block(px + dx, SKY_Y - 2, pz + 1, Block::STONE)
     end
-    @mobs << Mob.new(Mob::CREEPER, px + 2.5, 89.0, pz + 0.5, 11)
+    @mobs << Mob.new(Mob::CREEPER, px + 2.5, SKY_Y - 1.0, pz + 0.5, 11)
     # A blast this near kills a player with full health, so the player
     # gets more health for the test.
     @vitals.health = 100
     @items.clear
     frames = 0
-    while frames < 300 && @world.get(px + 2, 88, pz) == Block::STONE
+    while frames < 300 && @world.get(px + 2, SKY_Y - 2, pz) == Block::STONE
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, 88, pz) == Block::AIR && @vitals.health < 100 && frames > 60)
+    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, SKY_Y - 2, pz) == Block::AIR && @vitals.health < 100 && frames > 60)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
     @items.clear
     @mobs.clear
@@ -873,26 +876,26 @@ class Game
     pz = @spawn_z.floor
     @mobs.clear
     @time_of_day = 0.25
-    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, 89.0, pz + 0.5, 9)
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     @player.x = px + 0.5
-    @player.y = 89.0
+    @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @particles.count(Particle::FLAME) > 0)
     @mobs.clear
     @survival = true
     @vitals.health = Vitals::MAX_HEALTH
-    @world.set(px + 1, 89, pz, Block::LAVA)
+    @world.set(px + 1, SKY_Y - 1, pz, Block::LAVA)
     @player.x = px + 1.5
     update_survival(0.1)
-    @world.set(px + 1, 89, pz, Block::AIR)
+    @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
     @vitals.health = Vitals::MAX_HEALTH
     150.times { update_survival(1.0 / 60.0) }
     burned = @vitals.fire > 0.0 && @vitals.health < Vitals::MAX_HEALTH
-    @world.set(px + 1, 89, pz, Block::WATER)
+    @world.set(px + 1, SKY_Y - 1, pz, Block::WATER)
     update_survival(1.0 / 60.0)
-    @world.set(px + 1, 89, pz, Block::AIR)
+    @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
     check("the player burns on after lava, and water puts the fire out", burned && @vitals.fire == 0.0)
     @time_of_day = 0.3
     @vitals.health = Vitals::MAX_HEALTH
@@ -906,21 +909,21 @@ class Game
     @mobs.clear
     @time_of_day = 0.25
     @weather.set_now(true)
-    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, 89.0, pz + 0.5, 9)
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     @player.x = px + 0.5
-    @player.y = 89.0
+    @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie does not burn in the rain", zombie.fire == 0.0 && zombie.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
     @weather.build_quads(@world, @player, 1.0)
     open = rain_bottom(px + 3, pz)
-    @world.set(px + 3, 95, pz, Block::STONE)
+    @world.set(px + 3, SKY_Y + 5, pz, Block::STONE)
     @weather.build_quads(@world, @player, 1.0)
     roofed = rain_bottom(px + 3, pz)
-    @world.set(px + 3, 95, pz, Block::AIR)
-    check("the rain in a column stops at the highest block", open < 96.0 && roofed == 96.0)
+    @world.set(px + 3, SKY_Y + 5, pz, Block::AIR)
+    check("the rain in a column stops at the highest block", open < SKY_Y + 6.0 && roofed == SKY_Y + 6.0)
     @weather.set_now(false)
     @time_of_day = 0.3
   end
@@ -1199,28 +1202,28 @@ class Game
 
   # Chest contents survive a save and come back when the chest breaks.
   def test_chests(cx, cz)
-    set_block(cx, 90, cz, Block::CHEST)
+    set_block(cx, SKY_Y, cz, Block::CHEST)
     @inv.clear
-    open_chest(cx, 90, cz)
+    open_chest(cx, SKY_Y, cz)
     @chest.set(5, Block::DIAMOND, 7)
     toggle_inventory
     save
     @chests = {}
     ok = load
     apply_loaded if ok
-    stored = @chests[World.key(cx, 90, cz)]
+    stored = @chests[World.key(cx, SKY_Y, cz)]
     check("chest contents survive a save", ok && !stored.nil? && stored.block(5) == Block::DIAMOND && stored.count(5) == 7)
-    set_block(cx, 90, cz, Block::AIR)
+    set_block(cx, SKY_Y, cz, Block::AIR)
     dropped = ground_count(Block::DIAMOND) == 7 && @inv.total(Block::DIAMOND) == 0
     collect_items
     check("a broken chest drops its contents", dropped && @inv.total(Block::DIAMOND) == 7 && @chests.empty?)
     # An open chest destroyed by a blast never duplicates its contents.
     @inv.clear
     @items.clear
-    set_block(cx, 90, cz, Block::CHEST)
-    open_chest(cx, 90, cz)
+    set_block(cx, SKY_Y, cz, Block::CHEST)
+    open_chest(cx, SKY_Y, cz)
     @chest.set(0, Block::DIAMOND, 7)
-    set_block(cx, 90, cz, Block::AIR)
+    set_block(cx, SKY_Y, cz, Block::AIR)
     check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.empty?)
     @items.clear
   end
@@ -1228,13 +1231,13 @@ class Game
   # Mobs that die without the player's help drop nothing.
   def test_mob_drops
     @inv.clear
-    far = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    far = Mob.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     far.hp = 0.0
     @mobs.clear
     @mobs << far
     update_mobs(1.0 / 60.0)
     check("a pig that dies on its own drops nothing", @items.empty?)
-    killed = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    killed = Mob.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     killed.hp = 0.0
     killed.by_player = true
     @mobs << killed
@@ -1244,7 +1247,7 @@ class Game
     collect_items
     check("a pig that the player kills drops 1 to 3 porkchops", dropped && @inv.total(Block::PORKCHOP) == n)
     @items.clear
-    sheep = Mob.new(Mob::SHEEP, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    sheep = Mob.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     sheep.hp = 0.0
     sheep.by_player = true
     @mobs << sheep
@@ -1260,7 +1263,7 @@ class Game
     check("mutton is food, and a furnace cooks it", raw && cooked && smelts)
     # Each zombie drops 0 to 2, so 10 zombies drop none 1 time in 59049.
     10.times do |i|
-      zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, 90.0, @spawn_z + i, 3)
+      zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
       zombie.hp = 0.0
       zombie.by_player = true
       @mobs << zombie
@@ -1278,7 +1281,7 @@ class Game
   # A dead mob lies on the ground for DEATH_TIME and takes no hits. Then it
   # goes up in smoke.
   def test_mob_death
-    pig = Mob.new(Mob::PIG, @spawn_x + 30.0, 90.0, @spawn_z, 5)
+    pig = Mob.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     @mobs.clear
     @mobs << pig
     pig.hit(100.0, pig.x - 1.0, pig.z)
@@ -1311,7 +1314,7 @@ class Game
   # Items fall and wait before pickup, a full inventory leaves them on the
   # ground, items of one kind join, and lava burns them.
   def test_items(cx, cz)
-    y = 92
+    y = SKY_Y + 2
     dx = -1
     while dx <= 3
       dz = -1
@@ -1358,21 +1361,21 @@ class Game
   end
 
   # Wool does not glow, lava gives light, and water turns lava into cobblestone.
-  # The tint of the face of block b at (cx, 90, cz) in direction f, from
+  # The tint of the face of block b at (cx, SKY_Y, cz) in direction f, from
   # its face record (Mesher.face_tint), or -1 when the mesh has no such face.
   def face_tint(cx, cz, b, f)
-    set_block(cx, 90, cz, b)
+    set_block(cx, SKY_Y, cz, b)
     @mesher.build(cx / CHUNK, cz / CHUNK)
     tint = -1
     k = 0
     while k < @mesher.opaque.size
       w0 = @mesher.opaque[k]
-      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == 90 && Mesher.face_z(w0) == (cz & LMASK) && Mesher.face_dir(w0) == f
+      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == (cz & LMASK) && Mesher.face_dir(w0) == f
         tint = Mesher.face_tint(w0, @mesher.opaque[k + 1])
       end
       k += 2
     end
-    set_block(cx, 90, cz, Block::AIR)
+    set_block(cx, SKY_Y, cz, Block::AIR)
     tint
   end
 
@@ -1393,37 +1396,37 @@ class Game
 
   def test_light_sources(cx, cz)
     # Wool is not a light source.
-    set_block(cx, 90, cz, Block::WOOL)
+    set_block(cx, SKY_Y, cz, Block::WOOL)
     @mesher.build(cx / CHUNK, cz / CHUNK)
     faces = 0
     glow = false
     k = 0
     while k < @mesher.opaque.size
       w0 = @mesher.opaque[k]
-      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == 90 && Mesher.face_z(w0) == (cz & LMASK)
+      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == (cz & LMASK)
         faces += 1
         glow = true if Mesher.face_light(@mesher.opaque[k + 1]) == 14
       end
       k += 2
     end
     check("wool does not glow", faces > 0 && !glow)
-    set_block(cx, 90, cz, Block::AIR)
+    set_block(cx, SKY_Y, cz, Block::AIR)
     lx = @spawn_x.floor - 6
     lz = @spawn_z.floor - 6
     i = -1
     while i <= 1
-      set_block(lx + i, 85, lz, Block::STONE)
-      set_block(lx + i, 86, lz, Block::AIR)
+      set_block(lx + i, SKY_Y - 5, lz, Block::STONE)
+      set_block(lx + i, SKY_Y - 4, lz, Block::AIR)
       i += 1
     end
-    set_block(lx, 86, lz, Block::LAVA)
+    set_block(lx, SKY_Y - 4, lz, Block::LAVA)
     @mesher.build(lx / CHUNK, lz / CHUNK)
-    check("lava lights its surroundings", @mesher.torch_light(lx, 87, lz) == 13)
-    set_block(lx + 1, 86, lz, Block::WATER)
+    check("lava lights its surroundings", @mesher.torch_light(lx, SKY_Y - 3, lz) == 13)
+    set_block(lx + 1, SKY_Y - 4, lz, Block::WATER)
     20.times { update_water }
-    check("water turns lava into cobblestone", @world.get(lx, 86, lz) == Block::COBBLE)
-    set_block(lx + 1, 86, lz, Block::AIR)
-    set_block(lx, 86, lz, Block::AIR)
+    check("water turns lava into cobblestone", @world.get(lx, SKY_Y - 4, lz) == Block::COBBLE)
+    set_block(lx + 1, SKY_Y - 4, lz, Block::AIR)
+    set_block(lx, SKY_Y - 4, lz, Block::AIR)
     20.times { update_water }
   end
 
@@ -1432,17 +1435,17 @@ class Game
     @mobs.clear
     i = -2
     while i <= 12
-      set_block(bx + i, 88, bz, Block::STONE)
+      set_block(bx + i, SKY_Y - 2, bz, Block::STONE)
       i += 1
     end
     @player.x = bx + 0.5
-    @player.y = 89.0
+    @player.y = SKY_Y - 1.0
     @player.z = bz + 0.5
     @player.yaw = 1.5708
     @player.pitch = -0.12
     @inv.clear
     @inv.add(Block::ARROW)
-    pig = Mob.new(Mob::PIG, bx + 8.5, 89.0, bz + 0.5, 3)
+    pig = Mob.new(Mob::PIG, bx + 8.5, SKY_Y - 1.0, bz + 0.5, 3)
     @mobs << pig
     shoot_bow(1.0)
     frames = 0
@@ -1459,8 +1462,8 @@ class Game
     @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
     @slot = 0
     update_hand(0.0)
-    full = Mob.new(Mob::ZOMBIE, bx + 2.5, 89.0, bz + 0.5, 3)
-    quick = Mob.new(Mob::ZOMBIE, bx + 2.5, 89.0, bz + 0.5, 4)
+    full = Mob.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 3)
+    quick = Mob.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 4)
     @mobs << full
     @mobs << quick
     @attack_time = 1.0
@@ -1478,7 +1481,7 @@ class Game
   def test_sneak_and_bed(bx, bz)
     # The platform is one block wide in z: sneaking toward its edge stays on it.
     @player.x = bx + 4.5
-    @player.y = 89.0
+    @player.y = SKY_Y - 1.0
     @player.z = bz + 0.5
     @player.vx = 0.0
     @player.vy = 0.0
@@ -1488,16 +1491,16 @@ class Game
     @player.on_ground = true
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, true, false) }
     @mobs.clear
-    set_block(bx + 6, 89, bz, Block.bed_id(0, true))
+    set_block(bx + 6, SKY_Y - 1, bz, Block.bed_id(0, true))
     @time_of_day = 0.75
     day = @day
-    use_bed(bx + 6, 89, bz)
+    use_bed(bx + 6, SKY_Y - 1, bz)
     check("sleeping in a bed skips the night and sets spawn", daylight > 0.35 && @spawn_x == bx + 6.5 && @day == day + 1)
-    set_block(bx + 6, 89, bz, Block::AIR)
+    set_block(bx + 6, SKY_Y - 1, bz, Block::AIR)
     @time_of_day = 0.3
-    check("sneaking stops at an edge", @player.y > 88.9 && @player.z < bz + 1.4)
+    check("sneaking stops at an edge", @player.y > SKY_Y - 1.1 && @player.z < bz + 1.4)
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, false, false) }
-    check("walking without sneaking falls off", @player.y < 88.0)
+    check("walking without sneaking falls off", @player.y < SKY_Y - 2.0)
   end
 
   # A jump against the shore of a pool 2 deep lifts the player out of the
@@ -1509,9 +1512,9 @@ class Game
     while i <= 3
       k = -2
       while k <= 2
-        set_block(wx + i, 88, wz + k, Block::STONE)
-        y = 89
-        while y <= 94
+        set_block(wx + i, SKY_Y - 2, wz + k, Block::STONE)
+        y = SKY_Y - 1
+        while y <= SKY_Y + 4
           set_block(wx + i, y, wz + k, Block::AIR)
           y += 1
         end
@@ -1519,15 +1522,15 @@ class Game
       end
       i += 1
     end
-    set_block(wx, 89, wz, Block::WATER)
-    set_block(wx, 90, wz, Block::WATER)
-    set_block(wx + 1, 89, wz, Block::WATER)
-    set_block(wx + 1, 90, wz, Block::WATER)
-    set_block(wx + 2, 89, wz, Block::STONE)
-    set_block(wx + 2, 90, wz, Block::STONE)
+    set_block(wx, SKY_Y - 1, wz, Block::WATER)
+    set_block(wx, SKY_Y, wz, Block::WATER)
+    set_block(wx + 1, SKY_Y - 1, wz, Block::WATER)
+    set_block(wx + 1, SKY_Y, wz, Block::WATER)
+    set_block(wx + 2, SKY_Y - 1, wz, Block::STONE)
+    set_block(wx + 2, SKY_Y, wz, Block::STONE)
     @flow_queue.clear
     @player.x = wx + 0.5
-    @player.y = 89.0
+    @player.y = SKY_Y - 1.0
     @player.z = wz + 0.5
     @player.vx = 0.0
     @player.vy = 0.0
@@ -1539,7 +1542,7 @@ class Game
     out = false
     240.times do
       @player.update(@world, 1.0 / 60.0, 1.0, 0.0, true, false, false)
-      out = true if @player.on_ground && @player.y >= 91.0 && @player.x + Player::HALF > wx + 2.0
+      out = true if @player.on_ground && @player.y >= SKY_Y + 1.0 && @player.x + Player::HALF > wx + 2.0
     end
     check("a jump against the shore lifts the player out of the water", out)
   end
@@ -2020,17 +2023,17 @@ class Game
     wz = @spawn_z.floor + 3
     i = -10
     while i <= 10
-      set_block(wx + i, 85, wz, Block::STONE)
-      set_block(wx + i, 86, wz, Block::AIR)
+      set_block(wx + i, SKY_Y - 5, wz, Block::STONE)
+      set_block(wx + i, SKY_Y - 4, wz, Block::AIR)
       i += 1
     end
     @flow_queue.clear
-    set_block(wx, 86, wz, Block::WATER)
+    set_block(wx, SKY_Y - 4, wz, Block::WATER)
     40.times { update_water }
-    check("water spreads 7 blocks over a floor", Block::WATER_LEVEL[@world.get(wx + 7, 86, wz)] == 1 && @world.get(wx + 8, 86, wz) == Block::AIR && Block::WATER_LEVEL[@world.get(wx - 3, 86, wz)] == 5)
-    set_block(wx, 86, wz, Block::AIR)
+    check("water spreads 7 blocks over a floor", Block::WATER_LEVEL[@world.get(wx + 7, SKY_Y - 4, wz)] == 1 && @world.get(wx + 8, SKY_Y - 4, wz) == Block::AIR && Block::WATER_LEVEL[@world.get(wx - 3, SKY_Y - 4, wz)] == 5)
+    set_block(wx, SKY_Y - 4, wz, Block::AIR)
     40.times { update_water }
-    check("water drains when its source is gone", @world.get(wx + 3, 86, wz) == Block::AIR && @world.get(wx - 6, 86, wz) == Block::AIR)
+    check("water drains when its source is gone", @world.get(wx + 3, SKY_Y - 4, wz) == Block::AIR && @world.get(wx - 6, SKY_Y - 4, wz) == Block::AIR)
   end
 
   # Stacks spill into the backpack, and clicks move and merge them.
