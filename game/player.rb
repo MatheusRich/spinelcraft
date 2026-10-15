@@ -64,11 +64,17 @@ class Player
   # Speeds in blocks per second. minecraft.wiki/w/Transportation
   WALK = 4.317
   SPRINT = 5.612
-  # Flight is 4 times as fast as in Minecraft (11, 22 and 7.49), and up and
-  # down 3 times, so the player can look around the world quickly.
-  FLY = 44.0
-  SPRINT_FLY = 88.0
-  FLY_UP = 22.5
+  # Near the ground, flight is as fast as in Minecraft, so the player can
+  # aim: 11 blocks per second, 22 in a sprint, and 7.49 up and down.
+  # Higher up it gets faster, up to FLY_BOOST times as fast at FLY_HIGH
+  # blocks above the ground, so the player can look around the world
+  # quickly. The boost is a choice for Spinelcraft, and it does not copy
+  # Minecraft.
+  FLY = 11.0
+  SPRINT_FLY = 22.0
+  FLY_UP = 7.49
+  FLY_BOOST = 4.0
+  FLY_HIGH = 64.0
   # Swim speeds at the surface, under water, and in a sprint.
   SWIM = 2.2
   SWIM_UNDER = 1.97
@@ -98,6 +104,13 @@ class Player
   # average, but not the push, so the push is tuned to the average.
   SPRINT_JUMP_PUSH = 3.46
 
+  # How many times as fast as in Minecraft the player flies, at the height
+  # of the player above the ground.
+  def fly_boost(world)
+    above = @y - world.height_at(@x.floor, @z.floor)
+    1.0 + (FLY_BOOST - 1.0) * (above / FLY_HIGH).clamp(0.0, 1.0)
+  end
+
   # Moves the player for one step of dt seconds and returns the fall
   # distance when it lands (0.0 otherwise).
   def update(world, dt, fwd, strafe, jump, down, sprint)
@@ -113,8 +126,9 @@ class Player
     # The swim speed holds while the feet are in the liquid, also when the
     # player bobs at the surface and only the feet are under it.
     low = world.get(@x.floor, @y.floor, @z.floor)
+    boost = @flying ? fly_boost(world) : 1.0
     speed = if @flying
-              sprint ? SPRINT_FLY : FLY
+              (sprint ? SPRINT_FLY : FLY) * boost
             elsif @in_lava || Block.lava?(low)
               (Block.lava?(world.get(@x.floor, eye_y.floor, @z.floor)) ? SWIM_UNDER : SWIM) * LAVA
             elsif @in_water || Block.water?(low)
@@ -139,7 +153,7 @@ class Player
     @vz += (wz * speed - @vz) * k
     if @flying
       target = (jump ? 1.0 : 0.0) - (down ? 1.0 : 0.0)
-      @vy += (target * FLY_UP - @vy) * (10.0 * dt).clamp(0.0, 1.0)
+      @vy += (target * FLY_UP * boost - @vy) * (10.0 * dt).clamp(0.0, 1.0)
     elsif climbing
       # Jump or forward climbs, Shift holds on, and nothing slides down.
       @vy = jump || fwd > 0.0 ? CLIMB : (down ? 0.0 : -SLIDE)

@@ -106,6 +106,23 @@ class Game
     end
   end
 
+  # Flight is as fast as in Minecraft at the ground, and gets faster up to
+  # Player::FLY_BOOST times as fast at Player::FLY_HIGH above it.
+  def test_fly_speed(x, z, ground)
+    y = @player.y
+    @player.x = x + 0.5
+    @player.z = z + 0.5
+    @player.y = ground + 1.0
+    low = @player.fly_boost(@world)
+    @player.y = ground + 1.0 + Player::FLY_HIGH / 2.0
+    mid = @player.fly_boost(@world)
+    @player.y = ground + 1.0 + Player::FLY_HIGH * 2.0
+    high = @player.fly_boost(@world)
+    @player.y = y
+    check("flight is slow near the ground and fast high above it",
+          low == 1.0 && mid > 2.0 && mid < 3.0 && high == Player::FLY_BOOST)
+  end
+
   def check(name, ok)
     puts "#{ok ? "PASS" : "FAIL"} #{name}"
     @failures += 1 unless ok
@@ -130,6 +147,7 @@ class Game
     end
     land_falling
     test_falling_and_torches(x, z, ground)
+    test_fly_speed(x, z, ground)
     test_survival(x, z, ground)
     test_monsters
     test_fire
