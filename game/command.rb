@@ -58,15 +58,11 @@ module Command
     none
   end
 
-  # The name of each block and item once, without AIR.
+  # The names of the blocks and items that the creative picker offers.
   def self.item_names
     out = [""]
     out.clear
-    i = 1
-    while i < Block::NAMES.size
-      out << Block::NAMES[i] if find(Block::NAMES, Block::NAMES[i]) == i
-      i += 1
-    end
+    Game::CREATIVE_ITEMS.each { |b| out << Block::NAMES[b] }
     out
   end
 
@@ -129,12 +125,14 @@ module Command
     t > MAX_TICKS ? -1 : t.to_i
   end
 
-  # The block or item that a name means: its name in Block::NAMES with _
-  # for each space, with or without "minecraft:". -1 when no block has it.
+  # The block or item of the creative picker that a name means: its name
+  # in Block::NAMES with _ for each space, with or without "minecraft:".
+  # -1 when the picker has no block with the name, so a part of a block,
+  # such as a door half or a crop, is not an item.
   def self.item(name)
     n = name.start_with?("MINECRAFT:") ? name[10, name.size - 10] : name
-    i = find(Block::NAMES, n.split("_").join(" "))
-    i == Block::AIR ? -1 : i
+    i = find(item_names, n.split("_").join(" "))
+    i < 0 ? -1 : Game::CREATIVE_ITEMS[i]
   end
 
   # The kind of mob with the name, or -1.

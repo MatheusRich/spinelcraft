@@ -277,9 +277,10 @@ class Game
     check("a time is at most 2^31 - 1 ticks, as an int of Minecraft",
           Command.ticks("2147483647") == 2147483647 && Command.ticks("2147483648") == -1 &&
           Command.ticks("99999999999999999999D") == -1)
-    check("an item name is its name with _ for each space",
+    check("an item name is its name with _ for each space, and only the creative picker has items",
           Command.item("DIAMOND_PICKAXE") == Block::DIAMOND_PICK && Command.item("MINECRAFT:WHEAT") == Block::WHEAT &&
-          Command.item("WATER") == Block::WATER && Command.item("AIR") == -1 && Command.item("DIRTT") == -1)
+          Command.item("WATER") == Block::WATER && Command.item("AIR") == -1 && Command.item("DIRTT") == -1 &&
+          Command.item("WHEAT_CROPS") == -1)
     check("a mob name gives its kind", Command.mob("CREEPER") == Mob::CREEPER && Command.mob("MINECRAFT:PIG") == Mob::PIG &&
           Command.mob("GHAST") == -1)
   end
@@ -365,7 +366,8 @@ class Game
     items = Command.complete("/give ")
     check("Tab completes item names in /give and mob names in /summon, also after @s",
           Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper"] &&
-          items.size == Command.item_names.size && items.count("water") == 1 && items.count("wheat") == 1)
+          items.size == CREATIVE_ITEMS.size && items.count("water") == 1 && items.count("wheat") == 1 &&
+          !items.include?("wheat_crops"))
     check("Tab completes the words of /time, /weather and /gamemode",
           Command.complete("/time set n") == ["noon", "night"] && Command.complete("/time q") == ["query"] &&
           Command.complete("/weather r") == ["rain"] && Command.complete("/gamemode c") == ["creative"] &&
