@@ -220,7 +220,7 @@ class Game
   def shear(m)
     m.sheared = true
     loot(m, Block::WOOL, 1 + (@rng.rand01 * 3.0).to_i)
-    play_at(Sfx::CLOTH, m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
+    play_from(m, Sfx::CLOTH, 1.0)
     @swing = 0.25
     wear_tool(1)
   end

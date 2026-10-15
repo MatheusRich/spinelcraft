@@ -255,16 +255,17 @@ class Game
     m.regrow
   end
 
-  # A random monster kind by MONSTER_WEIGHTS.
-  def pick_monster
-    r = @rng.rand01 * MONSTER_WEIGHTS.sum
+  def pick_monster = pick_kind(MONSTER_KINDS, MONSTER_WEIGHTS)
+
+  def pick_kind(kinds, weights)
+    r = @rng.rand01 * weights.sum
     i = 0
-    while i < MONSTER_KINDS.size - 1
-      r -= MONSTER_WEIGHTS[i]
-      return MONSTER_KINDS[i] if r < 0.0
+    while i < kinds.size - 1
+      r -= weights[i]
+      return kinds[i] if r < 0.0
       i += 1
     end
-    MONSTER_KINDS[i]
+    kinds[i]
   end
 
   # True when a monster can spawn in the cell x, y, z: a loaded dark cell
@@ -345,7 +346,7 @@ class Game
     end
     @mobs.each do |m|
       if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
-        play_at(MOB_SOUND[m.kind], m.x, m.y + m.tall * 0.5, m.z, 0.8, SOUND_RANGE)
+        play_from(m, MOB_SOUND[m.kind], 0.8)
       end
       if m.step
         # A mob steps with the sound of the block under it, as the player
@@ -357,7 +358,7 @@ class Game
       end
       if m.hiss
         m.hiss = false
-        play_at(Sfx::FUSE, m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
+        play_from(m, Sfx::FUSE, 1.0)
       end
       if m.shoot
         m.shoot = false
@@ -396,9 +397,9 @@ class Game
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player
       if lived && m.dying?
-        play_at(MOB_DEATH[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
+        play_from(m, MOB_DEATH[m.kind], 1.0)
       elsif m.ouch
-        play_at(MOB_HURT[m.kind], m.x, m.y + m.tall * 0.5, m.z, 1.0, SOUND_RANGE)
+        play_from(m, MOB_HURT[m.kind], 1.0)
       end
       m.ouch = false
       @particles.smoke(m.x, m.y + m.tall * 0.3, m.z, 12, m.tall * 0.6) if !m.alive && m.dying?
@@ -410,6 +411,10 @@ class Game
       d2 = (m.x - @player.x) ** 2 + (m.z - @player.z) ** 2
       !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || (m.passive? ? d2 > 160.0 * 160.0 : despawn?(m, dt))
     end
+  end
+
+  def play_from(m, id, gain)
+    play_at(id, m.x, m.y + m.tall * 0.5, m.z, gain, SOUND_RANGE)
   end
 
   # What a mob that the player killed drops, as in Minecraft: a zombie 0 to
