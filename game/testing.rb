@@ -227,6 +227,7 @@ class Game
     test_command_words
     test_commands
     test_tab_completion
+    test_fly_keys
     test_chips
     test_boats
     test_sounds
@@ -372,6 +373,92 @@ class Game
 
   # Tab completes a command, then the names that the command takes, and
   # each next Tab puts the next name on the line.
+  # The scancode of G, a key that no longer does anything.
+  KEY_G = 10
+
+  # Runs one frame of dt seconds with key down or up, through the key
+  # state that in_poll fills.
+  def key_frame(key, down, dt)
+    Gfx.in_test_key(key, down ? 1 : 0)
+    update_game(dt)
+    Gfx.in_test_frame
+  end
+
+  # Puts the player at rest on the block x, y - 1, z, not flying.
+  def stand_at(x, y, z)
+    @player.x = x + 0.5
+    @player.y = y.to_f
+    @player.z = z + 0.5
+    @player.vx = 0.0
+    @player.vy = 0.0
+    @player.vz = 0.0
+    @player.fall_start = @player.y
+    @player.flying = false
+    @last_jump = -1.0
+  end
+
+  # Two quick presses of Space start and stop flying in creative, through
+  # the real input path. A slow double press and a double press in
+  # survival do not, a landing stops the flight, and R and G no longer
+  # change the rain or the game mode.
+  def test_fly_keys
+    survival = @survival
+    x = @spawn_x.floor
+    z = @spawn_z.floor
+    y = SKY_Y - 10
+    (-2..2).each { |dx| (-2..2).each { |dz| set_block(x + dx, y, z + dz, Block::STONE) } }
+    set_mode(false)
+    stand_at(x, y + 1, z)
+    key_frame(Key::SPACE, true, 0.05)
+    jumped = @player.y > y + 1.0 && !@player.flying
+    key_frame(Key::SPACE, false, 0.05)
+    key_frame(Key::SPACE, true, 0.05)
+    on = @player.flying
+    high = @player.y
+    8.times { key_frame(Key::SPACE, true, 0.05) }
+    rose = @player.y > high + 0.3 && @player.flying
+    key_frame(Key::SPACE, false, 0.05)
+    key_frame(Key::SPACE, true, 0.05)
+    key_frame(Key::SPACE, false, 0.05)
+    key_frame(Key::SPACE, true, 0.05)
+    off = !@player.flying
+    key_frame(Key::SPACE, false, 0.05)
+    check("one Space jumps, two quick presses start and stop flying in creative, and Space held while flying rises",
+          jumped && on && rose && off)
+    stand_at(x, y + 1, z)
+    key_frame(Key::SPACE, true, 0.05)
+    key_frame(Key::SPACE, false, 0.5)
+    key_frame(Key::SPACE, true, 0.05)
+    slow = !@player.flying
+    key_frame(Key::SPACE, false, 0.05)
+    set_mode(true)
+    stand_at(x, y + 1, z)
+    key_frame(Key::SPACE, true, 0.05)
+    key_frame(Key::SPACE, false, 0.05)
+    key_frame(Key::SPACE, true, 0.05)
+    in_survival = !@player.flying
+    key_frame(Key::SPACE, false, 0.05)
+    check("a slow double press, or one in survival, does not start flying", slow && in_survival)
+    set_mode(false)
+    stand_at(x, y + 2, z)
+    @player.flying = true
+    key_frame(Key::SPACE, false, 0.1)
+    aloft = @player.flying
+    20.times { key_frame(Key::LSHIFT, true, 0.05) }
+    key_frame(Key::LSHIFT, false, 0.05)
+    check("a flying player who comes down onto a block stops flying", aloft && !@player.flying && @player.on_ground)
+    rain = @weather.raining?
+    Gfx.in_test_key(Key::R, 1)
+    Gfx.in_test_key(KEY_G, 1)
+    handle_keys
+    Gfx.in_test_frame
+    Gfx.in_test_key(Key::R, 0)
+    Gfx.in_test_key(KEY_G, 0)
+    Gfx.in_test_frame
+    check("R and G no longer change the rain or the game mode", @weather.raining? == rain && !@survival)
+    set_mode(survival)
+  end
+
   def test_tab_completion
     commands = Command.complete("/t")
     check("Tab completes the command names",
