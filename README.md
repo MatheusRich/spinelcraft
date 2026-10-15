@@ -59,7 +59,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
 - Animals, and monsters that come out in the dark.
 - Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
-- Pumpkin patches. Shears carve a face into a pumpkin, and a carved pumpkin and a torch make a jack o'lantern, which lights the night. Pumpkin seeds grow a stem, and the stem grows new pumpkins.
+- Pumpkin patches. Shears carve a face into a pumpkin, and a carved pumpkin and a torch make a jack o'lantern, which lights the night. Pumpkin seeds grow a stem, and the stem grows new pumpkins. On October 31, some monsters wear a pumpkin on their heads.
 - A view distance of up to 5000 blocks.
 - Sounds from VoxeLibre, under free licenses. `assets/sounds/CREDITS.md` names the author and the license of each file.
 
@@ -141,6 +141,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
+| `HALLOWEEN=1` | Play as on October 31: some zombies and skeletons wear a carved pumpkin or a jack o'lantern. With `SHOWMOBS=1`, the zombie and the skeleton wear one |
 | `SELFTEST=1` | Check the game rules and print PASS or FAIL for each, then the totals. The exit status is 1 when a rule fails |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |

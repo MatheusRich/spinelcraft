@@ -79,6 +79,17 @@ class Mesh3
     corner_faces(63, layer, layer, layer, r, g, b, a)
   end
 
+  # A box with the faces of a block on a body, as box: the front (+z, the
+  # front of a mob's model) takes front, and the other sides take side.
+  def block_box(ox, oy, oz, yaw, x0, y0, z0, x1, y1, z1, top, side, bottom, front, r, g, b, a)
+    body_corners(ox, oy, oz, yaw, 0.0, 0.0, 0.0, x0, y0, z0, x1, y1, z1)
+    f = 0
+    while f < 6
+      face_quad(f, f == 2 ? top : (f == 3 ? bottom : (f == 4 ? front : side)), 0.0, 1.0, 0.0, 1.0, r, g, b, a)
+      f += 1
+    end
+  end
+
   # The box of box with the skin of a mob (layer Tex::SKINS + k) in the
   # layout of Minecraft: a box of w x h x d skin pixels at u, v. The front
   # of the body is +z, and its right is -x. mirror swaps the right and the

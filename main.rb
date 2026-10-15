@@ -140,6 +140,9 @@ class Game
     # The days since the world started, as Minecraft's daytime / 24000.
     # minecraft.wiki/w/Daylight_cycle
     @day = (ENV["DAY"] || "0").to_i
+    # October 31 on the computer's clock, or HALLOWEEN=1.
+    now = Time.now
+    @halloween = ENV["HALLOWEEN"] == "1" || (now.month == 10 && now.day == 31)
     @action_cooldown = 0.0
     @message = ""
     @message_time = 0.0

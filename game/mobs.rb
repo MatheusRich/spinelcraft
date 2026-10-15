@@ -60,6 +60,9 @@ class Mob
   attr_reader :panic
   # How far the legs swing, from 0 at rest to 1 at a walk or faster.
   attr_reader :leg_swing
+  # The block that the mob wears on its head (a carved pumpkin on
+  # Halloween), or 0.
+  attr_accessor :head
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -98,6 +101,7 @@ class Mob
     @panic = 0.0
     @leg_swing = 0.0
     @stuck = 0.0
+    @head = 0
   end
 
   def passive? = PASSIVE[@kind] == 1
@@ -424,6 +428,11 @@ class Mob
     part(mesh, l, -leg, 12.0, 0.0, swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, false, 1.0, red, red)
     part(mesh, l, leg, 12.0, 0.0, -swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, true, 1.0, red, red)
     mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0) if thin
+    # A block on the head is 1 pixel larger on each side than the head.
+    if @head > 0
+      mesh.block_box(@x, @y, @z, @yaw, -0.3125, 1.4375, -0.3125, 0.3125, 2.0625, 0.3125,
+                     Block::TOP[@head], Block::SIDE[@head], Block::BOTTOM[@head], Block::FRONT[@head], 1.0, red, red, 1.0)
+    end
   end
 
   # One box of the Minecraft model: w x h x d pixels at bx, by, bz from the

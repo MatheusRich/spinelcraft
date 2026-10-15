@@ -24,6 +24,8 @@ class Game
     [Mob::PIG, Mob::SHEEP, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
       m = Mob.new(kind, bx - 4.0 + i * 2.0, y + 1.0, bz + 0.5, 1)
       m.yaw = 3.14159
+      # On Halloween, the zombie wears a carved pumpkin and the skeleton a jack o'lantern.
+      m.head = kind == Mob::ZOMBIE ? Block::CARVED_PUMPKIN : Block::JACK_O_LANTERN if @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
       @mobs << m
     end
     @player.x = bx + 0.5
@@ -2335,6 +2337,16 @@ class Game
       grown = (0...4).count { |d| @world.get(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d]) == Block::PUMPKIN }
     end
     check("a ripe stem grows one pumpkin next to it", grown == 1)
+    halloween = @halloween
+    @halloween = true
+    heads = Array.new(Block::COUNT, 0)
+    4000.times { heads[halloween_head(Mob::ZOMBIE)] += 1 }
+    creeper = (0...100).all? { halloween_head(Mob::CREEPER) == 0 }
+    @halloween = false
+    other_days = (0...100).all? { halloween_head(Mob::SKELETON) == 0 }
+    @halloween = halloween
+    check("on Halloween, about 22.5% of zombies wear a carved pumpkin and 2.5% a jack o'lantern",
+          (heads[Block::CARVED_PUMPKIN] - 900).abs < 120 && (heads[Block::JACK_O_LANTERN] - 100).abs < 45 && creeper && other_days)
     (-3..3).each { |dx| (-3..3).each { |dz| (0..2).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
     @items.clear
   end

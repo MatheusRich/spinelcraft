@@ -198,7 +198,9 @@ class Game
         x += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         z += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         if monster_fits?(x, y, z, sky)
-          @mobs << Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
+          m = Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
+          m.head = halloween_head(kind)
+          @mobs << m
           spawned += 1
           return spawned if spawned >= room
         end
@@ -207,6 +209,19 @@ class Game
       pack += 1
     end
     spawned
+  end
+
+  # On Halloween, a zombie or a skeleton wears a carved pumpkin 22.5% of
+  # the time and a jack o'lantern 2.5% of the time. minecraft.wiki/w/Halloween
+  HALLOWEEN_CARVED = 0.225
+  HALLOWEEN_JACK = 0.025
+
+  # What a new monster of kind wears on its head, or 0 for nothing.
+  def halloween_head(kind)
+    return 0 unless @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
+    r = @rng.rand01
+    return Block::JACK_O_LANTERN if r < HALLOWEEN_JACK
+    r < HALLOWEEN_JACK + HALLOWEEN_CARVED ? Block::CARVED_PUMPKIN : 0
   end
 
   # A random monster kind by MONSTER_WEIGHTS.
