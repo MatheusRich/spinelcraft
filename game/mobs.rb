@@ -276,6 +276,9 @@ class Mob
         @step = true
       end
     end
+    # A mob that died in this step, in fire or in lava, starts its death
+    # clock now. So Game#update_mobs sees it die once, and drops its loot once.
+    @death = dt if dying? && @death == 0.0
     @alive = false if @death >= DEATH_TIME || @y < -10.0
     damage
   end

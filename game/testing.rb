@@ -1951,6 +1951,21 @@ class Game
     collect_items
     check("a pig that the player kills drops 1 to 3 porkchops", dropped && @inv.total(Block::PORKCHOP) == n)
     @items.clear
+    # A pig that the player hurt dies in lava, so the lava kills it inside
+    # Mob#update_mob. It drops its loot once. update_mobs does not merge the
+    # items, so a second drop shows as a second stack.
+    lx = (@spawn_x + 30.0).floor
+    lz = (@spawn_z + 3.0).floor
+    set_block(lx, SKY_Y, lz, Block::LAVA)
+    burnt = Mob.new(Mob::PIG, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
+    burnt.hp = 1.0
+    burnt.by_player = true
+    @mobs << burnt
+    10.times { update_mobs(1.0 / 60.0) }
+    set_block(lx, SKY_Y, lz, Block::AIR)
+    stacks = @items.count { |i| i.block == Block::PORKCHOP }
+    check("a mob that dies in lava drops its loot once", burnt.dying? && stacks == 1)
+    @items.clear
     sheep = Mob.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     sheep.hp = 0.0
     sheep.by_player = true
