@@ -1,15 +1,17 @@
-# Particles: block chips, flames, smoke, embers and effect specks. Each one
+# Particles: block chips, flames, smoke, embers, effect specks and the
+# sparks of a critical hit. Each one
 # is a small square that faces the camera. Burning mobs, torches, lava and
 # explosions make the flames and the smoke.
 class Particle
   # Particle kinds. Chips, embers and drops of rain fall; flames, smoke and
-  # effect specks rise.
+  # effect specks rise; the sparks of a critical hit fly out and slow down.
   CHIP = 0
   FLAME = 1
   SMOKE = 2
   EMBER = 3
   DROP = 4
   EFFECT = 5
+  CRIT = 6
 
   attr_reader :kind
 
@@ -41,11 +43,13 @@ class Particle
 
   def update(world, dt)
     @life -= dt
-    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT
-      # Flames, smoke and effect specks rise and slow down sideways.
-      k = 1.0 - (2.0 * dt).clamp(0.0, 1.0)
+    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT || @kind == CRIT
+      # Flames, smoke and effect specks rise and slow down sideways. Sparks
+      # slow down fast in all directions.
+      k = 1.0 - ((@kind == CRIT ? 6.0 : 2.0) * dt).clamp(0.0, 1.0)
       @vx *= k
       @vz *= k
+      @vy *= k if @kind == CRIT
       @x += @vx * dt
       @y += @vy * dt
       @z += @vz * dt
@@ -83,6 +87,8 @@ class Particle
       mesh.billboard(@x, @y, @z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, c, c, c, 1.0)
     when DROP
       mesh.billboard(@x, @y, @z, 0.035, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.7, 0.78, 0.95, 1.0)
+    when CRIT
+      mesh.billboard(@x, @y, @z, 0.03 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.85, 0.85, 0.8, 1.0)
     when EFFECT
       # The dull green #587653 of the Hunger effect. minecraft.wiki/w/Hunger_(effect)
       mesh.billboard(@x, @y, @z, 0.02, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.345, 0.463, 0.325, 1.0)
@@ -189,6 +195,18 @@ class Particles
       r = 0.4 + @rng.rand01 * 0.3
       add(Particle::EFFECT, x + Math.sin(a) * r, eye_y - 0.8 + @rng.rand01, z - Math.cos(a) * r,
           0.0, 0.1 + @rng.rand01 * 0.2, 0.0, 0.4 + @rng.rand01 * 1.6, Tex::PUFF)
+    end
+  end
+
+  # The sparks of a critical hit, which fly out of the mob from x, y, z.
+  # The wiki does not give their number or speed, so 16 that live up to
+  # half a second are a guess.
+  def crit(x, y, z)
+    16.times do
+      vx = @rng.rand01 * 2.0 - 1.0
+      vy = @rng.rand01 * 2.0 - 1.0
+      vz = @rng.rand01 * 2.0 - 1.0
+      add(Particle::CRIT, x, y, z, vx * 4.0, vy * 4.0 + 1.0, vz * 4.0, 0.2 + @rng.rand01 * 0.3, Tex::PUFF)
     end
   end
 

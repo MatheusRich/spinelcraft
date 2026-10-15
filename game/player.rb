@@ -3,6 +3,8 @@ class Player
   HALF = 0.3
   TALL = 1.8
   EYE = 1.62
+  # A sneaking player's eyes are 0.35 lower. minecraft.wiki/w/Sneaking
+  SNEAK_EYE = 1.27
   # How far the player reaches blocks, and mobs, in survival.
   # minecraft.wiki/w/Player
   REACH = 4.5
@@ -20,6 +22,8 @@ class Player
   attr_accessor :slowed
   # True when the last step started a jump.
   attr_reader :jumped
+  # True while the player climbs a ladder, and while the player sprints.
+  attr_reader :climbing, :sprinting
 
   def initialize(x, y, z)
     @x = x
@@ -39,6 +43,9 @@ class Player
     # True when the last step ran into a wall in x or z.
     @against_wall = false
     @jumped = false
+    @climbing = false
+    @sprinting = false
+    @eye = EYE
     @fall_start = y
     @hit = false
     @hit_t = 0.0
@@ -50,7 +57,12 @@ class Player
     @pz = 0
   end
 
-  def eye_y = @y + EYE
+  def eye_y = @y + @eye
+
+  # True when an attack now is a critical hit, if the attack cooldown is
+  # full enough: the player falls, and is not on a ladder, in water, flying
+  # or sprinting. minecraft.wiki/w/Damage
+  def falling_attack? = @vy < 0.0 && !@on_ground && !@climbing && !@in_water && !@flying && !@sprinting
   def fx = Math.sin(@yaw) * Math.cos(@pitch)
   def fy = Math.sin(@pitch)
   def fz = -Math.cos(@yaw) * Math.cos(@pitch)
@@ -107,8 +119,12 @@ class Player
     # The feet or the body in a ladder cell: the player climbs to the top.
     climbing = !@flying && (Block::BASE[world.get(@x.floor, @y.floor, @z.floor)] == Block::LADDER ||
                             Block::BASE[world.get(@x.floor, (@y + 1.0).floor, @z.floor)] == Block::LADDER)
+    @climbing = climbing
     @sneaking = down && !@flying && @on_ground
     sprint = false if @sneaking || @slowed
+    @sprinting = sprint
+    # The eyes move down or up over about a tenth of a second.
+    @eye += ((@sneaking ? SNEAK_EYE : EYE) - @eye) * (dt * 20.0).clamp(0.0, 1.0)
     @jumped = false
     # The swim speed holds while the feet are in the liquid, also when the
     # player bobs at the surface and only the feet are under it.

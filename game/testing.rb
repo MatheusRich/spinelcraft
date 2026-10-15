@@ -1520,6 +1520,18 @@ class Game
     @target_mob = 1
     left_button(0.0, true, true)
     check("a hit right after an attack does less damage", full.hp == 16.0 && quick.hp > 19.0 && quick.hp < 19.2)
+    falling = Mob.new(Mob::ZOMBIE, bx + 2.5, 89.0, bz + 0.5, 5)
+    @mobs << falling
+    @attack_time = 1.0
+    @player.on_ground = false
+    @player.in_water = false
+    @player.vy = -2.0
+    sparks = @particles.count(Particle::CRIT)
+    @target_mob = 2
+    left_button(0.0, true, true)
+    @player.vy = 0.0
+    @player.on_ground = true
+    check("a falling attack is a critical hit: 1.5 times the damage, with sparks", falling.hp == 14.0 && @particles.count(Particle::CRIT) > sparks)
     @inv.clear
     @mobs.clear
     @survival = survival
@@ -1538,6 +1550,7 @@ class Game
     @player.flying = false
     @player.on_ground = true
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, true, false) }
+    low = (@player.eye_y - @player.y - Player::SNEAK_EYE).abs < 0.01
     @mobs.clear
     set_block(bx + 6, 89, bz, Block.bed_id(0, true))
     @time_of_day = 0.75
@@ -1549,6 +1562,7 @@ class Game
     check("sneaking stops at an edge", @player.y > 88.9 && @player.z < bz + 1.4)
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, false, false) }
     check("walking without sneaking falls off", @player.y < 88.0)
+    check("a sneaking player's eyes are lower, and come back up", low && (@player.eye_y - @player.y - Player::EYE).abs < 0.01)
   end
 
   # A jump against the shore of a pool 2 deep lifts the player out of the

@@ -106,7 +106,13 @@ class Game
       if pressed
         mob = @mobs[@target_mob]
         charge = attack_charge
-        mob.hit(@survival ? Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge) : 10.0, @player.x, @player.z)
+        damage = @survival ? Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge) : 10.0
+        # A falling attack with the cooldown at 84.8% or more is a critical
+        # hit: 1.5 times the damage. minecraft.wiki/w/Damage
+        crit = charge >= 0.848 && @player.falling_attack?
+        damage *= 1.5 if crit
+        mob.hit(damage, @player.x, @player.z)
+        @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if crit
         @attack_time = 0.0
         wear_tool(Block.wear(current_block.to_i, true))
         @vitals.exhaust(Vitals::ATTACK_COST) if @survival
