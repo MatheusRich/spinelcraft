@@ -163,6 +163,7 @@ class Game
     @failures = 0
     test_spawn
     test_sandstone
+    test_desert_well
     x = @spawn_x.floor + 2
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
@@ -276,6 +277,24 @@ class Game
     craft_recipe(recipe_for(Block::SANDSTONE))
     check("4 sand make a sandstone", @inv.total(Block::SAND) == 1 && @inv.total(Block::SANDSTONE) == 1)
     @inv.clear
+  end
+
+  # A desert well has the blocks of minecraft.wiki/w/Desert_Well/Structure:
+  # 89 sandstone and 12 slabs, which are sandstone here, 4 sand and 2
+  # suspicious sand, which are sand here, and 5 water. The water is a
+  # cross with air above it.
+  def test_desert_well
+    counts = Array.new(Block::COUNT, 0)
+    (-2..4).each do |dy|
+      (-World::WELL_REACH..World::WELL_REACH).each do |dx|
+        (-World::WELL_REACH..World::WELL_REACH).each { |dz| counts[@world.well_block(dx, dy, dz)] += 1 }
+      end
+    end
+    cross = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].all? do |c|
+      @world.well_block(c[0].to_i, 0, c[1].to_i) == Block::WATER && @world.well_block(c[0].to_i, 1, c[1].to_i) == Block::AIR
+    end
+    check("a desert well has the blocks of Minecraft's",
+          counts[Block::SANDSTONE] == 101 && counts[Block::SAND] == 6 && counts[Block::WATER] == 5 && cross)
   end
 
   # The terrain tables are read by position, so each must have one entry

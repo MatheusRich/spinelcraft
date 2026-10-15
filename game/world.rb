@@ -1095,6 +1095,77 @@ class World
       end
       lx += 1
     end
+    if Noise.hash3(cx, 3, cz, 40) < WELL_ODDS
+      span = CHUNK - WELL_REACH * 2
+      wx = x0 + WELL_REACH + Noise.hash3(cx, 4, cz, 40) % span
+      wz = z0 + WELL_REACH + Noise.hash3(cx, 5, cz, 40) % span
+      top = well_top(wx, wz)
+      well(wx, top, wz, x0, z0) if top >= 0
+    end
+  end
+
+  # A desert well in about 1 of 1000 chunks (minecraft.wiki/w/Desert_Well).
+  # Its center stays WELL_REACH blocks from the chunk edges, so the well
+  # does not need the chunks next door.
+  WELL_ODDS = 65536 / 1000
+  WELL_REACH = 2
+
+  # The y of the top block at the center of a well at x, z, or -1. Each
+  # column under the well is desert sand, as high as the center or 1
+  # higher, so no part of the well hangs over air.
+  def well_top(x, z)
+    h = surface_height(x, z)
+    dx = -WELL_REACH
+    while dx <= WELL_REACH
+      dz = -WELL_REACH
+      while dz <= WELL_REACH
+        ch = surface_height(x + dx, z + dz)
+        return -1 if ch < h || ch > h + 1 || beach?(ch - 1)
+        biome = biome(x + dx, z + dz, ch)
+        return -1 if biome != Biome::DESERT || top_block(x + dx, z + dz, ch, biome) != Block::SAND
+        return -1 if entrance?(x + dx, z + dz) && carved?(x + dx, ch - 1, z + dz)
+        dz += 1
+      end
+      dx += 1
+    end
+    h - 1
+  end
+
+  # Puts a desert well on the top block top at x, z, as in Minecraft
+  # (minecraft.wiki/w/Desert_Well/Structure). The game has no slabs, so
+  # sandstone takes their place.
+  def well(x, top, z, x0, z0)
+    dy = -2
+    while dy <= 4
+      dx = -WELL_REACH
+      while dx <= WELL_REACH
+        dz = -WELL_REACH
+        while dz <= WELL_REACH
+          put(x + dx, top + dy, z + dz, well_block(dx, dy, dz), x0, z0)
+          dz += 1
+        end
+        dx += 1
+      end
+      dy += 1
+    end
+  end
+
+  # The block of a well at dx, dz from its center and dy from its top
+  # block. Two layers of sandstone go under a cross of sand, the cross
+  # holds water at the ground, and a rim 1 high goes around it. Pillars on
+  # the 4 corners of the 3 x 3 around the cross hold a roof of 3 x 3.
+  # Under the center, 2 blocks are suspicious sand in Minecraft. The game
+  # has no suspicious sand, so plain sand takes its place.
+  def well_block(dx, dy, dz)
+    cross = dx.abs + dz.abs <= 1
+    if dy <= 1
+      return dx == 0 && dz == 0 ? Block::SAND : Block::SANDSTONE if dy == -2
+      return Block::SANDSTONE unless cross
+      return Block::SAND if dy == -1
+      return dy == 0 ? Block::WATER : Block::AIR
+    end
+    return dx.abs <= 1 && dz.abs <= 1 ? Block::SANDSTONE : Block::AIR if dy == 4
+    dx.abs == 1 && dz.abs == 1 ? Block::SANDSTONE : Block::AIR
   end
 
   # Writes a generated block when it is inside chunk x0, z0. While
