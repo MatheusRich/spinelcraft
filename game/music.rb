@@ -6,12 +6,12 @@ class Music
   # and the tracks from MINING on play underground.
   FILES = ["DarkReaven-calmed_cube", "Jester-Hailing_Forest", "exhale_and_tim_unwin-lonely_blossom",
            "Jester-Flock-of-One", "diminixed-pianowtune02", "DarkReaven-magic_of_the_forest",
-           "DarkReaven-deep_mining", "Jester-0dd-BL0ck"]
+           "DarkReaven-deep_mining", "Jester-0dd-BL0ck", "DarkReaven-beat_at_nightfall", "DarkReaven-watchful"]
   MINING = 6
   # The gain of each track in dB, in the order of FILES. It sets the
   # integrated loudness of each track to -23 LUFS, so that all tracks are
   # equally loud.
-  GAINS = [-9.5, -6.7, -4.2, -6.3, -2.4, -8.1, -7.6, -5.4]
+  GAINS = [-9.5, -6.7, -4.2, -6.3, -2.4, -8.1, -7.6, -5.4, -1.6, -4.5]
   # Seconds before the first track. Minecraft Java waits 100 ticks before
   # the first track; minecraft.wiki/w/Music does not confirm it.
   FIRST_WAIT = 5.0

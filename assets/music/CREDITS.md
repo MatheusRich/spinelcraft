@@ -21,3 +21,5 @@ Each file keeps its license.
 | --- | --- | --- | --- |
 | `DarkReaven-deep_mining.ogg` | Deep Mining | Dark Reaven Music | CC BY-SA 3.0 |
 | `Jester-0dd-BL0ck.ogg` | 0dd BL0ck | Jester | CC BY-SA 4.0 |
+| `DarkReaven-beat_at_nightfall.ogg` | Beat at Nightfall | Dark Reaven Music | CC BY-SA 3.0 |
+| `DarkReaven-watchful.ogg` | Watchful | Dark Reaven Music | CC BY-SA 3.0 |
