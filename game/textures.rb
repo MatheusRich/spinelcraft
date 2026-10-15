@@ -1,136 +1,183 @@
-# Procedural 16x16 textures, all generated at start-up into one texture array.
+# The 16x16 textures, all loaded or drawn at start-up into one texture array.
 module Tex
-  WHITE = 0
-  GRASS_TOP = 1
-  GRASS_SIDE = 2
-  DIRT = 3
-  STONE = 4
-  SAND = 5
-  WATER = 6
-  OAK_LOG_SIDE = 7
-  OAK_LOG_TOP = 8
-  OAK_LEAVES = 9
-  OAK_PLANKS = 10
-  COBBLE = 11
-  GLASS = 12
-  SNOW = 13
-  SNOW_SIDE = 14
-  BEDROCK = 15
-  BRICK = 16
-  COAL_ORE = 17
-  IRON = 18
-  GRAVEL = 19
-  DIAMOND = 20
-  CACTUS_SIDE = 21
-  CACTUS_TOP = 22
-  HEART = 23
-  HEART_EMPTY = 24
-  COAL = 25
-  CRACK = 26
+  # The image in assets/pixel-perfection of each layer, or "" for a layer
+  # that the code draws. Each layer below takes the next free number.
+  LAYER_FILES = []
+  # 1 for a layer with clear pixels: Tex.bleed gives them a color.
+  BLEED = []
+  # The HUD icons (see ICON_SIZE), and the image of each.
+  ICON_LAYERS = []
+  ICON_FILES = []
+
+  def self.add_layer(file, bleed)
+    LAYER_FILES << file
+    BLEED << bleed
+    LAYER_FILES.size - 1
+  end
+
+  # A layer from an image; it gives the number of the layer.
+  def self.image(file, bleed: 0) = add_layer(file, bleed)
+
+  # A layer from each image, in a row; it gives the number of the first.
+  def self.image_series(files)
+    first = LAYER_FILES.size
+    i = 0
+    while i < files.size
+      add_layer(files[i], 0)
+      i += 1
+    end
+    first
+  end
+
+  # n layers that the code draws; it gives the number of the first.
+  def self.drawn(n, bleed: 0)
+    first = LAYER_FILES.size
+    i = 0
+    while i < n
+      add_layer("", bleed)
+      i += 1
+    end
+    first
+  end
+
+  # A HUD icon from an image (see ICON_SIZE).
+  def self.hud_icon(file)
+    ICON_LAYERS << LAYER_FILES.size
+    ICON_FILES << file
+    add_layer("", 0)
+  end
+
+  WHITE = drawn(1)
+  GRASS_TOP = image("grass_top")
+  GRASS_SIDE = image("grass_side")
+  DIRT = image("dirt")
+  STONE = image("stone")
+  SAND = image("sand")
+  WATER = image("water")
+  OAK_LOG_SIDE = image("oak_log_side")
+  OAK_LOG_TOP = image("oak_log_top")
+  OAK_LEAVES = image("oak_leaves", bleed: 1)
+  OAK_PLANKS = image("oak_planks")
+  COBBLE = image("cobble")
+  GLASS = image("glass", bleed: 1)
+  SNOW = image("snow")
+  SNOW_SIDE = image("snow_side")
+  BEDROCK = image("bedrock")
+  BRICK = image("brick")
+  COAL_ORE = image("coal_ore")
+  IRON = image("iron")
+  GRAVEL = image("gravel")
+  DIAMOND = image("diamond")
+  CACTUS_SIDE = image("cactus_side")
+  CACTUS_TOP = image("cactus_top")
+  HEART = hud_icon("heart")
+  HEART_EMPTY = hud_icon("heart_empty")
+  COAL = image("coal")
   CRACK_STAGES = 8
-  TALL_GRASS = 34
-  ROSE = 35
-  DANDELION = 36
-  TORCH = 37
-  PORKCHOP = 38
-  WOOD_PICK = 39
-  STONE_PICK = 40
-  IRON_PICK = 41
-  DIAMOND_PICK = 42
-  BOW = 43
-  ARROW = 44
-  LAVA = 45
-  WOOL = 46
-  BED_TOP = 47
-  BED_SIDE = 48
-  CHEST_TOP = 49
-  CHEST_SIDE = 50
+  CRACK = drawn(CRACK_STAGES)
+  TALL_GRASS = image("tall_grass", bleed: 1)
+  ROSE = image("rose", bleed: 1)
+  DANDELION = image("dandelion", bleed: 1)
+  TORCH = image("torch")
+  PORKCHOP = image("porkchop")
+  WOOD_PICK = image("wood_pick")
+  STONE_PICK = image("stone_pick")
+  IRON_PICK = image("iron_pick")
+  DIAMOND_PICK = image("diamond_pick")
+  BOW = image("bow")
+  ARROW = image("arrow")
+  LAVA = image("lava")
+  WOOL = image("wool")
+  BED_TOP = image("bed_top")
+  BED_SIDE = image("bed_side", bleed: 1)
+  CHEST_TOP = image("chest_top", bleed: 1)
+  CHEST_SIDE = image("chest_side", bleed: 1)
   # Flame tongues, and a round puff for smoke.
-  FIRE = 51
-  PUFF = 52
+  FIRE = image("fire", bleed: 1)
+  PUFF = drawn(1, bleed: 1)
   # Streaks of rain on a clear background.
-  RAIN = 53
-  DOOR_LOWER = 54
-  DOOR_UPPER = 55
-  OAK_SAPLING = 56
-  APPLE = 57
-  WOOD_SWORD = 58
-  STONE_SWORD = 59
-  IRON_SWORD = 60
-  DIAMOND_SWORD = 61
-  IRON_INGOT = 62
-  FURNACE = 63
-  COOKED_PORKCHOP = 64
-  WOOD_AXE = 65
-  STONE_AXE = 66
-  IRON_AXE = 67
-  DIAMOND_AXE = 68
-  WOOD_SHOVEL = 69
-  STONE_SHOVEL = 70
-  IRON_SHOVEL = 71
-  DIAMOND_SHOVEL = 72
-  SEEDS = 73
-  WHEAT_1 = 74
-  WHEAT_2 = 75
-  WHEAT_RIPE = 76
-  WHEAT = 77
-  BREAD = 78
-  CRAFT_TOP = 79
-  CRAFT_SIDE = 80
-  LADDER = 81
+  RAIN = drawn(1, bleed: 1)
+  DOOR_LOWER = image("door_lower")
+  DOOR_UPPER = image("door_upper")
+  OAK_SAPLING = image("oak_sapling", bleed: 1)
+  APPLE = image("apple")
+  WOOD_SWORD = image("wood_sword")
+  STONE_SWORD = image("stone_sword")
+  IRON_SWORD = image("iron_sword")
+  DIAMOND_SWORD = image("diamond_sword")
+  IRON_INGOT = image("iron_ingot")
+  FURNACE = image("furnace")
+  COOKED_PORKCHOP = image("cooked_porkchop")
+  WOOD_AXE = image("wood_axe")
+  STONE_AXE = image("stone_axe")
+  IRON_AXE = image("iron_axe")
+  DIAMOND_AXE = image("diamond_axe")
+  WOOD_SHOVEL = image("wood_shovel")
+  STONE_SHOVEL = image("stone_shovel")
+  IRON_SHOVEL = image("iron_shovel")
+  DIAMOND_SHOVEL = image("diamond_shovel")
+  SEEDS = image("seeds", bleed: 1)
+  WHEAT_1 = image("wheat_1", bleed: 1)
+  WHEAT_2 = image("wheat_2", bleed: 1)
+  WHEAT_RIPE = image("wheat_ripe", bleed: 1)
+  WHEAT = image("wheat")
+  BREAD = image("bread")
+  CRAFT_TOP = image("craft_top")
+  CRAFT_SIDE = image("craft_side")
+  LADDER = image("ladder")
   # Nothing paints this layer, so it is fully transparent.
-  CLEAR = 82
-  BUCKET = 83
-  WATER_BUCKET = 84
-  LAVA_BUCKET = 85
-  BED_HEAD_TOP = 86
-  FURNACE_SIDE = 87
-  FURNACE_TOP = 88
-  DOOR_ITEM = 89
-  CHEST_FRONT = 90
-  BED_HEAD_SIDE = 91
+  CLEAR = drawn(1)
+  BUCKET = image("bucket")
+  WATER_BUCKET = image("water_bucket")
+  LAVA_BUCKET = image("lava_bucket")
+  BED_HEAD_TOP = image("bed_head_top")
+  FURNACE_SIDE = image("furnace_side")
+  FURNACE_TOP = image("furnace_top")
+  DOOR_ITEM = image("door_item")
+  CHEST_FRONT = image("chest_front", bleed: 1)
+  BED_HEAD_SIDE = image("bed_head_side", bleed: 1)
   # The ends of a bed: the foot of the foot half, and the head of the head half.
-  BED_FOOT_END = 92
-  BED_HEAD_END = 93
-  BED_ITEM = 94
-  FURNACE_LIT = 95
-  ROTTEN_FLESH = 96
-  SPRUCE_LOG_SIDE = 97
-  SPRUCE_LOG_TOP = 98
-  SPRUCE_LEAVES = 99
-  SPRUCE_PLANKS = 100
-  SPRUCE_SAPLING = 101
-  BIRCH_LOG_SIDE = 102
-  BIRCH_LOG_TOP = 103
-  BIRCH_LEAVES = 104
-  BIRCH_PLANKS = 105
-  BIRCH_SAPLING = 106
+  BED_FOOT_END = image("bed_foot_end", bleed: 1)
+  BED_HEAD_END = image("bed_head_end", bleed: 1)
+  BED_ITEM = image("bed_item")
+  FURNACE_LIT = image("furnace_lit")
+  ROTTEN_FLESH = image("rotten_flesh")
+  SPRUCE_LOG_SIDE = image("spruce_log_side")
+  SPRUCE_LOG_TOP = image("spruce_log_top")
+  SPRUCE_LEAVES = image("spruce_leaves", bleed: 1)
+  SPRUCE_PLANKS = image("spruce_planks")
+  SPRUCE_SAPLING = image("spruce_sapling", bleed: 1)
+  BIRCH_LOG_SIDE = image("birch_log_side")
+  BIRCH_LOG_TOP = image("birch_log_top")
+  BIRCH_LEAVES = image("birch_leaves", bleed: 1)
+  BIRCH_PLANKS = image("birch_planks")
+  BIRCH_SAPLING = image("birch_sapling", bleed: 1)
   # The moon in each phase: MOON + 0 is the full moon, in the order of
   # MOON_LIT.
-  MOON = 107
-  MUTTON = 115
-  COOKED_MUTTON = 116
+  MOON = image_series(%w[moon_0 moon_1 moon_2 moon_3 moon_4 moon_5 moon_6 moon_7])
+  MUTTON = image("mutton")
+  COOKED_MUTTON = image("cooked_mutton")
   # The full and the empty food icon of the HUD, and the full icon while
   # the Hunger effect lasts (see ICON_LAYERS).
-  HUNGER = 117
-  HUNGER_EMPTY = 118
-  HUNGER_EFFECT = 119
-  OAK_BOAT = 120
-  SPRUCE_BOAT = 121
-  BIRCH_BOAT = 122
-  PUMPKIN_SIDE = 123
-  PUMPKIN_TOP = 124
+  HUNGER = hud_icon("hunger")
+  HUNGER_EMPTY = hud_icon("hunger_empty")
+  HUNGER_EFFECT = hud_icon("hunger_effect")
+  OAK_BOAT = image("oak_boat")
+  SPRUCE_BOAT = image("spruce_boat")
+  BIRCH_BOAT = image("birch_boat")
+  PUMPKIN_SIDE = image("pumpkin_side")
+  PUMPKIN_TOP = image("pumpkin_top")
   # The carved face of a pumpkin, and of a jack o'lantern with its light.
-  PUMPKIN_FACE = 125
-  JACK_FACE = 126
-  SHEARS = 127
-  PUMPKIN_SEEDS = 128
+  PUMPKIN_FACE = image("pumpkin_face")
+  JACK_FACE = image("jack_face")
+  SHEARS = image("shears")
+  PUMPKIN_SEEDS = image("pumpkin_seeds")
   # A young stem is green, and a ripe stem yellow.
-  PUMPKIN_STEM = 129
-  PUMPKIN_STEM_RIPE = 130
-  FONT = 131
+  PUMPKIN_STEM = image("pumpkin_stem", bleed: 1)
+  PUMPKIN_STEM_RIPE = image("pumpkin_stem_ripe", bleed: 1)
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_"
-  LAYERS = FONT + CHARS.size
+  FONT = drawn(CHARS.size)
+  LAYERS = LAYER_FILES.size
 
   # How a layer's texture scrolls: 0 not at all, 1 like water, 2 like lava.
   # The mesher puts it in bits 23-24 of a face record for the shader.
@@ -177,51 +224,22 @@ module Tex
     px[layer * 256 + y * 16 + x] = rgba(r, g, b, a)
   end
 
-  # The layers that come from the images in assets/pixel-perfection, and the
-  # name of each image, in the same order.
-  IMAGE_LAYERS = [GRASS_TOP, GRASS_SIDE, DIRT, STONE, SAND, WATER, OAK_LOG_SIDE, OAK_LOG_TOP, OAK_LEAVES, OAK_PLANKS, COBBLE, GLASS,
-                  SNOW, SNOW_SIDE, BEDROCK, BRICK, COAL_ORE, IRON, GRAVEL, DIAMOND, CACTUS_SIDE, CACTUS_TOP, TALL_GRASS,
-                  ROSE, DANDELION, TORCH, PORKCHOP, WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, BOW, ARROW, LAVA,
-                  WOOL, FIRE, OAK_SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE,
-                  COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL,
-                  DIAMOND_SHOVEL, SEEDS, WHEAT_1, WHEAT_2, WHEAT_RIPE, WHEAT, BREAD, CRAFT_TOP, CRAFT_SIDE, LADDER,
-                  BUCKET, WATER_BUCKET, LAVA_BUCKET, FURNACE_SIDE, FURNACE_TOP,
-                  DOOR_LOWER, DOOR_UPPER, DOOR_ITEM, CHEST_TOP, CHEST_SIDE, CHEST_FRONT, BED_TOP, BED_HEAD_TOP,
-                  BED_SIDE, BED_HEAD_SIDE, BED_FOOT_END, BED_HEAD_END, BED_ITEM, FURNACE_LIT, ROTTEN_FLESH,
-                  SPRUCE_LOG_SIDE, SPRUCE_LOG_TOP, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG_SIDE,
-                  BIRCH_LOG_TOP, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING, MOON, MOON + 1, MOON + 2, MOON + 3,
-                  MOON + 4, MOON + 5, MOON + 6, MOON + 7, MUTTON, COOKED_MUTTON, COAL, OAK_BOAT, SPRUCE_BOAT,
-                  BIRCH_BOAT, PUMPKIN_SIDE, PUMPKIN_TOP, PUMPKIN_FACE, JACK_FACE, SHEARS, PUMPKIN_SEEDS, PUMPKIN_STEM,
-                  PUMPKIN_STEM_RIPE]
-  IMAGE_FILES = %w[grass_top grass_side dirt stone sand water oak_log_side oak_log_top oak_leaves oak_planks cobble glass snow
-                   snow_side bedrock brick coal_ore iron gravel diamond cactus_side cactus_top tall_grass rose dandelion
-                   torch porkchop wood_pick stone_pick iron_pick diamond_pick bow arrow lava wool fire oak_sapling apple
-                   wood_sword stone_sword iron_sword diamond_sword iron_ingot furnace cooked_porkchop wood_axe
-                   stone_axe iron_axe diamond_axe wood_shovel stone_shovel iron_shovel diamond_shovel seeds wheat_1
-                   wheat_2 wheat_ripe wheat bread craft_top craft_side ladder bucket water_bucket lava_bucket
-                   furnace_side furnace_top door_lower door_upper door_item chest_top chest_side chest_front bed_top
-                   bed_head_top bed_side bed_head_side bed_foot_end bed_head_end bed_item furnace_lit rotten_flesh
-                   spruce_log_side spruce_log_top spruce_leaves spruce_planks spruce_sapling birch_log_side
-                   birch_log_top birch_leaves birch_planks birch_sapling moon_0 moon_1 moon_2 moon_3 moon_4 moon_5
-                   moon_6 moon_7 mutton cooked_mutton coal oak_boat spruce_boat birch_boat pumpkin_side pumpkin_top
-                   pumpkin_face jack_face shears pumpkin_seeds pumpkin_stem pumpkin_stem_ripe]
-
   # The HUD icons are 9 x 9 images, as in Minecraft. Each one fills the top
   # left corner of its layer, so the HUD draws ICON_PART of the layer.
-  ICON_LAYERS = [HUNGER, HUNGER_EMPTY, HUNGER_EFFECT, HEART, HEART_EMPTY]
-  ICON_FILES = %w[hunger hunger_empty hunger_effect heart heart_empty]
   ICON_SIZE = 9
   ICON_PART = ICON_SIZE / 16.0
 
   def self.images(px)
     s = 0
-    while s < IMAGE_LAYERS.size
-      path = "assets/pixel-perfection/#{IMAGE_FILES[s]}.png"
-      abort "#{path} did not load" unless Gfx.gfx_png(path, 16, 16)
-      i = 0
-      while i < 256
-        px[IMAGE_LAYERS[s] * 256 + i] = Gfx.gfx_png_pixel(i)
-        i += 1
+    while s < LAYER_FILES.size
+      if LAYER_FILES[s] != ""
+        path = "assets/pixel-perfection/#{LAYER_FILES[s]}.png"
+        abort "#{path} did not load" unless Gfx.gfx_png(path, 16, 16)
+        i = 0
+        while i < 256
+          px[s * 256 + i] = Gfx.gfx_png_pixel(i)
+          i += 1
+        end
       end
       s += 1
     end
@@ -277,32 +295,11 @@ module Tex
     font(px)
     cracks(px)
     images(px)
-    bleed(px, OAK_LEAVES)
-    bleed(px, SPRUCE_LEAVES)
-    bleed(px, BIRCH_LEAVES)
-    bleed(px, GLASS)
-    bleed(px, TALL_GRASS)
-    bleed(px, ROSE)
-    bleed(px, DANDELION)
-    bleed(px, FIRE)
-    bleed(px, PUFF)
-    bleed(px, RAIN)
-    bleed(px, OAK_SAPLING)
-    bleed(px, SPRUCE_SAPLING)
-    bleed(px, BIRCH_SAPLING)
-    bleed(px, SEEDS)
-    bleed(px, WHEAT_1)
-    bleed(px, WHEAT_2)
-    bleed(px, WHEAT_RIPE)
-    bleed(px, PUMPKIN_STEM)
-    bleed(px, PUMPKIN_STEM_RIPE)
-    bleed(px, CHEST_TOP)
-    bleed(px, CHEST_SIDE)
-    bleed(px, CHEST_FRONT)
-    bleed(px, BED_SIDE)
-    bleed(px, BED_HEAD_SIDE)
-    bleed(px, BED_FOOT_END)
-    bleed(px, BED_HEAD_END)
+    layer = 0
+    while layer < LAYERS
+      bleed(px, layer) if BLEED[layer] == 1
+      layer += 1
+    end
     px
   end
 
