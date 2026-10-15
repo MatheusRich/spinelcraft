@@ -35,7 +35,7 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | Key | Action |
 | --- | --- |
 | WASD, mouse | Move, look |
-| Space | Jump, swim up, fly up |
+| Space | Jump, swim up, fly up; double-tap: fly (creative) |
 | Left Shift | Sneak, fly down, get out of a boat |
 | Left Ctrl, double-tap W | Sprint |
 | Left click | Break a block, attack |
@@ -72,8 +72,8 @@ T opens the chat line, and / opens it with a slash. The chat frees the mouse whi
 | `/time set day\|noon\|night\|midnight\|<time>` | Set the time of day. A time is in ticks, or has the unit `d` (days), `s` (seconds) or `t` (ticks) |
 | `/time add <time>` | Move the clock forward |
 | `/time query` | Show the time in ticks and the day |
-| `/weather clear\|rain` | Stop or start the rain |
-| `/gamemode survival\|creative` | Switch the game mode |
+| `/weather clear\|rain` | Stop or start the rain. No key does this |
+| `/gamemode survival\|creative` | Switch between survival and creative. No key does this |
 | `/tp <x> <y> <z>` | Go to a place, for example `/tp ~ ~10 ~` |
 | `/give <item> [count]` | Get an item, for example `/give diamond_pickaxe` |
 | `/summon <pig\|sheep\|zombie\|skeleton\|creeper> [x y z]` | Make a mob, 3 blocks in front of you or at a place |
