@@ -54,6 +54,11 @@ class Mob
   # minecraft.wiki/w/Breeding
   FEED_GROWTH = 0.1
   FEED_MIN = 9.0
+  # An animal in love mode gives off one heart each 10 ticks. This is the
+  # game code (Animal.aiStep), and not on the wiki. The wiki says that
+  # Java Edition stopped to show these hearts in 15w33c, and that Bedrock
+  # Edition shows them all the time. minecraft.wiki/w/Breeding
+  HEART_EVERY = 0.5
   # An animal starts to follow a player who holds its food within 6
   # blocks (minecraft.wiki/w/Cow, /w/Pig and /w/Sheep; /w/Chicken says a
   # 6x4x6 area). It stops when the player is 10 blocks away
@@ -129,6 +134,8 @@ class Mob
   attr_reader :court_time
   # True while the animal follows a player who holds its food.
   attr_reader :tempted
+  # True when a lover gives off a heart, until Game#update_mobs shows it.
+  attr_accessor :love_heart
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -188,6 +195,8 @@ class Mob
     @mate_z = 0.0
     @court_time = 0.0
     @tempted = false
+    @love_heart = false
+    @heart_wait = 0.0
   end
 
   def baby? = @grow_left > 0.0
@@ -236,12 +245,22 @@ class Mob
     end
     return false if in_love? || @breed_wait > 0.0
     @love = LOVE_TIME
+    @heart_wait = HEART_EVERY
     true
   end
 
   # dt more seconds of love mode and of the wait after breeding.
   def love_clock(dt)
-    @love -= dt if @love > 0.0
+    if in_love?
+      @love -= dt
+      @heart_wait -= dt
+      if @heart_wait <= 0.0
+        @heart_wait += HEART_EVERY
+        @love_heart = true
+      end
+    end
+    # A heart shows only while the animal is still in love mode.
+    @love_heart = false unless in_love?
     alone unless in_love?
     @breed_wait -= dt if @breed_wait > 0.0
   end

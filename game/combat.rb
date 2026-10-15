@@ -406,6 +406,11 @@ class Game
       end
       bite_grass(m) if m.grass_bite
       lay_egg(m) if m.lay
+      if m.love_heart
+        m.love_heart = false
+        # to_f: Spinel cannot type the mob, and the particles need Floats.
+        @particles.heart(m.x.to_f, m.y.to_f, m.z.to_f, m.half.to_f, m.tall.to_f)
+      end
       # A mob drops its loot when it dies, and its body goes up in smoke
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player

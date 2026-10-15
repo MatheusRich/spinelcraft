@@ -3432,6 +3432,18 @@ class Game
     right_click_mob(hen)
     check("a cow takes no seeds and a chicken no wheat, but a chicken takes seeds",
           seeds_on_cow && wheat_on_hen && hen.in_love? && @inv.count(1) == 9)
+    # The hen is in love mode, and the cow is not. Old particles go first.
+    # In 70 frames, the hen gives off its hearts at 0.5 and 1 second.
+    @mobs.clear
+    @mobs << cow
+    @particles.update(@world, 10.0)
+    60.times { update_mobs(1.0 / 60.0) }
+    cold = @particles.count(Particle::HEART)
+    @mobs << hen
+    70.times { update_mobs(1.0 / 60.0) }
+    warm = @particles.count(Particle::HEART)
+    check("an animal in love mode gives off a heart each half second, and one out of love mode gives off none",
+          cold == 0 && warm == 2 && hen.in_love?)
     @mobs.clear
     @slot = 0
     a = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)

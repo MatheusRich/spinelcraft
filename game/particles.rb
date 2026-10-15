@@ -256,10 +256,13 @@ class Particles
   # and live 16 ticks, as in the game code (Animal.handleEntityEvent and
   # HeartParticle); the wiki does not give these values.
   def hearts(x, y, z, half, tall)
-    7.times do
-      add(Particle::HEART, x + (@rng.rand01 * 2.0 - 1.0) * half, y + 0.5 + @rng.rand01 * tall, z + (@rng.rand01 * 2.0 - 1.0) * half,
-          (@rng.rand01 - 0.5) * 0.4, 2.0, (@rng.rand01 - 0.5) * 0.4, 0.8, Tex::HEART)
-    end
+    7.times { heart(x, y, z, half, tall) }
+  end
+
+  # One heart, as in hearts.
+  def heart(x, y, z, half, tall)
+    add(Particle::HEART, x + (@rng.rand01 * 2.0 - 1.0) * half, y + 0.5 + @rng.rand01 * tall, z + (@rng.rand01 * 2.0 - 1.0) * half,
+        (@rng.rand01 - 0.5) * 0.4, 2.0, (@rng.rand01 - 0.5) * 0.4, 0.8, Tex::HEART)
   end
 
   # n puffs of smoke that spread from x, y, z, for an explosion or a burnt item.
