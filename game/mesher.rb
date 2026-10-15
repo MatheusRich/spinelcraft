@@ -65,6 +65,12 @@ class Mesher
   # Torch light is LIGHT_MAX at a torch and one less for each step, so it
   # reaches LIGHT_MAX blocks at most. The chunk shader divides by the same value.
   LIGHT_MAX = 14
+  # The column masks of build hold BITS cells in each Integer, so the
+  # shifts of cells_to_mesh stay far from the sign bit.
+  BITS = 32
+  WORDS = (WY + BITS - 1) / BITS
+  WORD_MASK = (1 << BITS) - 1
+
   # The light flood covers the chunk and a margin that a light can cross.
   MARGIN = LIGHT_MAX + 1
   LW = CHUNK + MARGIN * 2
@@ -125,11 +131,20 @@ class Mesher
     # 1 when block b fills its cell, so the faces next to it do not show.
     # Lava does not: its surface sinks (fluid_corners).
     @cover = Array.new(Block::COUNT, 0)
+    # 1 when block b shows faces even with covers on all 6 sides: a plant,
+    # or a fluid, whose top shows under a block.
+    @always = Array.new(Block::COUNT, 0)
     b = 0
     while b < Block::COUNT
       @cover[b] = Block.lava?(b) ? 0 : Block::OPAQUE[b]
+      @always[b] = Block.plant?(b) || Mesher.fluid(b) > 0 ? 1 : 0
       b += 1
     end
+    # Masks of the columns of a chunk and of the ring around it, WORDS
+    # Integers for each column (fill_masks).
+    @cover_bits = Array.new((CHUNK + 2) * (CHUNK + 2) * WORDS, 0)
+    @block_bits = Array.new((CHUNK + 2) * (CHUNK + 2) * WORDS, 0)
+    @always_bits = Array.new((CHUNK + 2) * (CHUNK + 2) * WORDS, 0)
     @ao = Array.new(72, 0)
     @nx = Array.new(6, 0)
     @nz = Array.new(6, 0)
@@ -246,16 +261,6 @@ class Mesher
     @opaque.clear
     @water.clear
     @lists.each { |l| l.clear }
-    height = @world.height
-    cover = @cover
-    occludes = Block::OCCLUDES
-    py = PY
-    dx = PZ * PY
-    top_tex = Block::TOP
-    side_tex = Block::SIDE
-    bottom_tex = Block::BOTTOM
-    front_tex = Block::FRONT
-    facing = Block::FACING
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     @tx.clear
@@ -288,104 +293,176 @@ class Mesher
       @flood_z = z0 - MARGIN
       flood(x0, z0)
     end
+    # Masks of each column of the chunk and of the ring around it. They
+    # show which cells can have a face (cells_to_mesh), so the walk skips
+    # the cells with covers on all sides.
+    row = CHUNK + 2
+    fx = 0
+    while fx < row
+      fz = 0
+      while fz < row
+        fill_masks((fx * row + fz) * WORDS, World.index(x0 + fx - 1, 0, z0 + fz - 1))
+        fz += 1
+      end
+      fx += 1
+    end
     x = x0
     while x < x0 + CHUNK
       z = z0
       while z < z0 + CHUNK
         base = World.index(x, 0, z)
-        # Vertices hold the storage column; the shader finds the world one.
-        lx = x & LMASK
-        lz = z & LMASK
-        ymax = @world.column_top(base)
-        # Going up the column, the block above becomes the next block, and
-        # the block becomes the one below.
-        id = cell(base)
-        below = cell(base - 1)
-        y = 0
-        while y <= ymax
-          i = base + y
-          above = cell(i + 1)
-          if Block.plant?(id)
-            sky = y >= height[lx * WZ + lz] ? 1 : 0
-            w1 = top_tex[id] | (255 << AO_AT) | (sky << SKY_AT) | Mesher.tint_w1(top_tex[id])
-            w1 |= torch_light(x, y, z) << LIGHT_AT if lit
-            w1 |= (Block::FACING[id] << FACING_AT) | (TORCH_SHAPE << SHAPE_AT) if Block.wall_torch?(id)
-            plants = @lists[6]
-            f = 6
-            while f < 10
-              plants << Mesher.pack(lx, y, lz, f)
-              plants << w1
-              f += 1
-            end
-          elsif id != Block::AIR && (cover[above] + cover[below] + cover[cell(i + py)] + cover[cell(i - py)] + cover[cell(i + dx)] + cover[cell(i - dx)] < 6 || Mesher.fluid(id) > 0)
-            kind = Mesher.fluid(id)
-            corners = kind > 0 ? fluid_corners(i, kind) : 0
-            front = facing[id] >= 0 ? Block::DIR_FACE[facing[id]] : -1
-            # A block with a shape is smaller than its cell, so all its faces show.
-            shape = Block::SHAPE[id]
-            f = 0
-            while f < 6
-              nb = cell(i + @delta[f])
-              visible = if kind > 0
-                # A fluid shows no face to the same fluid. Its top shows
-                # under a block unless the surface is at the top of the cell.
-                Mesher.fluid(nb) != kind && (cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
-              else
-                # Lava under lava fills its cell.
-                cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
-              end
-              visible = true if shape > 0
-              visible = false if f == 3 && y == 0
-              if visible
-                tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : (f == front ? front_tex[id] : side_tex[id]))
-                ny = y + (f == 2 ? 1 : (f == 3 ? -1 : 0))
-                sx = x + @nx[f]
-                sz = z + @nz[f]
-                sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
-                w0 = Mesher.pack(lx, y, lz, f)
-                if kind > 0
-                  # A fluid face has no AO: it holds the heights of its corners.
-                  w1 = tex | Mesher.fluid_w1(corners) | (sky << SKY_AT) | (Tex.scroll(tex) << SCROLL_AT)
-                  w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
-                  if kind == 1
-                    @water << w0
-                    @water << w1
-                  else
-                    w1 = (w1 & ~(((1 << LIGHT_BITS) - 1) << LIGHT_AT)) | (LIGHT_MAX << LIGHT_AT)
-                    list = @lists[f]
-                    list << w0
-                    list << w1
-                  end
-                else
-                  a = f * 12
-                  ao0 = ao_value(occludes[cell(i + @ao[a])], occludes[cell(i + @ao[a + 1])], occludes[cell(i + @ao[a + 2])])
-                  ao1 = ao_value(occludes[cell(i + @ao[a + 3])], occludes[cell(i + @ao[a + 4])], occludes[cell(i + @ao[a + 5])])
-                  ao2 = ao_value(occludes[cell(i + @ao[a + 6])], occludes[cell(i + @ao[a + 7])], occludes[cell(i + @ao[a + 8])])
-                  ao3 = ao_value(occludes[cell(i + @ao[a + 9])], occludes[cell(i + @ao[a + 10])], occludes[cell(i + @ao[a + 11])])
-                  flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
-                  w1 = tex | (ao0 << AO_AT) | (ao1 << (AO_AT + 2)) | (ao2 << (AO_AT + 4)) | (ao3 << (AO_AT + 6)) | (flip << FLIP_AT) | (sky << SKY_AT) |
-                       Mesher.tint_w1(tex)
-                  w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
-                  # A block with a shape has no AO. A shape without a facing
-                  # (a cactus) draws as if it faces +x.
-                  w1 |= (255 << AO_AT) | ((facing[id] < 0 ? 0 : facing[id]) << FACING_AT) | (shape << SHAPE_AT) if shape > 0
-                  list = @lists[f]
-                  list << w0
-                  list << w1
-                end
-              end
-              f += 1
-            end
+        at = ((x - x0 + 1) * row + z - z0 + 1) * WORDS
+        w = 0
+        while w < WORDS
+          # Up the column, one cell for each bit, lowest first.
+          todo = cells_to_mesh(at, w, row * WORDS)
+          while todo != 0
+            low = todo & -todo
+            todo ^= low
+            y = w * BITS + low.bit_length - 1
+            mesh_cell(x, y, z, base + y, lit)
           end
-          below = id
-          id = above
-          y += 1
+          w += 1
         end
         z += 1
       end
       x += 1
     end
     finish
+  end
+
+  # Fills the masks of the column at index base into the WORDS Integers
+  # from at: bit y of @cover_bits when its block covers its cell, of
+  # @block_bits when it is not air, and of @always_bits when it always
+  # shows (@always).
+  def fill_masks(at, base)
+    top = @world.column_top(base)
+    w = 0
+    while w < WORDS
+      covers = 0
+      blocks = 0
+      always = 0
+      y = w * BITS
+      last = y + BITS - 1
+      last = top if top < last
+      bit = 1
+      while y <= last
+        b = cell(base + y)
+        covers |= bit if @cover[b] == 1
+        blocks |= bit if b != Block::AIR
+        always |= bit if @always[b] == 1
+        bit <<= 1
+        y += 1
+      end
+      @cover_bits[at + w] = covers
+      @block_bits[at + w] = blocks
+      @always_bits[at + w] = always
+      w += 1
+    end
+  end
+
+  # The bits of word w of the column masks at `at` whose cells can show a
+  # face: blocks that are not air, with no cover on a side, or that always
+  # show. side is the step from a column to the next one along x.
+  def cells_to_mesh(at, w, side)
+    c = at + w
+    covers = @cover_bits[c]
+    # Bit y of up says whether the cell above y covers, of down the one below.
+    up = covers >> 1
+    up |= (@cover_bits[c + 1] & 1) << (BITS - 1) if w + 1 < WORDS
+    down = (covers << 1) & WORD_MASK
+    down |= @cover_bits[c - 1] >> (BITS - 1) if w > 0
+    shut = up & down & @cover_bits[c - side] & @cover_bits[c + side] & @cover_bits[c - WORDS] & @cover_bits[c + WORDS]
+    @block_bits[c] & (~shut | @always_bits[c])
+  end
+
+  # The faces of the block in cell i, at x, y, z (see build). lit is true
+  # when torch light reaches the chunk.
+  def mesh_cell(x, y, z, i, lit)
+    height = @world.height
+    cover = @cover
+    occludes = Block::OCCLUDES
+    top_tex = Block::TOP
+    side_tex = Block::SIDE
+    bottom_tex = Block::BOTTOM
+    front_tex = Block::FRONT
+    facing = Block::FACING
+    # Vertices hold the storage column; the shader finds the world one.
+    lx = x & LMASK
+    lz = z & LMASK
+    id = cell(i)
+    if Block.plant?(id)
+      sky = y >= height[lx * WZ + lz] ? 1 : 0
+      w1 = top_tex[id] | (255 << AO_AT) | (sky << SKY_AT) | Mesher.tint_w1(top_tex[id])
+      w1 |= torch_light(x, y, z) << LIGHT_AT if lit
+      w1 |= (Block::FACING[id] << FACING_AT) | (TORCH_SHAPE << SHAPE_AT) if Block.wall_torch?(id)
+      plants = @lists[6]
+      f = 6
+      while f < 10
+        plants << Mesher.pack(lx, y, lz, f)
+        plants << w1
+        f += 1
+      end
+      return
+    end
+    kind = Mesher.fluid(id)
+    corners = kind > 0 ? fluid_corners(i, kind) : 0
+    front = facing[id] >= 0 ? Block::DIR_FACE[facing[id]] : -1
+    # A block with a shape is smaller than its cell, so all its faces show.
+    shape = Block::SHAPE[id]
+    f = 0
+    while f < 6
+      nb = cell(i + @delta[f])
+      visible = if kind > 0
+        # A fluid shows no face to the same fluid. Its top shows
+        # under a block unless the surface is at the top of the cell.
+        Mesher.fluid(nb) != kind && (cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
+      else
+        # Lava under lava fills its cell.
+        cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
+      end
+      visible = true if shape > 0
+      visible = false if f == 3 && y == 0
+      if visible
+        tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : (f == front ? front_tex[id] : side_tex[id]))
+        ny = y + (f == 2 ? 1 : (f == 3 ? -1 : 0))
+        sx = x + @nx[f]
+        sz = z + @nz[f]
+        sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
+        w0 = Mesher.pack(lx, y, lz, f)
+        if kind > 0
+          # A fluid face has no AO: it holds the heights of its corners.
+          w1 = tex | Mesher.fluid_w1(corners) | (sky << SKY_AT) | (Tex.scroll(tex) << SCROLL_AT)
+          w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
+          if kind == 1
+            @water << w0
+            @water << w1
+          else
+            w1 = (w1 & ~(((1 << LIGHT_BITS) - 1) << LIGHT_AT)) | (LIGHT_MAX << LIGHT_AT)
+            list = @lists[f]
+            list << w0
+            list << w1
+          end
+        else
+          a = f * 12
+          ao0 = ao_value(occludes[cell(i + @ao[a])], occludes[cell(i + @ao[a + 1])], occludes[cell(i + @ao[a + 2])])
+          ao1 = ao_value(occludes[cell(i + @ao[a + 3])], occludes[cell(i + @ao[a + 4])], occludes[cell(i + @ao[a + 5])])
+          ao2 = ao_value(occludes[cell(i + @ao[a + 6])], occludes[cell(i + @ao[a + 7])], occludes[cell(i + @ao[a + 8])])
+          ao3 = ao_value(occludes[cell(i + @ao[a + 9])], occludes[cell(i + @ao[a + 10])], occludes[cell(i + @ao[a + 11])])
+          flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
+          w1 = tex | (ao0 << AO_AT) | (ao1 << (AO_AT + 2)) | (ao2 << (AO_AT + 4)) | (ao3 << (AO_AT + 6)) | (flip << FLIP_AT) | (sky << SKY_AT) |
+               Mesher.tint_w1(tex)
+          w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
+          # A block with a shape has no AO. A shape without a facing
+          # (a cactus) draws as if it faces +x.
+          w1 |= (255 << AO_AT) | ((facing[id] < 0 ? 0 : facing[id]) << FACING_AT) | (shape << SHAPE_AT) if shape > 0
+          list = @lists[f]
+          list << w0
+          list << w1
+        end
+      end
+      f += 1
+    end
   end
 
   # Joins the per-direction lists; offsets are in faces.
