@@ -8,7 +8,8 @@ class Clouds
   GRID = 256
   # The drift wraps at one pattern, so the GPU gets a small value.
   PERIOD = (CELL * GRID).to_f
-  HEIGHT = 88.0
+  # Minecraft clouds are at y 192.33 (minecraft.wiki/w/Cloud).
+  HEIGHT = 192.0
   DEPTH = 3.0
   ALPHA = 0.82
   # Boxes go out to NEAR cells from the player's cell, about 400 blocks.
