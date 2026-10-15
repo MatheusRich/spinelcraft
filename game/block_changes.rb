@@ -166,7 +166,7 @@ class Game
     plan = @world.plan_tree(x, y, z, wood)
     i = 0
     while i < plan.size
-      set_block(plan[i], plan[i + 1], plan[i + 2], plan[i + 3])
+      set_block(plan[i], plan[i + 1], plan[i + 2], plan[i + 3].to_i)
       i += 4
     end
   end
