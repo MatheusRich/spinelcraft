@@ -258,7 +258,7 @@ class Game
       x = @player.px
       y = @player.py
       z = @player.pz
-      if @world.get(@player.hx, @player.hy, @player.hz) == Block::TALL_GRASS
+      if Block.replaceable?(@world.get(@player.hx, @player.hy, @player.hz))
         x = @player.hx
         y = @player.hy
         z = @player.hz
@@ -474,7 +474,7 @@ class Game
   # solid blocks.
   def bed_fits?(x, y, z, hx, hz)
     head = @world.get(hx, y, hz)
-    return false unless head == Block::AIR || head == Block::TALL_GRASS
+    return false unless head == Block::AIR || Block.replaceable?(head)
     return false unless Block.solid?(@world.get(x, y - 1, z)) && Block.solid?(@world.get(hx, y - 1, hz))
     !@player.overlaps?(hx, y, hz) && !mob_in?(hx, y, hz, 1)
   end
@@ -537,7 +537,7 @@ class Game
     y = @player.py
     z = @player.pz
     # A block placed on tall grass takes its cell, as in Minecraft.
-    if @world.get(@player.hx, @player.hy, @player.hz) == Block::TALL_GRASS
+    if Block.replaceable?(@world.get(@player.hx, @player.hy, @player.hz))
       x = @player.hx
       y = @player.hy
       z = @player.hz
@@ -580,7 +580,7 @@ class Game
     current = @world.get(x, y, z)
     # The view ray can pass a flower, so a block only replaces tall grass.
     # It passes water and lava, and a block replaces them, as in Minecraft.
-    return unless current == Block::AIR || Block.water?(current) || Block.lava?(current) || current == Block::TALL_GRASS
+    return unless current == Block::AIR || Block.water?(current) || Block.lava?(current) || Block.replaceable?(current)
     if Block.door?(b)
       return unless door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)

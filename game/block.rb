@@ -408,6 +408,8 @@ module Block
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
   def self.solid?(b) = SOLID[b] == 1
   def self.plant?(b) = PLANT[b] == 1
+  # A placed block takes the cell of grass, as in Minecraft.
+  def self.replaceable?(b) = b == TALL_GRASS
   def self.water?(b) = WATER_LEVEL[b] > 0
   def self.log?(b) = LOGS.include?(b)
   # Leaves of a tree or leaves that the player placed.
