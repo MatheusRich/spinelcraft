@@ -67,7 +67,9 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 
 `build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module. The game loads the OGG files in `assets/sounds` from the folder of the executable.
 
-Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the bed, the chest, the block cracks, the hearts, the smoke, the rain and the font.
+Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the block cracks, the smoke, the rain and the font. Each texture layer is one line in `game/textures.rb`, such as `COAL = image("coal")`, and it takes the next free layer number.
+
+Each block and item is one `Block.define_block` call in `game/block.rb`, in the order of the block ids. The call names only what differs from a solid cube that drops itself. To add a block, give it the next id, add its `define_block` line and its texture line, and put it in `CREATIVE_ITEMS` in `game/constants.rb`.
 
 ## Rendering
 
