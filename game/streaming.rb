@@ -6,15 +6,21 @@ class Game
   def make_ring
     @ring_dx = Array.new(0, 0)
     @ring_dz = Array.new(0, 0)
+    square_rings(LOAD_R, @ring_dx, @ring_dz)
+  end
+
+  # Appends the offsets of the square rings 0 to max to dxs and dzs, nearest
+  # ring first.
+  def square_rings(max, dxs, dzs)
     r = 0
-    while r <= LOAD_R
+    while r <= max
       dx = -r
       while dx <= r
         dz = -r
         while dz <= r
           if dx.abs == r || dz.abs == r
-            @ring_dx << dx
-            @ring_dz << dz
+            dxs << dx
+            dzs << dz
           end
           dz += 1
         end
@@ -93,23 +99,7 @@ class Game
     @lod_dz = Array.new(0, 0)
     # Level L reaches LOD_REACH << L blocks with tiles of (4 << L) * CELLS
     # blocks, so every level needs the same number of rings as lod_rings gives.
-    max = (LOD_REACH.to_f / (4 * Lod::CELLS)).ceil + 1
-    r = 0
-    while r <= max
-      dx = -r
-      while dx <= r
-        dz = -r
-        while dz <= r
-          if dx.abs == r || dz.abs == r
-            @lod_dx << dx
-            @lod_dz << dz
-          end
-          dz += 1
-        end
-        dx += 1
-      end
-      r += 1
-    end
+    square_rings((LOD_REACH.to_f / (4 * Lod::CELLS)).ceil + 1, @lod_dx, @lod_dz)
   end
 
   # Builds the far tiles within the view, finest level and nearest first,
