@@ -67,7 +67,6 @@ module Command
     out
   end
 
-  # The words of a line, without the slash at the start, in capitals.
   def self.words(line)
     s = line.start_with?("/") ? line[1, line.size - 1] : line
     s.upcase.split(" ")

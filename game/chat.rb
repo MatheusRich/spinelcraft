@@ -13,7 +13,6 @@ class Game
   CHAT_MATCHES = 10
   # The lines that Up and Down walk through.
   CHAT_HISTORY = 50
-  # The lines of /help.
   HELP = ["/TIME SET|ADD <TIME>  /TIME QUERY  /WEATHER CLEAR|RAIN", "/GAMEMODE SURVIVAL|CREATIVE  /TP <X> <Y> <Z>  /SPAWN",
           "/GIVE <ITEM> [COUNT]  /SUMMON <MOB> [X Y Z]", "/KILL  /SEED  /HELP"]
 
@@ -90,7 +89,6 @@ class Game
     @chat_text = @chat_back < @chat_history.size ? @chat_history[@chat_back].to_s : ""
   end
 
-  # Runs a command, or says the line in the chat.
   def run_chat(line)
     line = line.to_s.strip
     return if line.empty?
@@ -103,7 +101,6 @@ class Game
     end
   end
 
-  # Adds a line to the chat. An error line is red.
   def chat_print(text, error)
     @chat_lines << text.upcase
     @chat_errors << (error ? 1 : 0)
