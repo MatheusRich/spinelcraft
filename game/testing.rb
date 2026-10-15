@@ -2429,22 +2429,25 @@ class Game
     end
     # With stone on three sides, the pumpkin can only go on the fourth, and
     # only over dirt or grass.
-    (0...4).each { |d| set_block(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d], d == 0 ? Block::AIR : Block::STONE) }
+    (0...4).each { |d| set_block(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d], d == 1 ? Block::AIR : Block::STONE) }
     40.times { grow_pumpkin(bx, y + 1, bz) }
-    on_grass = @world.get(bx + 1, y + 1, bz) == Block::PUMPKIN
-    set_block(bx + 1, y + 1, bz, Block::AIR)
-    set_block(bx + 1, y, bz, Block::STONE)
+    on_grass = @world.get(bx - 1, y + 1, bz) == Block::PUMPKIN
+    set_block(bx - 1, y + 1, bz, Block::AIR)
+    set_block(bx - 1, y, bz, Block::STONE)
     40.times { grow_pumpkin(bx, y + 1, bz) }
-    on_stone = @world.get(bx + 1, y + 1, bz) == Block::AIR
-    set_block(bx + 1, y, bz, Block::DIRT)
-    40.times { grow_pumpkin(bx, y + 1, bz) }
-    on_dirt = @world.get(bx + 1, y + 1, bz) == Block::PUMPKIN
-    set_block(bx + 1, y, bz, Block::GRASS)
+    on_stone = @world.get(bx - 1, y + 1, bz) == Block::AIR
+    on_dirt = [Block::DIRT, Block::SNOW_GRASS].all? do |ground|
+      set_block(bx - 1, y + 1, bz, Block::AIR)
+      set_block(bx - 1, y, bz, ground)
+      40.times { grow_pumpkin(bx, y + 1, bz) }
+      @world.get(bx - 1, y + 1, bz) == Block::PUMPKIN
+    end
+    set_block(bx - 1, y, bz, Block::GRASS)
     check("a ripe stem grows one pumpkin next to it, only on a free side over dirt or grass", grown == 1 && on_grass && on_stone && on_dirt)
     check("pumpkin seeds and a young stem grow, and pumpkins sound like wood",
           Block.growing?(Block::PUMPKIN_SEEDS) && Block.growing?(Block::PUMPKIN_STEM) && !Block.growing?(Block::PUMPKIN_STEM_RIPE) &&
           !Block.growing?(Block::PUMPKIN) && material(Block::PUMPKIN) == M_WOOD && material(Block.facing_id(Block::JACK_O_LANTERN, 3)) == M_WOOD &&
-          material(Block::PLACED_BIRCH_LEAVES) == M_LEAVES)
+          material(Block::PLACED_BIRCH_LEAVES) == M_LEAVES && material(Block::PUMPKIN_STEM) == M_LEAVES)
     # A plant draws its top texture, and an item in the hand, on the ground
     # or in a slot its side and front textures.
     check("pumpkin seeds look like seeds as an item and like a stem when planted",
