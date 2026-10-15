@@ -379,21 +379,13 @@ class Mesher
   # The faces of the block in cell i, at x, y, z (see build). lit is true
   # when torch light reaches the chunk.
   def mesh_cell(x, y, z, i, lit)
-    height = @world.height
-    cover = @cover
-    occludes = Block::OCCLUDES
-    top_tex = Block::TOP
-    side_tex = Block::SIDE
-    bottom_tex = Block::BOTTOM
-    front_tex = Block::FRONT
-    facing = Block::FACING
     # Vertices hold the storage column; the shader finds the world one.
     lx = x & LMASK
     lz = z & LMASK
     id = cell(i)
     if Block.plant?(id)
-      sky = y >= height[lx * WZ + lz] ? 1 : 0
-      w1 = top_tex[id] | (255 << AO_AT) | (sky << SKY_AT) | Mesher.tint_w1(top_tex[id])
+      sky = y >= @world.height[lx * WZ + lz] ? 1 : 0
+      w1 = Block::TOP[id] | (255 << AO_AT) | (sky << SKY_AT) | Mesher.tint_w1(Block::TOP[id])
       w1 |= torch_light(x, y, z) << LIGHT_AT if lit
       w1 |= (Block::FACING[id] << FACING_AT) | (TORCH_SHAPE << SHAPE_AT) if Block.wall_torch?(id)
       plants = @lists[6]
@@ -407,7 +399,7 @@ class Mesher
     end
     kind = Mesher.fluid(id)
     corners = kind > 0 ? fluid_corners(i, kind) : 0
-    front = facing[id] >= 0 ? Block::DIR_FACE[facing[id]] : -1
+    front = Block::FACING[id] >= 0 ? Block::DIR_FACE[Block::FACING[id]] : -1
     # A block with a shape is smaller than its cell, so all its faces show.
     shape = Block::SHAPE[id]
     f = 0
@@ -416,19 +408,19 @@ class Mesher
       visible = if kind > 0
         # A fluid shows no face to the same fluid. Its top shows
         # under a block unless the surface is at the top of the cell.
-        Mesher.fluid(nb) != kind && (cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
+        Mesher.fluid(nb) != kind && (@cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
       else
         # Lava under lava fills its cell.
-        cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
+        @cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
       end
       visible = true if shape > 0
       visible = false if f == 3 && y == 0
       if visible
-        tex = f == 2 ? top_tex[id] : (f == 3 ? bottom_tex[id] : (f == front ? front_tex[id] : side_tex[id]))
+        tex = f == 2 ? Block::TOP[id] : (f == 3 ? Block::BOTTOM[id] : (f == front ? Block::FRONT[id] : Block::SIDE[id]))
         ny = y + (f == 2 ? 1 : (f == 3 ? -1 : 0))
         sx = x + @nx[f]
         sz = z + @nz[f]
-        sky = ny >= height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
+        sky = ny >= @world.height[(sx & LMASK) * WZ + (sz & LMASK)] ? 1 : 0
         w0 = Mesher.pack(lx, y, lz, f)
         if kind > 0
           # A fluid face has no AO: it holds the heights of its corners.
@@ -445,17 +437,17 @@ class Mesher
           end
         else
           a = f * 12
-          ao0 = ao_value(occludes[cell(i + @ao[a])], occludes[cell(i + @ao[a + 1])], occludes[cell(i + @ao[a + 2])])
-          ao1 = ao_value(occludes[cell(i + @ao[a + 3])], occludes[cell(i + @ao[a + 4])], occludes[cell(i + @ao[a + 5])])
-          ao2 = ao_value(occludes[cell(i + @ao[a + 6])], occludes[cell(i + @ao[a + 7])], occludes[cell(i + @ao[a + 8])])
-          ao3 = ao_value(occludes[cell(i + @ao[a + 9])], occludes[cell(i + @ao[a + 10])], occludes[cell(i + @ao[a + 11])])
+          ao0 = ao_value(Block::OCCLUDES[cell(i + @ao[a])], Block::OCCLUDES[cell(i + @ao[a + 1])], Block::OCCLUDES[cell(i + @ao[a + 2])])
+          ao1 = ao_value(Block::OCCLUDES[cell(i + @ao[a + 3])], Block::OCCLUDES[cell(i + @ao[a + 4])], Block::OCCLUDES[cell(i + @ao[a + 5])])
+          ao2 = ao_value(Block::OCCLUDES[cell(i + @ao[a + 6])], Block::OCCLUDES[cell(i + @ao[a + 7])], Block::OCCLUDES[cell(i + @ao[a + 8])])
+          ao3 = ao_value(Block::OCCLUDES[cell(i + @ao[a + 9])], Block::OCCLUDES[cell(i + @ao[a + 10])], Block::OCCLUDES[cell(i + @ao[a + 11])])
           flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
           w1 = tex | (ao0 << AO_AT) | (ao1 << (AO_AT + 2)) | (ao2 << (AO_AT + 4)) | (ao3 << (AO_AT + 6)) | (flip << FLIP_AT) | (sky << SKY_AT) |
                Mesher.tint_w1(tex)
           w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
           # A block with a shape has no AO. A shape without a facing
           # (a cactus) draws as if it faces +x.
-          w1 |= (255 << AO_AT) | ((facing[id] < 0 ? 0 : facing[id]) << FACING_AT) | (shape << SHAPE_AT) if shape > 0
+          w1 |= (255 << AO_AT) | ((Block::FACING[id] < 0 ? 0 : Block::FACING[id]) << FACING_AT) | (shape << SHAPE_AT) if shape > 0
           list = @lists[f]
           list << w0
           list << w1
