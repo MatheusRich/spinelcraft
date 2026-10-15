@@ -164,7 +164,7 @@ class Boat
     @damage > BREAKS
   end
 
-  def ray(ox, oy, oz, dx, dy, dz) = Ray.box_distance(ox, oy, oz, dx, dy, dz, @x - HALF, @y, @z - HALF, @x + HALF, @y + TALL, @z + HALF)
+  def hit_distance(ox, oy, oz, dx, dy, dz) = Ray.box_distance(ox, oy, oz, dx, dy, dz, @x - HALF, @y, @z - HALF, @x + HALF, @y + TALL, @z + HALF)
 
   # The hull is a floor and four walls of the planks of the boat's wood,
   # with the sizes of the Minecraft model, and a paddle on each side. Local

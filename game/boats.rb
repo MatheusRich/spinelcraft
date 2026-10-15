@@ -137,7 +137,7 @@ class Game
     i = 0
     while i < @boats.size
       if i != @riding
-        t = @boats[i].ray(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
+        t = @boats[i].hit_distance(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
         if t >= 0.0 && t < best
           best = t
           @target_boat = i
