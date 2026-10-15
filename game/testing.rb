@@ -327,6 +327,12 @@ class Game
     run_chat("/tp #{tx} 150 #{tz}")
     whole = @player.x == tx + 0.5 && @player.y == 150.0 && @player.z == tz + 0.5
     check("/tp moves the player, with ~ for a place relative to the player", relative && whole)
+    run_chat("/tp ~3000 ~ ~3000")
+    run_chat("/spawn")
+    h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
+    check("/spawn goes to the ground at the spawn point, also from far away",
+          @player.x == @spawn_x && @player.z == @spawn_z && @player.y == h + 0.01 &&
+          Block.solid?(@world.get(@spawn_x.floor, h - 1, @spawn_z.floor)))
     @player.x = x
     @player.y = y
     @player.z = z
@@ -335,7 +341,7 @@ class Game
     recall_chat(-1)
     back = @chat_text == "/time set noon"
     recall_chat(-1)
-    further = @chat_text == "/tp #{tx} 150 #{tz}"
+    further = @chat_text == "/spawn"
     recall_chat(1)
     recall_chat(1)
     check("Up and Down walk through the lines typed before", back && further && @chat_text == "")

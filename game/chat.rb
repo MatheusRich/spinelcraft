@@ -142,7 +142,7 @@ class Game
     when "SUMMON" then command_summon(args)
     when "KILL" then command_kill
     when "SEED" then chat_print("SEED: [#{@seed}]", false)
-    when "SPAWN" then teleport(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
+    when "SPAWN" then command_spawn
     when "HELP" then HELP.each { |line| chat_print(line, false) }
     else chat_error("UNKNOWN COMMAND: #{words[0]}")
     end
@@ -190,6 +190,13 @@ class Game
     return chat_error("USE /TP X Y Z") if args.size != 3 || !args.all? { |a| Command.coord?(a) }
     teleport(Command.coord(args[0], @player.x.to_f, true), Command.coord(args[1], @player.y.to_f, false),
              Command.coord(args[2], @player.z.to_f, true))
+  end
+
+  # The chunks at the spawn point load first, as in respawn: before they
+  # load, height_at reads the chunk that fills their slot of the ring.
+  def command_spawn
+    stream_around(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
+    teleport(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
   end
 
   # Moves the player to x, y, z, and loads the chunks there before the
