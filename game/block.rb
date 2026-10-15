@@ -258,6 +258,12 @@ module Block
     nil
   end
 
+  # A door half (see DOOR_BLOCK) that faces +x, and its turns.
+  def self.define_door(first, tex, shape)
+    define_block(first, "DOOR", tex, facing: 0, base: DOOR, shape: shape, opaque: 0, hardness: 3.0, drops: DOOR, dig: DIG_AXE)
+    define_turns(first + 1, first)
+  end
+
   # The hardness values come from minecraft.wiki/w/Breaking, and /w/Leaves,
   # /w/Snow_Block, /w/Bed, /w/Pumpkin and /w/Jack_o'Lantern for those blocks.
   # The food and saturation values come from minecraft.wiki/w/Food, and
@@ -342,18 +348,10 @@ module Block
   define_block WALL_TORCH, "TORCH", Tex::TORCH, facing: 0, base: TORCH, opaque: 0, solid: 0, plant: 1, drops: TORCH
   define_turns WALL_TORCH + 1, WALL_TORCH
   define_turns FURNACE_TURNS, FURNACE
-  define_block DOOR_BLOCK, "DOOR", Tex::DOOR_LOWER, facing: 0, base: DOOR, shape: 1, opaque: 0, hardness: 3.0, drops: DOOR,
-               dig: DIG_AXE
-  define_turns DOOR_BLOCK + 1, DOOR_BLOCK
-  define_block DOOR_BLOCK + 4, "DOOR", Tex::DOOR_UPPER, facing: 0, base: DOOR, shape: 1, opaque: 0, hardness: 3.0, drops: DOOR,
-               dig: DIG_AXE
-  define_turns DOOR_BLOCK + 5, DOOR_BLOCK + 4
-  define_block DOOR_BLOCK + 8, "DOOR", Tex::DOOR_LOWER, facing: 0, base: DOOR, shape: 2, opaque: 0, hardness: 3.0, drops: DOOR,
-               dig: DIG_AXE
-  define_turns DOOR_BLOCK + 9, DOOR_BLOCK + 8
-  define_block DOOR_BLOCK + 12, "DOOR", Tex::DOOR_UPPER, facing: 0, base: DOOR, shape: 2, opaque: 0, hardness: 3.0, drops: DOOR,
-               dig: DIG_AXE
-  define_turns DOOR_BLOCK + 13, DOOR_BLOCK + 12
+  define_door DOOR_BLOCK, Tex::DOOR_LOWER, 1
+  define_door DOOR_BLOCK + 4, Tex::DOOR_UPPER, 1
+  define_door DOOR_BLOCK + 8, Tex::DOOR_LOWER, 2
+  define_door DOOR_BLOCK + 12, Tex::DOOR_UPPER, 2
   define_turns LADDER_TURNS, LADDER
   define_turns CHEST_TURNS, CHEST
   define_block FURNACE_LIT, "FURNACE", Tex::FURNACE_SIDE, top: Tex::FURNACE_TOP, front: Tex::FURNACE_LIT, facing: 0, base: FURNACE,
