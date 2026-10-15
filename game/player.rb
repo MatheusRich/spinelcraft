@@ -56,6 +56,17 @@ class Player
     @pz = 0
   end
 
+  # Puts the player at rest at x, y, z. A fall starts again from there.
+  def move_to(x, y, z)
+    @x = x
+    @y = y
+    @z = z
+    @vx = 0.0
+    @vy = 0.0
+    @vz = 0.0
+    @fall_start = y
+  end
+
   def eye_y = @y + @eye
 
   # True when an attack now is a critical hit, if the attack cooldown is

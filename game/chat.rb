@@ -209,13 +209,7 @@ class Game
   # Moves the player to x, y, z, and loads the chunks there before the
   # next step, so the player does not fall through the ground.
   def teleport(x, y, z)
-    @player.x = x.clamp(-TP_LIMIT, TP_LIMIT)
-    @player.y = y.clamp(0.0, (WY - 2).to_f)
-    @player.z = z.clamp(-TP_LIMIT, TP_LIMIT)
-    @player.vx = 0.0
-    @player.vy = 0.0
-    @player.vz = 0.0
-    @player.fall_start = @player.y
+    @player.move_to(x.clamp(-TP_LIMIT, TP_LIMIT), y.clamp(0.0, (WY - 2).to_f), z.clamp(-TP_LIMIT, TP_LIMIT))
     stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     chat_print("TELEPORTED TO #{@player.x.round(1)}, #{@player.y.round(1)}, #{@player.z.round(1)}", false)
   end

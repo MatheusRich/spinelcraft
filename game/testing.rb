@@ -439,13 +439,7 @@ class Game
 
   # Puts the player at rest on the block x, y - 1, z, not flying.
   def stand_at(x, y, z)
-    @player.x = x + 0.5
-    @player.y = y.to_f
-    @player.z = z + 0.5
-    @player.vx = 0.0
-    @player.vy = 0.0
-    @player.vz = 0.0
-    @player.fall_start = @player.y
+    @player.move_to(x + 0.5, y.to_f, z + 0.5)
     @player.flying = false
     @last_jump = -1.0
   end
@@ -799,11 +793,7 @@ class Game
     (0..40).each { |d| set_block(x, y, z - d, Block::STONE) }
     @player.flying = false
     @player.yaw = 0.0
-    @player.x = x + 0.5
-    @player.y = y + 1.0
-    @player.z = z + 0.5
-    @player.vx = 0.0
-    @player.vz = 0.0
+    @player.move_to(x + 0.5, y + 1.0, z + 0.5)
     top = 0.0
     50.times do
       @player.update(@world, 0.02, 0.0, 0.0, true, false, false)
@@ -850,11 +840,7 @@ class Game
         set_block(x, y + 1, z - d, lava ? Block::LAVA : Block::WATER)
         set_block(x, y + 2, z - d, under ? Block::WATER : Block::AIR)
       end
-      @player.x = x + 0.5
-      @player.y = y + 1.0
-      @player.z = z + 0.5
-      @player.vx = 0.0
-      @player.vz = 0.0
+      @player.move_to(x + 0.5, y + 1.0, z + 0.5)
       25.times { @player.update(@world, 0.02, 1.0, 0.0, jump, false, sprint) }
       z0 = @player.z
       100.times { @player.update(@world, 0.02, 1.0, 0.0, jump, false, sprint) }
@@ -891,11 +877,7 @@ class Game
     @player.flying = false
     @player.yaw = 0.0
     speeds = [false, true].map do |slowed|
-      @player.x = x + 0.5
-      @player.y = y + 1.0
-      @player.z = z + 0.5
-      @player.vx = 0.0
-      @player.vz = 0.0
+      @player.move_to(x + 0.5, y + 1.0, z + 0.5)
       @player.slowed = slowed
       40.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, true) }
       Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
@@ -2496,12 +2478,7 @@ class Game
   # Sneaking, walking off an edge, and the bed, on the platform from test_bow.
   def test_sneak_and_bed(bx, bz)
     # The platform is one block wide in z: sneaking toward its edge stays on it.
-    @player.x = bx + 4.5
-    @player.y = SKY_Y - 1.0
-    @player.z = bz + 0.5
-    @player.vx = 0.0
-    @player.vy = 0.0
-    @player.vz = 0.0
+    @player.move_to(bx + 4.5, SKY_Y - 1.0, bz + 0.5)
     @player.yaw = 3.14159
     @player.flying = false
     @player.on_ground = true
@@ -2547,12 +2524,7 @@ class Game
     set_block(wx + 2, SKY_Y - 1, wz, Block::STONE)
     set_block(wx + 2, SKY_Y, wz, Block::STONE)
     @flow_queue.clear
-    @player.x = wx + 0.5
-    @player.y = SKY_Y - 1.0
-    @player.z = wz + 0.5
-    @player.vx = 0.0
-    @player.vy = 0.0
-    @player.vz = 0.0
+    @player.move_to(wx + 0.5, SKY_Y - 1.0, wz + 0.5)
     @player.yaw = 1.5708
     @player.flying = false
     @player.on_ground = true

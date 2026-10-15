@@ -421,13 +421,7 @@ class Game
   def respawn
     stream_around(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
-    @player.x = @spawn_x
-    @player.y = h + 0.01
-    @player.z = @spawn_z
-    @player.vx = 0.0
-    @player.vy = 0.0
-    @player.vz = 0.0
-    @player.fall_start = @player.y
+    @player.move_to(@spawn_x, h + 0.01, @spawn_z)
     @vitals = Vitals.new
     @alive_time = 0.0
     @riding = -1
