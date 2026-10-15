@@ -65,6 +65,81 @@ class Game
     end
   end
 
+  # Each second, the game looks at this many of the 81 x 81 columns near
+  # the player, down through the leaves, the air and the logs on top. In
+  # Minecraft, a block gets a random tick about each 68 seconds (3 in each
+  # section of 16 x 16 x 16 each tick, minecraft.wiki/w/Tick), and then
+  # leaves with no log near decay (minecraft.wiki/w/Leaves). With 96, a
+  # column comes up about each 81 * 81 / 96 = 68 seconds.
+  DECAY_SAMPLES = 96.0
+  # Leaves stay while a log is at most this many steps away through leaves.
+  # minecraft.wiki/w/Leaves
+  LEAF_REACH = 6
+  LEAF_SPAN = LEAF_REACH * 2 + 1
+  LEAF_DX = [1, -1, 0, 0, 0, 0]
+  LEAF_DY = [0, 0, 1, -1, 0, 0]
+  LEAF_DZ = [0, 0, 0, 0, 1, -1]
+
+  def decay_leaves(dt)
+    n = (dt * DECAY_SAMPLES + @rng.rand01).to_i
+    span = GROW_REACH * 2 + 1
+    while n > 0
+      x = @player.x.floor - GROW_REACH + (@rng.rand01 * span).to_i
+      z = @player.z.floor - GROW_REACH + (@rng.rand01 * span).to_i
+      if @world.loaded?(x, z)
+        y = @world.height_at(x, z) - 1
+        while y > 0
+          b = @world.get(x, y, z)
+          if Block.leaves?(b)
+            if !Block.placed_leaves?(b) && !held_by_log?(x, y, z)
+              set_block(x, y, z, Block::AIR)
+              drop_extra(b, x, y, z)
+            end
+          elsif b != Block::AIR && !Block.log?(b)
+            break
+          end
+          y -= 1
+        end
+      end
+      n -= 1
+    end
+  end
+
+  # True when a log is at most LEAF_REACH steps from the leaves at x, y, z,
+  # with leaves at each step, as in Minecraft.
+  def held_by_log?(x, y, z)
+    @leaf_stamp += 1
+    q = @leaf_queue
+    q.clear
+    q << x << y << z << 0
+    @leaf_seen[(LEAF_REACH * LEAF_SPAN + LEAF_REACH) * LEAF_SPAN + LEAF_REACH] = @leaf_stamp
+    head = 0
+    while head < q.size
+      qx = q[head]
+      qy = q[head + 1]
+      qz = q[head + 2]
+      d = q[head + 3]
+      head += 4
+      i = 0
+      while i < 6
+        nx = qx + LEAF_DX[i]
+        ny = qy + LEAF_DY[i]
+        nz = qz + LEAF_DZ[i]
+        b = @world.get(nx, ny, nz)
+        return true if Block.log?(b)
+        if d + 1 < LEAF_REACH && Block.leaves?(b)
+          k = ((nx - x + LEAF_REACH) * LEAF_SPAN + ny - y + LEAF_REACH) * LEAF_SPAN + nz - z + LEAF_REACH
+          if @leaf_seen[k] != @leaf_stamp
+            @leaf_seen[k] = @leaf_stamp
+            q << nx << ny << nz << d + 1
+          end
+        end
+        i += 1
+      end
+    end
+    false
+  end
+
   # Grows a tree of wood (Block::OAK_WOOD and so on) from the sapling at
   # x, y, z, with the shape of the generator's tree (World#plan_tree). The
   # sapling waits when something is in the way of a log.

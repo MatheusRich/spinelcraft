@@ -352,10 +352,10 @@ class Game
     if Block.leaves?(b)
       # Spruce and birch leaves drop a sapling 1 time in 20, and no apple.
       # minecraft.wiki/w/Leaves
-      sapling = b == Block::OAK_LEAVES ? 0.1 : 0.05
+      sapling = Block::BASE[b] == Block::OAK_LEAVES ? 0.1 : 0.05
       if r < sapling
         drop_from_block(Block::SAPLINGS[Block.wood(b)], 1, x, y, z)
-      elsif b == Block::OAK_LEAVES && r < 0.15
+      elsif Block::BASE[b] == Block::OAK_LEAVES && r < 0.15
         drop_from_block(Block::APPLE, 1, x, y, z)
       end
     elsif b == Block::TALL_GRASS
@@ -490,6 +490,8 @@ class Game
       # The head goes the way that the player looks, and each half faces
       # away from the other.
       b = Block.bed_id(look_direction ^ 1, false)
+    elsif Block.leaves?(b)
+      b = Block::PLACED_LEAVES[Block.wood(b)]
     end
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
     if Block.plant?(b)

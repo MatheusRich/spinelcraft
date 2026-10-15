@@ -113,6 +113,11 @@ class Game
     @sky = Ui.new
     make_stars
     @flow_queue = []
+    # The search of Game#held_by_log?: cells to visit, and the cells seen
+    # in the last search (LEAF_REACH around the leaves), by stamp.
+    @leaf_queue = Array.new(0, 0)
+    @leaf_seen = Array.new(LEAF_SPAN * LEAF_SPAN * LEAF_SPAN, 0)
+    @leaf_stamp = 0
     @flow_timer = 0.0
     @alive_time = 0.0
     @anim_time = 0.0
@@ -467,6 +472,7 @@ class Game
     @particles.update(@world, dt)
     @particles.sample_fire(@world, @player.x, @player.y, @player.z, dt)
     grow_plants(dt)
+    decay_leaves(dt)
     update_furnaces(dt)
     update_items(dt)
     update_falling(dt)

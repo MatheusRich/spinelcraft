@@ -144,6 +144,7 @@ class Game
     test_mob_drops
     test_mob_death
     test_mob_panic
+    test_leaf_decay
     test_items(cx, cz)
     test_light_sources(cx, cz)
     test_tint(cx, cz)
@@ -1356,6 +1357,58 @@ class Game
     @player.x = px
     @player.y = py
     @player.z = pz
+  end
+
+  # Leaves with no log within 6 steps through leaves decay, and leaves
+  # that the player placed stay. A row of 8 leaves from a log in the air
+  # keeps its first 6.
+  def test_leaf_decay
+    bx = @spawn_x.floor + 20
+    bz = @spawn_z.floor - 20
+    y = 90
+    set_block(bx, y, bz, Block::OAK_LOG)
+    i = 1
+    while i <= 8
+      set_block(bx + i, y, bz, Block::OAK_LEAVES)
+      i += 1
+    end
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    pitch = @player.pitch
+    flying = @player.flying
+    survival = @survival
+    @survival = false
+    held = @hotbar[0]
+    @slot = 0
+    @hotbar[0] = Block::OAK_LEAVES
+    @player.x = bx + 10.5
+    @player.y = y + 2.0
+    @player.z = bz + 0.5
+    @player.pitch = -1.55
+    @player.flying = true
+    set_block(bx + 10, y - 1, bz, Block::STONE)
+    @player.raycast(@world)
+    place
+    set_block(bx + 10, y - 1, bz, Block::AIR)
+    placed = @world.get(bx + 10, y, bz) == Block::PLACED_OAK_LEAVES
+    @hotbar[0] = held
+    @survival = survival
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.pitch = pitch
+    @player.flying = flying
+    decay_leaves(1200.0)
+    near = (1..6).all? { |k| @world.get(bx + k, y, bz) == Block::OAK_LEAVES }
+    far = @world.get(bx + 7, y, bz) == Block::AIR && @world.get(bx + 8, y, bz) == Block::AIR
+    set_block(bx, y, bz, Block::AIR)
+    decay_leaves(1200.0)
+    cut = (1..6).all? { |k| @world.get(bx + k, y, bz) == Block::AIR }
+    kept = @world.get(bx + 10, y, bz) == Block::PLACED_OAK_LEAVES
+    set_block(bx + 10, y, bz, Block::AIR)
+    @items.clear
+    check("leaves with no log near decay, and placed leaves stay", placed && near && far && cut && kept)
   end
 
   # Stands the player on the first item until the ground is empty or the
