@@ -821,7 +821,7 @@ class Game
     @mesher.build(x / CHUNK, z / CHUNK)
     inside = @mesher.torch_light(x, ground + 2, z)
     outside = @mesher.torch_light(x + 2, ground + 2, z)
-    check("walls stop torch light", inside == Mesher::LIGHT_MAX && outside == 0)
+    check("walls stop torch light", inside == Mesher::TORCH_LIGHT && outside == 0)
     set_block(x + 1, ground + 2, z, Block::AIR)
     @mesher.build(x / CHUNK, z / CHUNK)
     check("an opening lets torch light out", @mesher.torch_light(x + 2, ground + 2, z) == 12)
@@ -1747,7 +1747,7 @@ class Game
     end
     set_block(lx, SKY_Y - 4, lz, Block::LAVA)
     @mesher.build(lx / CHUNK, lz / CHUNK)
-    check("lava lights its surroundings", @mesher.torch_light(lx, SKY_Y - 3, lz) == 13)
+    check("lava lights its surroundings", @mesher.torch_light(lx, SKY_Y - 3, lz) == 14)
     set_block(lx + 1, SKY_Y - 4, lz, Block::WATER)
     20.times { update_water }
     check("water turns lava into cobblestone", @world.get(lx, SKY_Y - 4, lz) == Block::COBBLE)
@@ -2325,7 +2325,8 @@ class Game
     torches = @world.chunk_torches[World.slot(bx >> 4, bz >> 4)]
     listed = (0...torches.size / 3).any? { |i| torches[i * 3] == bx && torches[i * 3 + 1] == y + 1 && torches[i * 3 + 2] == bz }
     @mesher.build(bx / CHUNK, bz / CHUNK)
-    near = @mesher.torch_light(bx + 1, y + 1, bz) == Mesher::LIGHT_MAX - 1
+    near = @mesher.torch_light(bx + 1, y + 1, bz) == 14 && @mesher.torch_light(bx + 15, y + 1, bz) == 0 &&
+           @mesher.torch_light(bx + 14, y + 1, bz) == 1
     glow = true
     faces = 0
     i = 0

@@ -62,9 +62,12 @@ class Mesher
   COLUMNS = 1 << X_BITS
   COLUMN_MASK = COLUMNS - 1
 
-  # Torch light is LIGHT_MAX at a torch and one less for each step, so it
-  # reaches LIGHT_MAX blocks at most. The chunk shader divides by the same value.
-  LIGHT_MAX = 14
+  # Light is TORCH_LIGHT at a torch, LIGHT_MAX at lava or a jack o'lantern,
+  # and one less for each step, so it reaches LIGHT_MAX blocks at most.
+  # minecraft.wiki/w/Light. The chunk shader shows TORCH_LIGHT and more at
+  # full strength.
+  TORCH_LIGHT = 14
+  LIGHT_MAX = 15
   # The column masks of build hold BITS cells in each Integer, so the
   # shifts of cells_to_mesh stay far from the sign bit.
   BITS = 32
@@ -475,8 +478,9 @@ class Mesher
     end
   end
 
-  # Spreads torch light through cells that are not opaque: LIGHT_MAX at a torch,
-  # one less per step, so walls stop it. Covers the chunk plus a margin.
+  # Spreads the light of torches, lava and jack o'lanterns through cells
+  # that are not opaque, one less per step, so walls stop it. Covers the
+  # chunk plus a margin.
   def flood(x0, z0)
     # Only the cells in the last queue have light, so clear just those.
     k = 0
@@ -493,7 +497,7 @@ class Mesher
       lz = @tz[k] - bz
       if lx >= 0 && lz >= 0 && lx < LW && lz < LW
         n = (lx * LW + lz) * WY + @ty[k]
-        @light[n] = LIGHT_MAX
+        @light[n] = Block.torch?(@world.get(@tx[k], @ty[k], @tz[k])) ? TORCH_LIGHT : LIGHT_MAX
         @queue << n
       end
       k += 1
