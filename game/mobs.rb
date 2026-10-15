@@ -185,6 +185,8 @@ class Mob
     return if @egg_time > 0.0
     @egg_time = EGG_MIN + @rng.rand01 * EGG_MORE
     @lay = true
+    # A nil return, as on the other paths, keeps Spinel from boxing it.
+    nil
   end
 
   # A chicken opens its wings in the air and beats them, and folds them
@@ -593,7 +595,8 @@ class Mob
     my = cy * Math.cos(fall) - cx * Math.sin(fall) - (cy * Math.cos(t) - cx * Math.sin(t))
     mesh.roll(t)
     x0 = px < 0.0 ? px : px - 1.0
-    mesh.skin_box(@x + mx * Math.cos(@yaw), @y + my, @z + mx * Math.sin(@yaw), @yaw, 0.0, 0.0, 0.0,
+    # to_f: Spinel cannot type the position of a mob.
+    mesh.skin_box(@x.to_f + mx * Math.cos(@yaw), @y.to_f + my, @z.to_f + mx * Math.sin(@yaw), @yaw, 0.0, 0.0, 0.0,
                   x0 * k, 7.0 * k, -3.0 * k, (x0 + 1.0) * k, 11.0 * k, 3.0 * k,
                   l, 24.0, 13.0, 1.0, 4.0, 6.0, false, 1.0, red, red, 1.0)
   end

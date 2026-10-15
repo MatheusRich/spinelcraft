@@ -467,7 +467,7 @@ class Game
   # A chicken lays an egg where it stands, with a plop.
   def lay_egg(m)
     m.lay = false
-    drop_item(Block::EGG, 1, m.x, m.y + 0.2, m.z, 0.0, 1.0, 0.0, PICKUP_WAIT)
+    drop_item(Block::EGG, 1, m.x, m.y.to_f + 0.2, m.z, 0.0, 1.0, 0.0, PICKUP_WAIT)
     play_from(m, Sfx::LAY_EGG, 1.0)
   end
 
@@ -617,7 +617,7 @@ class Game
   def throw_egg
     @inv.take(@slot, 1) if @survival
     p = @player
-    @eggs << Egg.new(p.x, p.eye_y - 0.1, p.z, p.fx * Egg::SPEED, p.fy * Egg::SPEED, p.fz * Egg::SPEED)
+    @eggs << Egg.new(p.x, p.eye_y.to_f - 0.1, p.z, p.fx * Egg::SPEED, p.fy * Egg::SPEED, p.fz * Egg::SPEED)
     @swing = 0.25
     play(Sfx::SHOOT, 0.5)
   end

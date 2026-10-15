@@ -8,10 +8,12 @@ class Egg
 
   attr_reader :x, :y, :z, :vx, :vz
 
+  # to_f: the player's position is untyped in Spinel, and an untyped @x
+  # would box each step of the flight.
   def initialize(x, y, z, vx, vy, vz)
-    @x = x
-    @y = y
-    @z = z
+    @x = x.to_f
+    @y = y.to_f
+    @z = z.to_f
     @vx = vx
     @vy = vy
     @vz = vz
