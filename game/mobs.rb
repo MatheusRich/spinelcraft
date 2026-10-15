@@ -41,7 +41,7 @@ class Mob
   # in smoke. minecraft.wiki/w/Death
   DEATH_TIME = 1.0
 
-  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :phase, :shoot, :explode, :by_player
+  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :hurt, :alive, :shoot, :explode, :by_player
   # True for one step after a creeper lights its fuse.
   attr_accessor :hiss
   # True after a hit, until Game#update_mobs plays the hurt sound.

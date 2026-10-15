@@ -155,10 +155,9 @@ class World
   # grows a branch 5 blocks long, and the leaves at its end reach 3 more.
   TREE_REACH = 8
 
-  attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :edited, :store, :seed
+  attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :store
 
   def initialize(seed)
-    @seed = seed
     # Eight blocks per Integer (block ids fit in 7 bits); see World.byte.
     @blocks = Array.new(PX * PY * PZ / 8 + 1, 0)
     @height = Array.new(WX * WZ, 0)

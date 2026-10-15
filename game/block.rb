@@ -69,9 +69,8 @@ module Block
   BUCKET = 71
   WATER_BUCKET = 72
   LAVA_BUCKET = 73
-  # A torch on the side of a block: the first of 4, one for each facing.
-  # A torch item places one of them (see facing_id).
-  WALL_TORCH = 74
+  # 74-77 are torches on the side of a block, one for each facing. A torch
+  # item places one of them (see facing_id).
   # 78-80 are furnaces that face the directions 1-3. FURNACE faces
   # direction 0.
   # The first of 16 door blocks: DOOR_BLOCK + open * 8 + upper * 4 + facing.
@@ -219,14 +218,12 @@ module Block
   def self.flat?(b) = item?(b) || plant?(b) || b == DOOR || b == BED || b == LADDER
   def self.door?(b) = b >= DOOR_BLOCK && b < DOOR_BLOCK + 16
   def self.door_open?(b) = door?(b) && b >= DOOR_BLOCK + 8
-  def self.door_upper?(b) = door?(b) && (b - DOOR_BLOCK) % 8 >= 4
   def self.door_id(facing, upper, open) = DOOR_BLOCK + (open ? 8 : 0) + (upper ? 4 : 0) + facing
   # The same door half, opened or closed.
   def self.door_toggled(b) = door_open?(b) ? b - 8 : b + 8
   def self.torch?(b) = BASE[b] == TORCH
   def self.wall_torch?(b) = torch?(b) && FACING[b] >= 0
   def self.bed?(b) = b >= BED_BLOCK && b < BED_BLOCK + 8
-  def self.bed_head?(b) = bed?(b) && b >= BED_BLOCK + 4
   def self.bed_id(facing, head) = BED_BLOCK + (head ? 4 : 0) + facing
   def self.furnace_lit?(b) = b >= FURNACE_LIT && b < FURNACE_LIT + 4
   # The furnace that faces direction d, lit when it has heat.

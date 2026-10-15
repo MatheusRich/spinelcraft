@@ -12,7 +12,7 @@ class Player
   # A step sound plays each time the player or a mob walks this far.
   STEP = 2.1
 
-  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water, :fall_start, :sneaking
+  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water, :fall_start
   attr_reader :hit, :hx, :hy, :hz, :px, :py, :pz, :hit_t
   # True when the feet are in lava. in_water is true then too, because the
   # player moves the same way in both.
@@ -22,8 +22,6 @@ class Player
   attr_accessor :slowed
   # True when the last step started a jump.
   attr_reader :jumped
-  # True while the player climbs a ladder, and while the player sprints.
-  attr_reader :climbing, :sprinting
 
   def initialize(x, y, z)
     @x = x
