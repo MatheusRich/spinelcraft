@@ -69,16 +69,21 @@ module Block
   BUCKET = 71
   WATER_BUCKET = 72
   LAVA_BUCKET = 73
-  # 74-77 are torches on the side of a block, one for each facing. A torch
-  # item places one of them (see facing_id).
-  # 78-80 are furnaces that face the directions 1-3. FURNACE faces
+  # A torch on the side of a block: the first of 4, one for each facing.
+  # A torch item places one of them (see facing_id).
+  WALL_TORCH = 74
+  # The first of 3 furnaces that face the directions 1-3. FURNACE faces
   # direction 0.
+  FURNACE_TURNS = 78
   # The first of 16 door blocks: DOOR_BLOCK + open * 8 + upper * 4 + facing.
   # A closed door stands on the edge of its cell that it faces, and an open
   # door on the edge a quarter turn from it (see SHAPE_BOX). DOOR is the item.
   DOOR_BLOCK = 81
-  # 97-99 are ladders and 100-102 chests that face the directions 1-3.
-  # LADDER and CHEST face direction 0. A ladder faces away from its wall.
+  # The first of 3 ladders and the first of 3 chests that face the
+  # directions 1-3. LADDER and CHEST face direction 0. A ladder faces
+  # away from its wall.
+  LADDER_TURNS = 97
+  CHEST_TURNS = 100
   # A furnace with heat: FURNACE_LIT + facing.
   FURNACE_LIT = 103
   # The first of 8 bed blocks: BED_BLOCK + head * 4 + facing. Each half
@@ -117,7 +122,6 @@ module Block
   PUMPKIN_SEEDS = 143
   PUMPKIN_STEM = 144
   PUMPKIN_STEM_RIPE = 145
-  COUNT = 146
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -149,47 +153,240 @@ module Block
   SHAPE_BOX = [0, 0, 0, 16, 16, 16, 13, 0, 0, 16, 16, 16, 0, 0, 13, 16, 16, 16, 0, 0, 0, 1, 16, 16,
                1, 0, 1, 15, 14, 15, 0, 0, 0, 16, 9, 16, 1, 0, 1, 15, 16, 15]
 
-  NAMES = ["AIR", "GRASS", "DIRT", "STONE", "SAND", "WATER", "OAK LOG", "OAK LEAVES", "OAK PLANKS", "COBBLESTONE", "GLASS", "SNOWY GRASS", "BEDROCK", "BRICKS", "COAL ORE", "IRON ORE", "GRAVEL", "DIAMOND ORE", "CACTUS", "SNOW", "TALL GRASS", "ROSE", "DANDELION", "TORCH", "PORKCHOP", "WOODEN PICKAXE", "STONE PICKAXE", "IRON PICKAXE", "DIAMOND PICKAXE", "WATER", "WATER", "WATER", "WATER", "WATER", "WATER", "WATER", "BOW", "ARROW", "LAVA", "LAVA", "LAVA", "LAVA", "WOOL", "BED", "CHEST", "DOOR", "OAK SAPLING", "APPLE", "WOODEN SWORD", "STONE SWORD", "IRON SWORD", "DIAMOND SWORD", "IRON INGOT", "FURNACE", "COOKED PORKCHOP", "WOODEN AXE", "STONE AXE", "IRON AXE", "DIAMOND AXE", "WOODEN SHOVEL", "STONE SHOVEL", "IRON SHOVEL", "DIAMOND SHOVEL", "SEEDS", "WHEAT", "WHEAT", "WHEAT", "WHEAT", "BREAD", "CRAFTING TABLE", "LADDER", "BUCKET", "WATER BUCKET", "LAVA BUCKET", "TORCH", "TORCH", "TORCH", "TORCH", "FURNACE", "FURNACE", "FURNACE", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "DOOR", "LADDER", "LADDER", "LADDER", "CHEST", "CHEST", "CHEST", "FURNACE", "FURNACE", "FURNACE", "FURNACE", "BED", "BED", "BED", "BED", "BED", "BED", "BED", "BED", "ROTTEN FLESH", "SPRUCE LOG", "SPRUCE LEAVES", "SPRUCE PLANKS", "SPRUCE SAPLING", "BIRCH LOG", "BIRCH LEAVES", "BIRCH PLANKS", "BIRCH SAPLING", "MUTTON", "COOKED MUTTON", "COAL", "OAK LEAVES", "SPRUCE LEAVES", "BIRCH LEAVES", "OAK BOAT", "SPRUCE BOAT", "BIRCH BOAT", "PUMPKIN", "CARVED PUMPKIN", "CARVED PUMPKIN", "CARVED PUMPKIN", "CARVED PUMPKIN", "JACK O'LANTERN", "JACK O'LANTERN", "JACK O'LANTERN", "JACK O'LANTERN", "SHEARS", "PUMPKIN SEEDS", "PUMPKIN STEM", "PUMPKIN STEM"]
-  TOP = [0, Tex::GRASS_TOP, Tex::DIRT, Tex::STONE, Tex::SAND, Tex::WATER, Tex::OAK_LOG_TOP, Tex::OAK_LEAVES, Tex::OAK_PLANKS, Tex::COBBLE, Tex::GLASS, Tex::SNOW, Tex::BEDROCK, Tex::BRICK, Tex::COAL_ORE, Tex::IRON, Tex::GRAVEL, Tex::DIAMOND, Tex::CACTUS_TOP, Tex::SNOW, Tex::TALL_GRASS, Tex::ROSE, Tex::DANDELION, Tex::TORCH, Tex::PORKCHOP, Tex::WOOD_PICK, Tex::STONE_PICK, Tex::IRON_PICK, Tex::DIAMOND_PICK, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::BOW, Tex::ARROW, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::WOOL, Tex::BED_ITEM, Tex::CHEST_TOP, Tex::DOOR_ITEM, Tex::OAK_SAPLING, Tex::APPLE, Tex::WOOD_SWORD, Tex::STONE_SWORD, Tex::IRON_SWORD, Tex::DIAMOND_SWORD, Tex::IRON_INGOT, Tex::FURNACE_TOP, Tex::COOKED_PORKCHOP, Tex::WOOD_AXE, Tex::STONE_AXE, Tex::IRON_AXE, Tex::DIAMOND_AXE, Tex::WOOD_SHOVEL, Tex::STONE_SHOVEL, Tex::IRON_SHOVEL, Tex::DIAMOND_SHOVEL, Tex::SEEDS, Tex::WHEAT_1, Tex::WHEAT_2, Tex::WHEAT_RIPE, Tex::WHEAT, Tex::BREAD, Tex::CRAFT_TOP, Tex::CLEAR, Tex::BUCKET, Tex::WATER_BUCKET, Tex::LAVA_BUCKET, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::CLEAR, Tex::CLEAR, Tex::CLEAR, Tex::CHEST_TOP, Tex::CHEST_TOP, Tex::CHEST_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::BED_TOP, Tex::BED_TOP, Tex::BED_TOP, Tex::BED_TOP, Tex::BED_HEAD_TOP, Tex::BED_HEAD_TOP, Tex::BED_HEAD_TOP, Tex::BED_HEAD_TOP, Tex::ROTTEN_FLESH, Tex::SPRUCE_LOG_TOP, Tex::SPRUCE_LEAVES, Tex::SPRUCE_PLANKS, Tex::SPRUCE_SAPLING, Tex::BIRCH_LOG_TOP, Tex::BIRCH_LEAVES, Tex::BIRCH_PLANKS, Tex::BIRCH_SAPLING, Tex::MUTTON, Tex::COOKED_MUTTON, Tex::COAL, Tex::OAK_LEAVES, Tex::SPRUCE_LEAVES, Tex::BIRCH_LEAVES, Tex::OAK_BOAT, Tex::SPRUCE_BOAT, Tex::BIRCH_BOAT, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::SHEARS, Tex::PUMPKIN_STEM, Tex::PUMPKIN_STEM, Tex::PUMPKIN_STEM_RIPE]
-  SIDE = [0, Tex::GRASS_SIDE, Tex::DIRT, Tex::STONE, Tex::SAND, Tex::WATER, Tex::OAK_LOG_SIDE, Tex::OAK_LEAVES, Tex::OAK_PLANKS, Tex::COBBLE, Tex::GLASS, Tex::SNOW_SIDE, Tex::BEDROCK, Tex::BRICK, Tex::COAL_ORE, Tex::IRON, Tex::GRAVEL, Tex::DIAMOND, Tex::CACTUS_SIDE, Tex::SNOW, Tex::TALL_GRASS, Tex::ROSE, Tex::DANDELION, Tex::TORCH, Tex::PORKCHOP, Tex::WOOD_PICK, Tex::STONE_PICK, Tex::IRON_PICK, Tex::DIAMOND_PICK, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::BOW, Tex::ARROW, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::WOOL, Tex::BED_ITEM, Tex::CHEST_SIDE, Tex::DOOR_ITEM, Tex::OAK_SAPLING, Tex::APPLE, Tex::WOOD_SWORD, Tex::STONE_SWORD, Tex::IRON_SWORD, Tex::DIAMOND_SWORD, Tex::IRON_INGOT, Tex::FURNACE_SIDE, Tex::COOKED_PORKCHOP, Tex::WOOD_AXE, Tex::STONE_AXE, Tex::IRON_AXE, Tex::DIAMOND_AXE, Tex::WOOD_SHOVEL, Tex::STONE_SHOVEL, Tex::IRON_SHOVEL, Tex::DIAMOND_SHOVEL, Tex::SEEDS, Tex::WHEAT_1, Tex::WHEAT_2, Tex::WHEAT_RIPE, Tex::WHEAT, Tex::BREAD, Tex::CRAFT_SIDE, Tex::LADDER, Tex::BUCKET, Tex::WATER_BUCKET, Tex::LAVA_BUCKET, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::FURNACE_SIDE, Tex::FURNACE_SIDE, Tex::FURNACE_SIDE, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::LADDER, Tex::LADDER, Tex::LADDER, Tex::CHEST_SIDE, Tex::CHEST_SIDE, Tex::CHEST_SIDE, Tex::FURNACE_SIDE, Tex::FURNACE_SIDE, Tex::FURNACE_SIDE, Tex::FURNACE_SIDE, Tex::BED_SIDE, Tex::BED_SIDE, Tex::BED_SIDE, Tex::BED_SIDE, Tex::BED_HEAD_SIDE, Tex::BED_HEAD_SIDE, Tex::BED_HEAD_SIDE, Tex::BED_HEAD_SIDE, Tex::ROTTEN_FLESH, Tex::SPRUCE_LOG_SIDE, Tex::SPRUCE_LEAVES, Tex::SPRUCE_PLANKS, Tex::SPRUCE_SAPLING, Tex::BIRCH_LOG_SIDE, Tex::BIRCH_LEAVES, Tex::BIRCH_PLANKS, Tex::BIRCH_SAPLING, Tex::MUTTON, Tex::COOKED_MUTTON, Tex::COAL, Tex::OAK_LEAVES, Tex::SPRUCE_LEAVES, Tex::BIRCH_LEAVES, Tex::OAK_BOAT, Tex::SPRUCE_BOAT, Tex::BIRCH_BOAT, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_SIDE, Tex::SHEARS, Tex::PUMPKIN_SEEDS, Tex::PUMPKIN_STEM, Tex::PUMPKIN_STEM_RIPE]
-  BOTTOM = [0, Tex::DIRT, Tex::DIRT, Tex::STONE, Tex::SAND, Tex::WATER, Tex::OAK_LOG_TOP, Tex::OAK_LEAVES, Tex::OAK_PLANKS, Tex::COBBLE, Tex::GLASS, Tex::DIRT, Tex::BEDROCK, Tex::BRICK, Tex::COAL_ORE, Tex::IRON, Tex::GRAVEL, Tex::DIAMOND, Tex::CACTUS_TOP, Tex::SNOW, Tex::TALL_GRASS, Tex::ROSE, Tex::DANDELION, Tex::TORCH, Tex::PORKCHOP, Tex::WOOD_PICK, Tex::STONE_PICK, Tex::IRON_PICK, Tex::DIAMOND_PICK, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::BOW, Tex::ARROW, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::WOOL, Tex::BED_ITEM, Tex::CHEST_TOP, Tex::DOOR_ITEM, Tex::OAK_SAPLING, Tex::APPLE, Tex::WOOD_SWORD, Tex::STONE_SWORD, Tex::IRON_SWORD, Tex::DIAMOND_SWORD, Tex::IRON_INGOT, Tex::FURNACE_TOP, Tex::COOKED_PORKCHOP, Tex::WOOD_AXE, Tex::STONE_AXE, Tex::IRON_AXE, Tex::DIAMOND_AXE, Tex::WOOD_SHOVEL, Tex::STONE_SHOVEL, Tex::IRON_SHOVEL, Tex::DIAMOND_SHOVEL, Tex::SEEDS, Tex::WHEAT_1, Tex::WHEAT_2, Tex::WHEAT_RIPE, Tex::WHEAT, Tex::BREAD, Tex::OAK_PLANKS, Tex::CLEAR, Tex::BUCKET, Tex::WATER_BUCKET, Tex::LAVA_BUCKET, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::CLEAR, Tex::CLEAR, Tex::CLEAR, Tex::CHEST_TOP, Tex::CHEST_TOP, Tex::CHEST_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::FURNACE_TOP, Tex::OAK_PLANKS, Tex::OAK_PLANKS, Tex::OAK_PLANKS, Tex::OAK_PLANKS, Tex::OAK_PLANKS, Tex::OAK_PLANKS, Tex::OAK_PLANKS, Tex::OAK_PLANKS, Tex::ROTTEN_FLESH, Tex::SPRUCE_LOG_TOP, Tex::SPRUCE_LEAVES, Tex::SPRUCE_PLANKS, Tex::SPRUCE_SAPLING, Tex::BIRCH_LOG_TOP, Tex::BIRCH_LEAVES, Tex::BIRCH_PLANKS, Tex::BIRCH_SAPLING, Tex::MUTTON, Tex::COOKED_MUTTON, Tex::COAL, Tex::OAK_LEAVES, Tex::SPRUCE_LEAVES, Tex::BIRCH_LEAVES, Tex::OAK_BOAT, Tex::SPRUCE_BOAT, Tex::BIRCH_BOAT, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::PUMPKIN_TOP, Tex::SHEARS, Tex::PUMPKIN_SEEDS, Tex::PUMPKIN_STEM, Tex::PUMPKIN_STEM_RIPE]
+  # The tables below have one entry for each block, at the index of its
+  # id. Block.define_block fills them, and each block is one call to it, after
+  # these tables. Spinel keeps Integer and Float arrays unboxed.
+  NAMES = []
+  # The textures of the top, the sides and the bottom of each block.
+  TOP = []
+  SIDE = []
+  BOTTOM = []
   # The texture on the front face of a block that has a facing, and the
   # icon of the block in the inventory.
-  FRONT = [0, Tex::GRASS_SIDE, Tex::DIRT, Tex::STONE, Tex::SAND, Tex::WATER, Tex::OAK_LOG_SIDE, Tex::OAK_LEAVES, Tex::OAK_PLANKS, Tex::COBBLE, Tex::GLASS, Tex::SNOW_SIDE, Tex::BEDROCK, Tex::BRICK, Tex::COAL_ORE, Tex::IRON, Tex::GRAVEL, Tex::DIAMOND, Tex::CACTUS_SIDE, Tex::SNOW, Tex::TALL_GRASS, Tex::ROSE, Tex::DANDELION, Tex::TORCH, Tex::PORKCHOP, Tex::WOOD_PICK, Tex::STONE_PICK, Tex::IRON_PICK, Tex::DIAMOND_PICK, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::WATER, Tex::BOW, Tex::ARROW, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::LAVA, Tex::WOOL, Tex::BED_ITEM, Tex::CHEST_FRONT, Tex::DOOR_ITEM, Tex::OAK_SAPLING, Tex::APPLE, Tex::WOOD_SWORD, Tex::STONE_SWORD, Tex::IRON_SWORD, Tex::DIAMOND_SWORD, Tex::IRON_INGOT, Tex::FURNACE, Tex::COOKED_PORKCHOP, Tex::WOOD_AXE, Tex::STONE_AXE, Tex::IRON_AXE, Tex::DIAMOND_AXE, Tex::WOOD_SHOVEL, Tex::STONE_SHOVEL, Tex::IRON_SHOVEL, Tex::DIAMOND_SHOVEL, Tex::SEEDS, Tex::WHEAT_1, Tex::WHEAT_2, Tex::WHEAT_RIPE, Tex::WHEAT, Tex::BREAD, Tex::CRAFT_SIDE, Tex::LADDER, Tex::BUCKET, Tex::WATER_BUCKET, Tex::LAVA_BUCKET, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::TORCH, Tex::FURNACE, Tex::FURNACE, Tex::FURNACE, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_LOWER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::DOOR_UPPER, Tex::LADDER, Tex::LADDER, Tex::LADDER, Tex::CHEST_FRONT, Tex::CHEST_FRONT, Tex::CHEST_FRONT, Tex::FURNACE_LIT, Tex::FURNACE_LIT, Tex::FURNACE_LIT, Tex::FURNACE_LIT, Tex::BED_FOOT_END, Tex::BED_FOOT_END, Tex::BED_FOOT_END, Tex::BED_FOOT_END, Tex::BED_HEAD_END, Tex::BED_HEAD_END, Tex::BED_HEAD_END, Tex::BED_HEAD_END, Tex::ROTTEN_FLESH, Tex::SPRUCE_LOG_SIDE, Tex::SPRUCE_LEAVES, Tex::SPRUCE_PLANKS, Tex::SPRUCE_SAPLING, Tex::BIRCH_LOG_SIDE, Tex::BIRCH_LEAVES, Tex::BIRCH_PLANKS, Tex::BIRCH_SAPLING, Tex::MUTTON, Tex::COOKED_MUTTON, Tex::COAL, Tex::OAK_LEAVES, Tex::SPRUCE_LEAVES, Tex::BIRCH_LEAVES, Tex::OAK_BOAT, Tex::SPRUCE_BOAT, Tex::BIRCH_BOAT, Tex::PUMPKIN_SIDE, Tex::PUMPKIN_FACE, Tex::PUMPKIN_FACE, Tex::PUMPKIN_FACE, Tex::PUMPKIN_FACE, Tex::JACK_FACE, Tex::JACK_FACE, Tex::JACK_FACE, Tex::JACK_FACE, Tex::SHEARS, Tex::PUMPKIN_SEEDS, Tex::PUMPKIN_STEM, Tex::PUMPKIN_STEM_RIPE]
+  FRONT = []
   # The direction that the front of each block faces (see DIR_DX and DIR_DZ),
   # or -1 for a block without a front. A wall torch faces away from its wall.
-  FACING = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, 0, 1, 2, 3, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 0, 1, 2, 3, -1, -1, -1, -1]
+  FACING = []
   # The kind of each block: what the inventory holds for it. The blocks of
   # one kind differ only in their facing, or in a part of the same thing
   # (an open door, the head of a bed).
-  BASE = [AIR, GRASS, DIRT, STONE, SAND, WATER, OAK_LOG, OAK_LEAVES, OAK_PLANKS, COBBLE, GLASS, SNOW_GRASS, BEDROCK, BRICK, COAL_ORE, IRON, GRAVEL, DIAMOND, CACTUS, SNOW, TALL_GRASS, ROSE, DANDELION, TORCH, PORKCHOP, WOOD_PICK, STONE_PICK, IRON_PICK, DIAMOND_PICK, FLOW, 30, 31, 32, 33, 34, 35, BOW, ARROW, LAVA, LAVA_FLOW, 40, 41, WOOL, BED, CHEST, DOOR, OAK_SAPLING, APPLE, WOOD_SWORD, STONE_SWORD, IRON_SWORD, DIAMOND_SWORD, IRON_INGOT, FURNACE, COOKED_PORKCHOP, WOOD_AXE, STONE_AXE, IRON_AXE, DIAMOND_AXE, WOOD_SHOVEL, STONE_SHOVEL, IRON_SHOVEL, DIAMOND_SHOVEL, SEEDS, 64, 65, WHEAT_RIPE, WHEAT, BREAD, CRAFTING_TABLE, LADDER, BUCKET, WATER_BUCKET, LAVA_BUCKET, TORCH, TORCH, TORCH, TORCH, FURNACE, FURNACE, FURNACE, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, LADDER, LADDER, LADDER, CHEST, CHEST, CHEST, FURNACE, FURNACE, FURNACE, FURNACE, BED, BED, BED, BED, BED, BED, BED, BED, ROTTEN_FLESH, SPRUCE_LOG, SPRUCE_LEAVES, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG, BIRCH_LEAVES, BIRCH_PLANKS, BIRCH_SAPLING, MUTTON, COOKED_MUTTON, COAL, OAK_LEAVES, SPRUCE_LEAVES, BIRCH_LEAVES, OAK_BOAT, SPRUCE_BOAT, BIRCH_BOAT, PUMPKIN, CARVED_PUMPKIN, CARVED_PUMPKIN, CARVED_PUMPKIN, CARVED_PUMPKIN, JACK_O_LANTERN, JACK_O_LANTERN, JACK_O_LANTERN, JACK_O_LANTERN, SHEARS, PUMPKIN_SEEDS, PUMPKIN_STEM, PUMPKIN_STEM_RIPE]
-
+  BASE = []
   # The shape of each block in SHAPE_BOX.
-  SHAPE = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-  # Integer 0/1 tables: Spinel keeps Integer arrays unboxed.
-  # Hides the faces behind it.
-  OPAQUE = [0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
-  # Darkens ambient occlusion corners.
-  OCCLUDES = [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
-  # Stops the player.
-  SOLID = [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
-  # Drawn as two crossed quads instead of a cube.
-  PLANT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
+  SHAPE = []
+  # 1 for a block that hides the faces behind it.
+  OPAQUE = []
+  # 1 for a block that darkens ambient occlusion corners.
+  OCCLUDES = []
+  # 1 for a block that stops the player.
+  SOLID = []
+  # 1 for a block that draws as two crossed quads instead of a cube.
+  PLANT = []
   # The hardness of each block, as in Minecraft; negative never breaks.
-  # Game#mine turns it into seconds. minecraft.wiki/w/Breaking, and
-  # /w/Leaves, /w/Snow_Block and /w/Bed for those blocks.
-  HARDNESS = [0.0, 0.6, 0.5, 1.5, 0.5, -1.0, 2.0, 0.2, 2.0, 2.0, 0.3, 0.6, -1.0, 2.0, 3.0, 3.0, 0.6, 3.0, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.8, 0.2, 2.5, 3.0, 0.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 3.5, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, 2.5, 0.4, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 3.5, 3.5, 3.5, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.4, 0.4, 0.4, 2.5, 2.5, 2.5, 3.5, 3.5, 3.5, 3.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, -1.0, 2.0, 0.2, 2.0, 0.0, 2.0, 0.2, 2.0, 0.0, -1.0, -1.0, -1.0, 0.2, 0.2, 0.2, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 0.0, 0.0, 0.0]
+  # Game#mine turns it into seconds.
+  HARDNESS = []
   # What breaking the block gives in survival.
-  DROPS = [0, DIRT, DIRT, COBBLE, SAND, 0, OAK_LOG, 0, OAK_PLANKS, COBBLE, 0, DIRT, 0, BRICK, COAL, IRON, GRAVEL, DIAMOND, CACTUS, SNOW, 0, ROSE, DANDELION, TORCH, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, WOOL, BED, CHEST, DOOR, OAK_SAPLING, 0, 0, 0, 0, 0, 0, FURNACE, 0, 0, 0, 0, 0, 0, 0, 0, 0, SEEDS, SEEDS, SEEDS, WHEAT, 0, 0, CRAFTING_TABLE, LADDER, 0, 0, 0, TORCH, TORCH, TORCH, TORCH, FURNACE, FURNACE, FURNACE, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, DOOR, LADDER, LADDER, LADDER, CHEST, CHEST, CHEST, FURNACE, FURNACE, FURNACE, FURNACE, BED, BED, BED, BED, BED, BED, BED, BED, 0, SPRUCE_LOG, 0, SPRUCE_PLANKS, SPRUCE_SAPLING, BIRCH_LOG, 0, BIRCH_PLANKS, BIRCH_SAPLING, 0, 0, 0, 0, 0, 0, 0, 0, 0, PUMPKIN, CARVED_PUMPKIN, CARVED_PUMPKIN, CARVED_PUMPKIN, CARVED_PUMPKIN, JACK_O_LANTERN, JACK_O_LANTERN, JACK_O_LANTERN, JACK_O_LANTERN, 0, PUMPKIN_SEEDS, PUMPKIN_SEEDS, PUMPKIN_SEEDS]
+  DROPS = []
   # Pickaxe tier a block needs to drop anything: 1 wood, 2 stone, 3 iron.
-  NEEDS_PICK = [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 2, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  # The tool that digs the block fast: 1 a pickaxe, 2 an axe, 3 a shovel.
-  DIG_KIND = [0, 3, 3, 1, 3, 0, 2, 0, 2, 1, 0, 3, 0, 1, 1, 1, 3, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0]
+  NEEDS_PICK = []
+  # The tool that digs the block fast: DIG_PICK, DIG_AXE, DIG_SHOVEL, or 0.
+  DIG_KIND = []
+  DIG_PICK = 1
+  DIG_AXE = 2
+  DIG_SHOVEL = 3
   # Pickaxe tier of an item (0 for everything that is not a pickaxe).
-  PICK_TIER = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  PICK_TIER = []
   # Water level: 8 for a source, 1..7 for flowing water, 0 for anything else.
-  WATER_LEVEL = [0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  WATER_LEVEL = []
+
+  # Adds block id to the tables above, which name its arguments. The
+  # blocks come in the order of their ids. A block is an opaque, solid
+  # cube with the texture side on each face, and it drops itself, unless
+  # the arguments say something else.
+  def self.define_block(id, name, side, top: side, bottom: top, front: side, facing: -1, base: id, shape: 0, opaque: 1,
+                        occludes: opaque, solid: 1, plant: 0, hardness: 0.0, drops: id, needs_pick: 0, dig: 0, pick_tier: 0,
+                        water: 0)
+    abort "Block.define_block: block #{id} comes out of order" if id != NAMES.size
+    NAMES << name
+    TOP << top
+    SIDE << side
+    BOTTOM << bottom
+    FRONT << front
+    FACING << facing
+    BASE << base
+    SHAPE << shape
+    OPAQUE << opaque
+    OCCLUDES << occludes
+    SOLID << solid
+    PLANT << plant
+    HARDNESS << hardness
+    DROPS << drops
+    NEEDS_PICK << needs_pick
+    DIG_KIND << dig
+    PICK_TIER << pick_tier
+    WATER_LEVEL << water
+  end
+
+  # A thing that lives in the inventory, but never in the world.
+  def self.define_item(id, name, tex, pick_tier: 0) =
+    define_block(id, name, tex, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, pick_tier: pick_tier)
+
+  # A plant: two crossed quads that do not stop the player and break at once.
+  def self.define_plant(id, name, tex, drops: id) = define_block(id, name, tex, opaque: 0, solid: 0, plant: 1, drops: drops)
+
+  # The blocks first, first + 1 and so on: block of turned to each direction
+  # after its own facing, up to direction 3.
+  def self.define_turns(first, of)
+    d = FACING[of] + 1
+    while d < 4
+      define_block(first + d - FACING[of] - 1, NAMES[of], SIDE[of], top: TOP[of], bottom: BOTTOM[of], front: FRONT[of],
+                   facing: d, base: BASE[of], shape: SHAPE[of], opaque: OPAQUE[of], occludes: OCCLUDES[of], solid: SOLID[of],
+                   plant: PLANT[of], hardness: HARDNESS[of], drops: DROPS[of], needs_pick: NEEDS_PICK[of], dig: DIG_KIND[of],
+                   pick_tier: PICK_TIER[of], water: WATER_LEVEL[of])
+      d += 1
+    end
+    # A while loop gives an untyped value, so Spinel would box the return.
+    nil
+  end
+
+  # The hardness values come from minecraft.wiki/w/Breaking, and /w/Leaves,
+  # /w/Snow_Block, /w/Bed, /w/Pumpkin and /w/Jack_o'Lantern for those blocks.
+  define_block AIR, "AIR", Tex::WHITE, opaque: 0, solid: 0
+  define_block GRASS, "GRASS", Tex::GRASS_SIDE, top: Tex::GRASS_TOP, bottom: Tex::DIRT, hardness: 0.6, drops: DIRT, dig: DIG_SHOVEL
+  define_block DIRT, "DIRT", Tex::DIRT, hardness: 0.5, dig: DIG_SHOVEL
+  define_block STONE, "STONE", Tex::STONE, hardness: 1.5, drops: COBBLE, needs_pick: 1, dig: DIG_PICK
+  define_block SAND, "SAND", Tex::SAND, hardness: 0.5, dig: DIG_SHOVEL
+  define_block WATER, "WATER", Tex::WATER, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, water: 8
+  define_block OAK_LOG, "OAK LOG", Tex::OAK_LOG_SIDE, top: Tex::OAK_LOG_TOP, hardness: 2.0, dig: DIG_AXE
+  define_block OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
+  define_block OAK_PLANKS, "OAK PLANKS", Tex::OAK_PLANKS, hardness: 2.0, dig: DIG_AXE
+  define_block COBBLE, "COBBLESTONE", Tex::COBBLE, hardness: 2.0, needs_pick: 1, dig: DIG_PICK
+  define_block GLASS, "GLASS", Tex::GLASS, opaque: 0, hardness: 0.3, drops: AIR
+  define_block SNOW_GRASS, "SNOWY GRASS", Tex::SNOW_SIDE, top: Tex::SNOW, bottom: Tex::DIRT, hardness: 0.6, drops: DIRT, dig: DIG_SHOVEL
+  define_block BEDROCK, "BEDROCK", Tex::BEDROCK, hardness: -1.0, drops: AIR
+  define_block BRICK, "BRICKS", Tex::BRICK, hardness: 2.0, needs_pick: 1, dig: DIG_PICK
+  define_block COAL_ORE, "COAL ORE", Tex::COAL_ORE, hardness: 3.0, drops: COAL, needs_pick: 1, dig: DIG_PICK
+  define_block IRON, "IRON ORE", Tex::IRON, hardness: 3.0, needs_pick: 2, dig: DIG_PICK
+  define_block GRAVEL, "GRAVEL", Tex::GRAVEL, hardness: 0.6, dig: DIG_SHOVEL
+  define_block DIAMOND, "DIAMOND ORE", Tex::DIAMOND, hardness: 3.0, needs_pick: 3, dig: DIG_PICK
+  define_block CACTUS, "CACTUS", Tex::CACTUS_SIDE, top: Tex::CACTUS_TOP, shape: 6, opaque: 0, hardness: 0.4
+  define_block SNOW, "SNOW", Tex::SNOW, hardness: 0.2, dig: DIG_SHOVEL
+  define_plant TALL_GRASS, "TALL GRASS", Tex::TALL_GRASS, drops: AIR
+  define_plant ROSE, "ROSE", Tex::ROSE
+  define_plant DANDELION, "DANDELION", Tex::DANDELION
+  define_plant TORCH, "TORCH", Tex::TORCH
+  define_item PORKCHOP, "PORKCHOP", Tex::PORKCHOP
+  define_item WOOD_PICK, "WOODEN PICKAXE", Tex::WOOD_PICK, pick_tier: 1
+  define_item STONE_PICK, "STONE PICKAXE", Tex::STONE_PICK, pick_tier: 2
+  define_item IRON_PICK, "IRON PICKAXE", Tex::IRON_PICK, pick_tier: 3
+  define_item DIAMOND_PICK, "DIAMOND PICKAXE", Tex::DIAMOND_PICK, pick_tier: 4
+  level = 1
+  while level < 8
+    define_block FLOW + level - 1, "WATER", Tex::WATER, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, water: level
+    level += 1
+  end
+  define_item BOW, "BOW", Tex::BOW
+  define_item ARROW, "ARROW", Tex::ARROW
+  define_block LAVA, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR
+  level = 1
+  while level < 4
+    define_block LAVA_FLOW + level - 1, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR
+    level += 1
+  end
+  define_block WOOL, "WOOL", Tex::WOOL, hardness: 0.8
+  define_block BED, "BED", Tex::BED_ITEM, opaque: 0, solid: 0, hardness: 0.2, dig: DIG_AXE
+  define_block CHEST, "CHEST", Tex::CHEST_SIDE, top: Tex::CHEST_TOP, front: Tex::CHEST_FRONT, facing: 0, shape: 4, opaque: 0,
+               hardness: 2.5, dig: DIG_AXE
+  define_block DOOR, "DOOR", Tex::DOOR_ITEM, opaque: 0, solid: 0, hardness: 3.0, dig: DIG_AXE
+  define_plant OAK_SAPLING, "OAK SAPLING", Tex::OAK_SAPLING
+  define_item APPLE, "APPLE", Tex::APPLE
+  define_item WOOD_SWORD, "WOODEN SWORD", Tex::WOOD_SWORD
+  define_item STONE_SWORD, "STONE SWORD", Tex::STONE_SWORD
+  define_item IRON_SWORD, "IRON SWORD", Tex::IRON_SWORD
+  define_item DIAMOND_SWORD, "DIAMOND SWORD", Tex::DIAMOND_SWORD
+  define_item IRON_INGOT, "IRON INGOT", Tex::IRON_INGOT
+  define_block FURNACE, "FURNACE", Tex::FURNACE_SIDE, top: Tex::FURNACE_TOP, front: Tex::FURNACE, facing: 0, hardness: 3.5,
+               needs_pick: 1, dig: DIG_PICK
+  define_item COOKED_PORKCHOP, "COOKED PORKCHOP", Tex::COOKED_PORKCHOP
+  define_item WOOD_AXE, "WOODEN AXE", Tex::WOOD_AXE
+  define_item STONE_AXE, "STONE AXE", Tex::STONE_AXE
+  define_item IRON_AXE, "IRON AXE", Tex::IRON_AXE
+  define_item DIAMOND_AXE, "DIAMOND AXE", Tex::DIAMOND_AXE
+  define_item WOOD_SHOVEL, "WOODEN SHOVEL", Tex::WOOD_SHOVEL
+  define_item STONE_SHOVEL, "STONE SHOVEL", Tex::STONE_SHOVEL
+  define_item IRON_SHOVEL, "IRON SHOVEL", Tex::IRON_SHOVEL
+  define_item DIAMOND_SHOVEL, "DIAMOND SHOVEL", Tex::DIAMOND_SHOVEL
+  define_plant SEEDS, "SEEDS", Tex::SEEDS
+  define_plant WHEAT_1, "WHEAT", Tex::WHEAT_1, drops: SEEDS
+  define_plant WHEAT_2, "WHEAT", Tex::WHEAT_2, drops: SEEDS
+  define_plant WHEAT_RIPE, "WHEAT", Tex::WHEAT_RIPE, drops: WHEAT
+  define_item WHEAT, "WHEAT", Tex::WHEAT
+  define_item BREAD, "BREAD", Tex::BREAD
+  define_block CRAFTING_TABLE, "CRAFTING TABLE", Tex::CRAFT_SIDE, top: Tex::CRAFT_TOP, bottom: Tex::OAK_PLANKS, hardness: 2.5,
+               dig: DIG_AXE
+  define_block LADDER, "LADDER", Tex::LADDER, top: Tex::CLEAR, facing: 0, shape: 3, opaque: 0, solid: 0, hardness: 0.4, dig: DIG_AXE
+  define_item BUCKET, "BUCKET", Tex::BUCKET
+  define_item WATER_BUCKET, "WATER BUCKET", Tex::WATER_BUCKET
+  define_item LAVA_BUCKET, "LAVA BUCKET", Tex::LAVA_BUCKET
+  define_block WALL_TORCH, "TORCH", Tex::TORCH, facing: 0, base: TORCH, opaque: 0, solid: 0, plant: 1, drops: TORCH
+  define_turns WALL_TORCH + 1, WALL_TORCH
+  define_turns FURNACE_TURNS, FURNACE
+  define_block DOOR_BLOCK, "DOOR", Tex::DOOR_LOWER, facing: 0, base: DOOR, shape: 1, opaque: 0, hardness: 3.0, drops: DOOR,
+               dig: DIG_AXE
+  define_turns DOOR_BLOCK + 1, DOOR_BLOCK
+  define_block DOOR_BLOCK + 4, "DOOR", Tex::DOOR_UPPER, facing: 0, base: DOOR, shape: 1, opaque: 0, hardness: 3.0, drops: DOOR,
+               dig: DIG_AXE
+  define_turns DOOR_BLOCK + 5, DOOR_BLOCK + 4
+  define_block DOOR_BLOCK + 8, "DOOR", Tex::DOOR_LOWER, facing: 0, base: DOOR, shape: 2, opaque: 0, hardness: 3.0, drops: DOOR,
+               dig: DIG_AXE
+  define_turns DOOR_BLOCK + 9, DOOR_BLOCK + 8
+  define_block DOOR_BLOCK + 12, "DOOR", Tex::DOOR_UPPER, facing: 0, base: DOOR, shape: 2, opaque: 0, hardness: 3.0, drops: DOOR,
+               dig: DIG_AXE
+  define_turns DOOR_BLOCK + 13, DOOR_BLOCK + 12
+  define_turns LADDER_TURNS, LADDER
+  define_turns CHEST_TURNS, CHEST
+  define_block FURNACE_LIT, "FURNACE", Tex::FURNACE_SIDE, top: Tex::FURNACE_TOP, front: Tex::FURNACE_LIT, facing: 0, base: FURNACE,
+               hardness: 3.5, drops: FURNACE, needs_pick: 1, dig: DIG_PICK
+  define_turns FURNACE_LIT + 1, FURNACE_LIT
+  define_block BED_BLOCK, "BED", Tex::BED_SIDE, top: Tex::BED_TOP, bottom: Tex::OAK_PLANKS, front: Tex::BED_FOOT_END, facing: 0,
+               base: BED, shape: 5, opaque: 0, hardness: 0.2, drops: BED, dig: DIG_AXE
+  define_turns BED_BLOCK + 1, BED_BLOCK
+  define_block BED_BLOCK + 4, "BED", Tex::BED_HEAD_SIDE, top: Tex::BED_HEAD_TOP, bottom: Tex::OAK_PLANKS, front: Tex::BED_HEAD_END,
+               facing: 0, base: BED, shape: 5, opaque: 0, hardness: 0.2, drops: BED, dig: DIG_AXE
+  define_turns BED_BLOCK + 5, BED_BLOCK + 4
+  define_item ROTTEN_FLESH, "ROTTEN FLESH", Tex::ROTTEN_FLESH
+  define_block SPRUCE_LOG, "SPRUCE LOG", Tex::SPRUCE_LOG_SIDE, top: Tex::SPRUCE_LOG_TOP, hardness: 2.0, dig: DIG_AXE
+  define_block SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
+  define_block SPRUCE_PLANKS, "SPRUCE PLANKS", Tex::SPRUCE_PLANKS, hardness: 2.0, dig: DIG_AXE
+  define_plant SPRUCE_SAPLING, "SPRUCE SAPLING", Tex::SPRUCE_SAPLING
+  define_block BIRCH_LOG, "BIRCH LOG", Tex::BIRCH_LOG_SIDE, top: Tex::BIRCH_LOG_TOP, hardness: 2.0, dig: DIG_AXE
+  define_block BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
+  define_block BIRCH_PLANKS, "BIRCH PLANKS", Tex::BIRCH_PLANKS, hardness: 2.0, dig: DIG_AXE
+  define_plant BIRCH_SAPLING, "BIRCH SAPLING", Tex::BIRCH_SAPLING
+  define_item MUTTON, "MUTTON", Tex::MUTTON
+  define_item COOKED_MUTTON, "COOKED MUTTON", Tex::COOKED_MUTTON
+  define_item COAL, "COAL", Tex::COAL
+  define_block PLACED_OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES, base: OAK_LEAVES, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR
+  define_block PLACED_SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, base: SPRUCE_LEAVES, opaque: 0, occludes: 1, hardness: 0.2,
+               drops: AIR
+  define_block PLACED_BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES, base: BIRCH_LEAVES, opaque: 0, occludes: 1, hardness: 0.2,
+               drops: AIR
+  define_item OAK_BOAT, "OAK BOAT", Tex::OAK_BOAT
+  define_item SPRUCE_BOAT, "SPRUCE BOAT", Tex::SPRUCE_BOAT
+  define_item BIRCH_BOAT, "BIRCH BOAT", Tex::BIRCH_BOAT
+  define_block PUMPKIN, "PUMPKIN", Tex::PUMPKIN_SIDE, top: Tex::PUMPKIN_TOP, hardness: 1.0, dig: DIG_AXE
+  define_block CARVED_PUMPKIN, "CARVED PUMPKIN", Tex::PUMPKIN_SIDE, top: Tex::PUMPKIN_TOP, front: Tex::PUMPKIN_FACE, facing: 0,
+               hardness: 1.0, dig: DIG_AXE
+  define_turns CARVED_PUMPKIN + 1, CARVED_PUMPKIN
+  define_block JACK_O_LANTERN, "JACK O'LANTERN", Tex::PUMPKIN_SIDE, top: Tex::PUMPKIN_TOP, front: Tex::JACK_FACE, facing: 0,
+               hardness: 1.0, dig: DIG_AXE
+  define_turns JACK_O_LANTERN + 1, JACK_O_LANTERN
+  define_item SHEARS, "SHEARS", Tex::SHEARS
+  # Placed pumpkin seeds show the young stem; the icon shows the seeds.
+  define_block PUMPKIN_SEEDS, "PUMPKIN SEEDS", Tex::PUMPKIN_SEEDS, top: Tex::PUMPKIN_STEM, bottom: Tex::PUMPKIN_SEEDS, opaque: 0,
+               solid: 0, plant: 1
+  define_plant PUMPKIN_STEM, "PUMPKIN STEM", Tex::PUMPKIN_STEM, drops: PUMPKIN_SEEDS
+  define_plant PUMPKIN_STEM_RIPE, "PUMPKIN STEM", Tex::PUMPKIN_STEM_RIPE, drops: PUMPKIN_SEEDS
+  COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
   def self.solid?(b) = SOLID[b] == 1
