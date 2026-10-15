@@ -38,8 +38,8 @@ class Game
   # SHOWBOATS=1 puts a boat of each wood on a pool of water, with the
   # player in the nearest one.
   def show_boats
-    bx = @player.x.floor
-    bz = @player.z.floor
+    bx = @player.x.floor.to_i
+    bz = @player.z.floor.to_i
     y = SKY_Y - 10
     (bx - 7..bx + 7).each do |cx|
       (bz - 16..bz + 3).each do |cz|

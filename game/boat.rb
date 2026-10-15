@@ -40,12 +40,14 @@ class Boat
 
   attr_reader :item, :x, :y, :z, :yaw, :afloat
 
+  # The to_i and to_f keep the fields typed for Spinel when a caller
+  # passes an untyped position, such as one from the player.
   def initialize(item, x, y, z, yaw)
-    @item = item
-    @x = x
-    @y = y
-    @z = z
-    @yaw = yaw
+    @item = item.to_i
+    @x = x.to_f
+    @y = y.to_f
+    @z = z.to_f
+    @yaw = yaw.to_f
     @vx = 0.0
     @vy = 0.0
     @vz = 0.0

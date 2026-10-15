@@ -119,7 +119,7 @@ class Game
     i = 0
     while i < @boats.size
       if i != @riding
-        t = @boats[i].ray(@player.x, @player.eye_y, @player.z, @player.fx, @player.fy, @player.fz)
+        t = @boats[i].ray(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz)
         if t >= 0.0 && t < best
           best = t
           @target_boat = i
@@ -147,7 +147,8 @@ class Game
     @riding -= 1 if @riding > i
     @particles.burst(boat.x.floor, boat.y.floor, boat.z.floor, Block::PLANKS[boat.item - Block::OAK_BOAT])
     play_at(Sfx::BREAK, boat.x, boat.y, boat.z, 0.7, SOUND_RANGE)
-    drop_item(boat.item, 1, boat.x, boat.y + 0.3, boat.z, 0.0, 2.0, 0.0, PICKUP_WAIT) if @survival
+    # Spinel reads @boats as untyped, and to_i and to_f keep drop_item typed.
+    drop_item(boat.item.to_i, 1, boat.x.to_f, boat.y.to_f + 0.3, boat.z.to_f, 0.0, 2.0, 0.0, PICKUP_WAIT) if @survival
     @boats.delete_at(i)
     @target_boat = -1
   end
