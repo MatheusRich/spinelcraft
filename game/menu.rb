@@ -173,12 +173,10 @@ class Game
 
   # The menu item under the mouse, or -1.
   def menu_hover(w, h, s)
-    mx = Gfx.in_mouse_x
-    my = Gfx.in_mouse_y
     i = 0
     while i < MENU_ITEMS
       c = menu_cell(i, w, h, s)
-      return i if mx >= c[0] && mx < c[0] + c[2] && my >= c[1] && my < c[1] + c[3]
+      return i if mouse_in?(c[0], c[1], c[2], c[3])
       i += 1
     end
     -1

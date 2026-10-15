@@ -229,13 +229,18 @@ class Game
     [x0 + (i % cols) * (size + gap), y0 + (i / cols) * (size + gap), size]
   end
 
-  def inventory_hover(w, h, s)
+  # True when the mouse is over the box at x, y that is w wide and h high.
+  def mouse_in?(x, y, w, h)
     mx = Gfx.in_mouse_x
     my = Gfx.in_mouse_y
+    mx >= x && my >= y && mx < x + w && my < y + h
+  end
+
+  def inventory_hover(w, h, s)
     i = 0
     while i < CREATIVE_ITEMS.size
       c = inventory_cell(i, w, h, s)
-      return i if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
+      return i if mouse_in?(c[0], c[1], c[2], c[2])
       i += 1
     end
     -1
@@ -292,12 +297,10 @@ class Game
 
   # The slot of the open furnace under the mouse, or -1.
   def furnace_hover(w, h, s)
-    mx = Gfx.in_mouse_x
-    my = Gfx.in_mouse_y
     i = 0
     while i < 3
       c = furnace_cell(i, w, h, s)
-      return i if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
+      return i if mouse_in?(c[0], c[1], c[2], c[2])
       i += 1
     end
     -1
@@ -400,26 +403,22 @@ class Game
 
   # The recipe under the mouse, or -1.
   def recipe_hover(w, h, s)
-    mx = Gfx.in_mouse_x
-    my = Gfx.in_mouse_y
     view = recipes_in_view
     skip = recipe_skip
     j = 0
     while j < view.size
       c = recipe_cell(j + skip, w, h, s)
-      return view[j] if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[3]
+      return view[j] if mouse_in?(c[0], c[1], c[2], c[3])
       j += 1
     end
     -1
   end
 
   def pack_hover(w, h, s)
-    mx = Gfx.in_mouse_x
-    my = Gfx.in_mouse_y
     i = 0
     while i < INV
       c = pack_cell(i, w, h, s)
-      return i if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
+      return i if mouse_in?(c[0], c[1], c[2], c[2])
       i += 1
     end
     -1
@@ -504,12 +503,10 @@ class Game
   end
 
   def chest_hover(w, h, s)
-    mx = Gfx.in_mouse_x
-    my = Gfx.in_mouse_y
     k = 0
     while k < CHEST_SLOTS
       c = chest_cell(k, w, h, s)
-      return k if mx >= c[0] && my >= c[1] && mx < c[0] + c[2] && my < c[1] + c[2]
+      return k if mouse_in?(c[0], c[1], c[2], c[2])
       k += 1
     end
     -1
