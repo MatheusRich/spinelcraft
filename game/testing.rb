@@ -721,7 +721,7 @@ class Game
     creeper = Mob.new(Mob::CREEPER, @player.x + 1.5, @player.y, @player.z, 11)
     hisses = 0
     20.times do
-      creeper.update_mob(@world, 1.0 / 60.0, @player, 0.3)
+      creeper.update_mob(@world, 1.0 / 60.0, @player, 0.3, Block::AIR)
       hisses += 1 if creeper.hiss
       creeper.hiss = false
     end
@@ -737,7 +737,7 @@ class Game
     zombie = Mob.new(Mob::ZOMBIE, px + 8.5, y + 1.0, zz + 0.5, 3)
     steps = 0
     120.times do
-      zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0)
+      zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0, Block::AIR)
       steps += 1 if zombie.step
       zombie.step = false
     end
@@ -2014,8 +2014,8 @@ class Game
     hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 13)
     pig = Mob.new(Mob::PIG, x + 3.0, SKY_Y.to_f, z, 13)
     60.times do
-      hen.update_mob(@world, 1.0 / 60.0, @player, 0.5)
-      pig.update_mob(@world, 1.0 / 60.0, @player, 0.5)
+      hen.update_mob(@world, 1.0 / 60.0, @player, 0.5, Block::AIR)
+      pig.update_mob(@world, 1.0 / 60.0, @player, 0.5, Block::AIR)
     end
     check("a chicken falls slowly", hen.vy >= Mob::CHICKEN_FALL && pig.vy < Mob::CHICKEN_FALL * 4.0)
   end
@@ -2157,10 +2157,10 @@ class Game
     @player.y = SKY_Y - 1.0
     @player.z = bz - 8.5
     zombie = Mob.new(Mob::ZOMBIE, bx + 0.5, SKY_Y - 1.0, bz + 8.5, 3)
-    30.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0) }
+    30.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0, Block::AIR) }
     walking = zombie.leg_swing > 0.5
     @player.z = bz + 300.0
-    60.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0) }
+    60.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0, Block::AIR) }
     check("the legs of a mob swing as it walks and come to rest when it stops", walking && zombie.leg_swing < 0.05)
     restore_pose
   end
@@ -3456,10 +3456,49 @@ class Game
     check("in creative, wheat puts a cow in love mode and stays in the hand",
           cow.in_love? && @hotbar[@slot] == Block::WHEAT && @inv.empty?(0))
     @hotbar[@slot] = held
+    test_tempt(bx, bz, fy)
     @mobs.clear
     @inv.clear
     @survival = survival
     (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::AIR) } }
+  end
+
+  # A cow follows a player who holds wheat within 6 blocks, until the
+  # player is 10 blocks away, and stops 2.5 blocks from the player. The
+  # floor at y fy - 1 is around bx, bz.
+  def test_tempt(bx, bz, fy)
+    @survival = true
+    @inv.clear
+    @inv.set(0, Block::WHEAT, 10)
+    @inv.set(1, Block::SEEDS, 10)
+    @slot = 0
+    @mobs.clear
+    cow = Mob.new(Mob::COW, bx + 0.5, fy, bz - 4.5, 7)
+    @mobs << cow
+    @player.x = bx + 0.5
+    @player.y = fy
+    @player.z = bz + 0.5
+    @player.flying = false
+    240.times { update_mobs(1.0 / 60.0) }
+    d = Math.sqrt(((cow.x - @player.x) ** 2 + (cow.z - @player.z) ** 2).to_f)
+    check("a cow walks to a player who holds wheat 5 blocks away, and stops near the player",
+          cow.tempted && d < 3.0 && d > 1.5)
+    @slot = 1
+    update_mobs(1.0 / 60.0)
+    seeds = !cow.tempted
+    @slot = 0
+    put_mob(cow, bx + 0.5, fy, bz - 7.5)
+    update_mobs(1.0 / 60.0)
+    far = !cow.tempted
+    put_mob(cow, bx + 0.5, fy, bz - 4.5)
+    update_mobs(1.0 / 60.0)
+    put_mob(cow, bx + 0.5, fy, bz - 8.5)
+    update_mobs(1.0 / 60.0)
+    keeps = cow.tempted
+    put_mob(cow, bx + 0.5, fy, bz - 9.9)
+    update_mobs(1.0 / 60.0)
+    check("a cow does not follow seeds or wheat 8 blocks away, and a cow that follows stops 10 blocks away",
+          seeds && far && keeps && !cow.tempted)
   end
 
   # A ladder lifts the player at 2.35 m/s on jump, holds the player on

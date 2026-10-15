@@ -54,6 +54,18 @@ class Mob
   # minecraft.wiki/w/Breeding
   FEED_GROWTH = 0.1
   FEED_MIN = 9.0
+  # An animal starts to follow a player who holds its food within 6
+  # blocks (minecraft.wiki/w/Cow, /w/Pig and /w/Sheep; /w/Chicken says a
+  # 6x4x6 area). It stops when the player is 10 blocks away
+  # (minecraft.wiki/w/Cow and /w/Chicken, Java Edition).
+  TEMPT_REACH = 6.0
+  TEMPT_KEEP = 10.0
+  # A tempted animal stops 2.5 blocks from the player, and walks at this
+  # part of WALK_SPEED, by kind as in Mob::NAMES. The wiki does not give
+  # these values; they are those of the game code (TemptGoal, and the
+  # registerGoals of Pig, Sheep, Cow and Chicken).
+  TEMPT_NEAR = 2.5
+  TEMPT_PACE = [1.2, 0.0, 0.0, 1.1, 0.0, 1.25, 1.0]
   # A passive mob walks at WALK_SPEED. After damage it panics for PANIC
   # seconds: it runs at PANIC_SPEED, first away from a hit and then to a
   # new side about each second. The wiki says only that a pig "flees for a
@@ -115,6 +127,8 @@ class Mob
   attr_reader :breed_wait
   # Seconds that the animal has walked to its mate.
   attr_reader :court_time
+  # True while the animal follows a player who holds its food.
+  attr_reader :tempted
 
   def initialize(kind, x, y, z, seed)
     @kind = kind
@@ -173,6 +187,7 @@ class Mob
     @mate_x = 0.0
     @mate_z = 0.0
     @court_time = 0.0
+    @tempted = false
   end
 
   def baby? = @grow_left > 0.0
@@ -341,11 +356,12 @@ class Mob
     @yaw = Math.atan2(-dx, dz)
   end
 
-  # Returns damage dealt to the player this step.
+  # Returns damage dealt to the player this step. held is the item in the
+  # player's hand.
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_mob(world, dt, player, day)
+  def update_mob(world, dt, player, day, held)
     @hurt -= dt
     if @graze > 0.0
       @graze = 0.0 if @panic > 0.0 || dying?
@@ -362,7 +378,7 @@ class Mob
     if dying?
       @death += dt
     elsif passive?
-      speed = act_passive(dt)
+      speed = act_passive(dt, player, held)
     else
       # to_f: Spinel cannot type the positions, and the act_ methods need Floats.
       dx = (player.x - @x).to_f
@@ -450,12 +466,15 @@ class Mob
   # and returns the speed that it walks at. dx, dz is the step to the
   # player, and dist is its length.
 
-  # A passive mob wanders, and after a hit it panics. A lover that does
-  # not panic walks to its mate.
-  def act_passive(dt)
+  # A passive mob wanders, and after a hit it panics. When it does not
+  # panic, a lover walks to its mate, and else it follows a player who
+  # holds its food (held), as the order of the goals in the game code.
+  def act_passive(dt, player, held)
     @think -= dt
     @panic -= dt
+    @tempted = false if @panic > 0.0
     return walk_to_mate(dt) if @courting && @panic <= 0.0
+    return follow(player) if @panic <= 0.0 && tempted_by?(player, held)
     if @think <= 0.0
       if @panic > 0.0
         @think = 0.7 + @rng.rand01 * 0.8
@@ -480,6 +499,26 @@ class Mob
     dz = @mate_z - @z.to_f
     face(dx, dz)
     dx * dx + dz * dz > 4.0 * @half * @half ? WALK_SPEED : 0.0
+  end
+
+  # True when the player holds the food of this animal (held) in reach.
+  # It keeps @tempted.
+  def tempted_by?(player, held)
+    # to_f: Spinel cannot type the positions.
+    dx = (player.x - @x).to_f
+    dy = (player.y - @y).to_f
+    dz = (player.z - @z).to_f
+    reach = @tempted ? TEMPT_KEEP : TEMPT_REACH
+    @tempted = food?(held) && dx * dx + dy * dy + dz * dz < reach * reach
+  end
+
+  # The tempted animal turns to the player and walks up to TEMPT_NEAR.
+  def follow(player)
+    @graze = 0.0
+    dx = (player.x - @x).to_f
+    dz = (player.z - @z).to_f
+    face(dx, dz)
+    dx * dx + dz * dz > TEMPT_NEAR * TEMPT_NEAR ? WALK_SPEED * TEMPT_PACE[@kind] : 0.0
   end
 
   # A skeleton keeps a bow's distance and shoots when the player is in sight.

@@ -344,6 +344,7 @@ class Game
     day = daylight * (1.0 - 0.5 * @weather.rain)
     spawn_monsters(dt)
     court_mates
+    held = current_block.to_i
     @spawn_timer -= dt
     if @spawn_timer <= 0.0
       @spawn_timer = 2.0
@@ -383,7 +384,7 @@ class Game
       lived = m.death == 0.0
       k = 0
       while k < steps
-        damage = m.update_mob(@world, sdt, @player, day)
+        damage = m.update_mob(@world, sdt, @player, day, held)
         if damage > 0
           hurt(damage, Sfx::HURT)
           if @survival
