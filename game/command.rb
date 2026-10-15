@@ -6,6 +6,9 @@ module Command
   DAY_TICKS = 24000
   TIME_NAMES = ["DAY", "NOON", "NIGHT", "MIDNIGHT"]
   TIME_TICKS = [1000, 6000, 13000, 18000]
+  # A time is an int in Minecraft, so it is at most 2^31 - 1 ticks.
+  # minecraft.wiki/w/Commands/time
+  MAX_TICKS = 2147483647
 
   # The commands, in the order that Tab shows them.
   NAMES = ["GAMEMODE", "GIVE", "HELP", "KILL", "SEED", "SPAWN", "SUMMON", "TELEPORT", "TIME", "TP", "WEATHER"]
@@ -109,7 +112,8 @@ module Command
   end
 
   # The ticks in s: a name of TIME_NAMES, or a number with the unit d
-  # (days), s (seconds) or t (ticks, the default). -1 when s is not a time.
+  # (days), s (seconds) or t (ticks, the default). -1 when s is not a time
+  # or is more than MAX_TICKS.
   def self.ticks(s)
     named = find(TIME_NAMES, s)
     return TIME_TICKS[named] if named >= 0
@@ -121,7 +125,8 @@ module Command
       n = s[0, s.size - 1]
     end
     return -1 unless number?(n) && !n.start_with?("-")
-    (n.to_f * unit).to_i
+    t = n.to_f * unit
+    t > MAX_TICKS ? -1 : t.to_i
   end
 
   # The block or item that a name means: its name in Block::NAMES with _

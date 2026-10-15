@@ -161,7 +161,10 @@ class Game
       @time_of_day = (t % Command::DAY_TICKS) / Command::DAY_TICKS.to_f
       chat_print("SET THE TIME TO #{t}", false)
     else
-      update_clock(t * DAY_SECONDS / Command::DAY_TICKS)
+      # The whole days go to the count at once: update_clock counts one day
+      # for each pass of its loop.
+      @day += t / Command::DAY_TICKS
+      update_clock((t % Command::DAY_TICKS) * DAY_SECONDS / Command::DAY_TICKS)
       chat_print("ADDED #{t} TICKS", false)
     end
   end

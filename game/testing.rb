@@ -274,6 +274,9 @@ class Game
     check("a time is a name or a number of days, seconds or ticks",
           Command.ticks("NIGHT") == 13000 && Command.ticks("2D") == 48000 && Command.ticks("20S") == 400 &&
           Command.ticks("100") == 100 && Command.ticks("5T") == 5 && Command.ticks("SOON") == -1 && Command.ticks("-5") == -1)
+    check("a time is at most 2^31 - 1 ticks, as an int of Minecraft",
+          Command.ticks("2147483647") == 2147483647 && Command.ticks("2147483648") == -1 &&
+          Command.ticks("99999999999999999999D") == -1)
     check("an item name is its name with _ for each space",
           Command.item("DIAMOND_PICKAXE") == Block::DIAMOND_PICK && Command.item("MINECRAFT:WHEAT") == Block::WHEAT &&
           Command.item("WATER") == Block::WATER && Command.item("AIR") == -1 && Command.item("DIRTT") == -1)
@@ -294,6 +297,10 @@ class Game
     run_chat("/time add 6000")
     added = @time_of_day == 0.0 && @day == day + 1
     check("/time set and /time add move the clock, and a new day starts at 6:00", midnight && added)
+    run_chat("/time set 0")
+    run_chat("/time add 2147483647")
+    check("/time add of many days counts them at once",
+          @day == day + 1 + 2147483647 / 24000 && (@time_of_day - (2147483647 % 24000) / 24000.0).abs < 1.0e-9)
     @time_of_day = 0.3
     @day = day
     set_mode(true)
