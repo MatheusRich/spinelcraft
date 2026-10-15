@@ -183,6 +183,7 @@ class Game
     test_monsters
     test_fire
     test_rain
+    test_cactus
     test_clock
     test_save(x, z, ground)
     test_crafting_limits
@@ -1265,10 +1266,10 @@ class Game
     # A minute of standing still costs no hunger. 400 meters of sprint take
     # 40 exhaustion: the 5 points of saturation, then 5 points of hunger.
     @vitals = Vitals.new
-    1200.times { @vitals.update_vitals(0.05, false, false) }
+    1200.times { @vitals.update_vitals(0.05, false, false, false) }
     idle = @vitals.hunger == Vitals::MAX_HUNGER
     @vitals.move(400.0, true, false, false)
-    @vitals.update_vitals(0.05, false, false)
+    @vitals.update_vitals(0.05, false, false, false)
     check("standing still costs no hunger, and a sprint does", idle && @vitals.hunger == 15)
     # Rotten flesh gives 4 hunger and 0.8 saturation. The Hunger effect
     # adds 3 exhaustion in its 30 seconds, and then no more.
@@ -1280,9 +1281,9 @@ class Game
     eat
     fed = @vitals.hunger == 14 && @vitals.saturation == 0.8
     @vitals.give_hunger_effect
-    601.times { @vitals.update_vitals(0.05, false, false) }
+    601.times { @vitals.update_vitals(0.05, false, false, false) }
     drained = !@vitals.hunger_effect? && (@vitals.exhaustion - 3.0).abs < 0.01
-    20.times { @vitals.update_vitals(0.05, false, false) }
+    20.times { @vitals.update_vitals(0.05, false, false, false) }
     check("rotten flesh feeds, and its Hunger effect adds exhaustion for 30 seconds", fed && drained && (@vitals.exhaustion - 3.0).abs < 0.01)
     before = @particles.count(Particle::EFFECT)
     @vitals.give_hunger_effect
@@ -1293,15 +1294,15 @@ class Game
     @vitals = Vitals.new
     @vitals.health = 10.0
     @vitals.saturation = 3.0
-    11.times { @vitals.update_vitals(0.05, false, false) }
+    11.times { @vitals.update_vitals(0.05, false, false, false) }
     saturated = @vitals.health == 10.5 && (@vitals.exhaustion - 3.0).abs < 0.01
     @vitals = Vitals.new
     @vitals.health = 10.0
     @vitals.hunger = 18
     @vitals.saturation = 0.0
-    79.times { @vitals.update_vitals(0.05, false, false) }
+    79.times { @vitals.update_vitals(0.05, false, false, false) }
     early = @vitals.health == 10.0
-    2.times { @vitals.update_vitals(0.05, false, false) }
+    2.times { @vitals.update_vitals(0.05, false, false, false) }
     check("a full stomach heals as in Minecraft", saturated && early && @vitals.health == 11.0)
     @vitals = Vitals.new
   end
@@ -1445,6 +1446,57 @@ class Game
     check("the rain in a column stops at the highest block", open < SKY_Y + 6.0 && roofed == SKY_Y + 6.0)
     @weather.set_now(false)
     @time_of_day = 0.3
+  end
+
+  # On the sky platform from test_monsters: a cactus hurts the player who
+  # leans on it or stands on it, 1 each half second, and it hurts a mob.
+  # It grows up to 3 blocks.
+  def test_cactus
+    px = @spawn_x.floor
+    pz = @spawn_z.floor
+    @mobs.clear
+    @survival = true
+    # With hunger under 18 and no saturation, the player does not heal.
+    @vitals = Vitals.new
+    @vitals.hunger = 17
+    @vitals.saturation = 0.0
+    set_block(px + 1, SKY_Y - 1, pz, Block::CACTUS)
+    @player.x = px + 0.5
+    @player.y = SKY_Y - 1.0
+    @player.z = pz + 0.5
+    update_survival(1.0 / 60.0)
+    apart = @vitals.health == Vitals::MAX_HEALTH
+    # The player stops 1/16 into the cell of the cactus.
+    @player.x = px + 0.76
+    update_survival(1.0 / 60.0)
+    first = @vitals.health == Vitals::MAX_HEALTH - 1.0
+    20.times { update_survival(1.0 / 60.0) }
+    immune = @vitals.health == Vitals::MAX_HEALTH - 1.0
+    15.times { update_survival(1.0 / 60.0) }
+    second = @vitals.health == Vitals::MAX_HEALTH - 2.0
+    check("a cactus hurts the player who leans on it, 1 each half second", apart && first && immune && second)
+    @player.x = px + 1.5
+    @player.y = SKY_Y.to_f
+    40.times { update_survival(1.0 / 60.0) }
+    check("a cactus hurts the player who stands on it", @vitals.health < Vitals::MAX_HEALTH - 2.0)
+    @player.x = px + 0.5
+    @player.y = SKY_Y - 1.0
+    pig = Mob.new(Mob::PIG, px + 1.95 + Mob::HALF[Mob::PIG], SKY_Y - 1.0, pz + 0.5, 3)
+    @mobs << pig
+    update_mobs(1.0 / 60.0)
+    check("a cactus hurts a mob", pig.hp == Mob::HP[Mob::PIG] - 1.0)
+    @mobs.clear
+    set_block(px + 1, SKY_Y - 1, pz, Block::AIR)
+    set_block(px + 3, SKY_Y - 1, pz, Block::CACTUS)
+    grow_plants(8000.0)
+    grew = @world.get(px + 3, SKY_Y, pz) == Block::CACTUS
+    4.times { grow_cactus(px + 3, @world.height_at(px + 3, pz) - 1, pz) }
+    three = @world.get(px + 3, SKY_Y + 1, pz) == Block::CACTUS && @world.get(px + 3, SKY_Y + 2, pz) == Block::AIR
+    check("a cactus grows, up to 3 blocks", grew && three)
+    set_block(px + 3, SKY_Y + 1, pz, Block::AIR)
+    set_block(px + 3, SKY_Y, pz, Block::AIR)
+    set_block(px + 3, SKY_Y - 1, pz, Block::AIR)
+    @vitals = Vitals.new
   end
 
   # The bottom of the rain in column x, z: the third vertex of the quad from

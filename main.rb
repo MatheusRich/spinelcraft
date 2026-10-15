@@ -610,7 +610,8 @@ class Game
       @vitals.douse
       play(Sfx::FIZZ, 0.6)
     end
-    felt_hurt(Sfx::HURT) if @vitals.update_vitals(dt, in_lava, under_water)
+    on_cactus = @world.cactus_in_box?(p.x, p.y, p.z, Player::HALF, Player::TALL)
+    felt_hurt(Sfx::HURT) if @vitals.update_vitals(dt, in_lava, on_cactus, under_water)
     @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @vitals.hunger_effect?
   end
 

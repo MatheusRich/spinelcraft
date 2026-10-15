@@ -56,9 +56,11 @@ class Vitals
     @air = MAX_AIR
     @fire = 0.0
     @hunger_effect = 0.0
-    # Seconds until the next point of fire damage, and of lava damage.
+    # Seconds until the next point of fire damage, of lava damage, and of
+    # cactus damage.
     @fire_tick = 0.0
     @lava_tick = 0.0
+    @cactus_tick = 0.0
     # Seconds toward the next heal, or toward the next starve damage.
     @regen = 0.0
   end
@@ -108,13 +110,14 @@ class Vitals
     @fire = 0.0
   end
 
-  # dt seconds of lava, fire, air, hunger and healing. in_lava is true when
-  # the player touches lava, and under_water when the head is in water.
-  # Returns true when the player took damage.
+  # dt seconds of lava, fire, cactus, air, hunger and healing. in_lava is
+  # true when the player touches lava, on_cactus when the player touches a
+  # cactus, and under_water when the head is in water. Returns true when
+  # the player took damage.
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_vitals(dt, in_lava, under_water)
+  def update_vitals(dt, in_lava, on_cactus, under_water)
     health = @health
     # Lava does 4 each half second, and fire 1 each second, and drowning 2
     # each second. minecraft.wiki/w/Damage
@@ -134,6 +137,12 @@ class Vitals
         @fire_tick = 1.0
         hurt(1)
       end
+    end
+    # A cactus does 1 each half second. minecraft.wiki/w/Cactus
+    @cactus_tick -= dt
+    if on_cactus && @cactus_tick <= 0.0
+      @cactus_tick = 0.5
+      hurt(1)
     end
     if under_water
       @air -= dt

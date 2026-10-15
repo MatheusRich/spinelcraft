@@ -293,6 +293,37 @@ class World
       y0 < y + tall && y0 + Block.box_top(b) > y
   end
 
+  # True when the body with the box of solid_in_box? touches a cactus. In
+  # Minecraft, a body touches each cell that its box overlaps, and a body
+  # that leans on the side of a cactus is 1/16 into its cell. The test
+  # reaches CACTUS_REACH below the feet, so a body that stands on a cactus
+  # touches it too. minecraft.wiki/w/Cactus does not confirm the top for
+  # Java Edition.
+  CACTUS_REACH = 0.01
+
+  def cactus_in_box?(x, y, z, half, tall)
+    x = x.to_f
+    y = y.to_f
+    z = z.to_f
+    x1 = (x + half).floor
+    y1 = (y + tall).floor
+    z1 = (z + half).floor
+    bx = (x - half).floor
+    while bx <= x1
+      by = (y - CACTUS_REACH).floor
+      while by <= y1
+        bz = (z - half).floor
+        while bz <= z1
+          return true if get(bx, by, bz) == Block::CACTUS
+          bz += 1
+        end
+        by += 1
+      end
+      bx += 1
+    end
+    false
+  end
+
   # The nearest face of the solid blocks that overlap the box of
   # solid_in_box?, on the x axis (axis 0), the y axis (axis 1) or the z axis
   # (axis 2): the lowest face when dir is 1, and the highest when dir is -1.

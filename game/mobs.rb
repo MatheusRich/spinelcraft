@@ -235,6 +235,8 @@ class Mob
     @fire = LAVA_FIRE if Block.lava?(feet)
     @fire = 0.0 if Block.water?(feet)
     wound(4.0) if Block.lava?(feet)
+    # A cactus takes 1 each half second. minecraft.wiki/w/Cactus
+    wound(1.0) if world.cactus_in_box?(@x, @y, @z, @half, @tall)
     if @fire > 0.0
       @fire -= dt
       @burn -= dt

@@ -40,13 +40,20 @@ class Game
   end
 
   # Each second, the game looks at this many of the 81 x 81 columns near the
-  # player for a sapling or a crop on top. Only a plant under the open sky
+  # player for a sapling, a crop or a cactus on top. Only a plant under the open sky
   # grows. Each one that it finds grows (a sapling into a tree, a crop to
   # its next stage) with chance GROW_CHANCE. That is a step in about
   # 81 * 81 / (1100 * 0.1) = 60 seconds.
   GROW_SAMPLES = 1100.0
   GROW_REACH = 40
   GROW_CHANCE = 0.1
+  # A cactus grows a block after 16 random ticks on its top block, and a
+  # block gets a random tick about each 68 seconds (DECAY_SAMPLES), so a
+  # cactus grows a block in about 18 minutes. It grows to 3 blocks.
+  # minecraft.wiki/w/Cactus
+  CACTUS_TICKS = 16.0
+  CACTUS_HEIGHT = 3
+  CACTUS_CHANCE = 81.0 * 81.0 / GROW_SAMPLES / (68.0 * CACTUS_TICKS)
 
   def grow_plants(dt)
     n = (dt * GROW_SAMPLES + @rng.rand01).to_i
@@ -61,6 +68,9 @@ class Game
           Block.sapling?(b) ? grow_tree(x, y, z, Block.wood(b)) : set_block(x, y, z, b + 1)
         elsif b == Block::PUMPKIN_STEM_RIPE && @rng.rand01 < GROW_CHANCE
           grow_pumpkin(x, y, z)
+        elsif b == Block::AIR && @world.get(x, y - 1, z) == Block::CACTUS && @rng.rand01 < CACTUS_CHANCE
+          # A cactus blocks the light, so it is the block under height_at.
+          grow_cactus(x, y - 1, z)
         end
       end
       n -= 1
@@ -153,6 +163,15 @@ class Game
     ground = @world.get(px, y - 1, pz)
     return unless @world.get(px, y, pz) == Block::AIR && Block.soil?(ground)
     set_block(px, y, pz, Block::PUMPKIN)
+  end
+
+  # Puts a cactus on top of the cactus at x, y, z when the cactus is less
+  # than CACTUS_HEIGHT tall and air is above it.
+  def grow_cactus(x, y, z)
+    return unless y + 1 < WY && @world.get(x, y + 1, z) == Block::AIR
+    tall = 1
+    tall += 1 while tall < CACTUS_HEIGHT && @world.get(x, y - tall, z) == Block::CACTUS
+    set_block(x, y + 1, z, Block::CACTUS) if tall < CACTUS_HEIGHT
   end
 
   # Each second, the game looks at this many of the 81 x 81 columns near
