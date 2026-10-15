@@ -45,7 +45,7 @@ These files are copies with no changes.
 | `heart.png`, `heart_empty.png` | `hudbars_icon_health.png`, `hudbars_bgicon_health.png` (9x9, as the HUD icons of Minecraft) |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 | `pumpkin_side.png`, `pumpkin_top.png`, `pumpkin_face.png`, `jack_face.png` | `farming_pumpkin_side.png`, `farming_pumpkin_top.png`, `farming_pumpkin_face.png`, `farming_pumpkin_face_light.png` |
-| `pumpkin_seeds.png`, `pumpkin_stem.png`, `shears.png` | `mcl_farming_pumpkin_seeds.png`, `mcl_farming_pumpkin_stem_disconnected.png`, `default_tool_shears.png` |
+| `pumpkin_seeds.png`, `shears.png` | `mcl_farming_pumpkin_seeds.png`, `default_tool_shears.png` |
 
 ## Mob skins
 
@@ -91,6 +91,13 @@ The moon phases are one 256x128 image in VoxeLibre, `mcl_moon_moon_phases.png`. 
 | File | Change |
 | --- | --- |
 | `moon_0.png` … `moon_7.png` | The 16x16 moon of cell k, without the glow. Cell k is in row k / 4 and column k % 4. |
+
+In Minecraft, the stem of a pumpkin is gray, and its age gives it its color: red `age * 32`, green `255 - age * 8`, blue `age * 4` (the stem block color of the game code; the wiki does not give it). These images multiply the palette of `mcl_farming_pumpkin_stem_disconnected.png` by the color of an age.
+
+| File | Change |
+| --- | --- |
+| `pumpkin_stem.png` | The color of age 2, `#40EF08` |
+| `pumpkin_stem_ripe.png` | The color of age 7, `#E0C71C` |
 
 ## Add an image
 
