@@ -427,6 +427,14 @@ module Gfx
       return SDL_CreateGPUTransferBuffer(dev, &tbi);
     }
 
+    /* Copies n Integers to tb as uint32 words. cycle: a frame on the GPU
+       can still read tb, so SDL gives a new buffer. */
+    static void stage_ints(SDL_GPUTransferBuffer *tb, const int64_t *v, long n, bool cycle) {
+      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, cycle);
+      for (long i = 0; i < n; i++) dst[i] = (Uint32)v[i];
+      SDL_UnmapGPUTransferBuffer(dev, tb);
+    }
+
     /* Returns a range to the sorted free list and joins it with the free
        ranges next to it. */
     static void free_range(Uint32 at, Uint32 len) {
@@ -654,9 +662,7 @@ module Gfx
       if (!atlas) return fail("SDL_CreateGPUTexture");
       Uint32 size = (Uint32)(layers * 256 * 4);
       SDL_GPUTransferBuffer *tb = make_transfer(size);
-      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, false);
-      for (long i = 0; i < layers * 256; i++) dst[i] = (Uint32)px[i];
-      SDL_UnmapGPUTransferBuffer(dev, tb);
+      stage_ints(tb, px, layers * 256, false);
       SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
       SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
       SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb, .pixels_per_row = 16, .rows_per_layer = 16};
@@ -688,9 +694,7 @@ module Gfx
       if (!skins) return fail("SDL_CreateGPUTexture");
       Uint32 size = (Uint32)(layers * 4096 * 4);
       SDL_GPUTransferBuffer *tb = make_transfer(size);
-      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, false);
-      for (long i = 0; i < layers * 4096; i++) dst[i] = (Uint32)px[i];
-      SDL_UnmapGPUTransferBuffer(dev, tb);
+      stage_ints(tb, px, layers * 4096, false);
       SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
       SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
       SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb, .pixels_per_row = 64, .rows_per_layer = 64};
@@ -748,9 +752,7 @@ module Gfx
       if (!t) return fail("SDL_CreateGPUTexture");
       Uint32 bytes = (Uint32)(size * size * 4);
       SDL_GPUTransferBuffer *tb = make_transfer(bytes);
-      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, false);
-      for (long i = 0; i < size * size; i++) dst[i] = (Uint32)px[i];
-      SDL_UnmapGPUTransferBuffer(dev, tb);
+      stage_ints(tb, px, size * size, false);
       SDL_GPUCommandBuffer *c = SDL_AcquireGPUCommandBuffer(dev);
       SDL_GPUCopyPass *cp = SDL_BeginGPUCopyPass(c);
       SDL_GPUTextureTransferInfo src = {.transfer_buffer = tb};
@@ -790,9 +792,7 @@ module Gfx
       slot_count[slot] = (Uint32)faces;
       Uint32 size = (Uint32)(faces * 8);
       SDL_GPUTransferBuffer *tb = make_transfer(size);
-      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tb, false);
-      for (long i = 0; i < faces * 2; i++) dst[i] = (Uint32)data[i];
-      SDL_UnmapGPUTransferBuffer(dev, tb);
+      stage_ints(tb, data, faces * 2, false);
       pending[npending++] = (Pending){tb, at, size};
       return 0;
     }
@@ -822,9 +822,7 @@ module Gfx
     /* The tint map: 2 layers of TINT_SIZE x TINT_SIZE pixels (0xAABBGGRR).
        The next frame uploads it. */
     long gfx_tint(const int64_t *px) {
-      Uint32 *dst = SDL_MapGPUTransferBuffer(dev, tint_tb, true);
-      for (long i = 0; i < TINT_SIZE * TINT_SIZE * 2; i++) dst[i] = (Uint32)px[i];
-      SDL_UnmapGPUTransferBuffer(dev, tint_tb);
+      stage_ints(tint_tb, px, TINT_SIZE * TINT_SIZE * 2, true);
       tint_changed = 1;
       return 0;
     }
