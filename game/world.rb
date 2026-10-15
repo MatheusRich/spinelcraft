@@ -32,6 +32,9 @@ class World
   CAVE_WIDTH = 0.006
   # Caves at this height and below fill with lava.
   LAVA_LEVEL = 9
+  # Iron is below IRON_TOP, and diamonds are below DIAMOND_TOP.
+  IRON_TOP = 50
+  DIAMOND_TOP = 16
   # The base height of the land (BASE) at each continent noise value
   # (CONTINENT): deep ocean, ocean, coast, lowland, then highland.
   CONTINENT = [-0.25, -0.17, -0.135, -0.12, -0.07, 0.06, 0.2, 0.34]
@@ -42,6 +45,8 @@ class World
   ISLE = 0.15
   ISLE_RISE = 100.0
   ISLE_SCALE = 220.0
+  # How tall the hills on an island are.
+  ISLE_HILLS = 3.0
   # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
   # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
@@ -49,6 +54,8 @@ class World
   # puts the rivers farther apart.
   RIVER_VALLEY = 0.021
   RIVER_SCALE = 900.0
+  # The height of a river bed.
+  RIVER_BED = SEA - 3.0
   # Rivers fade out over RIVER_FADE of the continent noise and end where it
   # reaches RIVER_INLAND, so the middle of a continent has no rivers.
   RIVER_INLAND = 0.1
@@ -73,6 +80,18 @@ class World
   LANDSCAPE_EDGE = 0.02
   PLATEAU_EDGE = 0.006
   PLATEAU_RISE = 20.0
+  # How tall the hills are on each kind of land: HILLS on rolling hills,
+  # and the others in mountain ranges, on plateaus and on flat lowland.
+  # The hill noise goes from about -1 to 1.
+  HILLS = 6.0
+  MOUNTAIN_HILLS = 19.0
+  PLATEAU_HILLS = 2.0
+  FLAT_HILLS = 3.0
+  # The ridges of a mountain range follow the lines where the ridge noise
+  # is zero. RIDGE_SCALE is the size of that noise in blocks, and a ridge
+  # is RIDGE_RISE above the land around it.
+  RIDGE_SCALE = 90.0
+  RIDGE_RISE = 46.0
   # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
@@ -80,6 +99,19 @@ class World
   # Land never reaches TOP, and heights above PEAK squeeze toward it.
   TOP = WY - 14.0
   PEAK = SEA + 34.0
+  # Heights of the ground. Land up to BEACH_TOP next to water is a
+  # beach, and swamps grow up to SWAMP_TOP. The floor of the sea below
+  # GRAVEL_LINE has patches of gravel. High land is bare stone above
+  # ROCK_LINE and snow above SNOW_LINE.
+  BEACH_TOP = SEA + 1
+  SWAMP_TOP = SEA + 5
+  GRAVEL_LINE = SEA - 2
+  ROCK_LINE = SEA + 37
+  SNOW_LINE = SEA + 39
+  # The air gets colder by COOLING for each block above COLD_LINE, so
+  # mountains get snowy biomes.
+  COLD_LINE = SEA + 12
+  COOLING = 0.012
   # The shortest trunk of each tree kind (Biome::OAK and so on), one
   # entry for each of Biome::TREE_KINDS.
   TRUNK = [4, 5, 5, 4]
@@ -487,26 +519,26 @@ class World
               World.smooth((PLATEAU_HIGH - land) / PLATEAU_EDGE) * inland
     flat = World.smooth((land - FLATLAND) / LANDSCAPE_EDGE)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
-    ridge = 1.0 - @noise2.noise2(wx / 90.0, wz / 90.0).abs * 1.6
+    ridge = 1.0 - @noise2.noise2(wx / RIDGE_SCALE, wz / RIDGE_SCALE).abs * 1.6
     ridge = ridge < 0.0 ? 0.0 : ridge
-    h = World.spline(CONTINENT, BASE, continent) + hills * (6.0 + 13.0 * mountains - 4.0 * plateau - 3.0 * flat) +
-        ridge * ridge * 46.0 * mountains
+    hill_height = HILLS + (MOUNTAIN_HILLS - HILLS) * mountains + (PLATEAU_HILLS - HILLS) * plateau + (FLAT_HILLS - HILLS) * flat
+    h = World.spline(CONTINENT, BASE, continent) + hills * hill_height + ridge * ridge * RIDGE_RISE * mountains
     # A plateau lifts the land to a flat top.
-    top = SEA + PLATEAU_RISE + hills * 2.0
+    top = SEA + PLATEAU_RISE + hills * PLATEAU_HILLS
     h += (top - h) * plateau if top > h
     # Away from the coast, the island noise lifts domes out of the deep
     # ocean. Lower domes stay under the water as shoals.
     ocean = World.smooth((CONTINENT[2] - continent) / (CONTINENT[2] - CONTINENT[1]))
     if ocean > 0.0
-      dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * 3.0
+      dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * ISLE_HILLS
       h += (dome - h) * ocean if dome > h
     end
     # A river cuts its full valley near the coast. Farther inland the
     # valley gets shallower, and it ends at RIVER_INLAND.
     river = @noise3.fbm2(wx / RIVER_SCALE + 90.0, wz / RIVER_SCALE, 2).abs
     fade = World.smooth((RIVER_INLAND - continent) / RIVER_FADE)
-    if fade > 0.0 && river < RIVER_VALLEY && h > SEA - 3.0
-      bed = SEA - 3.0 + (h - SEA + 3.0) * World.smooth(river / RIVER_VALLEY)
+    if fade > 0.0 && river < RIVER_VALLEY && h > RIVER_BED
+      bed = RIVER_BED + (h - RIVER_BED) * World.smooth(river / RIVER_VALLEY)
       h += (bed - h) * fade if bed < h
     end
     # Above PEAK, heights squeeze toward the top limit and never reach it,
@@ -543,15 +575,15 @@ class World
     wx = warp_x(nx, nz)
     wz = warp_z(nx, nz)
     t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2
-    t -= (h - SEA - 12) * 0.012 if h > SEA + 12
+    t -= (h - COLD_LINE) * COOLING if h > COLD_LINE
     w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2
-    Biome.pick(t, w, h <= SEA + 5)
+    Biome.pick(t, w, h <= SWAMP_TOP)
   end
 
   # Height bands. top is the y of the column's top block.
-  def beach?(top) = top <= SEA + 1
+  def beach?(top) = top <= BEACH_TOP
   # High peaks are bare stone at the top and below it.
-  def bare_rock?(top) = top > SEA + 37
+  def bare_rock?(top) = top > ROCK_LINE
 
   # The block at the top of a column before caves and plants. Swamps hold
   # pools at sea level.
@@ -564,9 +596,9 @@ class World
     elsif beach?(top)
       b = Block::SAND
     end
-    b = Block::GRAVEL if top < SEA - 2 && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
+    b = Block::GRAVEL if top < GRAVEL_LINE && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
     b = Block::STONE if bare_rock?(top)
-    b = Block::SNOW if top > SEA + 39
+    b = Block::SNOW if top > SNOW_LINE
     b
   end
 
@@ -681,9 +713,9 @@ class World
           if b == Block::STONE
             if Noise.hash3(x >> 1, y >> 1, z >> 1, 11) < 1100 && Noise.hash3(x, y, z, 12) < 40000
               b = Block::COAL
-            elsif y < 50 && Noise.hash3(x >> 1, y >> 1, z >> 1, 13) < 600 && Noise.hash3(x, y, z, 14) < 36000
+            elsif y < IRON_TOP && Noise.hash3(x >> 1, y >> 1, z >> 1, 13) < 600 && Noise.hash3(x, y, z, 14) < 36000
               b = Block::IRON
-            elsif y < 16 && Noise.hash3(x >> 1, y >> 1, z >> 1, 15) < 160 && Noise.hash3(x, y, z, 16) < 30000
+            elsif y < DIAMOND_TOP && Noise.hash3(x >> 1, y >> 1, z >> 1, 15) < 160 && Noise.hash3(x, y, z, 16) < 30000
               b = Block::DIAMOND
             end
           end
