@@ -2328,13 +2328,13 @@ class Game
     check("shears carve a pumpkin on the side in view, and it drops 4 seeds", seeds && side && worn && top)
     # At a slant, the face goes on the side that the view ray hits, not on
     # the side that the player looks most toward.
-    slants = [[-0.3, -0.6, 2.7616, 1], [-0.6, -0.3, 1.9513, 3], [1.3, 1.6, -0.3803, 0], [1.6, 1.3, -1.1903, 2]]
+    slants = [[-0.3, -0.6, 2.7616, 1.0], [-0.6, -0.3, 1.9513, 3.0], [1.3, 1.6, -0.3803, 0.0], [1.6, 1.3, -1.1903, 2.0]]
     slanted = slants.all? do |s|
       set_block(bx, y + 2, bz, Block::PUMPKIN)
-      @player.x = bx + s[0]
+      @player.x = bx + s[0].to_f
       @player.y = y + 1.0
-      @player.z = bz + s[1]
-      @player.yaw = s[2]
+      @player.z = bz + s[1].to_f
+      @player.yaw = s[2].to_f
       @player.pitch = 0.0
       @action_cooldown = 0.0
       @player.raycast(@world)
