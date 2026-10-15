@@ -1371,7 +1371,7 @@ class Game
     while k < @mesher.opaque.size
       w0 = @mesher.opaque[k]
       if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == (cz & LMASK) && Mesher.face_dir(w0) == f
-        tint = Mesher.face_tint(w0, @mesher.opaque[k + 1])
+        tint = Mesher.face_tint(@mesher.opaque[k + 1])
       end
       k += 2
     end

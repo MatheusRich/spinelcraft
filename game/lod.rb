@@ -13,7 +13,7 @@ class Lod
   # (Tex.tint) and the biome. The fields follow the layout of
   # Mesher::X_AT and the others.
   TALL_AT = Mesher::TEX_AT + Mesher::TEX_BITS
-  TALL_BITS = 7
+  TALL_BITS = 8
   CELL_AT = TALL_AT + TALL_BITS
   CELL_BITS = 3
   TINT_AT = CELL_AT + CELL_BITS

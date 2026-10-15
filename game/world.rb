@@ -1,5 +1,5 @@
 # Chunk generation, block storage, and the store of changed chunks.
-WY = 96
+WY = 256
 PY = WY + 2
 SEA = 34
 CHUNK = 16
@@ -178,7 +178,7 @@ class World
 
   def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)
   # A unique Integer for a block anywhere in the world (chest keys).
-  def self.key(x, y, z) = ((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 7) | y
+  def self.key(x, y, z) = ((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y
   def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)
 
   def chunk_loaded?(cx, cz)
@@ -487,11 +487,47 @@ class World
 
   def update_height(x, z)
     base = World.index(x, 0, z)
-    y = WY - 1
+    y = column_top(base)
     while y >= 0 && !Block.blocks_light(block(base + y))
       y -= 1
     end
     @height[(x & LMASK) * WZ + (z & LMASK)] = y + 1
+  end
+
+  # The y of the highest block that is not air in the column at index
+  # base, or -1. Most of a column is air, so it skips 8 blocks of air at a
+  # time where an Integer of the store holds only air.
+  def column_top(base)
+    y = WY - 1
+    while y >= 0 && ((base + y) & 7) != 7 && block(base + y) == Block::AIR
+      y -= 1
+    end
+    while y >= 7 && @blocks[(base + y) >> 3] == 0
+      y -= 8
+    end
+    while y >= 0 && block(base + y) == Block::AIR
+      y -= 1
+    end
+    y
+  end
+
+  # Fills the column at index base with air from y to the top, 8 blocks
+  # at a time where it can.
+  def clear_above(base, y)
+    i = base + y
+    top = base + WY
+    while i < top && (i & 7) != 0
+      put_block(i, Block::AIR)
+      i += 1
+    end
+    while i + 8 <= top
+      @blocks[i >> 3] = 0
+      i += 8
+    end
+    while i < top
+      put_block(i, Block::AIR)
+      i += 1
+    end
   end
 
   # The large-scale noise fields read warped positions, so coasts and
@@ -657,6 +693,7 @@ class World
   def generate_chunk(cx, cz)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
+    highest = 0
     lx = 0
     while lx < CHUNK
       lz = 0
@@ -664,18 +701,23 @@ class World
         h = surface_height(x0 + lx, z0 + lz)
         @col_h[lx * CHUNK + lz] = h
         @col_b[lx * CHUNK + lz] = biome(x0 + lx, z0 + lz, h)
+        highest = h if h > highest
         lz += 1
       end
       lx += 1
     end
 
     # Coarse 3D noise for caves, sampled every 4 blocks and interpolated.
+    # Caves stay below the top block of a column, so the grid stops at the
+    # layer above the highest top block.
     gx0 = x0 >> 2
     gz0 = z0 >> 2
+    gy = (highest - 1) / 4 + 2
+    gy = GY if gy > GY
     i = 0
     while i < GX
       j = 0
-      while j < GY
+      while j < gy
         k = 0
         while k < GX
           n = (i * GY + j) * GX + k
@@ -736,10 +778,11 @@ class World
           put_block(base + y, b)
           y += 1
         end
-        while y < WY
-          put_block(base + y, y <= SEA ? Block::WATER : Block::AIR)
+        while y <= SEA
+          put_block(base + y, Block::WATER)
           y += 1
         end
+        clear_above(base, y)
         lz += 1
       end
       lx += 1
