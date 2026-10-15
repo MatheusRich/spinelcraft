@@ -1,5 +1,9 @@
 # Boats (game/boat.rb): the player puts one on water, gets in, paddles,
 # gets out, and breaks it.
+#
+# Spinel reads the elements of @boats as untyped, as it does for @mobs and
+# @items. So each method reads the fields of a boat once, through to_f or
+# to_i, and works on typed locals.
 class Game
   MAX_BOATS = 64
 
@@ -12,9 +16,9 @@ class Game
     return if @survival && @inv.empty?(@slot)
     return unless fluid_in_view && @world.get(@fluid_x, @fluid_y, @fluid_z) == Block::WATER
     return if @boats.size >= MAX_BOATS
-    x = @fluid_x + 0.5
-    y = @fluid_y + Block::WATER_LEVEL[Block::WATER] / 9.0 - Boat::DRAFT
-    z = @fluid_z + 0.5
+    x = @fluid_x.to_i + 0.5
+    y = @fluid_y.to_i + Block::WATER_LEVEL[Block::WATER] / 9.0 - Boat::DRAFT
+    z = @fluid_z.to_i + 0.5
     return if @world.solid_in_box?(x, y, z, Boat::HALF, Boat::TALL)
     @boats << Boat.new(b, x, y, z, @player.yaw)
     @inv.take(@slot, 1) if @survival
@@ -25,16 +29,17 @@ class Game
   def board_boat(i)
     @riding = i
     @player.flying = false
-    seat_player(@boats[i])
+    boat = @boats[i]
+    seat_player(boat.x.to_f, boat.y.to_f, boat.z.to_f)
     say("PRESS SHIFT TO DISMOUNT")
   end
 
   # The rider sits in the boat, and does not fall or swim.
-  def seat_player(boat)
+  def seat_player(x, y, z)
     p = @player
-    p.x = boat.x
-    p.y = boat.y + Boat::SEAT
-    p.z = boat.z
+    p.x = x
+    p.y = y + Boat::SEAT
+    p.z = z
     p.vx = 0.0
     p.vy = 0.0
     p.vz = 0.0
@@ -48,15 +53,19 @@ class Game
   # the player stands on the boat. minecraft.wiki/w/Boat
   def leave_boat
     boat = @boats[@riding]
+    bx = boat.x.to_f
+    by = boat.y.to_f
+    bz = boat.z.to_f
     @riding = -1
     p = @player
-    fx = Math.sin(p.yaw)
-    fz = -Math.cos(p.yaw)
+    yaw = p.yaw.to_f
+    fx = Math.sin(yaw)
+    fz = -Math.cos(yaw)
     out = Boat::HALF + Player::HALF + 0.1
-    p.x = boat.x
-    p.y = boat.y + Boat::TALL
-    p.z = boat.z
-    base = boat.y.floor
+    sx = bx
+    sy = by + Boat::TALL
+    sz = bz
+    base = by.floor
     found = false
     side = 0
     while side < 4 && !found
@@ -66,8 +75,8 @@ class Game
       # Right beside the boat, then half a block further.
       far = 0
       while far < 2 && !found
-        x = boat.x + dx * (out + far * 0.6)
-        z = boat.z + dz * (out + far * 0.6)
+        x = bx + dx * (out + far * 0.6)
+        z = bz + dz * (out + far * 0.6)
         # A bank one block above the boat's cell first, then the cell of
         # the boat, then two blocks up.
         up = 0
@@ -75,9 +84,9 @@ class Game
           y = base + (up == 0 ? 1 : (up == 1 ? 0 : 2))
           found = dry_stand?(x, y, z)
           if found
-            p.x = x
-            p.y = y.to_f
-            p.z = z
+            sx = x
+            sy = y.to_f
+            sz = z
           end
           up += 1
         end
@@ -85,7 +94,10 @@ class Game
       end
       side += 1
     end
-    p.fall_start = p.y
+    p.x = sx
+    p.y = sy
+    p.z = sz
+    p.fall_start = sy
   end
 
   # True when the player fits at x, y, z, out of the water, and stands on
@@ -98,16 +110,21 @@ class Game
   # Moves each boat in a loaded chunk. The boat that the player rides takes
   # the movement keys, turns the player with it, and carries the player.
   def update_boats(dt, fwd, turn)
-    @boats.each_with_index do |boat, i|
-      next unless @world.loaded?(boat.x.floor, boat.z.floor)
-      ridden = i == @riding
-      yaw = boat.yaw
-      strokes = boat.strokes
-      boat.move_boat(@world, dt, ridden ? fwd : 0.0, ridden ? turn : 0.0)
-      next unless ridden
-      @player.yaw += boat.yaw - yaw
-      seat_player(boat)
-      play(boat.afloat ? Sfx::STEP_WATER : Sfx::STEP_WOOD, 0.3) if boat.strokes != strokes
+    i = 0
+    while i < @boats.size
+      boat = @boats[i]
+      if @world.loaded?(boat.x.to_f.floor, boat.z.to_f.floor)
+        ridden = i == @riding
+        yaw = boat.yaw.to_f
+        strokes = boat.strokes.to_i
+        boat.move_boat(@world, dt, ridden ? fwd : 0.0, ridden ? turn : 0.0)
+        if ridden
+          @player.yaw += boat.yaw.to_f - yaw
+          seat_player(boat.x.to_f, boat.y.to_f, boat.z.to_f)
+          play(boat.afloat ? Sfx::STEP_WATER : Sfx::STEP_WOOD, 0.3) if boat.strokes.to_i != strokes
+        end
+      end
+      i += 1
     end
   end
 
@@ -115,11 +132,12 @@ class Game
   # the reach for mobs, in @target_boat (or -1), and its distance.
   def find_target_boat
     @target_boat = -1
-    best = @player.hit && @player.hit_t < Player::MOB_REACH ? @player.hit_t : Player::MOB_REACH
+    hit_t = @player.hit_t.to_f
+    best = @player.hit && hit_t < Player::MOB_REACH ? hit_t : Player::MOB_REACH
     i = 0
     while i < @boats.size
       if i != @riding
-        t = @boats[i].ray(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz)
+        t = @boats[i].ray(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
         if t >= 0.0 && t < best
           best = t
           @target_boat = i
@@ -135,20 +153,23 @@ class Game
   # minecraft.wiki/w/Boat
   def hit_boat(i)
     boat = @boats[i]
+    item = boat.item.to_i
+    x = boat.x.to_f
+    y = boat.y.to_f
+    z = boat.z.to_f
     charge = attack_charge
     damage = Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge)
     @attack_time = 0.0
     @swing = 0.25
     if @survival && !boat.hit(damage)
-      play_at(Sfx::DIG_WOOD, boat.x, boat.y, boat.z, 0.6, SOUND_RANGE)
+      play_at(Sfx::DIG_WOOD, x, y, z, 0.6, SOUND_RANGE)
       return
     end
     leave_boat if @riding == i
     @riding -= 1 if @riding > i
-    @particles.burst(boat.x.floor, boat.y.floor, boat.z.floor, Block::PLANKS[boat.item - Block::OAK_BOAT])
-    play_at(Sfx::BREAK, boat.x, boat.y, boat.z, 0.7, SOUND_RANGE)
-    # Spinel reads @boats as untyped, and to_i and to_f keep drop_item typed.
-    drop_item(boat.item.to_i, 1, boat.x.to_f, boat.y.to_f + 0.3, boat.z.to_f, 0.0, 2.0, 0.0, PICKUP_WAIT) if @survival
+    @particles.burst(x.floor, y.floor, z.floor, Block::PLANKS[item - Block::OAK_BOAT])
+    play_at(Sfx::BREAK, x, y, z, 0.7, SOUND_RANGE)
+    drop_item(item, 1, x, y + 0.3, z, 0.0, 2.0, 0.0, PICKUP_WAIT) if @survival
     @boats.delete_at(i)
     @target_boat = -1
   end
