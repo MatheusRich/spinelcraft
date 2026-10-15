@@ -351,29 +351,84 @@ class Mesh3
     vert(@cx[a3], @cy[a3], @cz[a3], u0, v0, l, r * s, g * s, b * s, a)
   end
 
-  # Dark edges around the box of a block in the cell x, y, z: hx and hz
-  # around the center on x and z, and top high. A box that is not in the middle of its
-  # cell (see Block.box_dx) moves x, y and z.
-  def outline(x, y, z, hx, hz, top)
-    t = 0.012
-    e = 0.004
-    x0 = x + 0.5 - hx - e
-    y0 = y - e
-    z0 = z + 0.5 - hz - e
-    x1 = x + 0.5 + hx + e
-    y1 = y + top + e
-    z1 = z + 0.5 + hz + e
+  # The outline of the aimed block is black at alpha 0.4, as in the game
+  # code of Minecraft Java (LevelRenderer); the wiki does not give it.
+  OUTLINE_ALPHA = 0.4
+  # Each vertex of the outline moves this part of the way to the eye. Its
+  # place on the screen stays the same, but it is in front of the faces of
+  # the block, so the faces do not hide it in part.
+  OUTLINE_PULL = 0.01
+
+  # The edges around the box of a block in the cell x, y, z: hx and hz
+  # around the center on x and z, and top high. A box that is not in the
+  # middle of its cell (see Block.box_dx) moves x, y and z. Each edge is a
+  # strip that faces the eye at ex, ey, ez, which looks along fx, fy, fz.
+  # At a depth d along the view, the strip is k * d wide on each side of
+  # the edge, so it keeps one width in pixels at each distance.
+  def outline(x, y, z, hx, hz, top, ex, ey, ez, fx, fy, fz, k)
+    e = 0.002
+    # to_f: Spinel cannot type the cell of the aimed block.
+    x0 = x.to_f + 0.5 - hx - e
+    y0 = y.to_f - e
+    z0 = z.to_f + 0.5 - hz - e
+    x1 = x.to_f + 0.5 + hx + e
+    y1 = y.to_f + top + e
+    z1 = z.to_f + 0.5 + hz + e
     i = 0
     while i < 4
       ya = i % 2 == 0 ? y0 : y1
       za = i / 2 == 0 ? z0 : z1
-      aabb(x0, ya - t, za - t, x1, ya + t, za + t, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
+      edge_line(x0, ya, za, x1, ya, za, ex, ey, ez, fx, fy, fz, k)
       xa = i % 2 == 0 ? x0 : x1
-      aabb(xa - t, y0, za - t, xa + t, y1, za + t, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
+      edge_line(xa, y0, za, xa, y1, za, ex, ey, ez, fx, fy, fz, k)
       xb = i / 2 == 0 ? x0 : x1
       yb = i % 2 == 0 ? y0 : y1
-      aabb(xb - t, yb - t, z0, xb + t, yb + t, z1, Tex::WHITE, 0.05, 0.05, 0.05, 1.0)
+      edge_line(xb, yb, z0, xb, yb, z1, ex, ey, ez, fx, fy, fz, k)
       i += 1
     end
+  end
+
+  # One edge of outline, from a to b.
+  def edge_line(ax, ay, az, bx, by, bz, ex, ey, ez, fx, fy, fz, k)
+    dx = bx - ax
+    dy = by - ay
+    dz = bz - az
+    # The side of the strip is square to the edge and to the line from the
+    # eye to the middle of the edge.
+    vx = (ax + bx) * 0.5 - ex
+    vy = (ay + by) * 0.5 - ey
+    vz = (az + bz) * 0.5 - ez
+    sx = dy * vz - dz * vy
+    sy = dz * vx - dx * vz
+    sz = dx * vy - dy * vx
+    len = Math.sqrt(sx * sx + sy * sy + sz * sz)
+    # An edge that points at the eye shows as a point.
+    return if len < 1.0e-9
+    # A depth under the near plane would make the strip too thin to see.
+    wa = k * ((ax - ex) * fx + (ay - ey) * fy + (az - ez) * fz).clamp(0.08, 1000.0) / len
+    wb = k * ((bx - ex) * fx + (by - ey) * fy + (bz - ez) * fz).clamp(0.08, 1000.0) / len
+    q = 1.0 - OUTLINE_PULL
+    p0x = ex + (ax + sx * wa - ex) * q
+    p0y = ey + (ay + sy * wa - ey) * q
+    p0z = ez + (az + sz * wa - ez) * q
+    p1x = ex + (ax - sx * wa - ex) * q
+    p1y = ey + (ay - sy * wa - ey) * q
+    p1z = ez + (az - sz * wa - ez) * q
+    p2x = ex + (bx - sx * wb - ex) * q
+    p2y = ey + (by - sy * wb - ey) * q
+    p2z = ez + (bz - sz * wb - ez) * q
+    p3x = ex + (bx + sx * wb - ex) * q
+    p3y = ey + (by + sy * wb - ey) * q
+    p3z = ez + (bz + sz * wb - ez) * q
+    l = Tex::WHITE.to_f
+    a = OUTLINE_ALPHA
+    vert(p0x, p0y, p0z, 0.5, 0.5, l, 0.0, 0.0, 0.0, a)
+    vert(p1x, p1y, p1z, 0.5, 0.5, l, 0.0, 0.0, 0.0, a)
+    vert(p2x, p2y, p2z, 0.5, 0.5, l, 0.0, 0.0, 0.0, a)
+    vert(p0x, p0y, p0z, 0.5, 0.5, l, 0.0, 0.0, 0.0, a)
+    vert(p2x, p2y, p2z, 0.5, 0.5, l, 0.0, 0.0, 0.0, a)
+    vert(p3x, p3y, p3z, 0.5, 0.5, l, 0.0, 0.0, 0.0, a)
+    # A nil return keeps Spinel from boxing it.
+    nil
   end
 end

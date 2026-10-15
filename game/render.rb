@@ -197,7 +197,15 @@ class Game
     @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
     if @player.hit && @captured && @target_mob < 0 && @target_boat < 0
       aimed = @world.get(@player.hx, @player.hy, @player.hz)
-      @dyn.outline(@player.hx + Block.box_dx(aimed), @player.hy + Block.box_dy(aimed), @player.hz + Block.box_dz(aimed), Block.box_hx(aimed), Block.box_hz(aimed), Block.box_top(aimed))
+      # The outline lines are max(2.5, width / 1920 * 2.5) pixels wide, as
+      # in the game code of Minecraft Java (LevelRenderer); the wiki does
+      # not give it. A pixel at the depth d along the view is
+      # 2 * d * tan(@fov) / h blocks high (Camera#update_camera).
+      h = Gfx.gfx_height.to_f
+      pixels = [2.5, Gfx.gfx_width.to_f / 1920.0 * 2.5].max
+      k = pixels * Math.tan(@fov.to_f) / h
+      @dyn.outline(@player.hx + Block.box_dx(aimed), @player.hy + Block.box_dy(aimed), @player.hz + Block.box_dz(aimed), Block.box_hx(aimed), Block.box_hz(aimed), Block.box_top(aimed),
+                   ex, ey, ez, fx, fy, fz, k)
       if @mining && @mine_progress > 0.0
         e = 0.003
         x = @mine_x.to_f
