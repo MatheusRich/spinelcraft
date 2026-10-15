@@ -1524,10 +1524,22 @@ class Game
     place
     stacked = @world.get(px + 5, SKY_Y, pz) == Block::CACTUS
     check("a cactus stands only on sand or on a cactus", stone && sand && stacked)
-    set_block(px + 5, SKY_Y, pz, Block::AIR)
-    set_block(px + 5, SKY_Y - 1, pz, Block::AIR)
+    # Without the sand, both blocks of the cactus break and drop.
+    @items.clear
     set_block(px + 5, SKY_Y - 2, pz, Block::AIR)
-    set_block(px + 5, SKY_Y - 3, pz, Block::AIR)
+    removed = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR && @world.get(px + 5, SKY_Y, pz) == Block::AIR
+    dropped = @items.count { |i| i.block == Block::CACTUS } == 2
+    # When the sand falls, the cactus on it breaks too.
+    @items.clear
+    set_block(px + 5, SKY_Y - 4, pz, Block::STONE)
+    set_block(px + 5, SKY_Y - 3, pz, Block::SAND)
+    set_block(px + 5, SKY_Y - 2, pz, Block::SAND)
+    set_block(px + 5, SKY_Y - 1, pz, Block::CACTUS)
+    set_block(px + 5, SKY_Y - 4, pz, Block::AIR)
+    fell = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR && @items.count { |i| i.block == Block::CACTUS } == 1
+    check("a cactus breaks and drops when the block under it goes", removed && dropped && fell)
+    @items.clear
+    @falling.clear
     @hotbar[0] = held
     @survival = survival
     @player.pitch = pitch

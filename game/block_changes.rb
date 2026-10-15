@@ -22,6 +22,7 @@ class Game
     end
     @world.set(x, y, z, b)
     mark_dirty(x, z)
+    break_unheld_cactus(x, y + 1, z)
     if b == Block::AIR
       above = @world.get(x, y + 1, z)
       set_block(x, y + 1, z, Block::AIR) if Block.plant?(above) && !Block.wall_torch?(above)
@@ -39,9 +40,19 @@ class Game
     wake_water(x, y, z)
   end
 
+  # A cactus breaks and drops when the block under it is not sand or a
+  # cactus. minecraft.wiki/w/Cactus
+  def break_unheld_cactus(x, y, z)
+    return unless @world.get(x, y, z) == Block::CACTUS
+    below = @world.get(x, y - 1, z)
+    return if below == Block::SAND || below == Block::CACTUS
+    set_block(x, y, z, Block::AIR)
+    drop_from_block(Block::CACTUS, 1, x, y, z)
+  end
+
   # Each second, the game looks at this many of the 81 x 81 columns near the
-  # player for a sapling, a crop or a cactus on top. Only a plant under the open sky
-  # grows. Each one that it finds grows (a sapling into a tree, a crop to
+  # player for a sapling, a crop or a cactus on top. Only a plant under the
+  # open sky grows. Each one that it finds grows (a sapling into a tree, a crop to
   # its next stage) with chance GROW_CHANCE. That is a step in about
   # 81 * 81 / (1100 * 0.1) = 60 seconds.
   GROW_SAMPLES = 1100.0
@@ -383,6 +394,7 @@ class Game
         wake_water(x, y, z)
         @falling << FallingBlock.new(b, x, y.to_f, z)
         moved = true
+        break_unheld_cactus(x, y + 1, z)
       end
       y += 1
     end
