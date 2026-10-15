@@ -1359,7 +1359,7 @@ class Game
 
   # Wool does not glow, lava gives light, and water turns lava into cobblestone.
   # The tint of the face of block b at (cx, 90, cz) in direction f, from
-  # its face record (Mesher.tint_w1), or -1 when the mesh has no such face.
+  # its face record (Mesher.face_tint), or -1 when the mesh has no such face.
   def face_tint(cx, cz, b, f)
     set_block(cx, 90, cz, b)
     @mesher.build(cx / CHUNK, cz / CHUNK)
@@ -1367,8 +1367,8 @@ class Game
     k = 0
     while k < @mesher.opaque.size
       w0 = @mesher.opaque[k]
-      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == 90 && Mesher.face_z(w0) == (cz & LMASK) && (w0 >> 27) & 15 == f
-        tint = (@mesher.opaque[k + 1] >> 31) | ((w0 >> 31) << 1)
+      if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == 90 && Mesher.face_z(w0) == (cz & LMASK) && Mesher.face_dir(w0) == f
+        tint = Mesher.face_tint(w0, @mesher.opaque[k + 1])
       end
       k += 2
     end

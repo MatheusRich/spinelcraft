@@ -229,10 +229,16 @@ class Game
     abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + LEVELS * TILE_SLOTS
     abort "gfx.rb UNIFORMS is not #{UNIFORMS}" if Gfx.gfx_limit(3) != UNIFORMS
     abort "gfx.rb TINT_SIZE is not #{Tint::SIZE}" if Gfx.gfx_limit(4) != Tint::SIZE
+    # The fields of a face record must fit in its two 32-bit words, and the
+    # y field must hold every y of the world.
+    abort "a face record is wider than 32 bits" if Mesher::TINT_HIGH_AT + Mesher::TINT_HIGH_BITS > 32 ||
+                                                   Mesher::TINT_LOW_AT + Mesher::TINT_LOW_BITS > 32 || Lod::BIOME_AT + Lod::BIOME_BITS > 32
+    abort "Mesher::Y_BITS is too narrow for WY" if WY > 1 << Mesher::Y_BITS
   end
 
   def setup
     vsync = ENV["NOVSYNC"] ? 0 : 1
+    Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
     Gfx.gfx_fullscreen(1) if @fullscreen
