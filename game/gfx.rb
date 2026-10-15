@@ -1063,6 +1063,9 @@ module Gfx
     static SDL_AudioStream *voice[VOICES];
     /* The stream of the music (au_music_play). */
     static SDL_AudioStream *music;
+    /* The stream of the loop (au_loop), and the next sample of the loop. */
+    static SDL_AudioStream *loop;
+    static int loop_pos;
     static float *sound_data[SOUNDS];
     static int sound_len[SOUNDS];
     static int next_voice;
@@ -1078,6 +1081,8 @@ module Gfx
       }
       music = SDL_CreateAudioStream(&spec, NULL);
       if (!music || !SDL_BindAudioStream(audio_dev, music)) return fail("SDL_BindAudioStream");
+      loop = SDL_CreateAudioStream(&spec, NULL);
+      if (!loop || !SDL_BindAudioStream(audio_dev, loop)) return fail("SDL_BindAudioStream");
       return true;
     }
 
@@ -1154,6 +1159,31 @@ module Gfx
       SDL_SetAudioStreamGain(v, (float)volume);
       SDL_PutAudioStreamData(v, lr, n * 2 * (int)sizeof(float));
       SDL_free(lr);
+    }
+
+    /* Loop: one stream plays sound id again and again, for the rain. The
+       game calls au_loop each frame. It sets the volume of the stream at
+       once, and it keeps LOOP_AHEAD seconds of the sound in the stream. At
+       a volume of 0 the loop stops. */
+    #define LOOP_AHEAD 0.25
+    #define LOOP_CHUNK 4096
+    void au_loop(long id, double volume) {
+      if (!loop || id < 0 || id >= SOUNDS || !sound_data[id]) return;
+      if (volume <= 0.0) {
+        SDL_ClearAudioStream(loop);
+        return;
+      }
+      SDL_SetAudioStreamGain(loop, (float)volume);
+      int n = sound_len[id];
+      int ahead = (int)(LOOP_AHEAD * AU_RATE) * 2 * (int)sizeof(float);
+      float lr[LOOP_CHUNK * 2];
+      while (SDL_GetAudioStreamQueued(loop) < ahead) {
+        if (loop_pos >= n) loop_pos = 0;
+        int k = SDL_min(n - loop_pos, LOOP_CHUNK);
+        for (int i = 0; i < k; i++) lr[i * 2] = lr[i * 2 + 1] = sound_data[id][loop_pos + i];
+        SDL_PutAudioStreamData(loop, lr, k * 2 * (int)sizeof(float));
+        loop_pos += k;
+      }
     }
 
     /* Music: the music stream plays one track at a time. au_music_feed
@@ -1311,6 +1341,7 @@ module Gfx
   ffi_func :au_load_ogg, [:long, :str, :double], :long
   ffi_func :au_seconds, [:long], :double
   ffi_func :au_play, [:long, :double, :double], :void
+  ffi_func :au_loop, [:long, :double], :void
   ffi_func :au_music_play, [:str, :double], :long
   ffi_func :au_music_stop, [], :void
   ffi_func :au_music_playing, [], :bool

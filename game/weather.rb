@@ -5,8 +5,11 @@
 class Weather
   # Rain falls in the columns within R blocks of the player.
   R = 10
-  # Seconds that the rain takes to start or to stop.
-  FADE = 8.0
+  # Seconds that the rain takes to start or to stop. In Java Edition the
+  # rain level moves 0.01 each tick toward its target, so a full change takes
+  # 100 ticks. The wiki does not give this value: minecraft.wiki/w/Rain and
+  # minecraft.wiki/w/Commands/weather do not describe the change.
+  FADE = 5.0
 
   # The strength of the rain, from 0 (none) to 1.
   attr_reader :rain
@@ -20,7 +23,6 @@ class Weather
     @raining = false
     @rain = 0.0
     @timer = 0.0
-    @sound_wait = 0.0
     @mesh = Mesh3.new
     # The block that the rain quads are for, and their age in seconds.
     @x = World::NONE
@@ -68,13 +70,10 @@ class Weather
     end
   end
 
-  # The volume of the rain sound to start now, or 0.0. The next clip starts
-  # when the last one ends. Under a roof it is quieter, and 10 blocks under
-  # the ground it stops.
-  def sound(world, player, dt)
-    @sound_wait -= dt
-    return 0.0 if @sound_wait > 0.0
-    @sound_wait = Gfx.au_seconds(Sfx::RAIN)
+  # The volume of the rain sound now. It follows the strength of the rain.
+  # Under a roof it is quieter, and 10 blocks under the ground it stops.
+  def sound(world, player)
+    return 0.0 if @rain <= 0.0
     cover = world.height_at(player.x.floor, player.z.floor) - player.eye_y
     (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain
   end

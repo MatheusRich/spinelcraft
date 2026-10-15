@@ -173,6 +173,7 @@ class Game
     test_monsters
     test_fire
     test_rain
+    test_weather_fade
     test_cactus
     test_clock
     test_save(x, z, ground)
@@ -1558,6 +1559,35 @@ class Game
     @player.flying = flying
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
+  end
+
+  # /weather clear and /weather rain change the strength of the rain over
+  # 100 ticks, as in Java Edition. The rain sound follows the strength of
+  # the rain on each tick, with no wait of its own.
+  def test_weather_fade
+    keep_pose
+    @player.move_to(@spawn_x.floor + 0.5, SKY_Y - 1.0, @spawn_z.floor + 0.5)
+    @player.flying = true
+    @weather.set_now(true)
+    run_chat("/weather clear")
+    follows = true
+    99.times do
+      @weather.update_weather(0.05)
+      follows = false if @weather.sound(@world, @player) != 0.3 * @weather.rain || @weather.rain <= 0.0
+    end
+    @weather.update_weather(0.05)
+    clear = @weather.rain == 0.0 && @weather.sound(@world, @player) == 0.0
+    run_chat("/weather rain")
+    99.times do
+      @weather.update_weather(0.05)
+      follows = false if @weather.sound(@world, @player) != 0.3 * @weather.rain || @weather.rain <= 0.0 || @weather.rain >= 1.0
+    end
+    @weather.update_weather(0.05)
+    rain = @weather.rain == 1.0 && @weather.sound(@world, @player) == 0.3
+    check("/weather clear and /weather rain change the rain in 100 ticks, and the rain sound follows the rain on each tick",
+          follows && clear && rain)
+    @weather.set_now(false)
+    restore_pose
   end
 
   # The bottom of the rain in column x, z: the third vertex of the quad from
