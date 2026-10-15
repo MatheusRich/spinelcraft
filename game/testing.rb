@@ -335,6 +335,9 @@ class Game
     run_chat("/tp #{tx} 150 #{tz}")
     whole = @player.x == tx + 0.5 && @player.y == 150.0 && @player.z == tz + 0.5
     check("/tp moves the player, with ~ for a place relative to the player", relative && whole)
+    run_chat("/tp 99999999 100 -99999999")
+    check("/tp stops at the farthest x and z that the world holds",
+          @player.x == TP_LIMIT && @player.z == -TP_LIMIT && @player.y == 100.0)
     run_chat("/tp ~3000 ~ ~3000")
     run_chat("/spawn")
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)

@@ -16,6 +16,10 @@ class Game
   HELP = ["/TIME SET|ADD <TIME>  /TIME QUERY  /WEATHER CLEAR|RAIN", "/GAMEMODE SURVIVAL|CREATIVE  /TP <X> <Y> <Z>  /SPAWN",
           "/GIVE <ITEM> [COUNT]  /SUMMON <MOB> [X Y Z]", "/KILL  /SEED  /HELP"]
 
+  # The farthest x and z of /tp. Minecraft keeps them within 30,000,000,
+  # but World.key holds x and z only from -World::KEY_OFF. The 8192
+  # blocks leave room for the chunks and the far terrain around the player.
+  TP_LIMIT = (World::KEY_OFF - 8192).to_f
   # The names of the game modes in /gamemode: an even index is survival.
   GAME_MODES = ["SURVIVAL", "CREATIVE", "S", "C", "0", "1"]
 
@@ -205,9 +209,9 @@ class Game
   # Moves the player to x, y, z, and loads the chunks there before the
   # next step, so the player does not fall through the ground.
   def teleport(x, y, z)
-    @player.x = x
+    @player.x = x.clamp(-TP_LIMIT, TP_LIMIT)
     @player.y = y.clamp(0.0, (WY - 2).to_f)
-    @player.z = z
+    @player.z = z.clamp(-TP_LIMIT, TP_LIMIT)
     @player.vx = 0.0
     @player.vy = 0.0
     @player.vz = 0.0
