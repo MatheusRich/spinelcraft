@@ -639,8 +639,9 @@ class Game
   def run
     setup
     if ENV["SELFTEST"]
-      self_test
+      ok = self_test
       Gfx.gfx_quit
+      exit(1) unless ok
       return
     end
     last = Gfx.gfx_ns

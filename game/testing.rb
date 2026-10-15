@@ -151,11 +151,14 @@ class Game
 
   def check(name, ok)
     puts "#{ok ? "PASS" : "FAIL"} #{name}"
+    @checks += 1
     @failures += 1 unless ok
   end
 
   # SELFTEST=1 runs the game rules without input and reports PASS/FAIL lines.
+  # It returns true when all rules pass.
   def self_test
+    @checks = 0
     @failures = 0
     test_spawn
     x = @spawn_x.floor + 2
@@ -222,7 +225,8 @@ class Game
     test_streaming
     test_terrain_tables
     File.delete(@save_path) if File.exist?(@save_path)
-    puts @failures == 0 ? "ALL PASS" : "#{@failures} FAILED"
+    puts @failures == 0 ? "ALL #{@checks} PASS" : "#{@failures} OF #{@checks} FAILED"
+    @failures == 0
   end
 
   # The player starts on dry land: above the beach, with no water or
