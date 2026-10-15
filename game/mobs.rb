@@ -379,6 +379,14 @@ class Mob
     @yaw = Math.atan2(-dx, dz)
   end
 
+  # Adds dvx, dvz to the velocity: a push from another mob (Game#push_mobs).
+  def nudge(dvx, dvz)
+    @vx += dvx
+    @vz += dvz
+    # A nil return keeps Spinel from boxing it.
+    nil
+  end
+
   # Returns damage dealt to the player this step. held is the item in the
   # player's hand.
   # TODO: Rename back to update when Spinel types the parameters of each

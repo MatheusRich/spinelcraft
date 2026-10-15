@@ -207,6 +207,7 @@ class Game
     test_shear_sheep
     test_lambs
     test_breeding
+    test_push
     test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -3508,6 +3509,73 @@ class Game
     @inv.clear
     @survival = survival
     (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::AIR) } }
+  end
+
+  # Mobs push each other apart where their boxes overlap, monsters too,
+  # but a push does not move a mob into a block. Tempted animals around
+  # the player do not stand on one spot.
+  def test_push
+    bx = @spawn_x.floor - 40
+    bz = @spawn_z.floor - 40
+    y = SKY_Y - 12
+    (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::STONE) } }
+    (-10..10).each { |dz| set_block(bx + 5, y + 1, bz + dz, Block::STONE) }
+    fy = y + 1.0
+    survival = @survival
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    # The creepers stand still with the player 40 blocks away.
+    @player.x = bx + 0.5
+    @player.y = fy
+    @player.z = bz + 40.5
+    @mobs.clear
+    a = Mob.new(Mob::CREEPER, bx + 0.5, fy, bz + 0.5, 3)
+    b = Mob.new(Mob::CREEPER, bx + 0.5, fy, bz + 0.5, 4)
+    @mobs << a
+    @mobs << b
+    60.times { update_mobs(1.0 / 60.0) }
+    d = Math.sqrt(((a.x - b.x) ** 2 + (a.z - b.z) ** 2).to_f)
+    check("two mobs on one spot push each other apart within a second", d >= Mob::HALF[Mob::CREEPER] * 2.0 - 0.05)
+    @mobs.clear
+    # The wall of stone is at x bx + 5. The creeper by the wall gets a push
+    # to it.
+    wall = Mob.new(Mob::CREEPER, bx + 4.69, fy, bz + 0.5, 5)
+    other = Mob.new(Mob::CREEPER, bx + 4.5, fy, bz + 0.5, 6)
+    @mobs << wall
+    @mobs << other
+    60.times { update_mobs(1.0 / 60.0) }
+    check("a push does not move a mob into a block",
+          !wall.blocked?(@world) && wall.x + Mob::HALF[Mob::CREEPER] <= bx + 5.0 && other.x < bx + 4.2)
+    @mobs.clear
+    @survival = true
+    @inv.clear
+    @inv.set(0, Block::WHEAT, 10)
+    @slot = 0
+    @player.z = bz + 0.5
+    cows = []
+    4.times do |i|
+      cow = Mob.new(Mob::COW, bx + 0.5, fy, bz - 3.5, 10 + i)
+      @mobs << cow
+      cows << cow
+    end
+    240.times { update_mobs(1.0 / 60.0) }
+    gap = 100.0
+    cows.each_with_index do |c, i|
+      cows.each_with_index do |o, j|
+        next unless j > i
+        g = Math.sqrt(((c.x - o.x) ** 2 + (c.z - o.z) ** 2).to_f)
+        gap = g if g < gap
+      end
+    end
+    check("cows that follow wheat to the player do not stand on one spot", cows.all?(&:tempted) && gap > 0.5)
+    @mobs.clear
+    @inv.clear
+    @survival = survival
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    (-10..10).each { |dx| (-10..10).each { |dz| (0..1).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
   end
 
   # A cow follows a player who holds wheat within 6 blocks, until the

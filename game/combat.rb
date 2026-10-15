@@ -349,6 +349,7 @@ class Game
     day = daylight * (1.0 - 0.5 * @weather.rain)
     spawn_monsters(dt)
     court_mates
+    push_mobs(dt)
     held = current_block.to_i
     @spawn_timer -= dt
     if @spawn_timer <= 0.0
@@ -481,6 +482,79 @@ class Game
     m.lay = false
     drop_item(Block::EGG, 1, m.x, m.y.to_f + 0.2, m.z, 0.0, 1.0, 0.0, PICKUP_WAIT)
     play_from(m, Sfx::LAY_EGG, 1.0)
+  end
+
+  # Mobs push each other apart where their boxes overlap, as entities do in
+  # Minecraft (minecraft.wiki/w/Entity, 15w36a, and the entity cramming
+  # of minecraft.wiki/w/Damage). The wiki gives no strength. In the game
+  # code (Entity.push), each tick gives each of the two mobs 0.05 blocks
+  # each tick of speed along the step between them, divided by the larger
+  # of its x and z parts (for a step under 1 block, as for all mobs here).
+  # Each of the two runs the push
+  # (LivingEntity.pushEntities), so a pair gets it twice each tick. That
+  # is 0.05 * 2 * 20 * 20 = 40 blocks each second, each second.
+  MOB_PUSH = 40.0
+
+  # dt seconds of pushes between the mobs whose boxes overlap. A dying mob
+  # does not push. The positions go into Float arrays first, so the check
+  # of each pair is cheap.
+  def push_mobs(dt)
+    n = @mobs.size
+    return if n < 2
+    xs = Array.new(n, 0.0)
+    ys = Array.new(n, 0.0)
+    zs = Array.new(n, 0.0)
+    halves = Array.new(n, 0.0)
+    talls = Array.new(n, 0.0)
+    dvx = Array.new(n, 0.0)
+    dvz = Array.new(n, 0.0)
+    i = 0
+    while i < n
+      m = @mobs[i]
+      # to_f: Spinel cannot type the mob. A dying mob gets no box.
+      xs[i] = m.x.to_f
+      ys[i] = m.y.to_f
+      zs[i] = m.z.to_f
+      halves[i] = m.dying? ? -1.0 : m.half.to_f
+      talls[i] = m.tall.to_f
+      i += 1
+    end
+    k = MOB_PUSH * dt
+    i = 0
+    while i < n
+      j = i + 1
+      while j < n
+        reach = halves[i] + halves[j]
+        dx = xs[j] - xs[i]
+        dz = zs[j] - zs[i]
+        if halves[i] > 0.0 && halves[j] > 0.0 && dx.abs < reach && dz.abs < reach &&
+           ys[i] < ys[j] + talls[j] && ys[j] < ys[i] + talls[i]
+          big = dx.abs > dz.abs ? dx.abs : dz.abs
+          # The game code does not push two mobs less than 0.01 apart.
+          # Here they go apart along x, so that two mobs on one spot part.
+          if big < 0.01
+            dx = 1.0
+            dz = 0.0
+            big = 1.0
+          end
+          px = dx / big * k
+          pz = dz / big * k
+          dvx[i] -= px
+          dvz[i] -= pz
+          dvx[j] += px
+          dvz[j] += pz
+        end
+        j += 1
+      end
+      i += 1
+    end
+    i = 0
+    while i < n
+      @mobs[i].nudge(dvx[i], dvz[i]) if dvx[i] != 0.0 || dvz[i] != 0.0
+      i += 1
+    end
+    # A nil return keeps Spinel from boxing the loop.
+    nil
   end
 
   # Each adult in love mode walks to the nearest adult of its kind in love
