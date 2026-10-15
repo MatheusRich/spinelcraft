@@ -205,6 +205,7 @@ class Game
     test_bone_meal
     test_seed_soil
     test_shear_sheep
+    test_lambs
     test_breeding
     test_far_items
     bx = @spawn_x.floor
@@ -3327,6 +3328,40 @@ class Game
     @inv.clear
     @survival = survival
     fill_box(bx - 2, y, bz - 2, bx + 2, y + 1, bz + 2, Block::AIR)
+  end
+
+  # A baby sheep has wool that shears do not take. It grazes 20 times as
+  # often as an adult, and each bite takes 1 minute off its growth time.
+  def test_lambs
+    bx = @spawn_x.floor + 50
+    bz = @spawn_z.floor - 80
+    y = SKY_Y - 20
+    (-2..2).each { |dx| (-2..2).each { |dz| set_block(bx + dx, y, bz + dz, Block::GRASS) } }
+    survival = @survival
+    @survival = true
+    @inv.clear
+    @inv.add(Block::SHEARS)
+    @slot = 0
+    @items.clear
+    @mobs.clear
+    lamb = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    lamb.make_baby
+    @mobs << lamb
+    right_click_mob(lamb)
+    check("shears take no wool from a baby sheep",
+          @target_mob == 0 && !lamb.sheared && ground_count(Block::WOOL) == 0 && @inv.count(0) == Block.uses(Block::SHEARS))
+    put_mob(lamb, bx + 0.5, y + 1.0, bz + 0.5)
+    grow = lamb.grow_left
+    lamb.grass_bite = true
+    bite_grass(lamb)
+    check("a baby sheep grazes 20 times as often as an adult, and a bite of grass takes 1 minute off its growth time",
+          (lamb.grow_left - (grow - 60.0)).abs < 0.001 && @world.get(bx, y, bz) == Block::DIRT &&
+          (LAMB_GRAZE_CHANCE - GRAZE_CHANCE * 20.0).abs < 1.0e-9)
+    @mobs.clear
+    @inv.clear
+    @items.clear
+    @survival = survival
+    (-2..2).each { |dx| (-2..2).each { |dz| (0..1).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
   end
 
   # The player stands 2 blocks south of the mob m, looks at its middle,

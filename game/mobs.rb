@@ -278,7 +278,11 @@ class Mob
   # How far a grazing sheep turns its head down, in radians.
   GRAZE_NOD = 0.9
 
-  def shearable? = @kind == SHEEP && !@sheared && !dying?
+  # A baby sheep has wool, but shears do not take it. The wiki shows a
+  # sheared baby sheep as one that only commands make
+  # (minecraft.wiki/w/Sheep); the game code checks for a baby
+  # (Sheep.readyForShearing).
+  def shearable? = @kind == SHEEP && !@sheared && !dying? && !baby?
 
   # dt more seconds of laying for a grown chicken: it sets lay when an egg
   # is due. A chick lays no eggs. minecraft.wiki/w/Chicken

@@ -231,6 +231,10 @@ class Game
   # An adult sheep starts to eat grass with chance 1/500 each tick, so 20/500
   # each second. minecraft.wiki/w/Sheep
   GRAZE_CHANCE = 20.0 / 500.0
+  # A baby sheep has the chance 1/25 where an adult has 1/500, and each
+  # bite takes 1 minute off its growth time. minecraft.wiki/w/Sheep
+  LAMB_GRAZE_CHANCE = 20.0 / 25.0
+  LAMB_BITE_GROWTH = 60.0
 
   # A sheep starts to eat when it has grass to eat and does not panic.
   def can_graze?(m) = m.kind == Mob::SHEEP && !m.dying? && m.graze <= 0.0 && m.panic <= 0.0 && grass_under(m) > 0
@@ -246,8 +250,8 @@ class Game
   end
 
   # The bite of a grazing sheep: the tall grass goes, or else the grass
-  # block turns into dirt, and the wool grows back. With the grass gone,
-  # nothing happens. minecraft.wiki/w/Sheep
+  # block turns into dirt, the wool grows back, and a baby grows up
+  # faster. With the grass gone, nothing happens. minecraft.wiki/w/Sheep
   def bite_grass(m)
     m.grass_bite = false
     eaten = grass_under(m)
@@ -257,6 +261,7 @@ class Game
     z = m.z.floor
     eaten == 1 ? set_block(x, y, z, Block::AIR) : set_block(x, y - 1, z, Block::DIRT)
     m.regrow
+    m.grow_up(LAMB_BITE_GROWTH) if m.baby?
   end
 
   def pick_monster = pick_kind(MONSTER_KINDS, MONSTER_WEIGHTS)
@@ -377,7 +382,7 @@ class Game
         explode(m.x, m.y + 0.8, m.z)
       end
       m.douse if m.fire > 0.0 && @weather.rain > 0.5 && @world.under_sky?(m.x, m.y + m.tall, m.z)
-      m.start_graze if can_graze?(m) && @rng.rand01 < dt * GRAZE_CHANCE
+      m.start_graze if can_graze?(m) && @rng.rand01 < dt * (m.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
       @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
