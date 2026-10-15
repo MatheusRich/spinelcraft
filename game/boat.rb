@@ -162,7 +162,6 @@ class Boat
     @damage > BREAKS
   end
 
-  # Distance along the ray from o along d to the box, or -1.0.
   def ray(ox, oy, oz, dx, dy, dz) = Ray.box_distance(ox, oy, oz, dx, dy, dz, @x - HALF, @y, @z - HALF, @x + HALF, @y + TALL, @z + HALF)
 
   # The hull is a floor and four walls of the planks of the boat's wood,

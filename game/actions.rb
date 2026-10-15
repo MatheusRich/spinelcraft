@@ -141,10 +141,9 @@ class Game
     end
   end
 
-  # The right button draws the bow, opens a chest, uses a bed, eats, or
-  # places a block.
+  # The right button gets in a boat, draws the bow, opens a chest, uses a
+  # bed, eats, or places a block or a boat.
   def right_button(dt, held)
-    # The right button on a boat gets in it.
     if @target_boat >= 0 && !riding?
       @eat_time = -1.0
       @draw_time = -1.0
