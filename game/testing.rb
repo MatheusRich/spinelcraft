@@ -211,6 +211,7 @@ class Game
     test_bed
     test_buckets
     test_pumpkins
+    test_seed_soil
     test_far_items
     bx = @spawn_x.floor
     bz = @spawn_z.floor
@@ -2466,6 +2467,55 @@ class Game
           (heads[Block::CARVED_PUMPKIN] - 900).abs < 120 && (heads[Block::JACK_O_LANTERN] - 100).abs < 45 && creeper && other_days && skeleton)
     (-3..3).each { |dx| (-3..3).each { |dz| (0..2).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
     @items.clear
+  end
+
+  # Seeds, saplings, flowers and tall grass go only on dirt, grass or snowy
+  # grass. A torch still goes on any solid block.
+  def test_seed_soil
+    bx = @spawn_x.floor + 50
+    bz = @spawn_z.floor - 70
+    y = SKY_Y - 20
+    px = @player.x
+    py = @player.y
+    pz = @player.z
+    pitch = @player.pitch
+    flying = @player.flying
+    survival = @survival
+    held = @hotbar[0]
+    @survival = false
+    @slot = 0
+    @player.x = bx + 0.5
+    @player.y = y + 2.0
+    @player.z = bz + 0.5
+    @player.pitch = -1.55
+    @player.flying = true
+    # Stone under the ground block keeps the sand from falling.
+    set_block(bx, y - 1, bz, Block::STONE)
+    grounds = [Block::DIRT, Block::GRASS, Block::SNOW_GRASS, Block::STONE, Block::OAK_PLANKS, Block::SAND]
+    plants = Block::SOIL_PLANTS + [Block::TORCH]
+    planted = plants.map do |plant|
+      grounds.map do |ground|
+        set_block(bx, y + 1, bz, Block::AIR)
+        set_block(bx, y, bz, ground)
+        @hotbar[0] = plant
+        @player.raycast(@world)
+        place
+        @world.get(bx, y + 1, bz) == plant
+      end
+    end
+    set_block(bx, y + 1, bz, Block::AIR)
+    set_block(bx, y, bz, Block::AIR)
+    set_block(bx, y - 1, bz, Block::AIR)
+    @hotbar[0] = held
+    @survival = survival
+    @player.x = px
+    @player.y = py
+    @player.z = pz
+    @player.pitch = pitch
+    @player.flying = flying
+    soil = (0...plants.size - 1).all? { |i| planted[i] == [true, true, true, false, false, false] }
+    torch = planted[plants.size - 1].all?
+    check("seeds, saplings, flowers and tall grass go only on dirt, grass or snowy grass, and a torch on any solid block", soil && torch)
   end
 
   # A ladder lifts the player at 2.35 m/s on jump, holds the player on

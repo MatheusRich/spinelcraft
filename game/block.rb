@@ -357,6 +357,13 @@ module Block
   def self.jack_o_lantern?(b) = BASE[b] == JACK_O_LANTERN
   # A pumpkin, a carved pumpkin or a jack o'lantern.
   def self.pumpkin?(b) = b >= PUMPKIN && b < SHEARS
+  # The plants that go only on soil: dirt, grass or snowy grass. In
+  # Minecraft, seeds go only on farmland (minecraft.wiki/w/Pumpkin_Seeds and
+  # /w/Wheat_Seeds). The game has no farmland, so dirt and grass take its
+  # place. Saplings, flowers and short grass go on dirt and grass
+  # (minecraft.wiki/w/Sapling, /w/Flower and /w/Short_Grass).
+  SOIL_PLANTS = [PUMPKIN_SEEDS, SEEDS, OAK_SAPLING, SPRUCE_SAPLING, BIRCH_SAPLING, ROSE, DANDELION, TALL_GRASS]
+  def self.soil?(b) = b == DIRT || b == GRASS || b == SNOW_GRASS
   # Torches, lava sources and jack o'lanterns light their surroundings.
   def self.emits?(b) = torch?(b) || b == LAVA || jack_o_lantern?(b)
 end

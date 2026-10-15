@@ -68,7 +68,7 @@ class Game
   end
 
   # A ripe stem grows a pumpkin on a cell next to it, in a random
-  # direction, when that cell is air over dirt or grass. A stem with a
+  # direction, when that cell is air over soil (Block.soil?). A stem with a
   # pumpkin next to it waits until the pumpkin goes. minecraft.wiki/w/Pumpkin_Seeds
   def grow_pumpkin(x, y, z)
     d = 0
@@ -80,7 +80,7 @@ class Game
     px = x + Block::DIR_DX[d]
     pz = z + Block::DIR_DZ[d]
     ground = @world.get(px, y - 1, pz)
-    return unless @world.get(px, y, pz) == Block::AIR && (ground == Block::DIRT || ground == Block::GRASS || ground == Block::SNOW_GRASS)
+    return unless @world.get(px, y, pz) == Block::AIR && Block.soil?(ground)
     set_block(px, y, pz, Block::PUMPKIN)
   end
 

@@ -536,6 +536,7 @@ class Game
         @world.get(x, y - 1, z)
       end
       return if !Block.solid?(held) || Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z))
+      return if Block::SOIL_PLANTS.include?(b) && !Block.soil?(held)
     end
     return if Block.solid?(b) && mob_in?(x, y, z, Block.door?(b) ? 2 : 1)
     current = @world.get(x, y, z)
