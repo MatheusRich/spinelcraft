@@ -43,7 +43,6 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | 1–9, wheel | Select a hotbar slot |
 | E | Inventory and crafting |
 | F | Fly (creative) |
-| G | Switch between creative and survival |
 | F3 | Debug text |
 | F5 | Save |
 | T, / | Chat and commands |

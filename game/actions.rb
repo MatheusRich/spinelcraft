@@ -77,10 +77,6 @@ class Game
         say(Block::NAMES[@hotbar[@slot]])
       end
     end
-    if Gfx.in_key_pressed(Key::G)
-      set_mode(!@survival)
-      say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
-    end
     if Gfx.in_key_pressed(Key::F) && !@survival
       @player.flying = !@player.flying
       say(@player.flying ? "FLYING" : "WALKING")
