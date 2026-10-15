@@ -174,15 +174,8 @@ class Game
   def build_dyn(ex, ey, ez, reach)
     @dyn.clear
     @mobs.each do |m|
-      mx = m.x.to_f
-      my = m.y.to_f
-      mz = m.z.to_f
-      ddx = mx - ex
-      ddz = mz - ez
-      next if ddx * ddx + ddz * ddz > reach * reach
       # 2 blocks around the feet also hold a mob that lies on its side.
-      next unless @camera.box_visible?(mx - 2.0, my - 1.0, mz - 2.0, mx + 2.0, my + 2.0, mz + 2.0)
-      m.draw(@dyn)
+      m.draw(@dyn) if entity_in_view?(m.x.to_f, m.y.to_f, m.z.to_f, 2.0, ex, ez, reach)
     end
     @arrows.each { |a| a.draw(@dyn) }
     @items.each_with_index do |item, i|
@@ -191,17 +184,8 @@ class Game
       item.draw(@dyn, i.to_f) if ddx * ddx + ddz * ddz < reach * reach
     end
     @falling.each { |f| f.draw(@dyn) }
-    @boats.each do |boat|
-      bx = boat.x.to_f
-      by = boat.y.to_f
-      bz = boat.z.to_f
-      ddx = bx - ex
-      ddz = bz - ez
-      next if ddx * ddx + ddz * ddz > reach * reach
-      # The paddles reach past the box.
-      next unless @camera.box_visible?(bx - 2.0, by - 1.0, bz - 2.0, bx + 2.0, by + 1.0, bz + 2.0)
-      boat.draw_boat(@dyn)
-    end
+    # The paddles reach past the box of a boat.
+    @boats.each { |boat| boat.draw_boat(@dyn) if entity_in_view?(boat.x.to_f, boat.y.to_f, boat.z.to_f, 1.0, ex, ez, reach) }
     # The camera's right and up axes, as in Camera#update.
     fx = @player.fx
     fy = @player.fy
@@ -224,6 +208,15 @@ class Game
     end
     @hand_at = @dyn.count
     draw_hand(ex, ey, ez)
+  end
+
+  # True when x, y, z is within reach of the eye, and the box 2 blocks
+  # around it on x and z, from 1 block under it to top over it, is in view.
+  def entity_in_view?(x, y, z, top, ex, ez, reach)
+    dx = x - ex
+    dz = z - ez
+    return false if dx * dx + dz * dz > reach * reach
+    @camera.box_visible?(x - 2.0, y - 1.0, z - 2.0, x + 2.0, y + top, z + 2.0)
   end
 
   def upload_clouds
