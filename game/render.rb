@@ -111,12 +111,7 @@ class Game
         if d2 < reach * reach && @camera.box_visible?(x0, 0.0, z0, x0 + 16.0, WY.to_f, z0 + 16.0)
           slot = s * 2
           # Only directions that can face the camera.
-          mask = 4 | 8 | 64
-          mask |= 1 if ex > x0
-          mask |= 2 if ex < x0 + 16.0
-          mask |= 16 if ez > z0
-          mask |= 32 if ez < z0 + 16.0
-          @visible << slot << mask
+          @visible << slot << (4 | 8 | 64 | side_mask(ex, ez, x0, z0, x0 + 16.0, z0 + 16.0))
           @water_keys << d2.to_i * LOD_SLOT0 + slot + 1 if @has_water[s] == 1
         end
       end
@@ -129,6 +124,17 @@ class Game
       @water_visible << @water_keys[k] % LOD_SLOT0 << 127
       k -= 1
     end
+  end
+
+  # The bits of the side directions (+x 1, -x 2, +z 16, -z 32) that can face
+  # a camera at ex, ez, for a box from x0, z0 to x1, z1.
+  def side_mask(ex, ez, x0, z0, x1, z1)
+    mask = 0
+    mask |= 1 if ex > x0
+    mask |= 2 if ex < x1
+    mask |= 16 if ez > z0
+    mask |= 32 if ez < z1
+    mask
   end
 
   # Fills @lod_visible with the far terrain tiles in the view.
@@ -155,12 +161,7 @@ class Game
           dz = 0.0 if dz < 0.0
           inside = x0 >= @uniforms[at] && z0 >= @uniforms[at + 1] && x1 <= @uniforms[at + 2] && z1 <= @uniforms[at + 3]
           if !inside && dx * dx + dz * dz < reach * reach && @camera.box_visible?(x0, 0.0, z0, x1, WY.to_f + 8.0, z1)
-            mask = 4
-            mask |= 1 if ex > x0
-            mask |= 2 if ex < x1
-            mask |= 16 if ez > z0
-            mask |= 32 if ez < z1
-            @lod_visible << LOD_SLOT0 + level * TILE_SLOTS + s << mask
+            @lod_visible << LOD_SLOT0 + level * TILE_SLOTS + s << (4 | side_mask(ex, ez, x0, z0, x1, z1))
           end
         end
         s += 1
