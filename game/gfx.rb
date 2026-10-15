@@ -1337,7 +1337,6 @@ module Key
   A = 4
   D = 7
   E = 8
-  F = 9
   Q = 20
   R = 21
   S = 22

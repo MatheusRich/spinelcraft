@@ -136,6 +136,9 @@ class Game
     @quit = false
     @last_w = -1.0
     @w_sprint = false
+    # When jump was last pressed, for a double press that starts or stops
+    # flying (FLY_TAP).
+    @last_jump = -1.0
     @slot = 0
     @captured = false
     @time_of_day = (ENV["TIME"] || "0.3").to_f
@@ -475,6 +478,7 @@ class Game
         @last_w = @anim_time
       end
       @w_sprint = false unless Gfx.in_key(Key::W)
+      tap_to_fly if Gfx.in_key_pressed(Key::SPACE)
       sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
       # The player sprints only forward. The wiki does not confirm this.
       sprint = false if fwd <= 0.0 || (@survival && !@vitals.can_sprint?) || using_item?
@@ -501,6 +505,9 @@ class Game
       end
       remaining -= step
     end
+    # A flying player who comes down onto a block stops flying, as in Java
+    # Edition. minecraft.wiki/w/Flying
+    @player.flying = false if @player.on_ground && !@autopilot
     update_boats(dt, fwd, strafe)
     @player.raycast(@world)
     # Water splashes and swishes, but lava makes no sound when the player
@@ -555,6 +562,18 @@ class Game
     end
     find_target_boat
     find_target_mob
+  end
+
+  # A second press of jump within FLY_TAP starts or stops flying in
+  # creative, as in Minecraft. A third press starts a new double press.
+  def tap_to_fly
+    if !@survival && @anim_time - @last_jump < FLY_TAP && @anim_time > @last_jump
+      @player.flying = !@player.flying
+      @last_jump = -1.0
+    else
+      @last_jump = @anim_time
+    end
+    nil
   end
 
   def update_survival(dt)

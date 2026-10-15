@@ -71,6 +71,10 @@ class Game
                     Sfx::CLOTH, Sfx::PLACE]
   # Eating takes 32 ticks. minecraft.wiki/w/Food
   EAT_TIME = 1.6
+  # Two presses of jump this close start or stop flying in creative. The
+  # wiki says only "double-tapping" (minecraft.wiki/w/Flying). The 7 ticks
+  # come from the game code (LocalPlayer.aiStep, jumpTriggerTime).
+  FLY_TAP = 0.35
   # A bite plays each 4 ticks after the first 7 ticks of eating, as in
   # Minecraft (LivingEntity.shouldTriggerItemUseEffects, not on the wiki).
   CHEW_START = 0.35

@@ -77,10 +77,6 @@ class Game
         say(Block::NAMES[@hotbar[@slot]])
       end
     end
-    if Gfx.in_key_pressed(Key::F) && !@survival
-      @player.flying = !@player.flying
-      say(@player.flying ? "FLYING" : "WALKING")
-    end
     @show_debug = !@show_debug if Gfx.in_key_pressed(Key::F3)
     save if Gfx.in_key_pressed(Key::F5)
     toggle_fullscreen if Gfx.in_key_pressed(Key::F11)
