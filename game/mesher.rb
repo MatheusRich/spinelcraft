@@ -98,7 +98,7 @@ class Mesher
 
   def self.define_field(name, at, bits) = "#define #{name}_AT #{at}u\n#define #{name}_MASK #{(1 << bits) - 1}u\n"
 
-  attr_reader :opaque, :water, :offsets
+  attr_reader :opaque, :water, :offsets, :water_offsets
 
   def initialize(world)
     @world = world
@@ -393,15 +393,12 @@ class Mesher
       f += 1
     end
     @offsets[7] = @opaque.size / 2
-    @water_offsets[7] = @water.size / 2
     i = 1
-    while i < 7
+    while i < 8
       @water_offsets[i] = @water.size / 2
       i += 1
     end
   end
-
-  def water_offsets = @water_offsets
 
   # Spreads torch light through cells that are not opaque: LIGHT_MAX at a torch,
   # one less per step, so walls stop it. Covers the chunk plus a margin.
