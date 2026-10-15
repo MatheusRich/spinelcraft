@@ -1052,12 +1052,18 @@ class Game
     @inv.add(Block::OAK_LOG)
     note_seen
     logs = shown_recipes == [recipe_for(Block::OAK_PLANKS)]
-    told = @message == "NEW RECIPE: OAK PLANKS" && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 1
+    told = @message == "NEW RECIPE: OAK PLANKS - PRESS E" && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 1
     toggle_inventory
     toggle_inventory
     check("a new recipe shows a message and a tag until the inventory closes", told && !@recipe_new.include?(1))
     @inv.add(Block::OAK_PLANKS)
     note_seen
+    both = @message.include?("NEW RECIPES - PRESS E, AT A CRAFTING TABLE")
+    @inv.add(Block::IRON)
+    note_seen
+    furnace = @message == "NEW RECIPE: IRON INGOT - AT A FURNACE"
+    @inv.remove(Block::IRON, 1)
+    check("the new recipe message says where to make the recipes", both && furnace)
     @inv.remove(Block::OAK_PLANKS, 1)
     note_seen
     planks = shown_recipes.include?(recipe_for(Block::CRAFTING_TABLE)) && !shown_recipes.include?(recipe_for(Block::STONE_PICK))

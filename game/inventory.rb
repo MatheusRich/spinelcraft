@@ -357,23 +357,30 @@ class Game
   end
 
   # Marks b as seen. Each recipe that b unlocks gets the NEW tag until the
-  # recipe list closes, and a message tells the player.
+  # recipe list closes, and a message tells the player where to make it.
   def see(b)
     return if @seen[b] == 1
     @seen[b] = 1
     found = 0
     last = 0
+    at = [0, 0, 0]
     k = 0
     while k < RECIPES.size
       if Block.fillers(RECIPES[k][0]).include?(b)
         @recipe_new[k] = 1
         found += 1
         last = k
+        at[RECIPES[k][4]] = 1
       end
       k += 1
     end
     return if found == 0
-    say(found == 1 ? "NEW RECIPE: #{Block::NAMES[RECIPES[last][2]]}" : "#{found} NEW RECIPES - PRESS E")
+    places = Array.new(0, "")
+    places << "PRESS E" if at[BY_HAND] == 1
+    places << "AT A CRAFTING TABLE" if at[AT_TABLE] == 1
+    places << "AT A FURNACE" if at[AT_FURNACE] == 1
+    head = found == 1 ? "NEW RECIPE: #{Block::NAMES[RECIPES[last][2]]}" : "#{found} NEW RECIPES"
+    say("#{head} - #{places.join(", ")}")
   end
 
   # True when the player has seen a block that fills the recipe ingredient ing.
