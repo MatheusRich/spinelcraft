@@ -108,6 +108,7 @@ class Mesher
     @offsets = Array.new(8, 0)
     @light = Array.new(LW * LW * WY, 0)
     @queue = Array.new(0, 0)
+    @blocks = world.blocks
     @flood_x = 0
     @flood_z = 0
     # Empty literals infer as untyped in Spinel, so these say Integer.
@@ -170,6 +171,11 @@ class Mesher
 
   def offset(dx, dy, dz) = (dx * PZ + dz) * PY + dy
 
+  # The block in cell i of the world store: byte i & 7 of Integer i >> 3.
+  # World#block reads the same, but its callers make its i a nullable
+  # Integer, and the mesher calls this for each cell.
+  def cell(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 127
+
   # The fluid kind of block b: 1 water, 2 lava, 0 not a fluid.
   def self.fluid(b) = Block::WATER_LEVEL[b] > 0 ? 1 : (Block.lava?(b) ? 2 : 0)
 
@@ -191,8 +197,7 @@ class Mesher
   end
 
   def cell_fluid_height(k, i)
-    blocks = @world.blocks
-    fluid_height(k, World.byte(blocks, i), World.byte(blocks, i + 1))
+    fluid_height(k, cell(i), cell(i + 1))
   end
 
   # A height of 0.8 or more counts 10 times in a corner, so the surface
@@ -241,7 +246,6 @@ class Mesher
     @opaque.clear
     @water.clear
     @lists.each { |l| l.clear }
-    blocks = @world.blocks
     height = @world.height
     cover = @cover
     occludes = Block::OCCLUDES
@@ -295,12 +299,12 @@ class Mesher
         ymax = @world.column_top(base)
         # Going up the column, the block above becomes the next block, and
         # the block becomes the one below.
-        id = World.byte(blocks, base)
-        below = World.byte(blocks, base - 1)
+        id = cell(base)
+        below = cell(base - 1)
         y = 0
         while y <= ymax
           i = base + y
-          above = World.byte(blocks, i + 1)
+          above = cell(i + 1)
           if Block.plant?(id)
             sky = y >= height[lx * WZ + lz] ? 1 : 0
             w1 = top_tex[id] | (255 << AO_AT) | (sky << SKY_AT) | Mesher.tint_w1(top_tex[id])
@@ -313,7 +317,7 @@ class Mesher
               plants << w1
               f += 1
             end
-          elsif id != Block::AIR && (cover[above] + cover[below] + cover[World.byte(blocks, i + py)] + cover[World.byte(blocks, i - py)] + cover[World.byte(blocks, i + dx)] + cover[World.byte(blocks, i - dx)] < 6 || Mesher.fluid(id) > 0)
+          elsif id != Block::AIR && (cover[above] + cover[below] + cover[cell(i + py)] + cover[cell(i - py)] + cover[cell(i + dx)] + cover[cell(i - dx)] < 6 || Mesher.fluid(id) > 0)
             kind = Mesher.fluid(id)
             corners = kind > 0 ? fluid_corners(i, kind) : 0
             front = facing[id] >= 0 ? Block::DIR_FACE[facing[id]] : -1
@@ -321,14 +325,14 @@ class Mesher
             shape = Block::SHAPE[id]
             f = 0
             while f < 6
-              nb = World.byte(blocks, i + @delta[f])
+              nb = cell(i + @delta[f])
               visible = if kind > 0
                 # A fluid shows no face to the same fluid. Its top shows
                 # under a block unless the surface is at the top of the cell.
                 Mesher.fluid(nb) != kind && (cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
               else
                 # Lava under lava fills its cell.
-                cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(World.byte(blocks, i + @delta[f] + 1)))
+                cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
               end
               visible = true if shape > 0
               visible = false if f == 3 && y == 0
@@ -354,10 +358,10 @@ class Mesher
                   end
                 else
                   a = f * 12
-                  ao0 = ao_value(occludes[World.byte(blocks, i + @ao[a])], occludes[World.byte(blocks, i + @ao[a + 1])], occludes[World.byte(blocks, i + @ao[a + 2])])
-                  ao1 = ao_value(occludes[World.byte(blocks, i + @ao[a + 3])], occludes[World.byte(blocks, i + @ao[a + 4])], occludes[World.byte(blocks, i + @ao[a + 5])])
-                  ao2 = ao_value(occludes[World.byte(blocks, i + @ao[a + 6])], occludes[World.byte(blocks, i + @ao[a + 7])], occludes[World.byte(blocks, i + @ao[a + 8])])
-                  ao3 = ao_value(occludes[World.byte(blocks, i + @ao[a + 9])], occludes[World.byte(blocks, i + @ao[a + 10])], occludes[World.byte(blocks, i + @ao[a + 11])])
+                  ao0 = ao_value(occludes[cell(i + @ao[a])], occludes[cell(i + @ao[a + 1])], occludes[cell(i + @ao[a + 2])])
+                  ao1 = ao_value(occludes[cell(i + @ao[a + 3])], occludes[cell(i + @ao[a + 4])], occludes[cell(i + @ao[a + 5])])
+                  ao2 = ao_value(occludes[cell(i + @ao[a + 6])], occludes[cell(i + @ao[a + 7])], occludes[cell(i + @ao[a + 8])])
+                  ao3 = ao_value(occludes[cell(i + @ao[a + 9])], occludes[cell(i + @ao[a + 10])], occludes[cell(i + @ao[a + 11])])
                   flip = (ao0 - ao2).abs > (ao1 - ao3).abs ? 1 : 0
                   w1 = tex | (ao0 << AO_AT) | (ao1 << (AO_AT + 2)) | (ao2 << (AO_AT + 4)) | (ao3 << (AO_AT + 6)) | (flip << FLIP_AT) | (sky << SKY_AT) |
                        Mesher.tint_w1(tex)
@@ -423,7 +427,6 @@ class Mesher
       end
       k += 1
     end
-    blocks = @world.blocks
     opaque = Block::OPAQUE
     head = 0
     while head < @queue.size
@@ -444,7 +447,7 @@ class Mesher
           # Sideways steps may cross the storage wrap, so the block index is
           # computed again, not offset.
           q = ((((qx + bx + @step_x[d]) & LMASK) + 1) * PZ + ((qz + bz + @step_z[d]) & LMASK) + 1) * PY + qy + @step_y[d] + 1
-          if opaque[(blocks[q >> 3] >> ((q & 7) << 3)) & 127] == 0
+          if opaque[cell(q)] == 0
             @light[m] = l
             @queue << m
           end

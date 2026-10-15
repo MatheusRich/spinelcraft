@@ -158,7 +158,7 @@ class World
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :store
 
   def initialize(seed)
-    # Eight blocks per Integer (block ids fit in 7 bits); see World.byte.
+    # Eight blocks per Integer (block ids fit in 7 bits); see block.
     @blocks = Array.new(PX * PY * PZ / 8 + 1, 0)
     @height = Array.new(WX * WZ, 0)
     # Torch and exposed lava cells as x, y, z triples, one list for each slot.
@@ -212,9 +212,6 @@ class World
   # the mesher stay unboxed. The to_i in index lets Spinel type block and
   # put_block before its inference stops at its round limit.
   def self.index(x, y, z) = ((((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1).to_i
-  # Block i of a packed store: byte i & 7 of Integer i >> 3.
-  def self.byte(a, i) = (a[i >> 3] >> ((i & 7) << 3)) & 127
-
   def block(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 127
 
   def put_block(i, b)
