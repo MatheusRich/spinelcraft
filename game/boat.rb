@@ -73,7 +73,7 @@ class Boat
   def water_surface(world)
     x = @x.floor
     z = @z.floor
-    y = (@y + 0.1).floor
+    y = (@y + 0.1).floor.to_i
     b = world.get(x, y, z)
     unless Block.water?(b)
       y -= 1
@@ -85,7 +85,7 @@ class Boat
       y += 1
       n += 1
     end
-    y + Block::WATER_LEVEL[world.get(x, y, z)] / 9.0
+    (y + Block::WATER_LEVEL[world.get(x, y, z)] / 9.0).to_f
   end
 
   # Moves the boat for dt seconds. fwd is 1 forward, -1 back, and turn is 1
@@ -135,7 +135,7 @@ class Boat
     ny = @y + @vy * dt
     if world.solid_in_box?(@x, ny, @z, HALF, TALL)
       if @vy < 0.0
-        @y = world.box_edge(@x, ny, @z, HALF, TALL, 1, -1)
+        @y = world.box_edge(@x, ny, @z, HALF, TALL, 1, -1).to_f
         @on_ground = true
       end
       @vy = 0.0
