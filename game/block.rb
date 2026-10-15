@@ -149,7 +149,7 @@ module Block
   # both share the hinge corner; 3 a ladder, a board 1 thick on its wall;
   # 4 a chest; 5 a bed; 6 a cactus, 1 narrower on each side, so that the
   # clear edges of its texture fall outside the box. Shape 0 is the full
-  # cube. SHAPE in the chunk shader (gfx.rb) has the same boxes.
+  # cube. Block.shader_defines gives the boxes to the chunk shader.
   SHAPE_BOX = [0, 0, 0, 16, 16, 16, 13, 0, 0, 16, 16, 16, 0, 0, 13, 16, 16, 16, 0, 0, 0, 1, 16, 16,
                1, 0, 1, 15, 14, 15, 0, 0, 0, 16, 9, 16, 1, 0, 1, 15, 16, 15]
 
@@ -422,6 +422,18 @@ module Block
       w += 1
     end
     -1
+  end
+  # The boxes of SHAPE_BOX as #defines for the shaders: SHAPE_COUNT, and
+  # SHAPE_BOXES, the boxes as an array of 6 numbers each.
+  def self.shader_defines
+    boxes = ""
+    i = 0
+    while i < SHAPE_BOX.size
+      boxes += i % 6 == 0 ? (i == 0 ? "{{" : "}, {") : ","
+      boxes += SHAPE_BOX[i].to_s
+      i += 1
+    end
+    "#define SHAPE_COUNT #{SHAPE_BOX.size / 6}\n#define SHAPE_BOXES #{boxes}}}\n"
   end
   # Things that live in the inventory but are never placed.
   def self.item?(b) = ITEM[b] == 1
