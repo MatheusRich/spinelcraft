@@ -9,15 +9,7 @@ class Game
     bx = @player.x.floor
     bz = @player.z.floor - 6
     y = SKY_Y - 10
-    dx = -4
-    while dx <= 4
-      dz = -3
-      while dz <= 3
-        set_block(bx + dx, y, bz + dz, Block::STONE)
-        dz += 1
-      end
-      dx += 1
-    end
+    fill_box(bx - 4, y, bz - 3, bx + 4, y, bz + 3, Block::STONE)
     set_block(bx - 3, y + 1, bz + 2, Block.bed_id(1, false))
     set_block(bx - 2, y + 1, bz + 2, Block.bed_id(0, true))
     set_block(bx + 3, y + 1, bz + 2, Block::TORCH)
@@ -73,15 +65,7 @@ class Game
     bx = @player.x.floor
     bz = @player.z.floor - 4
     y = SKY_Y - 10
-    dx = -4
-    while dx <= 4
-      dz = -3
-      while dz <= 3
-        set_block(bx + dx, y, bz + dz, Block::STONE)
-        dz += 1
-      end
-      dx += 1
-    end
+    fill_box(bx - 4, y, bz - 3, bx + 4, y, bz + 3, Block::STONE)
     shown = [Block::GRASS, Block::CHEST, Block::DOOR, Block::FURNACE, Block::OAK_SAPLING, Block::APPLE,
              Block::BREAD, Block::WHEAT, Block::IRON_SWORD, Block::IRON_AXE, Block::STONE_SHOVEL, Block::ARROW]
     shown.each_with_index do |b, i|
@@ -437,6 +421,11 @@ class Game
     Gfx.in_test_frame
   end
 
+  # Sets each block from x0, y0, z0 to x1, y1, z1 to b, in the order x, y, z.
+  def fill_box(x0, y0, z0, x1, y1, z1, b)
+    (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, b) } } }
+  end
+
   # Puts the player at rest on the block x, y - 1, z, not flying.
   def stand_at(x, y, z)
     @player.move_to(x + 0.5, y.to_f, z + 0.5)
@@ -453,7 +442,7 @@ class Game
     x = @spawn_x.floor
     z = @spawn_z.floor
     y = SKY_Y - 10
-    (-2..2).each { |dx| (-2..2).each { |dz| set_block(x + dx, y, z + dz, Block::STONE) } }
+    fill_box(x - 2, y, z - 2, x + 2, y, z + 2, Block::STONE)
     set_mode(false)
     stand_at(x, y + 1, z)
     key_frame(Key::SPACE, true, 0.05)
@@ -1113,19 +1102,7 @@ class Game
     set_block(x + 1, ground + 1, z, Block::AIR)
     check("breaking the block that holds a wall torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
     # A torch sealed in a stone box lights nothing outside the box.
-    dx = -1
-    while dx <= 1
-      dy = 1
-      while dy <= 3
-        dz = -1
-        while dz <= 1
-          set_block(x + dx, ground + dy, z + dz, Block::STONE)
-          dz += 1
-        end
-        dy += 1
-      end
-      dx += 1
-    end
+    fill_box(x - 1, ground + 1, z - 1, x + 1, ground + 3, z + 1, Block::STONE)
     set_block(x, ground + 2, z, Block::TORCH)
     @mesher.build(x / CHUNK, z / CHUNK)
     inside = @mesher.torch_light(x, ground + 2, z)
@@ -1134,19 +1111,7 @@ class Game
     set_block(x + 1, ground + 2, z, Block::AIR)
     @mesher.build(x / CHUNK, z / CHUNK)
     check("an opening lets torch light out", @mesher.torch_light(x + 2, ground + 2, z) == 12)
-    dx = -1
-    while dx <= 1
-      dy = 1
-      while dy <= 3
-        dz = -1
-        while dz <= 1
-          set_block(x + dx, ground + dy, z + dz, Block::AIR)
-          dz += 1
-        end
-        dy += 1
-      end
-      dx += 1
-    end
+    fill_box(x - 1, ground + 1, z - 1, x + 1, ground + 3, z + 1, Block::AIR)
     set_block(x, ground + 1, z, Block::TORCH)
     flush_dirty
     puts "torch edit remesh: #{@mesh_ms.round(2)} ms"
@@ -2294,15 +2259,7 @@ class Game
   # ground, items of one kind join, and lava burns them.
   def test_items(cx, cz)
     y = SKY_Y + 2
-    dx = -1
-    while dx <= 3
-      dz = -1
-      while dz <= 1
-        set_block(cx + dx, y, cz + dz, Block::STONE)
-        dz += 1
-      end
-      dx += 1
-    end
+    fill_box(cx - 1, y, cz - 1, cx + 3, y, cz + 1, Block::STONE)
     @inv.clear
     @items.clear
     @player.x = cx + 0.5
@@ -2790,18 +2747,8 @@ class Game
     x = @spawn_x.floor + 20
     z = @spawn_z.floor - 70
     g = @world.height_at(x, z) + 2
-    dx = -3
-    while dx <= 3
-      dz = -2
-      while dz <= 2
-        set_block(x + dx, g - 1, z + dz, Block::STONE)
-        set_block(x + dx, g, z + dz, Block::AIR)
-        set_block(x + dx, g + 1, z + dz, Block::AIR)
-        set_block(x + dx, g + 2, z + dz, Block::AIR)
-        dz += 1
-      end
-      dx += 1
-    end
+    fill_box(x - 3, g - 1, z - 2, x + 3, g - 1, z + 2, Block::STONE)
+    fill_box(x - 3, g, z - 2, x + 3, g + 2, z + 2, Block::AIR)
     survival = @survival
     @survival = true
     @inv.clear
@@ -2870,16 +2817,7 @@ class Game
     x = @spawn_x.floor + 40
     z = @spawn_z.floor - 50
     y = @world.height_at(x, z) + 3
-    dx = -1
-    while dx <= 1
-      dz = -1
-      while dz <= 1
-        set_block(x + dx, y - 2, z + dz, Block::STONE)
-        set_block(x + dx, y - 1, z + dz, Block::STONE)
-        dz += 1
-      end
-      dx += 1
-    end
+    fill_box(x - 1, y - 2, z - 1, x + 1, y - 1, z + 1, Block::STONE)
     @player.x = x + 0.5
     @player.y = y.to_f
     @player.z = z + 0.5
@@ -2976,17 +2914,9 @@ class Game
     x = @spawn_x.floor - 40
     z = @spawn_z.floor + 40
     g = SKY_Y - 20
-    dx = -10
-    while dx <= 10
-      dz = -10
-      while dz <= 10
-        set_block(x + dx, g - 1, z + dz, Block::STONE)
-        set_block(x + dx, g, z + dz, dx.abs <= 4 && dz.abs <= 4 ? Block::GRASS : Block::STONE)
-        (1..8).each { |dy| set_block(x + dx, g + dy, z + dz, Block::AIR) }
-        dz += 1
-      end
-      dx += 1
-    end
+    fill_box(x - 10, g - 1, z - 10, x + 10, g, z + 10, Block::STONE)
+    fill_box(x - 4, g, z - 4, x + 4, g, z + 4, Block::GRASS)
+    fill_box(x - 10, g + 1, z - 10, x + 10, g + 8, z + 10, Block::AIR)
     # Bone meal adds 2 to 5 of the 8 ages of a Minecraft crop or stem. Wheat
     # has 3 steps of stage here, and a stem 2.
     wheat = [2, 3, 4, 5].map { |a| Game.meal_stage(0, a, 3) } == [1, 1, 2, 2] && Game.meal_stage(2, 5, 3) == 3
@@ -3069,15 +2999,7 @@ class Game
           fewest >= 15 && flowers >= 1 && on_stone == 0 && spent && @inv.count(5) == before)
     @inv.set(5, Block::AIR, 0)
     @survival = survival
-    dx = -10
-    while dx <= 10
-      dz = -10
-      while dz <= 10
-        (-1..8).each { |dy| set_block(x + dx, g + dy, z + dz, Block::AIR) }
-        dz += 1
-      end
-      dx += 1
-    end
+    fill_box(x - 10, g - 1, z - 10, x + 10, g + 8, z + 10, Block::AIR)
   end
 
   # Puts the player 2 blocks above the cell x, y, z, looking straight down
@@ -3094,7 +3016,7 @@ class Game
     bx = @spawn_x.floor + 50
     bz = @spawn_z.floor - 60
     y = SKY_Y - 20
-    (-3..3).each { |dx| (-3..3).each { |dz| set_block(bx + dx, y, bz + dz, Block::GRASS) } }
+    fill_box(bx - 3, y, bz - 3, bx + 3, y, bz + 3, Block::GRASS)
     set_block(bx, y + 1, bz, Block::STONE)
     set_block(bx, y + 2, bz, Block::PUMPKIN)
     survival = @survival
@@ -3271,7 +3193,7 @@ class Game
     @halloween = halloween
     check("on Halloween, about 22.5% of zombies wear a carved pumpkin and 2.5% a jack o'lantern",
           (heads[Block::CARVED_PUMPKIN] - 900).abs < 120 && (heads[Block::JACK_O_LANTERN] - 100).abs < 45 && creeper && other_days && skeleton)
-    (-3..3).each { |dx| (-3..3).each { |dz| (0..2).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
+    fill_box(bx - 3, y, bz - 3, bx + 3, y + 2, bz + 3, Block::AIR)
     @items.clear
   end
 
@@ -3330,7 +3252,7 @@ class Game
     bx = @spawn_x.floor + 50
     bz = @spawn_z.floor - 80
     y = SKY_Y - 20
-    (-2..2).each { |dx| (-2..2).each { |dz| set_block(bx + dx, y, bz + dz, Block::GRASS) } }
+    fill_box(bx - 2, y, bz - 2, bx + 2, y, bz + 2, Block::GRASS)
     survival = @survival
     @survival = true
     @inv.clear
@@ -3416,7 +3338,7 @@ class Game
     @mobs.clear
     @inv.clear
     @survival = survival
-    (-2..2).each { |dx| (-2..2).each { |dz| (0..1).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
+    fill_box(bx - 2, y, bz - 2, bx + 2, y + 1, bz + 2, Block::AIR)
   end
 
   # A ladder lifts the player at 2.35 m/s on jump, holds the player on
@@ -3464,11 +3386,8 @@ class Game
     x = @spawn_x.floor + 44
     z = @spawn_z.floor - 40
     g = @world.height_at(x, z) + 3
-    [-2, -1, 0, 1].each do |dx|
-      set_block(x + dx, g - 1, z, Block::STONE)
-      set_block(x + dx, g, z, Block::AIR)
-      set_block(x + dx, g + 1, z, Block::AIR)
-    end
+    fill_box(x - 2, g - 1, z, x + 1, g - 1, z, Block::STONE)
+    fill_box(x - 2, g, z, x + 1, g + 1, z, Block::AIR)
     set_block(x + 1, g, z, Block::STONE)
     survival = @survival
     @survival = true
@@ -3512,12 +3431,8 @@ class Game
     x = @spawn_x.floor + 48
     z = @spawn_z.floor - 40
     g = @world.height_at(x, z) + 3
-    [0, 1, 2].each do |dx|
-      set_block(x + dx, g - 1, z, Block::STONE)
-      set_block(x + dx, g, z, Block::AIR)
-      set_block(x + dx, g + 1, z, Block::AIR)
-      set_block(x + dx, g + 2, z, Block::AIR)
-    end
+    fill_box(x, g - 1, z, x + 2, g - 1, z, Block::STONE)
+    fill_box(x, g, z, x + 2, g + 2, z, Block::AIR)
     set_block(x, g, z, Block.bed_id(0, true))
     set_block(x + 2, g, z, Block.facing_id(Block::CHEST, 3))
     p = Player.new(x + 0.5, g + 1.5, z + 0.5)
