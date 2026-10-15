@@ -1,4 +1,4 @@
-# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, and DEMO.
+# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, SHOWBOATS, and DEMO.
 class Game
   # A height above the land and the trees, where the tests and the
   # screenshot scenes build in open air.
@@ -32,6 +32,32 @@ class Game
     @player.yaw = 0.0
     @player.pitch = -0.15
     @player.flying = true
+    @time_of_day = 0.3
+  end
+
+  # SHOWBOATS=1 puts a boat of each wood on a pool of water, with the
+  # player in the nearest one.
+  def show_boats
+    bx = @player.x.floor
+    bz = @player.z.floor
+    y = SKY_Y - 10
+    (bx - 7..bx + 7).each do |cx|
+      (bz - 16..bz + 3).each do |cz|
+        set_block(cx, y, cz, Block::STONE)
+        rim = cx == bx - 7 || cx == bx + 7 || cz == bz - 16 || cz == bz + 3
+        @world.set(cx, y + 1, cz, rim ? Block::STONE : Block::WATER)
+        mark_dirty(cx, cz)
+      end
+    end
+    @boats.clear
+    top = y + 1 + 8.0 / 9.0 - Boat::DRAFT
+    @boats << Boat.new(Block::OAK_BOAT, bx + 0.5, top, bz + 0.5, 0.0)
+    @boats << Boat.new(Block::SPRUCE_BOAT, bx - 1.5, top, bz - 5.5, 0.8)
+    @boats << Boat.new(Block::BIRCH_BOAT, bx + 3.0, top, bz - 9.5, -1.9)
+    @player.flying = false
+    @player.yaw = 0.0
+    @player.pitch = -0.3
+    board_boat(0)
     @time_of_day = 0.3
   end
 
@@ -191,6 +217,7 @@ class Game
     test_pause
     test_menu
     test_chips
+    test_boats
     test_sounds
     test_streaming
     test_terrain_tables
@@ -286,6 +313,96 @@ class Game
 
   # Every sound file loads, footsteps follow the block underfoot, and a
   # creeper hisses once when it lights its fuse.
+  # A boat goes only on water, floats there, goes up to 8 m/s on water and
+  # 2 m/s on land, carries the player, lets the player out on land, and
+  # breaks into its item. minecraft.wiki/w/Boat
+  def test_boats
+    x = @spawn_x.floor + 60
+    z = @spawn_z.floor - 60
+    y = SKY_Y - 20
+    # A stone floor 3 wide and 40 long along -z, with walls around it, and
+    # a bank of stone on its +x side.
+    (x - 2..x + 3).each do |cx|
+      (z - 41..z + 1).each do |cz|
+        @world.set(cx, y, cz, Block::STONE)
+        wall = cx == x - 2 || cz == z - 41 || cz == z + 1
+        @world.set(cx, y + 1, cz, wall || cx >= x + 2 ? Block::STONE : Block::AIR)
+      end
+    end
+    @boats.clear
+    @riding = -1
+    survival = @survival
+    boat = Boat.new(Block::OAK_BOAT, x + 0.5, y + 1.0, z - 20.5, 0.0)
+    150.times { boat.move_boat(@world, 0.02, 1.0, 0.0) }
+    land = boat.speed
+    # The player cannot put a boat on land.
+    @survival = true
+    @inv.clear
+    @slot = 0
+    @inv.add(Block::OAK_BOAT)
+    @player.flying = false
+    @player.x = x + 0.5
+    @player.y = y + 2.5
+    @player.z = z - 2.5
+    @player.yaw = 0.0
+    @player.pitch = -1.55
+    place_boat
+    on_land = @boats.size
+    (x - 1..x + 1).each { |cx| (z - 40..z).each { |cz| @world.set(cx, y + 1, cz, Block::WATER) } }
+    place_boat
+    placed = @boats.size == 1 && @inv.empty?(0)
+    check("a boat goes on water, not on land", on_land == 0 && placed)
+    boat = @boats[0]
+    100.times { boat.move_boat(@world, 0.02, 0.0, 0.0) }
+    float = y + 1 + 8.0 / 9.0 - Boat::DRAFT
+    check("a boat floats with its bottom just under the water", boat.afloat && (boat.y - float).abs < 0.01)
+    board_boat(0)
+    seated = riding? && (@player.y - (boat.y + Boat::SEAT)).abs < 0.001
+    start_z = @player.z
+    150.times { update_boats(0.02, 1.0, 0.0) }
+    water = boat.speed
+    carried = (@player.z - boat.z).abs < 0.001 && @player.z < start_z - 15.0
+    check("a boat goes up to 8 m/s on water and 2 m/s on land",
+          water > 7.9 && water < 8.0001 && land > 1.95 && land < 2.0001)
+    check("the rider sits in the boat and goes with it", seated && carried)
+    # A turn key turns the boat and the player's view at up to 200 degrees/s.
+    150.times { update_boats(0.02, 0.0, 1.0) }
+    yaw = @player.yaw
+    boat_yaw = boat.yaw
+    update_boats(0.1, 0.0, 1.0)
+    turn = (boat.yaw - boat_yaw) * 180.0 / Math::PI
+    check("a boat turns at up to 200 degrees/s, and the view turns with it",
+          turn > 19.5 && turn < 20.001 && (@player.yaw - yaw - (boat.yaw - boat_yaw)).abs < 0.0001)
+    # Facing the bank on +x, the player gets out onto it.
+    @player.yaw = Math::PI / 2.0
+    leave_boat
+    check("Shift lets the player out of the boat onto land", !riding? && @player.y == y + 2.0)
+    # In survival 5 hits of a hand break a boat into its item; in creative
+    # one hit breaks it and drops nothing.
+    @items.clear
+    @attack_time = 10.0
+    4.times do
+      hit_boat(0)
+      @attack_time = 10.0
+    end
+    held = @boats.size == 1
+    hit_boat(0)
+    dropped = @boats.empty? && @items.size == 1 && @items[0].block == Block::OAK_BOAT
+    @survival = false
+    @boats << Boat.new(Block::BIRCH_BOAT, x + 0.5, y + 1.5, z - 20.5, 0.0)
+    hit_boat(0)
+    check("a boat breaks after 5 hits in survival and drops itself, and after one in creative",
+          held && dropped && @boats.empty? && @items.size == 1)
+    @items.clear
+    @survival = survival
+    (x - 2..x + 3).each do |cx|
+      (z - 41..z + 1).each do |cz|
+        @world.set(cx, y, cz, Block::AIR)
+        @world.set(cx, y + 1, cz, Block::AIR)
+      end
+    end
+  end
+
   def test_sounds
     check("every sound file loads", Sfx.load_files == Sfx::FILES.size && Gfx.au_seconds(Sfx::RAIN) > 5.0)
     check("blocks sound like their material",
@@ -1026,7 +1143,12 @@ class Game
     @furnaces[World.key(5, 70, 4)] = Furnace.new(5, 70, 4)
     @day = 37
     @alive_time = 1500.0
+    @boats.clear
+    @boats << Boat.new(Block::SPRUCE_BOAT, x + 0.5, ground + 1.25, z + 0.5, 1.5)
+    @riding = 0
     save
+    @boats.clear
+    @riding = -1
     @world.set(x, ground + 1, z, Block::GLASS)
     @vitals.health = 3.0
     @inv.set(1, Block::AIR, 0)
@@ -1044,6 +1166,11 @@ class Game
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
           @weather.raining? && @weather.rain == 1.0 && @weather.timer == 77.5)
+    boat = @boats[0]
+    check("the save keeps the boats and the boat that the player rides",
+          @boats.size == 1 && boat.item == Block::SPRUCE_BOAT && boat.x == x + 0.5 && boat.y == ground + 1.25 && boat.z == z + 0.5 && boat.yaw == 1.5 && @riding == 0)
+    @boats.clear
+    @riding = -1
     loaded = @furnaces[World.key(3, 70, 4)]
     check("the save keeps the seen items, and the slots and the fire of furnaces",
           @seen[Block::DIAMOND] == 1 && @furnaces.size == 1 && !loaded.nil? && loaded.x == 3 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&

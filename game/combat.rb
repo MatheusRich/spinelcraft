@@ -535,6 +535,8 @@ class Game
     return if @mobs.empty?
     best = @player.hit ? @player.hit_t : Player::MOB_REACH
     best = Player::MOB_REACH if best > Player::MOB_REACH
+    # A boat in front of the mobs hides them.
+    best = @target_boat_t if @target_boat >= 0 && @target_boat_t < best
     ox = @player.x
     oy = @player.eye_y
     oz = @player.z
@@ -554,5 +556,6 @@ class Game
       end
       i += 1
     end
+    @target_boat = -1 if @target_mob >= 0
   end
 end

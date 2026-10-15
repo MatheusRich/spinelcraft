@@ -18,6 +18,7 @@ require_relative "game/mobs"
 require_relative "game/arrow"
 require_relative "game/item"
 require_relative "game/falling_block"
+require_relative "game/boat"
 require_relative "game/sounds"
 require_relative "game/clouds"
 require_relative "game/lod"
@@ -29,6 +30,7 @@ require_relative "game/slots"
 require_relative "game/furnace"
 require_relative "game/inventory"
 require_relative "game/items"
+require_relative "game/boats"
 require_relative "game/hand"
 require_relative "game/particles"
 require_relative "game/weather"
@@ -171,6 +173,12 @@ class Game
     @arrows = []
     @items = []
     @falling = []
+    @boats = []
+    # The index in @boats of the boat that the player rides, or -1.
+    @riding = -1
+    # The boat in the crosshair (Game#find_target_boat), or -1, and its distance.
+    @target_boat = -1
+    @target_boat_t = 0.0
     @draw_time = -1.0
     @eat_time = -1.0
     @vitals = Vitals.new
@@ -273,6 +281,7 @@ class Game
     puts "world: #{loaded ? "load" : "generate"} and mesh the nearest #{(SYNC_R * 2 + 1) * (SYNC_R * 2 + 1)} chunks in #{((t1 - t0) / 1.0e6).round} ms"
     show_mobs if ENV["SHOWMOBS"]
     show_items if ENV["SHOWITEMS"]
+    show_boats if ENV["SHOWBOATS"]
     spawn_animals
     Gfx.in_capture(1) unless @scripted
     @captured = true
@@ -293,6 +302,8 @@ class Game
     @mobs.clear
     @arrows.clear
     @items.clear
+    @boats.clear
+    @riding = -1
     @clouds = Clouds.new(@seed)
     upload_clouds
     @day = 0
@@ -381,6 +392,7 @@ class Game
     @player.fall_start = @player.y
     @vitals = Vitals.new
     @alive_time = 0.0
+    @riding = -1
   end
 
   def play(id, volume)
@@ -452,7 +464,9 @@ class Game
       @player.y = 72.0
     end
     @player.slowed = using_item?
-    remaining = dt
+    # Shift gets out of a boat. minecraft.wiki/w/Boat
+    leave_boat if riding? && down
+    remaining = riding? ? 0.0 : dt
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining
       fell = @player.update(@world, step, fwd, strafe, jump, down, sprint)
@@ -463,6 +477,7 @@ class Game
       end
       remaining -= step
     end
+    update_boats(dt, fwd, strafe)
     @player.raycast(@world)
     # Water splashes and swishes, but lava makes no sound when the player
     # enters it or moves in it. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
@@ -513,6 +528,7 @@ class Game
       @flow_timer = 0.15
       update_water unless @flow_queue.empty?
     end
+    find_target_boat
     find_target_mob
   end
 

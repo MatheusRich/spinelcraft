@@ -121,6 +121,9 @@ class Game
         @swing = 0.25
       end
       @mining = false
+    elsif held && @target_boat >= 0
+      hit_boat(@target_boat) if pressed
+      @mining = false
     elsif held && @player.hit
       if @survival
         mine(dt)
@@ -141,6 +144,16 @@ class Game
   # The right button draws the bow, opens a chest, uses a bed, eats, or
   # places a block.
   def right_button(dt, held)
+    # The right button on a boat gets in it.
+    if @target_boat >= 0 && !riding?
+      @eat_time = -1.0
+      @draw_time = -1.0
+      if held && @action_cooldown <= 0.0
+        board_boat(@target_boat)
+        @action_cooldown = 0.22
+      end
+      return
+    end
     target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
     if edible? && !usable?(target)
       if held
@@ -178,6 +191,8 @@ class Game
         toggle_door(@player.hx, @player.hy, @player.hz)
       elsif @survival && Block.bucket?(current_block.to_i)
         use_bucket
+      elsif Block.boat?(current_block.to_i)
+        place_boat
       elsif @player.hit
         place
       end

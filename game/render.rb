@@ -191,6 +191,17 @@ class Game
       item.draw(@dyn, i.to_f) if ddx * ddx + ddz * ddz < reach * reach
     end
     @falling.each { |f| f.draw(@dyn) }
+    @boats.each do |boat|
+      bx = boat.x.to_f
+      by = boat.y.to_f
+      bz = boat.z.to_f
+      ddx = bx - ex
+      ddz = bz - ez
+      next if ddx * ddx + ddz * ddz > reach * reach
+      # The paddles reach past the box.
+      next unless @camera.box_visible?(bx - 2.0, by - 1.0, bz - 2.0, bx + 2.0, by + 1.0, bz + 2.0)
+      boat.draw_boat(@dyn)
+    end
     # The camera's right and up axes, as in Camera#update.
     fx = @player.fx
     fy = @player.fy
@@ -198,7 +209,7 @@ class Game
     rx = Math.cos(@player.yaw)
     rz = Math.sin(@player.yaw)
     @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
-    if @player.hit && @captured && @target_mob < 0
+    if @player.hit && @captured && @target_mob < 0 && @target_boat < 0
       aimed = @world.get(@player.hx, @player.hy, @player.hz)
       @dyn.outline(@player.hx + Block.box_dx(aimed), @player.hy + Block.box_dy(aimed), @player.hz + Block.box_dz(aimed), Block.box_hx(aimed), Block.box_hz(aimed), Block.box_top(aimed))
       if @mining && @mine_progress > 0.0

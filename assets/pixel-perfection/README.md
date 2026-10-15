@@ -24,6 +24,7 @@ These files are copies with no changes.
 | `snow.png`, `snow_side.png`, `bedrock.png` | `default_snow.png`, `mcl_core_grass_side_snowed.png`, `mcl_core_bedrock.png` |
 | `coal_ore.png`, `iron.png`, `diamond.png` | `mcl_core_coal_ore.png`, `mcl_core_iron_ore.png`, `mcl_core_diamond_ore.png` |
 | `coal.png` | `default_coal_lump.png` |
+| `oak_boat.png`, `spruce_boat.png`, `birch_boat.png` | `mcl_boats_oak_boat.png`, `mcl_boats_spruce_boat.png`, `mcl_boats_birch_boat.png` |
 | `oak_log_side.png`, `oak_log_top.png`, `oak_planks.png` | `default_tree.png`, `default_tree_top.png`, `default_wood.png` |
 | `spruce_log_side.png`, `spruce_log_top.png`, `spruce_planks.png`, `spruce_sapling.png` | `mcl_core_log_spruce.png`, `mcl_core_log_spruce_top.png`, `mcl_core_planks_spruce.png`, `mcl_core_sapling_spruce.png` |
 | `birch_log_side.png`, `birch_log_top.png`, `birch_planks.png`, `birch_sapling.png` | `mcl_core_log_birch.png`, `mcl_core_log_birch_top.png`, `mcl_core_planks_birch.png`, `mcl_core_sapling_birch.png` |

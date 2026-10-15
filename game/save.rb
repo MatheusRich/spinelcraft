@@ -17,10 +17,12 @@ class Game
   # The chest count, then the key and the contents of each chest. Then the
   # item count and ITEM_FIELDS for each item on the ground. Then the count
   # of seen blocks, and their ids. Then the count of furnaces that are not
-  # idle, and FURNACE_FIELDS for each.
+  # idle, and FURNACE_FIELDS for each. Then the boat count, BOAT_FIELDS for
+  # each boat, and the index of the boat that the player rides (or -1).
   F_CHESTS = F_WEATHER + 2
   ITEM_FIELDS = 6 # block, count, x, y, z, age
   FURNACE_FIELDS = 12 # x, y, z, burn, burn total, progress, then the slots (Slots#to_a)
+  BOAT_FIELDS = 5 # item, x, y, z, yaw
 
   def save
     header = [WX, WY, WZ, @seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
@@ -44,6 +46,9 @@ class Game
       furnace_fields.concat([f.x, f.y, f.z, f.burn, f.burn_total, f.progress] + f.slots.to_a) unless f.idle?
     end
     furnace_fields = [furnace_fields.size / FURNACE_FIELDS] + furnace_fields
+    boat_fields = [@boats.size]
+    @boats.each { |boat| boat_fields.concat([boat.item, boat.x, boat.y, boat.z, boat.yaw]) }
+    boat_fields << @riding
     item_fields = [@items.size]
     @items.each { |item| item_fields.concat([item.block, item.count, item.x, item.y, item.z, item.age]) }
     t0 = Gfx.gfx_ns
@@ -51,7 +56,7 @@ class Game
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
     inv = (@inv.to_a + @hotbar + [@vitals.hunger, @vitals.saturation, @vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
-           item_fields + [seen.size] + seen + furnace_fields + chunk_fields).map(&:to_s).join(" ")
+           item_fields + [seen.size] + seen + furnace_fields + boat_fields + chunk_fields).map(&:to_s).join(" ")
     File.open(SAVE_PATH, "wb") do |f|
       f.write("#{SAVE_VERSION} #{header} #{inv}\n")
       keys.each { |k| f.write(chunks[k]) }
@@ -76,6 +81,7 @@ class Game
     at += 1 + f[at].to_i * ITEM_FIELDS
     at += 1 + f[at].to_i
     at += 1 + f[at].to_i * FURNACE_FIELDS
+    at += 1 + f[at].to_i * BOAT_FIELDS + 1
     n = f[at].to_i
     return false if data.bytesize - nl - 1 != n * CHUNK_BYTES
     @seed = f[F_SEED].to_i
@@ -187,6 +193,16 @@ class Game
       at += FURNACE_FIELDS
       c += 1
     end
+    @boats.clear
+    boats = f[at].to_i
+    at += 1
+    c = 0
+    while c < boats
+      @boats << Boat.new(f[at].to_i, f[at + 1].to_f, f[at + 2].to_f, f[at + 3].to_f, f[at + 4].to_f)
+      at += BOAT_FIELDS
+      c += 1
+    end
+    @riding = f[at].to_i
     stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     respawn if @vitals.dead?
   end

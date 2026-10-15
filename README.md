@@ -36,10 +36,10 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | --- | --- |
 | WASD, mouse | Move, look |
 | Space | Jump, swim up, fly up |
-| Left Shift | Sneak, fly down |
+| Left Shift | Sneak, fly down, get out of a boat |
 | Left Ctrl, double-tap W | Sprint |
 | Left click | Break a block, attack |
-| Right click | Place a block, use an item or a block |
+| Right click | Place a block, use an item or a block, get in a boat |
 | 1–9, wheel | Select a hotbar slot |
 | E | Inventory and crafting |
 | F | Fly (creative) |
@@ -58,6 +58,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - A day and night cycle, rain, flowing water and lava, and torch light.
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
 - Animals, and monsters that come out in the dark.
+- Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
 - A view distance of up to 5000 blocks.
 - Sounds from VoxeLibre, under free licenses. `assets/sounds/CREDITS.md` names the author and the license of each file.
 
@@ -135,6 +136,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SAVE=1` | Save on quit also when `FRAMES` is set |
 | `MUTE=1` | No sound |
 | `SHOWMOBS=1` | Put one mob of each kind on a stone floor in front of the player |
+| `SHOWBOATS=1` | Put a boat of each wood on a pool of water, with the player in one |
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |

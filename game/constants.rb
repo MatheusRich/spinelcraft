@@ -18,7 +18,8 @@ class Game
                     Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL,
                     Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
                     Block::COAL, Block::IRON_INGOT, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
-                    Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::ROTTEN_FLESH]
+                    Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::ROTTEN_FLESH,
+                    Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT]
   FOG_END = 1600.0
   # The range of the render distance slider, in blocks.
   VIEW_MIN = 200.0
@@ -147,6 +148,9 @@ class Game
              [Block::ANY_PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::ANY_PLANKS, 3, Block::LADDER, 4, AT_TABLE],
              [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE], [Block::IRON_INGOT, 3, Block::BUCKET, 1, AT_TABLE],
              [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
+             # A boat takes 5 planks of its wood. minecraft.wiki/w/Boat
+             [Block::OAK_PLANKS, 5, Block::OAK_BOAT, 1, AT_TABLE], [Block::SPRUCE_PLANKS, 5, Block::SPRUCE_BOAT, 1, AT_TABLE],
+             [Block::BIRCH_PLANKS, 5, Block::BIRCH_BOAT, 1, AT_TABLE],
              [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::OAK_LOG, 1, Block::COAL, 1, AT_FURNACE],
              [Block::SPRUCE_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::BIRCH_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
              [Block::MUTTON, 1, Block::COOKED_MUTTON, 1, AT_FURNACE],
@@ -156,7 +160,7 @@ class Game
 
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
-  SAVE_VERSION = "SPINELCRAFT15"
+  SAVE_VERSION = "SPINELCRAFT16"
   # The options of the pause menu (see Game#save_options).
   OPTIONS_PATH = "options.txt"
   # Where a save that does not load goes, so that the next save does not replace it.
