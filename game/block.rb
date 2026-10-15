@@ -470,9 +470,15 @@ module Block
   def self.item?(b) = ITEM[b] == 1
   def self.bucket?(b) = b >= BUCKET && b <= LAVA_BUCKET
   def self.boat?(b) = b >= OAK_BOAT && b <= BIRCH_BOAT
-  # The most of b that one slot holds: a boat does not stack, and eggs
-  # stack to 16. minecraft.wiki/w/Boat and /w/Egg
-  def self.stack(b) = boat?(b) ? 1 : (b == EGG ? 16 : Slots::STACK)
+  # The most of b that one slot holds. A boat, a bed and a full bucket do
+  # not stack, and eggs and empty buckets stack to 16. minecraft.wiki/w/Boat,
+  # /w/Bed, /w/Water_Bucket, /w/Lava_Bucket, /w/Milk_Bucket, /w/Egg and /w/Bucket
+  def self.stack(b)
+    return 1 if boat?(b) || b == BED || b == WATER_BUCKET || b == LAVA_BUCKET || b == MILK_BUCKET
+    return 16 if b == EGG || b == BUCKET
+
+    Slots::STACK
+  end
   # Items, plants and the door, bed and ladder items are flat pictures; the
   # other blocks are cubes.
   def self.flat?(b) = item?(b) || plant?(b) || b == DOOR || b == BED || b == LADDER

@@ -2834,7 +2834,6 @@ class Game
     @survival = true
     @inv.clear
     @inv.add(Block::BED)
-    @inv.add(Block::BED)
     @slot = 0
     @player.x = x - 1.5
     @player.y = g.to_f
@@ -2844,11 +2843,11 @@ class Game
     set_block(x + 1, g, z, Block::STONE)
     @player.raycast(@world)
     place
-    blocked = @world.get(x, g, z) == Block::AIR && @inv.count(0) == 2
+    blocked = @world.get(x, g, z) == Block::AIR && @inv.count(0) == 1
     set_block(x + 1, g, z, Block::AIR)
     @player.raycast(@world)
     place
-    two = @world.get(x, g, z) == Block.bed_id(1, false) && @world.get(x + 1, g, z) == Block.bed_id(0, true) && @inv.count(0) == 1
+    two = @world.get(x, g, z) == Block.bed_id(1, false) && @world.get(x + 1, g, z) == Block.bed_id(0, true) && @inv.empty?(0)
     set_block(x + 1, g, z, Block::AIR)
     gone = @world.get(x, g, z) == Block::AIR
     @inv.clear
@@ -2928,8 +2927,30 @@ class Game
       ok = false unless took && @inv.block(0) == Block::BUCKET && @world.get(x, y - 1, z) == fluid
       @inv.remove(Block::BUCKET, 1)
     end
-    set_block(x, y - 1, z, Block::STONE)
     check("a bucket takes a water or lava source and puts it back", ok)
+    # Two buckets from a stack of 16 fill two slots, as full buckets do
+    # not stack.
+    @inv.set(0, Block::BUCKET, 16)
+    2.times do
+      set_block(x, y - 1, z, Block::WATER)
+      @player.raycast(@world)
+      use_bucket
+    end
+    filled = @inv.count(0) == 14 && @inv.block(1) == Block::WATER_BUCKET && @inv.block(2) == Block::WATER_BUCKET &&
+             @inv.count(1) == 1 && @inv.count(2) == 1
+    set_block(x, y - 1, z, Block::STONE)
+    was = @survival
+    @survival = true
+    @inv.clear
+    run_chat("/give bucket 20")
+    given = @inv.count(0) == 16 && @inv.count(1) == 4
+    @inv.clear
+    run_chat("/give milk_bucket 2")
+    run_chat("/give bed 2")
+    check("empty buckets stack to 16, and full buckets and beds do not stack",
+          filled && given && @inv.count(1) == 1 && @inv.block(1) == Block::MILK_BUCKET &&
+          @inv.count(3) == 1 && @inv.block(3) == Block::BED && @chat_errors.last == 0)
+    @survival = was
     @mobs.clear
     @mobs << Mob.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
     @player.yaw = 0.0
