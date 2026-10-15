@@ -942,11 +942,37 @@ class Game
     @items.clear
     wool_hand = frames_to_mine(x, ground + 1, z, Block::WOOL, Block::AIR)
     wool_shears = frames_to_mine(x, ground + 1, z, Block::WOOL, Block::SHEARS)
+    leaves_hand = frames_to_mine(x, ground + 1, z, Block::OAK_LEAVES, Block::AIR)
+    dirt_hand = frames_to_mine(x, ground + 1, z, Block::DIRT, Block::AIR)
+    dirt_shears = frames_to_mine(x, ground + 1, z, Block::DIRT, Block::SHEARS)
     @items.clear
-    frames_to_mine(x, ground + 1, z, Block::OAK_LEAVES, Block::SHEARS)
-    leaves = ground_count(Block::OAK_LEAVES) == 1 && @items.size == 1
+    # Each leaf block takes 1 use of the shears and drops itself, never a
+    # sapling or an apple.
+    uses = Block.uses(Block::SHEARS)
+    @inv.set(8, Block::SHEARS, uses)
+    @slot = 8
+    leaves_shears = 0
+    20.times do
+      set_block(x, ground + 1, z, Block::OAK_LEAVES)
+      @mining = false
+      @mine_delay = 0.0
+      n = 0
+      while n < 20 && @world.get(x, ground + 1, z) == Block::OAK_LEAVES
+        @player.raycast(@world)
+        mine(0.05)
+        n += 1
+      end
+      leaves_shears = n
+    end
+    worn = @inv.count(8) == uses - 20
+    @particles.update(@world, 60.0)
+    @inv.set(8, Block::AIR, 0)
+    drops = ground_count(Block::OAK_LEAVES) == 20 && @items.all? { |item| item.block == Block::OAK_LEAVES } &&
+            Block.shear_drop(Block::TALL_GRASS) == Block::TALL_GRASS && Block.shear_drop(Block::STONE) == Block::COBBLE
     @items.clear
-    check("shears cut wool 5 times as fast, and leaves drop themselves", wool_shears < wool_hand / 4 && leaves)
+    check("shears cut wool 5 times and leaves 15 times as fast, and other blocks as fast as a hand",
+          wool_shears < wool_hand / 4 && leaves_shears == 1 && leaves_hand > 4 && dirt_shears == dirt_hand)
+    check("leaves and tall grass that shears cut drop themselves and nothing else, and each cut takes 1 use", drops && worn)
     # 1.5 hardness * 1.5 seconds / speed 4 = 0.5625 seconds, as in Minecraft.
     check("a stone pickaxe breaks stone in 12 frames", frames_to_mine(x, ground + 1, z, Block::STONE, Block::STONE_PICK) == 12)
     @items.clear
@@ -2300,6 +2326,40 @@ class Game
     @items.clear
     @action_cooldown = 0.0
     check("shears carve a pumpkin on the side in view, and it drops 4 seeds", seeds && side && worn && top)
+    # At a slant, the face goes on the side that the view ray hits, not on
+    # the side that the player looks most toward.
+    slants = [[-0.3, -0.6, 2.7616, 1], [-0.6, -0.3, 1.9513, 3], [1.3, 1.6, -0.3803, 0], [1.6, 1.3, -1.1903, 2]]
+    slanted = slants.all? do |s|
+      set_block(bx, y + 2, bz, Block::PUMPKIN)
+      @player.x = bx + s[0]
+      @player.y = y + 1.0
+      @player.z = bz + s[1]
+      @player.yaw = s[2]
+      @player.pitch = 0.0
+      @action_cooldown = 0.0
+      @player.raycast(@world)
+      right_button(0.05, true)
+      @world.get(bx, y + 2, bz) == Block.facing_id(Block::CARVED_PUMPKIN, s[3].to_i)
+    end
+    set_block(bx, y + 2, bz, Block::PUMPKIN)
+    @player.x = bx - 1.5
+    @player.z = bz + 0.5
+    @player.yaw = 1.5708
+    @inv.set(0, Block::AIR, 0)
+    @action_cooldown = 0.0
+    @player.raycast(@world)
+    right_button(0.05, true)
+    by_hand = @world.get(bx, y + 2, bz) == Block::PUMPKIN
+    set_block(bx, y + 2, bz, Block::STONE)
+    @inv.add(Block::SHEARS)
+    @items.clear
+    @action_cooldown = 0.0
+    @player.raycast(@world)
+    right_button(0.05, true)
+    on_stone = @world.get(bx, y + 2, bz) == Block::STONE && @items.empty?
+    @items.clear
+    @action_cooldown = 0.0
+    check("only shears carve, only a pumpkin, and the face goes on the side that the view ray hits", slanted && by_hand && on_stone)
 
     @inv.clear
     @inv.add(Block::CARVED_PUMPKIN)
@@ -2311,6 +2371,18 @@ class Game
     craft_recipe(k)
     made = @inv.total(Block::JACK_O_LANTERN) == 1 && @inv.total(Block::CARVED_PUMPKIN) == 0 && @inv.total(Block::TORCH) == 1
     check("a carved pumpkin and a torch make a jack o'lantern, and one without the other does not", refused && made)
+    @inv.clear
+    @inv.add(Block::CARVED_PUMPKIN)
+    @inv.add(Block::CARVED_PUMPKIN)
+    3.times { @inv.add(Block::TORCH) }
+    craft_recipe(k, CRAFT_ALL)
+    all = @inv.total(Block::JACK_O_LANTERN) == 2 && @inv.total(Block::CARVED_PUMPKIN) == 0 && @inv.total(Block::TORCH) == 1
+    @inv.clear
+    @inv.add(Block::IRON_INGOT)
+    craft_recipe(recipe_for(Block::SHEARS))
+    short = @inv.total(Block::SHEARS) == 0 && @inv.total(Block::IRON_INGOT) == 1
+    text = recipe_need(RECIPES[k]) == "1 CARVED PUMPKIN + 1 TORCH" && recipe_need(RECIPES[recipe_for(Block::SHEARS)]) == "2 IRON INGOT"
+    check("a recipe with two ingredients takes each of them for each result, and names both", all && short && text)
     @inv.clear
     @survival = survival
     @player.x = px
@@ -2338,7 +2410,14 @@ class Game
       end
       i += 2
     end
-    lit = spawn_light(bx + 3, y + 1, bz, 0, true, 0) == -1
+    lit = spawn_light(bx + 3, y + 1, bz, 0, true, 0) == -1 && spawn_light(bx + 14, y + 1, bz, 0, true, 0) == -1 &&
+          spawn_light(bx + 15, y + 1, bz, 0, true, 0) >= 0
+    set_block(bx - 1, y + 1, bz, Block::TORCH)
+    @world.find_torches(bx >> 4, bz >> 4, WY)
+    torches = @world.chunk_torches[World.slot(bx >> 4, bz >> 4)]
+    found = (0...torches.size / 3).count { |i| torches[i * 3 + 1] == y + 1 && torches[i * 3 + 2] == bz && (torches[i * 3] == bx || torches[i * 3] == bx - 1) }
+    listed &&= found == 2
+    set_block(bx - 1, y + 1, bz, Block::AIR)
     check("a jack o'lantern glows and lights its surroundings, so no monster spawns near it", listed && near && glow && faces > 0 && lit)
     set_block(bx, y + 1, bz, Block::AIR)
 
@@ -2348,7 +2427,24 @@ class Game
       grow_pumpkin(bx, y + 1, bz)
       grown = (0...4).count { |d| @world.get(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d]) == Block::PUMPKIN }
     end
-    check("a ripe stem grows one pumpkin next to it", grown == 1)
+    # With stone on three sides, the pumpkin can only go on the fourth, and
+    # only over dirt or grass.
+    (0...4).each { |d| set_block(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d], d == 0 ? Block::AIR : Block::STONE) }
+    40.times { grow_pumpkin(bx, y + 1, bz) }
+    on_grass = @world.get(bx + 1, y + 1, bz) == Block::PUMPKIN
+    set_block(bx + 1, y + 1, bz, Block::AIR)
+    set_block(bx + 1, y, bz, Block::STONE)
+    40.times { grow_pumpkin(bx, y + 1, bz) }
+    on_stone = @world.get(bx + 1, y + 1, bz) == Block::AIR
+    set_block(bx + 1, y, bz, Block::DIRT)
+    40.times { grow_pumpkin(bx, y + 1, bz) }
+    on_dirt = @world.get(bx + 1, y + 1, bz) == Block::PUMPKIN
+    set_block(bx + 1, y, bz, Block::GRASS)
+    check("a ripe stem grows one pumpkin next to it, only on a free side over dirt or grass", grown == 1 && on_grass && on_stone && on_dirt)
+    check("pumpkin seeds and a young stem grow, and pumpkins sound like wood",
+          Block.growing?(Block::PUMPKIN_SEEDS) && Block.growing?(Block::PUMPKIN_STEM) && !Block.growing?(Block::PUMPKIN_STEM_RIPE) &&
+          !Block.growing?(Block::PUMPKIN) && material(Block::PUMPKIN) == M_WOOD && material(Block.facing_id(Block::JACK_O_LANTERN, 3)) == M_WOOD &&
+          material(Block::PLACED_BIRCH_LEAVES) == M_LEAVES)
     # A plant draws its top texture, and an item in the hand, on the ground
     # or in a slot its side and front textures.
     check("pumpkin seeds look like seeds as an item and like a stem when planted",
@@ -2358,12 +2454,13 @@ class Game
     @halloween = true
     heads = Array.new(Block::COUNT, 0)
     4000.times { heads[halloween_head(Mob::ZOMBIE)] += 1 }
+    skeleton = (0...200).any? { halloween_head(Mob::SKELETON) == Block::CARVED_PUMPKIN }
     creeper = (0...100).all? { halloween_head(Mob::CREEPER) == 0 }
     @halloween = false
     other_days = (0...100).all? { halloween_head(Mob::SKELETON) == 0 }
     @halloween = halloween
     check("on Halloween, about 22.5% of zombies wear a carved pumpkin and 2.5% a jack o'lantern",
-          (heads[Block::CARVED_PUMPKIN] - 900).abs < 120 && (heads[Block::JACK_O_LANTERN] - 100).abs < 45 && creeper && other_days)
+          (heads[Block::CARVED_PUMPKIN] - 900).abs < 120 && (heads[Block::JACK_O_LANTERN] - 100).abs < 45 && creeper && other_days && skeleton)
     (-3..3).each { |dx| (-3..3).each { |dz| (0..2).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
     @items.clear
   end
