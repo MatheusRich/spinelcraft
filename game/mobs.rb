@@ -33,6 +33,9 @@ class Mob
   # This is the speed where Minecraft's gravity and the chicken's slowdown
   # of 0.6 for each tick meet, which the wiki does not confirm.
   CHICKEN_FALL = -2.3
+  # A baby animal is half as wide and half as tall, and grows up after 20
+  # minutes. minecraft.wiki/w/Breeding and /w/Chicken
+  GROW_TIME = 1200.0
   # A passive mob walks at WALK_SPEED. After damage it panics for PANIC
   # seconds: it runs at PANIC_SPEED, first away from a hit and then to a
   # new side about each second. The wiki says only that a pig "flees for a
@@ -134,6 +137,29 @@ class Mob
     # open: 1 in the air, and down to 0 on the ground (flapSpeed).
     @flap = 0.0
     @flap_open = 0.0
+    # Seconds until a baby grows up; 0.0 for a grown mob.
+    @grow_left = 0.0
+    # The scale of the next parts of the model (see part).
+    @size = 1.0
+  end
+
+  def baby? = @grow_left > 0.0
+
+  # Makes this mob a baby that grows up after GROW_TIME.
+  def make_baby
+    @grow_left = GROW_TIME
+    @half = HALF[@kind] / 2.0
+    @tall = TALL[@kind] / 2.0
+  end
+
+  # dt more seconds of growing up. A grown mob takes its full size.
+  def grow_up(dt)
+    return unless baby?
+    @grow_left -= dt
+    return if baby?
+    @grow_left = 0.0
+    @half = HALF[@kind]
+    @tall = TALL[@kind]
   end
 
   def passive? = PASSIVE[@kind] == 1
@@ -151,9 +177,10 @@ class Mob
 
   def shearable? = @kind == SHEEP && !@sheared && !dying?
 
-  # dt more seconds of laying for a chicken: it sets lay when an egg is due.
+  # dt more seconds of laying for a grown chicken: it sets lay when an egg
+  # is due. A chick lays no eggs. minecraft.wiki/w/Chicken
   def lay_eggs(dt)
-    return if @kind != CHICKEN || dying?
+    return if @kind != CHICKEN || baby? || dying?
     @egg_time -= dt
     return if @egg_time > 0.0
     @egg_time = EGG_MIN + @rng.rand01 * EGG_MORE
@@ -237,6 +264,7 @@ class Mob
     end
     @immune -= dt
     @attack_wait -= dt
+    grow_up(dt)
     lay_eggs(dt)
     speed = 0.0
     damage = 0
@@ -462,6 +490,7 @@ class Mob
     # not confirm: sqrt(1.6 * t / DEATH_TIME) of a right angle.
     fall = Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5
     mesh.roll(fall)
+    @size = baby? ? 0.5 : 1.0
     if @kind == CREEPER
       draw_creeper(mesh, swing, red)
     elsif @kind == PIG
@@ -476,6 +505,7 @@ class Mob
       draw_humanoid(mesh, swing, red)
     end
     mesh.roll(0.0)
+    @size = 1.0
   end
 
   # The draw_ methods are the model of each kind. swing is the angle of the
@@ -527,7 +557,9 @@ class Mob
 
   # The ChickenModel of Minecraft. The wings turn around the axis from the
   # back to the front through their top edge: out and up as they beat.
-  # fall is the angle of a dying mob (Mesh3#roll).
+  # fall is the angle of a dying mob (Mesh3#roll). A chick has the head of
+  # a grown chicken, 5 pixels lower and 2 farther back, on a body half as
+  # large (AgeableListModel).
   def draw_chicken(mesh, swing, red, fall)
     l = Tex::SKINS + @kind
     part(mesh, l, 0.0, 16.0, 0.0, Math::PI / 2.0, -3.0, -4.0, -3.0, 6.0, 8.0, 6.0, 0.0, 9.0, 0.0, false, 1.0, red, red)
@@ -537,9 +569,13 @@ class Mob
     wing(mesh, l, -4.0, fall, beat, red)
     wing(mesh, l, 4.0, fall, -beat, red)
     mesh.roll(fall)
-    part(mesh, l, 0.0, 15.0, -4.0, 0.0, -2.0, -6.0, -2.0, 4.0, 6.0, 3.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 15.0, -4.0, 0.0, -2.0, -4.0, -4.0, 4.0, 2.0, 2.0, 14.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 15.0, -4.0, 0.0, -1.0, -2.0, -3.0, 2.0, 2.0, 2.0, 14.0, 4.0, 0.0, false, 1.0, red, red)
+    chick = baby?
+    @size = 1.0
+    py = chick ? 20.0 : 15.0
+    pz = chick ? -2.0 : -4.0
+    part(mesh, l, 0.0, py, pz, 0.0, -2.0, -6.0, -2.0, 4.0, 6.0, 3.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, py, pz, 0.0, -2.0, -4.0, -4.0, 4.0, 2.0, 2.0, 14.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, l, 0.0, py, pz, 0.0, -1.0, -2.0, -3.0, 2.0, 2.0, 2.0, 14.0, 4.0, 0.0, false, 1.0, red, red)
   end
 
   # A wing of a chicken: 1 x 4 x 6 pixels that hang from the pivot px, 13,
@@ -549,15 +585,16 @@ class Mob
   # fall + beat goes around that axis, and the box moves by the difference
   # to turn around the pivot instead.
   def wing(mesh, l, px, fall, beat, red)
-    cx = px / 16.0
-    cy = 11.0 / 16.0
+    k = @size / 16.0
+    cx = px * k
+    cy = 11.0 * k
     t = fall + beat
     mx = cx * Math.cos(fall) + cy * Math.sin(fall) - (cx * Math.cos(t) + cy * Math.sin(t))
     my = cy * Math.cos(fall) - cx * Math.sin(fall) - (cy * Math.cos(t) - cx * Math.sin(t))
     mesh.roll(t)
     x0 = px < 0.0 ? px : px - 1.0
     mesh.skin_box(@x + mx * Math.cos(@yaw), @y + my, @z + mx * Math.sin(@yaw), @yaw, 0.0, 0.0, 0.0,
-                  x0 / 16.0, 7.0 / 16.0, -3.0 / 16.0, (x0 + 1.0) / 16.0, 11.0 / 16.0, 3.0 / 16.0,
+                  x0 * k, 7.0 * k, -3.0 * k, (x0 + 1.0) * k, 11.0 * k, 3.0 * k,
                   l, 24.0, 13.0, 1.0, 4.0, 6.0, false, 1.0, red, red, 1.0)
   end
 
@@ -590,11 +627,13 @@ class Mob
   # The numbers are those of the Minecraft model: 16 pixels to a block, y
   # down from 24 pixels above the feet, and the front to -z. The box takes
   # the skin at u, v (Mesh3#skin_box). grow makes the box larger on each
-  # side, but not its skin, as for a hat or wool.
+  # side, but not its skin, as for a hat or wool. The model has the scale
+  # @size, from the feet: a baby is half as large.
   def part(mesh, layer, px, py, pz, rot, bx, by, bz, w, h, d, u, v, grow, mirror, r, g, b)
-    mesh.skin_box(@x, @y, @z, @yaw, (24.0 - py) / 16.0, -pz / 16.0, rot,
-                  (px + bx - grow) / 16.0, (24.0 - py - by - h - grow) / 16.0, (-pz - bz - d - grow) / 16.0,
-                  (px + bx + w + grow) / 16.0, (24.0 - py - by + grow) / 16.0, (-pz - bz + grow) / 16.0,
+    k = @size / 16.0
+    mesh.skin_box(@x, @y, @z, @yaw, (24.0 - py) * k, -pz * k, rot,
+                  (px + bx - grow) * k, (24.0 - py - by - h - grow) * k, (-pz - bz - d - grow) * k,
+                  (px + bx + w + grow) * k, (24.0 - py - by + grow) * k, (-pz - bz + grow) * k,
                   layer, u, v, w, h, d, mirror, r, g, b, 1.0)
   end
 

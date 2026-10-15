@@ -39,7 +39,7 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | Left Shift | Sneak, fly down, get out of a boat |
 | Left Ctrl, double-tap W | Sprint |
 | Left click | Break a block, attack |
-| Right click | Place a block, use an item or a block, get in a boat |
+| Right click | Place a block, use an item or a block, throw an egg, get in a boat |
 | 1–9, wheel | Select a hotbar slot |
 | E | Inventory and crafting |
 | F3 | Debug text |
@@ -56,7 +56,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 - An endless generated world with continents, rivers, mountains and nine biomes, from snowy taiga to desert and jungle, plus caves, ores and trees.
 - A day and night cycle, rain, flowing water and lava, and torch light.
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
-- Animals, and monsters that come out in the dark. Shears take the wool of a sheep, and the sheep grows it back when it eats grass. A bucket milks a cow, and the milk ends the Hunger effect. A chicken lays an egg every 5 to 10 minutes.
+- Animals, and monsters that come out in the dark. Shears take the wool of a sheep, and the sheep grows it back when it eats grass. A bucket milks a cow, and the milk ends the Hunger effect. A chicken lays an egg every 5 to 10 minutes. A thrown egg hatches a chick 1 time in 8.
 - Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
 - Pumpkin patches. Shears cut leaves and wool fast, and carve a face into a pumpkin, and a carved pumpkin and a torch make a jack o'lantern, which lights the night. Pumpkin seeds grow a stem, and the stem grows new pumpkins. On October 31, some monsters wear a pumpkin on their heads.
 - Bone meal. Skeletons drop bones, and a bone makes 3 bone meal. Bone meal makes a crop, a pumpkin stem or a sapling grow, and grows tall grass and flowers on a grass block.
@@ -159,7 +159,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `NEW=1` | Ignore `world.sav` |
 | `SAVE=1` | Save on quit also when `FRAMES` is set |
 | `MUTE=1` | No sound |
-| `SHOWMOBS=1` | Put one mob of each kind on a stone floor in front of the player |
+| `SHOWMOBS=1` | Put one mob of each kind, and a chick, on a stone floor in front of the player |
 | `SHOWBOATS=1` | Put a boat of each wood on a pool of water, with the player in one |
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `INVENTORY=1` | Start with the inventory open |

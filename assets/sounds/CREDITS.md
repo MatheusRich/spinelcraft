@@ -57,6 +57,7 @@ Each file keeps its license.
 | `mobs_mc_chicken_buck.1.ogg` | evsecrets | CC0 1.0 | <https://freesound.org/people/evsecrets/sounds/346961/> |
 | `mobs_mc_chicken_hurt.ogg` | evsecrets | CC0 1.0 | <https://freesound.org/people/evsecrets/sounds/346961/> |
 | `mobs_mc_chicken_lay_egg.ogg` | PilzAdam and Wuzzy | CC0 1.0 | VoxeLibre `mobs_mc` |
+| `mobs_mc_chicken_child.ogg` | AGFX | CC0 1.0 | <https://freesound.org/people/AGFX/sounds/43380/> |
 
 ## Doors, chests and caves
 

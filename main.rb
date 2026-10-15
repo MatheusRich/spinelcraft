@@ -16,6 +16,7 @@ require_relative "game/ui"
 require_relative "game/mesh3"
 require_relative "game/mobs"
 require_relative "game/arrow"
+require_relative "game/egg"
 require_relative "game/item"
 require_relative "game/falling_block"
 require_relative "game/boat"
@@ -200,6 +201,7 @@ class Game
     @was_swimming = false
     @particles = Particles.new(@seed)
     @arrows = []
+    @eggs = []
     @items = []
     @falling = []
     @boats = []
@@ -336,6 +338,7 @@ class Game
     @furnaces = {}
     @mobs.clear
     @arrows.clear
+    @eggs.clear
     @items.clear
     @boats.clear
     @riding = -1

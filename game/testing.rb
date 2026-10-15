@@ -28,6 +28,9 @@ class Game
       @mobs << m
     end
     @mobs << Mob.new(Mob::CHICKEN, bx - 0.5, y + 1.0, bz + 2.5, 1)
+    chick = Mob.new(Mob::CHICKEN, bx + 1.5, y + 1.0, bz + 2.5, 2)
+    chick.make_baby
+    @mobs << chick
     @player.x = bx + 0.5
     @player.y = y + 1.5
     @player.z = bz + 6.5
@@ -2013,6 +2016,8 @@ class Game
     @mobs.clear
     check("beef is food, and a furnace cooks it into steak", cooks?(Block::BEEF, 3, 1.8, Block::STEAK, 8, 12.8))
     test_chickens
+    test_chicks
+    test_eggs
     # Each zombie drops 0 to 2, so 10 zombies drop none 1 time in 59049.
     10.times do |i|
       zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
@@ -2077,6 +2082,89 @@ class Game
       pig.update_mob(@world, 1.0 / 60.0, @player, 0.5)
     end
     check("a chicken falls slowly", hen.vy >= Mob::CHICKEN_FALL && pig.vy < Mob::CHICKEN_FALL * 4.0)
+  end
+
+  # A chick is half as large, drops nothing, lays no eggs, and grows up
+  # after 20 minutes.
+  def test_chicks
+    @items.clear
+    @mobs.clear
+    x = @spawn_x + 30.0
+    z = @spawn_z
+    chick = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 5)
+    chick.make_baby
+    small = chick.baby? && chick.half == Mob::HALF[Mob::CHICKEN] / 2.0 && chick.tall == Mob::TALL[Mob::CHICKEN] / 2.0
+    chick.egg_time = 0.001
+    @mobs << chick
+    update_mobs(1.0 / 60.0)
+    laid = ground_count(Block::EGG)
+    chick.hp = 0.0
+    chick.by_player = true
+    update_mobs(1.0 / 60.0)
+    check("a chick is half as large, lays no eggs, and drops nothing", small && laid == 0 && @items.empty?)
+    @mobs.clear
+    young = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 6)
+    young.make_baby
+    young.grow_up(Mob::GROW_TIME - 1.0)
+    still = young.baby?
+    young.grow_up(1.0)
+    check("a chick grows up after 20 minutes",
+          still && !young.baby? && young.half == Mob::HALF[Mob::CHICKEN] && young.tall == Mob::TALL[Mob::CHICKEN])
+    check("a chick peeps, and a grown chicken clucks",
+          voice(chick, MOB_SOUND) == Sfx::CHICK && voice(young, MOB_SOUND) == Sfx::CLUCK && voice(young, MOB_HURT) == Sfx::CHICKEN_HURT)
+  end
+
+  # The player throws an egg from the hand. An egg breaks on a block, and
+  # on a mob, which it pushes but does not hurt. 1 in 8 eggs hatches a
+  # chick, and 1 in 32 of those 4 chicks.
+  def test_eggs
+    @mobs.clear
+    @eggs.clear
+    @inv.clear
+    was = @survival
+    @survival = true
+    @slot = 0
+    @inv.set(0, Block::EGG, 2)
+    throw_egg
+    check("the player throws one egg of the stack", @eggs.size == 1 && @inv.count(0) == 1)
+    @eggs.clear
+    x = @spawn_x.floor + 30
+    y = SKY_Y - 4
+    z = @spawn_z.floor
+    set_block(x, y, z, Block::STONE)
+    @eggs << Egg.new(x + 0.5, y + 2.0, z + 0.5, 0.0, -10.0, 0.0)
+    20.times { update_eggs(1.0 / 60.0) }
+    landed = @eggs.empty?
+    set_block(x, y, z, Block::AIR)
+    @mobs.clear
+    pig = Mob.new(Mob::PIG, x + 0.5, y.to_f, z + 0.5, 3)
+    @mobs << pig
+    @eggs << Egg.new(x + 0.5, y + 0.5, z - 2.0, 0.0, 0.0, Egg::SPEED)
+    10.times { update_eggs(1.0 / 60.0) }
+    hit = @eggs.empty? && pig.hurt > 0.0 && pig.hp == Mob::HP[Mob::PIG]
+    check("an egg breaks on a block, and on a mob that it does not hurt", landed && hit)
+    check("1 in 8 eggs hatches a chick, and 1 in 32 of those 4 chicks",
+          chicks(0.1, 0.5) == 1 && chicks(0.1, 0.01) == 4 && chicks(0.2, 0.01) == 0 && chicks(0.124, 0.032) == 1)
+    # 4000 eggs hatch 4000 * (1/8 * 31/32 + 1/8 * 1/32 * 4) = 546.9 chicks
+    # on average. Fewer than 450 or more than 650 comes 1 time in a million.
+    hatched = 0
+    4000.times { hatched += chicks(@rng.rand01, @rng.rand01) }
+    # An egg hatches 1 time in 8, so 400 eggs all fail 1 time in 10^23.
+    @mobs.clear
+    tries = 0
+    while @mobs.empty? && tries < 400
+      set_block(x, y, z, Block::STONE)
+      @eggs << Egg.new(x + 0.5, y + 1.5, z + 0.5, 0.0, -10.0, 0.0)
+      5.times { update_eggs(1.0 / 20.0) }
+      tries += 1
+    end
+    set_block(x, y, z, Block::AIR)
+    check("thrown eggs hatch chicks at Minecraft's rate",
+          hatched > 450 && hatched < 650 && !@mobs.empty? && @mobs.all? { |m| m.baby? && m.kind == Mob::CHICKEN })
+    @mobs.clear
+    @eggs.clear
+    @inv.clear
+    @survival = was
   end
 
   # A dead mob lies on the ground for DEATH_TIME and takes no hits. Then it

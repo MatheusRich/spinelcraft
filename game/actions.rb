@@ -207,6 +207,8 @@ class Game
         carve_pumpkin(@player.hx, @player.hy, @player.hz)
       elsif current_block == Block::BONE_MEAL && @player.hit
         use_bone_meal
+      elsif current_block == Block::EGG && (!@survival || !@inv.empty?(@slot))
+        throw_egg
       elsif @player.hit
         place
       end

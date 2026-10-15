@@ -170,6 +170,15 @@ class Particles
     end
   end
 
+  # Chips of item b at x, y, z that fly a little to each side, as when a
+  # thrown egg breaks. Minecraft makes 8, with speeds of up to 0.04 blocks
+  # each tick on each axis (ThrownEgg.handleEntityEvent, not on the wiki).
+  def splat(x, y, z, b)
+    8.times do
+      chip(x, y, z, (@rng.rand01 - 0.5) * 1.6, (@rng.rand01 - 0.5) * 1.6 + 1.0, (@rng.rand01 - 0.5) * 1.6, Block::SIDE[b])
+    end
+  end
+
   # A chip that lives 0.3 to 1 second and shows a random piece of 4 x 4
   # pixels of the texture layer.
   def chip(x, y, z, vx, vy, vz, layer)

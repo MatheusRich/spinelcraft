@@ -179,6 +179,7 @@ class Game
       m.draw(@dyn) if entity_in_view?(m.x.to_f, m.y.to_f, m.z.to_f, 2.0, ex, ez, reach)
     end
     @arrows.each { |a| a.draw(@dyn) }
+    @eggs.each { |e| e.draw(@dyn) }
     @items.each_with_index do |item, i|
       ddx = item.x - ex
       ddz = item.z - ez

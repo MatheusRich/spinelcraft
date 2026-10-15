@@ -351,7 +351,7 @@ class Game
     end
     @mobs.each do |m|
       if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
-        play_from(m, MOB_SOUND[m.kind], 0.8)
+        play_from(m, voice(m, MOB_SOUND), 0.8)
       end
       if m.step
         # A mob steps with the sound of the block under it, as the player
@@ -403,9 +403,9 @@ class Game
       # when it is gone. minecraft.wiki/w/Death
       drop_loot(m) if @survival && lived && m.dying? && m.by_player
       if lived && m.dying?
-        play_from(m, MOB_DEATH[m.kind], 1.0)
+        play_from(m, voice(m, MOB_DEATH), 1.0)
       elsif m.ouch
-        play_from(m, MOB_HURT[m.kind], 1.0)
+        play_from(m, voice(m, MOB_HURT), 1.0)
       end
       m.ouch = false
       @particles.smoke(m.x, m.y + m.tall * 0.3, m.z, 12, m.tall * 0.6) if !m.alive && m.dying?
@@ -413,11 +413,16 @@ class Game
     steps = (dt * 180.0).ceil
     steps = 1 if steps < 1
     steps.times { update_arrows(dt / steps) }
+    update_eggs(dt)
     @mobs.reject! do |m|
       d2 = (m.x - @player.x) ** 2 + (m.z - @player.z) ** 2
       !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || (m.passive? ? d2 > 160.0 * 160.0 : despawn?(m, dt))
     end
   end
+
+  # The sound of the mob m from sounds: a chick peeps for all of them, as
+  # in VoxeLibre.
+  def voice(m, sounds) = m.baby? && m.kind == Mob::CHICKEN ? Sfx::CHICK : sounds[m.kind]
 
   def play_from(m, id, gain)
     play_at(id, m.x, m.y + m.tall * 0.5, m.z, gain, SOUND_RANGE)
@@ -428,9 +433,11 @@ class Game
   # its bow, a sheep its wool and 1 to 2 mutton, a pig 1 to 3 porkchops,
   # a cow 0 to 2 leather and 1 to 3 raw beef, or steak when it dies on
   # fire, and a chicken 0 to 2 feathers and 1 raw chicken, or cooked
-  # chicken when it dies on fire. minecraft.wiki/w/Rotten_Flesh,
-  # /w/Skeleton, /w/Sheep, /w/Pig, /w/Cow and /w/Chicken
+  # chicken when it dies on fire. A baby drops nothing.
+  # minecraft.wiki/w/Rotten_Flesh, /w/Skeleton, /w/Sheep, /w/Pig, /w/Cow
+  # and /w/Chicken
   def drop_loot(m)
+    return if m.baby?
     if m.kind == Mob::ZOMBIE
       loot(m, Block::ROTTEN_FLESH, (@rng.rand01 * 3.0).to_i)
     elsif m.kind == Mob::SKELETON
@@ -605,6 +612,47 @@ class Game
     end
     @arrows.select!(&:alive?)
   end
+
+  # Throws an egg where the player looks. Creative keeps the egg.
+  def throw_egg
+    @inv.take(@slot, 1) if @survival
+    p = @player
+    @eggs << Egg.new(p.x, p.eye_y - 0.1, p.z, p.fx * Egg::SPEED, p.fy * Egg::SPEED, p.fz * Egg::SPEED)
+    @swing = 0.25
+    play(Sfx::SHOOT, 0.5)
+  end
+
+  # Each egg flies, and breaks on a block or a mob. A mob that it hits
+  # takes a hit of 0 damage: it flashes red and gets a push. Then the egg
+  # can hatch chicks where it broke.
+  def update_eggs(dt)
+    @eggs.each do |e|
+      steps = (dt * 120.0).ceil
+      k = 0
+      while k < steps && !e.broken?
+        e.fly(@world, dt / steps)
+        m = @mobs.find { |mob| !mob.dying? && e.x > mob.x - mob.half && e.x < mob.x + mob.half && e.y > mob.y && e.y < mob.y + mob.tall && e.z > mob.z - mob.half && e.z < mob.z + mob.half }
+        if m
+          m.hit(0.0, e.x - e.vx, e.z - e.vz)
+          e.break_open
+        end
+        k += 1
+      end
+      next unless e.broken?
+      @particles.splat(e.x, e.y, e.z, Block::EGG)
+      chicks(@rng.rand01, @rng.rand01).times do
+        chick = Mob.new(Mob::CHICKEN, e.x, e.y, e.z, (@rng.rand01 * 100000.0).to_i)
+        chick.make_baby
+        @mobs << chick
+      end
+    end
+    @eggs.reject!(&:broken?)
+  end
+
+  # The chicks that hatch from a broken egg, by two random numbers: 1 in 8
+  # eggs hatches a chick, and 1 in 32 of those hatches 4 chicks.
+  # minecraft.wiki/w/Egg
+  def chicks(r1, r2) = r1 < 1.0 / 8.0 ? (r2 < 1.0 / 32.0 ? 4 : 1) : 0
 
   def find_target_mob
     @target_mob = -1
