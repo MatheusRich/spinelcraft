@@ -316,7 +316,7 @@ class Game
   def draw_recipe_panel(w, h, s, pad)
     shown = @recipe_book.shown(active_station)
     view = @recipe_book.in_view(active_station)
-    furnace = station_makes?(RecipeBook::AT_FURNACE)
+    furnace = station_makes?(Recipe::AT_FURNACE)
     skip = recipe_skip
     rows = (shown.size + 1) / 2
     first = recipe_cell(0, w, h, s)
@@ -335,20 +335,21 @@ class Game
       @ui.rect(bx, first[1], 4.0 * s, track, 0.1, 0.1, 0.12, 1.0)
       @ui.rect(bx, first[1] + track * @recipe_book.top.to_f / rows.to_f, 4.0 * s, track * RecipeBook::ROWS.to_f / rows.to_f, 0.6, 0.6, 0.65, 1.0)
     end
-    j = 0
-    while j < view.size
-      k = view[j]
-      c = recipe_cell(j + skip, w, h, s)
-      can = RecipeBook.craftable(k, @inv) > 0
-      shade = k == rhover ? 0.5 : 0.28
-      fresh = @recipe_book.fresh?(k)
+    place = 0
+    while place < view.size
+      index = view[place]
+      c = recipe_cell(place + skip, w, h, s)
+      recipe = @recipe_book.recipe(index)
+      can = recipe.craftable(@inv) > 0
+      shade = index == rhover ? 0.5 : 0.28
+      fresh = @recipe_book.fresh?(index)
       @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)
       @ui.text(c[0] + c[2] - @ui.text_width("NEW", 1.5 * s) - 8.0 * s, c[1] + 6.0 * s, "NEW", 1.5 * s, 1.0, 0.85, 0.2, 1.0) if fresh
-      @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, 28.0 * s, RecipeBook.result(k), can ? 1.0 : 0.35)
+      @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, 28.0 * s, recipe.result, can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
-      @ui.text(c[0] + 42.0 * s, c[1] + 6.0 * s, "#{RecipeBook.result_count(k)} #{Block::NAMES[RecipeBook.result(k)]}", 2.5 * s, bright, bright, bright, 1.0)
-      @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, RecipeBook.need(k), 2.0 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
-      j += 1
+      @ui.text(c[0] + 42.0 * s, c[1] + 6.0 * s, "#{recipe.result_count} #{Block::NAMES[recipe.result]}", 2.5 * s, bright, bright, bright, 1.0)
+      @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, recipe.need, 2.0 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
+      place += 1
     end
   end
 

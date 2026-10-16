@@ -199,10 +199,10 @@ class Game
         open_chest(@player.hx, @player.hy, @player.hz)
         return
       elsif @survival && Block::BASE[target] == Block::CRAFTING_TABLE
-        open_station(@player.hx, @player.hy, @player.hz, RecipeBook::AT_TABLE)
+        open_station(@player.hx, @player.hy, @player.hz, Recipe::AT_TABLE)
         return
       elsif @survival && Block::BASE[target] == Block::FURNACE
-        open_station(@player.hx, @player.hy, @player.hz, RecipeBook::AT_FURNACE)
+        open_station(@player.hx, @player.hy, @player.hz, Recipe::AT_FURNACE)
         return
       elsif Block.bed?(target)
         use_bed(@player.hx, @player.hy, @player.hz)

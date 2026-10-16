@@ -20,30 +20,32 @@ class Game
     say("#{Block::NAMES[b]} BROKE")
   end
 
-  # Crafts recipe k up to want times from items anywhere in the inventory.
+  # Crafts the recipe at index up to want times from items anywhere in the
+  # inventory.
   # A click asks for 1, and a Shift-click for CRAFT_ALL. A smelting recipe
   # puts its ingredient into the furnace instead, and the furnace smelts it
   # in time.
-  def craft_recipe(k, want = 1)
-    where = RecipeBook.where(k)
-    if RecipeBook.craftable(k, @inv) == 0
-      say("NEED #{RecipeBook.need(k)}")
+  def craft_recipe(index, want = 1)
+    recipe = @recipe_book.recipe(index)
+    where = recipe.where
+    if recipe.craftable(@inv) == 0
+      say("NEED #{recipe.need}")
       return
     end
     unless station_makes?(where)
-      say(where == RecipeBook::AT_TABLE ? "NEED A CRAFTING TABLE" : "NEED A FURNACE")
+      say(where == Recipe::AT_TABLE ? "NEED A CRAFTING TABLE" : "NEED A FURNACE")
       return
     end
-    if where == RecipeBook::AT_FURNACE
-      load_furnace(RecipeBook.ingredient(k), want)
+    if where == Recipe::AT_FURNACE
+      load_furnace(recipe.ingredient, want)
       return
     end
-    n = RecipeBook.craft(k, want, @inv)
+    n = recipe.craft(want, @inv)
     if n == 0
       say("INVENTORY FULL")
       return
     end
-    say("CRAFTED #{n} #{Block::NAMES[RecipeBook.result(k)]}")
+    say("CRAFTED #{n} #{Block::NAMES[recipe.result]}")
     play(Sfx::PLACE, 0.6)
   end
 
@@ -81,9 +83,9 @@ class Game
     return if ticks == 0
     @furnaces.each do |key, f|
       if @world.loaded?(f.x, f.z)
-        k = RecipeBook.smelt_recipe(f.slots.block(Furnace::INPUT))
-        out = k >= 0 ? RecipeBook.result(k) : 0
-        out_n = k >= 0 ? RecipeBook.result_count(k) : 0
+        recipe = @recipe_book.smelt_recipe(f.slots.block(Furnace::INPUT))
+        out = recipe.nil? ? 0 : recipe.result
+        out_n = recipe.nil? ? 0 : recipe.result_count
         ticks.times { f.tick(out, out_n, Furnace.fuel_ticks(f.slots.block(Furnace::FUEL))) }
         b = @world.get(f.x, f.y, f.z)
         lit = Block.furnace_id(Block::FACING[b], f.lit?)
@@ -108,7 +110,7 @@ class Game
       say("NOT A FUEL")
       return
     end
-    if @held_count > 0 && i == Furnace::INPUT && !RecipeBook.smelts?(@held_block)
+    if @held_count > 0 && i == Furnace::INPUT && !@recipe_book.smelts?(@held_block)
       say("THE FURNACE DOES NOT SMELT THAT")
       return
     end
@@ -130,15 +132,15 @@ class Game
   # when the block of the station is gone. Then the screen works as the E
   # screen.
   def active_station
-    return RecipeBook::BY_HAND if @station == RecipeBook::BY_HAND
-    b = @station == RecipeBook::AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
-    return RecipeBook::BY_HAND if Block::BASE[@world.get(@station_x, @station_y, @station_z)] != b
+    return Recipe::BY_HAND if @station == Recipe::BY_HAND
+    b = @station == Recipe::AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
+    return Recipe::BY_HAND if Block::BASE[@world.get(@station_x, @station_y, @station_z)] != b
     @station
   end
 
   # True when the open screen makes the recipes for where (BY_HAND, AT_TABLE
-  # or AT_FURNACE of RecipeBook).
-  def station_makes?(where) = RecipeBook.makes?(active_station, where)
+  # or AT_FURNACE of Recipe).
+  def station_makes?(where) = Recipe.makes?(active_station, where)
 
   # Opens the screen of the crafting table or the furnace at x, y, z.
   def open_station(x, y, z, where)
@@ -215,7 +217,7 @@ class Game
 
   # The places that the recipe list skips: a furnace shows its slots in the
   # first five rows.
-  def recipe_skip = station_makes?(RecipeBook::AT_FURNACE) ? 10 : 0
+  def recipe_skip = station_makes?(Recipe::AT_FURNACE) ? 10 : 0
 
   # Slot i of the open furnace, in the place of the first recipe rows, as in
   # Minecraft: the input on top, the flame under it, the fuel at the bottom,
@@ -266,11 +268,11 @@ class Game
   def recipe_hover(w, h, s)
     view = @recipe_book.in_view(active_station)
     skip = recipe_skip
-    j = 0
-    while j < view.size
-      c = recipe_cell(j + skip, w, h, s)
-      return view[j] if mouse_in?(c[0], c[1], c[2], c[3])
-      j += 1
+    place = 0
+    while place < view.size
+      c = recipe_cell(place + skip, w, h, s)
+      return view[place] if mouse_in?(c[0], c[1], c[2], c[3])
+      place += 1
     end
     -1
   end
@@ -336,10 +338,10 @@ class Game
   # the hotbar and the backpack.
   def quick_move_slot(i)
     return if @inv.empty?(i) || @held_count > 0
-    furnace = station_makes?(RecipeBook::AT_FURNACE)
+    furnace = station_makes?(Recipe::AT_FURNACE)
     if @chest_key >= 0
       @inv.move_stack(i, @chest, 0, CHEST_SLOTS)
-    elsif furnace && RecipeBook.smelts?(@inv.block(i))
+    elsif furnace && @recipe_book.smelts?(@inv.block(i))
       @inv.move_stack(i, open_furnace.slots, Furnace::INPUT, Furnace::INPUT + 1)
     elsif furnace && Furnace.fuel?(@inv.block(i))
       @inv.move_stack(i, open_furnace.slots, Furnace::FUEL, Furnace::FUEL + 1)
@@ -436,7 +438,7 @@ class Game
       play(Sfx::CHEST_CLOSE, 0.5)
       close_chest
     end
-    @station = RecipeBook::BY_HAND if @inventory_open
+    @station = Recipe::BY_HAND if @inventory_open
     @inventory_open = !@inventory_open
     @recipe_book.open_list if @inventory_open
     @captured = !@inventory_open
@@ -480,7 +482,7 @@ class Game
             split_cell(@chest, cell)
           end
         end
-      elsif station_makes?(RecipeBook::AT_FURNACE) && furnace_hover(w, h, s) >= 0
+      elsif station_makes?(Recipe::AT_FURNACE) && furnace_hover(w, h, s) >= 0
         cell = furnace_hover(w, h, s)
         if shift
           open_furnace.slots.move_stack(cell, @inv, 0, INV)

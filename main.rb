@@ -32,6 +32,7 @@ require_relative "game/save"
 require_relative "game/block_changes"
 require_relative "game/slots"
 require_relative "game/furnace"
+require_relative "game/recipe"
 require_relative "game/recipe_book"
 require_relative "game/inventory"
 require_relative "game/items"
@@ -79,9 +80,9 @@ class Game
     # The furnaces, by World.key, and the time not yet ticked.
     @furnaces = {}
     @furnace_clock = 0.0
-    # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE of RecipeBook),
+    # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE of Recipe),
     # and its cell.
-    @station = RecipeBook::BY_HAND
+    @station = Recipe::BY_HAND
     @station_x = 0
     @station_y = 0
     @station_z = 0
