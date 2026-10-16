@@ -83,10 +83,8 @@ class Mesh3
   # front of a mob's model) takes front, and the other sides take side.
   def block_box(ox, oy, oz, yaw, x0, y0, z0, x1, y1, z1, top, side, bottom, front, r, g, b, a)
     body_corners(ox, oy, oz, yaw, 0.0, 0.0, 0.0, x0, y0, z0, x1, y1, z1)
-    f = 0
-    while f < 6
+    6.times do |f|
       face_quad(f, f == 2 ? top : (f == 3 ? bottom : (f == 4 ? front : side)), 0.0, 1.0, 0.0, 1.0, r, g, b, a)
-      f += 1
     end
   end
 
@@ -139,8 +137,7 @@ class Mesh3
     syw = Math.sin(yaw)
     cr = @roll_cos
     sr = @roll_sin
-    i = 0
-    while i < 8
+    8.times do |i|
       lx = (i & 1) == 0 ? x0 : x1
       ly = (i & 2) == 0 ? y0 : y1
       lz = (i & 4) == 0 ? z0 : z1
@@ -153,7 +150,6 @@ class Mesh3
       @cx[i] = ox + rx * cyw - rz * syw
       @cy[i] = oy + ry
       @cz[i] = oz + rx * syw + rz * cyw
-      i += 1
     end
   end
 
@@ -164,12 +160,10 @@ class Mesh3
   # An axis-aligned box that draws only the faces in mask: bit f draws face f
   # (0..5 for +x -x +y -y +z -z).
   def aabb_faces(x0, y0, z0, x1, y1, z1, mask, layer, r, g, b, a)
-    i = 0
-    while i < 8
+    8.times do |i|
       @cx[i] = (i & 1) == 0 ? x0 : x1
       @cy[i] = (i & 2) == 0 ? y0 : y1
       @cz[i] = (i & 4) == 0 ? z0 : z1
-      i += 1
     end
     corner_faces(mask, layer, layer, layer, r, g, b, a)
   end
@@ -203,15 +197,13 @@ class Mesh3
   # Puts the corners of the box of frame_box in @cx, @cy and @cz.
   def frame_corners(x0, y0, z0, x1, y1, z1)
     f = @frame
-    i = 0
-    while i < 8
+    8.times do |i|
       lx = (i & 1) == 0 ? x0 : x1
       ly = (i & 2) == 0 ? y0 : y1
       lz = (i & 4) == 0 ? z0 : z1
       @cx[i] = f[0] + lx * f[3] + ly * f[6] + lz * f[9]
       @cy[i] = f[1] + lx * f[4] + ly * f[7] + lz * f[10]
       @cz[i] = f[2] + lx * f[5] + ly * f[8] + lz * f[11]
-      i += 1
     end
   end
 
@@ -243,8 +235,7 @@ class Mesh3
   # of the texture next to them. A side shows the color of its pixel.
   def item_edges(layer)
     k = layer * 32
-    i = 0
-    while i < 16
+    16.times do |i|
       row = @opaque[k + i]
       col = @opaque[k + 16 + i]
       above = i > 0 ? @opaque[k + i - 1] : 0
@@ -255,7 +246,6 @@ class Mesh3
       edge_runs(row & (0xffff ^ below), i, i + 1, true, SHADE[3], layer)
       edge_runs(col & (0xffff ^ before), i, i, false, SHADE[0], layer)
       edge_runs(col & (0xffff ^ after), i, i + 1, false, SHADE[0], layer)
-      i += 1
     end
   end
 
@@ -326,10 +316,8 @@ class Mesh3
 
   # The faces in mask of the box with the corners in @cx, @cy and @cz.
   def corner_faces(mask, top, side, bottom, r, g, b, a)
-    f = 0
-    while f < 6
+    6.times do |f|
       face_quad(f, f == 2 ? top : (f == 3 ? bottom : side), 0.0, 1.0, 0.0, 1.0, r, g, b, a) if ((mask >> f) & 1) == 1
-      f += 1
     end
   end
 
@@ -374,8 +362,7 @@ class Mesh3
     x1 = x.to_f + 0.5 + hx + e
     y1 = y.to_f + top + e
     z1 = z.to_f + 0.5 + hz + e
-    i = 0
-    while i < 4
+    4.times do |i|
       ya = i % 2 == 0 ? y0 : y1
       za = i / 2 == 0 ? z0 : z1
       edge_line(x0, ya, za, x1, ya, za, ex, ey, ez, fx, fy, fz, k)
@@ -384,7 +371,6 @@ class Mesh3
       xb = i / 2 == 0 ? x0 : x1
       yb = i % 2 == 0 ? y0 : y1
       edge_line(xb, yb, z0, xb, yb, z1, ex, ey, ez, fx, fy, fz, k)
-      i += 1
     end
   end
 
