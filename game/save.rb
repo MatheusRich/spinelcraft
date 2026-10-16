@@ -128,6 +128,7 @@ class Game
     @far = FarTerrain.new(@world, LOD_SLOT0)
     @chunk_meshes = ChunkMeshes.new(@world, @tint)
     @light = Light.new(@world)
+    @spawner = NaturalSpawner.new(@world, @seed * 11 + 5, @halloween)
     @flow_queue.clear
     @falling.clear
   end

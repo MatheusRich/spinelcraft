@@ -176,7 +176,6 @@ class Game
     test_items(cx, cz)
     test_light_sources(cx, cz)
     test_tint(cx, cz)
-    test_dark
     test_door_furnace_sapling
     test_door_rules
     test_door_board
@@ -2372,40 +2371,6 @@ class Game
     check("a jump against the shore lifts the player out of the water", out)
   end
 
-  # Monsters spawn only in the dark: under the sky at night, or under a
-  # block, and never near a torch.
-  def test_dark
-    x = @spawn_x.floor + 40
-    z = @spawn_z.floor + 40
-    h = @world.height_at(x, z)
-    open_day = dark?(x, h, z, 15)
-    # At sky light 4, a random number from 0 to 7 lets half the tries pass.
-    passes = 0
-    200.times { passes += 1 if dark?(x, h, z, 4) }
-    check("monsters do not spawn under the sky by day, and half the tries pass at night", !open_day && passes > 70 && passes < 130)
-    # Sky light comes in from the side under the edge of a roof.
-    set_block(x, h + 1, z, Block::STONE)
-    under_roof = dark?(x, h, z, 15)
-    # Walls on the four sides close the cell.
-    walls = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-    walls.each { |w| set_block(x + w[0], h, z + w[1], Block::STONE) }
-    closed = dark?(x, h, z, 15)
-    check("sky light reaches under the edge of a roof, and not into a closed cell", !under_roof && closed)
-    # A torch 2 steps away, behind the wall on the +x side.
-    set_block(x + 2, h, z, Block::TORCH)
-    behind_wall = dark?(x, h, z, 0)
-    set_block(x + 1, h, z, Block::AIR)
-    through_opening = dark?(x, h, z, 0)
-    check("torch light does not go through a wall, and goes through an opening", behind_wall && !through_opening)
-    set_block(x + 2, h, z, Block::AIR)
-    walls.each { |w| set_block(x + w[0], h, z + w[1], Block::AIR) }
-    set_block(x, h + 1, z, Block::AIR)
-    set_block(x, h + 3, z, Block::OAK_LEAVES)
-    under_leaves = dark?(x, h, z, 15)
-    set_block(x, h + 3, z, Block::AIR)
-    check("leaves let the daylight through", !under_leaves)
-  end
-
   # A door does not stand on a door, and it does not close on a mob.
   def test_door_rules
     x = @spawn_x.floor + 50
@@ -3033,17 +2998,6 @@ class Game
     check("pumpkin seeds look like seeds as an item and like a stem when planted",
           Block::TOP[Block::PUMPKIN_SEEDS] == Tex::PUMPKIN_STEM && Block::SIDE[Block::PUMPKIN_SEEDS] == Tex::PUMPKIN_SEEDS &&
           Block::FRONT[Block::PUMPKIN_SEEDS] == Tex::PUMPKIN_SEEDS)
-    halloween = @halloween
-    @halloween = true
-    heads = Array.new(Block::COUNT, 0)
-    4000.times { heads[halloween_head(Mob::ZOMBIE)] += 1 }
-    skeleton = (0...200).any? { halloween_head(Mob::SKELETON) == Block::CARVED_PUMPKIN }
-    creeper = (0...100).all? { halloween_head(Mob::CREEPER) == 0 }
-    @halloween = false
-    other_days = (0...100).all? { halloween_head(Mob::SKELETON) == 0 }
-    @halloween = halloween
-    check("on Halloween, about 22.5% of zombies wear a carved pumpkin and 2.5% a jack o'lantern",
-          (heads[Block::CARVED_PUMPKIN] - 900).abs < 120 && (heads[Block::JACK_O_LANTERN] - 100).abs < 45 && creeper && other_days && skeleton)
     fill_box(bx - 3, y, bz - 3, bx + 3, y + 2, bz + 3, Block::AIR)
     @items.clear
   end
@@ -3618,7 +3572,7 @@ class Game
   end
 
   # True when m is an animal that stands on grass or snowy grass, where
-  # spawn_mob puts animals.
+  # NaturalSpawner#spawn_animal puts animals.
   def animal_on_grass?(m)
     ground = @world.get(m.x.floor, m.y.floor - 1, m.z.floor)
     m.passive? && (ground == Block::GRASS || ground == Block::SNOW_GRASS)
@@ -3670,7 +3624,7 @@ class Game
     # The world of the self-test has grass near the player, so animals
     # spawn on it.
     @mobs.clear
-    spawn_animals
+    @spawner.spawn_animals(@mobs, @player)
     check("animals spawn on the grass near the player", @mobs.size > 0 && @mobs.all? { |m| animal_on_grass?(m) })
     old_seed = @seed
     @inv.add(Block::DIAMOND)

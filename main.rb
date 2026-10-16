@@ -17,6 +17,7 @@ require_relative "game/camera"
 require_relative "game/ui"
 require_relative "game/mesh3"
 require_relative "game/mobs"
+require_relative "game/natural_spawner"
 require_relative "game/arrow"
 require_relative "game/egg"
 require_relative "game/item"
@@ -180,7 +181,6 @@ class Game
     @dig_wait = 0.0
     @mine_delay = 0.0
     @mobs = []
-    @spawn_timer = 0.0
     # The cave sounds (update_cave_sound): seconds to the next check, and
     # the fear that the darkness built up.
     @cave_timer = 0.0
@@ -272,7 +272,7 @@ class Game
     show_mobs if ENV["SHOWMOBS"]
     show_items if ENV["SHOWITEMS"]
     show_boats if ENV["SHOWBOATS"]
-    spawn_animals
+    @spawner.spawn_animals(@mobs, @player)
     Gfx.in_capture(1) unless @scripted
     @captured = true
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
@@ -299,7 +299,7 @@ class Game
     @day = 0
     spawn
     respawn
-    spawn_animals
+    @spawner.spawn_animals(@mobs, @player)
     @changed = true
     say("NEW WORLD  SEED #{@seed}")
   end
