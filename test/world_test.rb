@@ -78,13 +78,93 @@ class WorldTest < Minitest::Test
     assert_equal 0.0, World.mc_ore(Block::DIAMOND, 16)
   end
 
-  # Below y 136, coal is most common at y 96. Diamond is more common lower
-  # down (minecraft.wiki/w/Diamond_Ore).
-  def test_coal_peaks_at_y_96_and_diamond_at_the_bottom
-    assert_operator World.mc_ore(Block::COAL_ORE, 96), :>, World.mc_ore(Block::COAL_ORE, 95)
-    assert_operator World.mc_ore(Block::COAL_ORE, 96), :>, World.mc_ore(Block::COAL_ORE, 97)
-    diamond = [-64, -5, -3, 15].map { |m| World.mc_ore(Block::DIAMOND, m) }
-    assert_equal diamond.sort.reverse, diamond
+  # A layer holds the veins that start at it, times their blocks. In a
+  # triangle from y low to high, the peak layer gets 2 / (high - low) of
+  # the veins. In an even spread, each layer gets 1 / (high - low + 1).
+  # minecraft.wiki/w/Coal_Ore, /w/Iron_Ore and /w/Diamond_Ore give the
+  # veins and the spreads.
+  def test_each_layer_of_minecraft_holds_the_veins_that_start_at_it
+    coal = World::VEIN_17
+    assert_in_delta coal * 20 * 2 / 192, World.mc_ore(Block::COAL_ORE, 96), 1e-9
+    assert_in_delta coal * 20 * 2 / 192 * 57 / 96, World.mc_ore(Block::COAL_ORE, 135), 1e-9
+    assert_in_delta coal * (20 * 2.0 / 192 * 56 / 96 + 30 / 185.0), World.mc_ore(Block::COAL_ORE, 136), 1e-9
+    assert_in_delta coal * 30 / 185, World.mc_ore(Block::COAL_ORE, 193), 1e-9
+    iron = World::VEIN_9
+    small = World::VEIN_4 * 10 / 137
+    assert_in_delta small, World.mc_ore(Block::IRON, -64), 1e-9
+    assert_in_delta iron * 10 * 2 / 80 * 2 / 40 + small, World.mc_ore(Block::IRON, -22), 1e-9
+    assert_in_delta iron * 10 * 2 / 80 + small, World.mc_ore(Block::IRON, 16), 1e-9
+    assert_in_delta iron * 10 * 2 / 80 * 2 / 40 + small, World.mc_ore(Block::IRON, 54), 1e-9
+    assert_in_delta iron * 90 * 2 / 304, World.mc_ore(Block::IRON, 232), 1e-9
+    veins = 7 * World::VEIN_4 + 4 * World::VEIN_8 + World::VEIN_12 / 9
+    medium = 2 * World::VEIN_8 / 61
+    assert_in_delta veins * 2 / 160 + medium, World.mc_ore(Block::DIAMOND, -64), 1e-9
+    assert_in_delta veins * 2 / 160 * 20 / 80 + medium, World.mc_ore(Block::DIAMOND, -4), 1e-9
+    assert_in_delta veins * 2 / 160 * 19 / 80, World.mc_ore(Block::DIAMOND, -3), 1e-9
+  end
+
+  ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND].freeze
+
+  # The stone and ore blocks of each layer, and the blocks of each ore by
+  # its cell (x >> 2, y >> 1, z >> 2 for coal, x >> 1, y >> 1, z >> 1 for
+  # the others), in the 4 x 4 chunks from x = z = 0.
+  def self.ore_area
+    @ore_area ||= begin
+      world = World.new(1337)
+      4.times { |cx| 4.times { |cz| world.load_chunk(cx, cz) } }
+      stone = Array.new(WY, 0)
+      cells = ORES.to_h { |ore| [ore, Hash.new(0)] }
+      64.times do |x|
+        64.times do |z|
+          (1...WY).each do |y|
+            b = world.get(x, y, z)
+            stone[y] += 1 if b == Block::STONE || cells.key?(b)
+            next unless cells.key?(b)
+            cell = b == Block::COAL_ORE ? [x >> 2, y >> 1, z >> 2] : [x >> 1, y >> 1, z >> 1]
+            cells[b][cell] += 1
+          end
+        end
+      end
+      [stone, cells]
+    end
+  end
+
+  def test_each_ore_fills_its_share_of_the_stone_at_each_layer
+    stone, cells = WorldTest.ore_area
+    ORES.each do |ore|
+      want = (1...WY).sum { |y| stone[y] * World.ore_at(ore, y) / 256 }
+      assert_in_delta 1.0, cells[ore].values.sum / want, 0.15, Block::NAMES[ore]
+    end
+  end
+
+  # Caves and the land surface cut some clumps, so a clump holds a bit
+  # less than a vein.
+  def test_a_clump_of_ore_fills_its_cell_with_about_the_blocks_of_a_vein
+    _, cells = WorldTest.ore_area
+    { Block::COAL_ORE => World::VEIN_17, Block::IRON => World::VEIN_9, Block::DIAMOND => World::DIAMOND_VEIN }.each do |ore, vein|
+      mean = cells[ore].values.sum.to_f / cells[ore].size
+      assert_in_delta 0.93 * vein, mean, 0.08 * vein, Block::NAMES[ore]
+    end
+  end
+
+  # Each of the 16 columns of coal cells in a chunk has its own rolls. So
+  # few pairs of cells in one chunk and at one height both hold coal.
+  def test_each_coal_cell_of_a_chunk_has_its_own_roll
+    _, cells = WorldTest.ore_area
+    coal = cells[Block::COAL_ORE].keys
+    pairs = coal.group_by { |x, y, z| [x >> 2, y, z >> 2] }.values.sum { |same| same.size * (same.size - 1) / 2 }
+    assert_operator pairs, :<, coal.size / 3
+  end
+
+  # The generator keeps the rolls of the coal cells of the last chunk, so
+  # the next chunk must make all of its own.
+  def test_a_chunk_has_the_same_blocks_after_another_chunk
+    first = World.new(1337)
+    first.load_chunk(0, 0)
+    second = World.new(1337)
+    second.load_chunk(5, 3)
+    second.load_chunk(0, 0)
+    assert_equal first.chunk_bytes(0, 0), second.chunk_bytes(0, 0)
   end
 
   # 1 block of ore in each layer of a chunk takes 1 full cell in 256
