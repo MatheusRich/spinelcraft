@@ -31,8 +31,7 @@ class Game
   # other systems) pastes the clipboard.
   def handle_chat
     n = Gfx.in_typed_count
-    i = 0
-    while i < n
+    n.times do |i|
       c = Gfx.in_typed(i)
       if c == Key::TYPED_ESCAPE
         close_chat
@@ -52,7 +51,6 @@ class Game
       else
         @chat.type(c.chr)
       end
-      i += 1
     end
   end
 
