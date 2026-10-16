@@ -150,11 +150,7 @@ class Chat
   end
 
   def age(dt)
-    i = 0
-    while i < @ages.size
-      @ages[i] += dt
-      i += 1
-    end
+    @ages.size.times { |i| @ages[i] += dt }
     nil
   end
 end
