@@ -31,11 +31,7 @@ class Recipe
   def self.supply(ing, slots)
     fillers = Block.fillers(ing)
     total = 0
-    index = 0
-    while index < fillers.size
-      total += slots.total(fillers[index])
-      index += 1
-    end
+    fillers.each { |filler| total += slots.total(filler) }
     total
   end
 
