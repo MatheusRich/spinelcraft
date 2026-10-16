@@ -110,8 +110,7 @@ class Game
   # Moves each boat in a loaded chunk. The boat that the player rides takes
   # the movement keys, turns the player with it, and carries the player.
   def update_boats(dt, fwd, turn)
-    i = 0
-    while i < @boats.size
+    @boats.size.times do |i|
       boat = @boats[i]
       if @world.loaded?(boat.x.to_f.floor, boat.z.to_f.floor)
         ridden = i == @riding
@@ -124,7 +123,6 @@ class Game
           play(boat.afloat ? Sfx::STEP_WATER : Sfx::STEP_WOOD, 0.3) if boat.strokes.to_i != strokes
         end
       end
-      i += 1
     end
   end
 
@@ -134,8 +132,7 @@ class Game
     @target_boat = -1
     hit_t = @player.hit_t.to_f
     best = @player.hit && hit_t < Player::MOB_REACH ? hit_t : Player::MOB_REACH
-    i = 0
-    while i < @boats.size
+    @boats.size.times do |i|
       if i != @riding
         t = @boats[i].hit_distance(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
         if t >= 0.0 && t < best
@@ -143,7 +140,6 @@ class Game
           @target_boat = i
         end
       end
-      i += 1
     end
     @target_boat_t = best
   end
