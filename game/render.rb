@@ -168,8 +168,7 @@ class Game
   def make_stars
     @stars = []
     rng = Rng.new(977)
-    i = 0
-    while i < STARS
+    STARS.times do
       u = (rng.next_int % 10000) / 10000.0
       v = (rng.next_int % 10000) / 10000.0
       bright = 0.4 + (rng.next_int % 600) / 1000.0
@@ -177,7 +176,6 @@ class Game
       y = v * 1.6 - 0.6
       r = Math.sqrt(1.0 - y * y)
       @stars << r * Math.cos(theta) << y << r * Math.sin(theta) << bright
-      i += 1
     end
   end
 
