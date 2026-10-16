@@ -121,23 +121,6 @@ class Game
     end
   end
 
-  # Flight is as fast as in Minecraft at the ground, and gets faster up to
-  # Player::FLY_BOOST times as fast at Player::FLY_HIGH above it.
-  def test_fly_speed(x, z, ground)
-    y = @player.y
-    @player.x = x + 0.5
-    @player.z = z + 0.5
-    @player.y = ground + 1.0
-    low = @player.fly_boost(@world)
-    @player.y = ground + 1.0 + Player::FLY_HIGH / 2.0
-    mid = @player.fly_boost(@world)
-    @player.y = ground + 1.0 + Player::FLY_HIGH * 2.0
-    high = @player.fly_boost(@world)
-    @player.y = y
-    check("flight is slow near the ground and fast high above it",
-          low == 1.0 && mid == (1.0 + Player::FLY_BOOST) / 2.0 && high == Player::FLY_BOOST)
-  end
-
   def check(name, ok)
     puts "#{ok ? "PASS" : "FAIL"} #{name}"
     @checks += 1
@@ -151,7 +134,6 @@ class Game
     @failures = 0
     test_spawn
     test_sandstone
-    test_desert_well
     x = @spawn_x.floor + 2
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
@@ -166,9 +148,7 @@ class Game
       end
     end
     land_falling
-    test_block_bytes
     test_falling_and_torches(x, z, ground)
-    test_fly_speed(x, z, ground)
     test_survival(x, z, ground)
     test_monsters
     test_fire
@@ -221,15 +201,12 @@ class Game
     test_hand_sway
     test_pause
     test_menu
-    test_command_words
     test_commands
     test_tab_completion
     test_fly_keys
-    test_chips
     test_boats
     test_sounds
     test_streaming
-    test_terrain_tables
     File.delete(@save_path) if File.exist?(@save_path)
     puts @failures == 0 ? "ALL #{@checks} PASS" : "#{@failures} OF #{@checks} FAILED"
     @failures == 0
@@ -270,66 +247,6 @@ class Game
     craft_recipe(recipe_for(Block::SANDSTONE))
     check("4 sand make a sandstone", @inv.total(Block::SAND) == 1 && @inv.total(Block::SANDSTONE) == 1)
     @inv.clear
-  end
-
-  # A desert well has the blocks of minecraft.wiki/w/Desert_Well/Structure:
-  # 89 sandstone and 12 slabs, which are sandstone here, 4 sand and 2
-  # suspicious sand, which are sand here, and 5 water. The water is a
-  # cross with air above it.
-  def test_desert_well
-    counts = Array.new(Block::COUNT, 0)
-    (-2..4).each do |dy|
-      (-World::WELL_REACH..World::WELL_REACH).each do |dx|
-        (-World::WELL_REACH..World::WELL_REACH).each { |dz| counts[@world.well_block(dx, dy, dz)] += 1 }
-      end
-    end
-    cross = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].all? do |c|
-      @world.well_block(c[0].to_i, 0, c[1].to_i) == Block::WATER && @world.well_block(c[0].to_i, 1, c[1].to_i) == Block::AIR
-    end
-    check("a desert well has the blocks of Minecraft's",
-          counts[Block::SANDSTONE] == 101 && counts[Block::SAND] == 6 && counts[Block::WATER] == 5 && cross)
-  end
-
-  # The terrain tables are read by position, so each must have one entry
-  # for each biome or tree kind, and the spline needs rising points.
-  def test_terrain_tables
-    biomes = [Biome::GROUND, Biome::TREES, Biome::TREE, Biome::BIRCHES, Biome::LARGE_OAKS, Biome::PINES, Biome::GRASS, Biome::FLOWERS, Biome::GRASS_COLOR, Biome::FOLIAGE_COLOR].all? { |t| t.size == Biome::ALL.size }
-    kinds = World::TRUNK.size == Biome::TREE_KINDS.size && World::WOOD.size == Biome::TREE_KINDS.size && Biome::TREE.all? { |k| k < Biome::TREE_KINDS.size }
-    xs = World::CONTINENT
-    rising = (1...xs.size).all? { |i| xs[i] > xs[i - 1] }
-    check("each terrain table has one entry for each biome or tree kind", biomes && kinds)
-    check("the continent spline has rising points and one height for each", rising && World::BASE.size == xs.size)
-  end
-
-  # A command line splits into capital words, and its numbers, coordinates,
-  # times and names read as in Minecraft.
-  def test_command_words
-    words = Command.words("/tp  ~ ~5 -10")
-    check("a command splits into capital words without the slash",
-          words.size == 4 && words[0] == "TP" && words[1] == "~" && words[3] == "-10")
-    check("a coordinate is a number or ~ with a number or nothing",
-          Command.coord?("~") && Command.coord?("~-2.5") && Command.coord?("-7") && !Command.coord?("1X") &&
-          !Command.coord?("~~") && !Command.coord?("-") && !Command.coord?("1.2.3"))
-    check("~ is relative, and a whole x or z goes to the center of its block",
-          Command.coord("~5", 10.0, false) == 15.0 && Command.coord("~", 3.25, true) == 3.25 &&
-          Command.coord("10", 0.0, true) == 10.5 && Command.coord("10", 0.0, false) == 10.0 &&
-          Command.coord("-3", 0.0, true) == -2.5 && Command.coord("10.25", 0.0, true) == 10.25)
-    check("a time is a name or a number of days, seconds or ticks",
-          Command.ticks("NIGHT") == 13000 && Command.ticks("2D") == 48000 && Command.ticks("20S") == 400 &&
-          Command.ticks("100") == 100 && Command.ticks("5T") == 5 && Command.ticks("SOON") == -1 && Command.ticks("-5") == -1)
-    check("a time is at most 2^31 - 1 ticks, as an int of Minecraft",
-          Command.ticks("2147483647") == 2147483647 && Command.ticks("2147483648") == -1 &&
-          Command.ticks("99999999999999999999D") == -1)
-    check("an item name is its name with _ for each space, and only the creative picker has items",
-          Command.item_id("DIAMOND_PICKAXE") == Block::DIAMOND_PICK && Command.item_id("MINECRAFT:WHEAT") == Block::WHEAT &&
-          Command.item_id("WATER") == Block::WATER && Command.item_id("AIR") == -1 && Command.item_id("DIRTT") == -1 &&
-          Command.item_id("WHEAT_CROPS") == -1)
-    check("the boats, the pumpkins and the shears have ids as in Minecraft",
-          Command.item_id("JACK_O_LANTERN") == Block::JACK_O_LANTERN && Command.item_id("CARVED_PUMPKIN") == Block::CARVED_PUMPKIN &&
-          Command.item_id("SPRUCE_BOAT") == Block::SPRUCE_BOAT && Command.item_id("SHEARS") == Block::SHEARS &&
-          Command.item_id("PUMPKIN_SEEDS") == Block::PUMPKIN_SEEDS && Command.item_id("PUMPKIN_STEM") == -1)
-    check("a mob name gives its kind", Command.mob("CREEPER") == Mob::CREEPER && Command.mob("MINECRAFT:PIG") == Mob::PIG &&
-          Command.mob("GHAST") == -1)
   end
 
   # The commands change the time, the inventory and the place of the
@@ -749,7 +666,6 @@ class Game
     (0..9).each { |dx| set_block(px + dx, y, zz, Block::AIR) }
     check("a walking mob makes step sounds", steps >= 1)
     test_sound_position
-    test_arrow_lands
     test_block_sounds
     test_lava_swim
     test_eat_slowdown
@@ -759,41 +675,12 @@ class Game
     test_music
   end
 
-  # Every track opens, and Music picks the tracks as in Minecraft: a long
-  # quiet gap after each track. Each track plays once before a track plays
-  # again, and never twice in a row. Underground the tracks are mining
-  # tracks, and at night no track starts on the surface.
+  # Every track opens. test/music_test.rb checks how Music picks the tracks.
   def test_music
     opened = 0
     Music::FILES.size.times { |id| opened += 1 if Music.start(id) }
     Gfx.au_music_stop
     check("every music track opens", opened == Music::FILES.size && !Gfx.au_music_playing)
-    m = Music.new(1)
-    early = m.next_track(Music::FIRST_WAIT - 0.5, false, false, false)
-    first = m.next_track(1.0, false, false, false)
-    busy = m.next_track(Music::GAP_MAX, true, false, false)
-    soon = m.next_track(Music::GAP_MIN - 1.0, false, false, false)
-    check("the next track waits for the track to end and then for the gap",
-          early == -1 && first >= 0 && first < Music::MINING && busy == -1 && soon == -1)
-    night = m.next_track(Music::GAP_MAX, false, false, true)
-    deep = m.next_track(0.0, false, true, true)
-    check("at night a track starts underground but not on the surface", night == -1 && deep >= Music::MINING)
-    # Each round of Music::MINING surface picks holds each surface track once.
-    m = Music.new(2)
-    last = -1
-    repeats = 0
-    full_rounds = 0
-    20.times do
-      seen = Array.new(Music::MINING, false)
-      Music::MINING.times do
-        track = m.next_track(Music::GAP_MAX, false, false, false)
-        seen[track] = true if track >= 0 && track < Music::MINING
-        repeats += 1 if track == last
-        last = track
-      end
-      full_rounds += 1 if seen.all? { |s| s }
-    end
-    check("each track plays once in a round, and never twice in a row", full_rounds == 20 && repeats == 0)
   end
 
   # A jump lifts the feet 1.2522 blocks, and sprint-jumps move faster than
@@ -935,19 +822,6 @@ class Game
           still < 0 && AMBIENT[furnace] == Sfx::CRACKLE)
   end
 
-  # An arrow that sticks in the ground lands once, so its sound plays once.
-  def test_arrow_lands
-    x = @spawn_x.floor + 0.5
-    z = @spawn_z.floor + 0.5
-    arrow = Arrow.new(x, @world.height_at(x.floor, z.floor) + 2.0, z, 0.0, -10.0, 0.0, 5.0, 0)
-    steps = 0
-    steps += 1 while arrow.fly(@world, 1.0 / 60.0) && steps < 120
-    landed = arrow.landed
-    arrow.landed = false
-    arrow.fly(@world, 1.0 / 60.0)
-    check("an arrow lands once when it sticks in a block", landed && !arrow.landed)
-  end
-
   # A sound to the side pans to that side, a sound far below is quiet,
   # and an explosion reaches farther. At yaw 0 the player looks toward -z,
   # so +x is to the right.
@@ -995,13 +869,6 @@ class Game
     restore_pose
   end
 
-  # A broken block throws 64 chips, as in Minecraft.
-  def test_chips
-    before = @particles.count(Particle::CHIP)
-    @particles.burst(@spawn_x.floor, SKY_Y, @spawn_z.floor, Block::STONE)
-    check("a broken block throws 64 chips", @particles.count(Particle::CHIP) - before == 64)
-  end
-
   # The held item moves only a little in each frame while the player walks,
   # and when the player stops.
   def test_hand_sway
@@ -1039,30 +906,6 @@ class Game
       update_falling(0.02)
       t += 0.02
     end
-  end
-
-  # The store keeps each block id in its own byte, also the ids from 128
-  # and the byte that holds the sign bit. A column of 16 cells covers each
-  # byte of an Integer twice.
-  def test_block_bytes
-    x = @spawn_x.floor + 30
-    z = @spawn_z.floor + 30
-    ids = [Block::COUNT - 1, Block::STONE, Block::PLACED_SPRUCE_LEAVES, Block::AIR]
-    y = 0
-    while y < 16
-      @world.set(x, SKY_Y - 16 + y, z, ids[y % 4])
-      y += 1
-    end
-    kept = (0...16).all? { |k| @world.get(x, SKY_Y - 16 + k, z) == ids[k % 4] }
-    @world.set(x, SKY_Y - 9, z, Block::STONE)
-    changed = (0...16).all? { |k| @world.get(x, SKY_Y - 16 + k, z) == (k == 7 ? Block::STONE : ids[k % 4]) }
-    y = 0
-    while y < 16
-      @world.set(x, SKY_Y - 16 + y, z, Block::AIR)
-      y += 1
-    end
-    cleared = (0...16).all? { |k| @world.get(x, SKY_Y - 16 + k, z) == Block::AIR }
-    check("the store keeps each block id in its own byte, also ids from 128", kept && changed && cleared)
   end
 
   # Falling sand, the torch list, and how far torch light goes.

@@ -171,6 +171,10 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 
 `SELFTEST=1` writes and deletes its own save and options files in the temporary folder (`$TMPDIR`). It does not read or change `world.sav` or `options.txt`. `tools/selftest.sh` builds the game, runs the self-test, and prints only the FAIL lines and the totals.
 
+## Tests
+
+`rake test` runs the Minitest tests in `test/` under CRuby, with no build. They check the game classes that do not need the `Game` object or `Gfx`, such as `World`, `Player`, `Command` and `Music`. Spinel does not compile Minitest, so the self-test (`SELFTEST=1`) checks the compiled game and the rules of `Game`.
+
 `tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby. `ruby tools/map.rb [OUT]` draws the generated world without the game: `OUT-top.png` from above and `OUT-tilt.png` at a slant, with biome colors, water depth and spawn. `SEED`, `SIZE`, `STEP` and `LIFT` change the map.
 
 `tools/bench.sh [REF]` compares the working tree with a git ref (`main` by default). It builds both, runs each `N` times in turns (3 by default) with `AUTOPILOT=1`, and prints the median world generation time and CPU time per frame. It also prints two counts from Spinel that go up when a value loses its type: the `sp_box` calls in the C and the `--warn-widen` warnings.
