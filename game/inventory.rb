@@ -99,25 +99,26 @@ class Game
   # gives: a click takes its stack, or adds it to the same kind in the hand.
   def click_furnace(i, left)
     slots = open_furnace.slots
-    if i == Furnace::OUTPUT && @held_count > 0
-      return if @held_block != slots.block(i) || slots.empty?(i)
-      moved = [Block.stack(@held_block) - @held_count, slots.count(i)].min
-      @held_count += moved
+    held = @held.block(0)
+    if i == Furnace::OUTPUT && !@held.empty?(0)
+      return if held != slots.block(i) || slots.empty?(i)
+      moved = [Block.stack(held) - @held.count(0), slots.count(i)].min
+      @held.set(0, held, @held.count(0) + moved)
       slots.take(i, moved)
       return
     end
-    if @held_count > 0 && i == Furnace::FUEL && !Furnace.fuel?(@held_block)
+    if !@held.empty?(0) && i == Furnace::FUEL && !Furnace.fuel?(held)
       say("NOT A FUEL")
       return
     end
-    if @held_count > 0 && i == Furnace::INPUT && !@recipe_book.smelts?(@held_block)
+    if !@held.empty?(0) && i == Furnace::INPUT && !@recipe_book.smelts?(held)
       say("THE FURNACE DOES NOT SMELT THAT")
       return
     end
     if left
-      click_cell(slots, i)
+      slots.click(i, @held)
     else
-      split_cell(slots, i)
+      slots.click_half(i, @held)
     end
   end
 
@@ -256,7 +257,7 @@ class Game
       tell_recipes(@inv.block(i)) unless @inv.empty?(i)
       i += 1
     end
-    tell_recipes(@held_block) if @held_count > 0
+    tell_recipes(@held.block(0)) unless @held.empty?(0)
   end
 
   def tell_recipes(b)
@@ -287,57 +288,11 @@ class Game
     -1
   end
 
-  # A click picks up a stack, puts it down, merges it, or swaps it.
-  def click_cell(slots, i)
-    b = slots.block(i)
-    n = slots.count(i)
-    if @held_count == 0
-      return if n == 0
-      @held_block = b
-      @held_count = n
-      slots.set(i, b, 0)
-    elsif n == 0
-      slots.set(i, @held_block, @held_count)
-      @held_count = 0
-      @held_block = Block::AIR
-    elsif b == @held_block && !Block.tool?(b)
-      moved = [Block.stack(b) - n, @held_count].min
-      slots.set(i, b, n + moved)
-      @held_count -= moved
-      @held_block = Block::AIR if @held_count == 0
-    else
-      slots.set(i, @held_block, @held_count)
-      @held_block = b
-      @held_count = n
-    end
-  end
-
-  # A right-click with an empty hand takes half the stack; a tool goes
-  # whole. With a stack in the hand, it puts one item into an empty cell or
-  # onto the same kind, and it swaps otherwise.
-  def split_cell(slots, i)
-    b = slots.block(i)
-    n = slots.count(i)
-    if @held_count == 0
-      return if n == 0
-      taken = Block.tool?(b) ? n : (n + 1) / 2
-      @held_block = b
-      @held_count = taken
-      slots.take(i, taken)
-    elsif Block.tool?(@held_block) || (n > 0 && b != @held_block)
-      click_cell(slots, i)
-    elsif n < Block.stack(@held_block)
-      slots.set(i, @held_block, n + 1)
-      @held_count -= 1
-      @held_block = Block::AIR if @held_count == 0
-    end
-  end
-
   # A Shift-click on inventory slot i moves the stack into the open chest,
   # or into the input or the fuel slot of the open furnace, or else between
   # the hotbar and the backpack.
   def quick_move_slot(i)
-    return if @inv.empty?(i) || @held_count > 0
+    return if @inv.empty?(i) || !@held.empty?(0)
     furnace = station_makes?(Recipe::AT_FURNACE)
     if @chest_key >= 0
       @inv.move_stack(i, @chest, 0, CHEST_SLOTS)
@@ -354,7 +309,7 @@ class Game
 
   # A Shift-click on chest cell k moves the stack into the inventory.
   def quick_move_chest(k)
-    return if @chest.empty?(k) || @held_count > 0
+    return if @chest.empty?(k) || !@held.empty?(0)
     @chest.move_stack(k, @inv, 0, INV)
   end
 
@@ -401,25 +356,11 @@ class Game
     (0...CHEST_SLOTS).each { |k| drop_from_block(chest.block(k), chest.count(k), x, y, z) }
   end
 
+  # The stack in the hand goes back into the inventory, onto stacks of its
+  # kind first, and then into the open chest.
   def return_held
-    tool = Block.tool?(@held_block)
-    @held_count = 0 if tool && @held_count > 0 && @inv.put(@held_block, @held_count)
-    while @held_count > 0 && !tool && @inv.add(@held_block)
-      @held_count -= 1
-    end
-    if @held_count > 0 && @chest_key >= 0
-      k = 0
-      while k < CHEST_SLOTS && @held_count > 0
-        n = @chest.count(k)
-        if n == 0 || (@chest.block(k) == @held_block && !tool)
-          taken = tool || Block.stack(@held_block) - n >= @held_count ? @held_count : Block.stack(@held_block) - n
-          @chest.set(k, @held_block, n + taken)
-          @held_count -= taken
-        end
-        k += 1
-      end
-    end
-    @held_block = Block::AIR if @held_count == 0
+    @held.move_stack(0, @inv, 0, INV)
+    @held.move_stack(0, @chest, 0, CHEST_SLOTS) if @chest_key >= 0
   end
 
   def toggle_inventory
@@ -428,10 +369,9 @@ class Game
     if @inventory_open
       return_held
       # What does not fit falls to the ground.
-      if @held_count > 0
-        throw_stack(@held_block, @held_count)
-        @held_count = 0
-        @held_block = Block::AIR
+      unless @held.empty?(0)
+        throw_stack(@held.block(0), @held.count(0))
+        @held.clear
       end
     end
     if @inventory_open && @chest_key >= 0
@@ -466,9 +406,9 @@ class Game
         if shift
           quick_move_slot(hover)
         elsif left
-          click_cell(@inv, hover)
+          @inv.click(hover, @held)
         else
-          split_cell(@inv, hover)
+          @inv.click_half(hover, @held)
         end
       end
       if @chest_key >= 0
@@ -477,9 +417,9 @@ class Game
           if shift
             quick_move_chest(cell)
           elsif left
-            click_cell(@chest, cell)
+            @chest.click(cell, @held)
           else
-            split_cell(@chest, cell)
+            @chest.click_half(cell, @held)
           end
         end
       elsif station_makes?(Recipe::AT_FURNACE) && furnace_hover(w, h, s) >= 0
@@ -491,7 +431,7 @@ class Game
         end
       elsif left
         recipe = recipe_hover(w, h, s)
-        craft_recipe(recipe, shift ? CRAFT_ALL : 1) if recipe >= 0 && @held_count == 0
+        craft_recipe(recipe, shift ? CRAFT_ALL : 1) if recipe >= 0 && @held.empty?(0)
       end
     elsif Gfx.in_button_pressed(1)
       hover = inventory_hover(w, h, ui_scale(h))

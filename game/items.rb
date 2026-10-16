@@ -48,9 +48,8 @@ class Game
       end
       i += 1
     end
-    drop_item(@held_block, @held_count, p.x, p.y + 0.5, p.z, 0.0, 3.0, 0.0, PICKUP_WAIT)
-    @held_block = Block::AIR
-    @held_count = 0
+    drop_item(@held.block(0), @held.count(0), p.x, p.y + 0.5, p.z, 0.0, 3.0, 0.0, PICKUP_WAIT)
+    @held.clear
   end
 
   # The number of b on the ground.

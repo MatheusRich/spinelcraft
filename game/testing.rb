@@ -1520,15 +1520,14 @@ class Game
   # inventory and an open chest.
   def test_split_and_quick_move
     @inv.clear
-    @held_count = 0
-    @held_block = Block::AIR
+    @held.clear
     @inv.set(5, Block::DIRT, 7)
-    split_cell(@inv, 5)
-    half = @held_count == 4 && @inv.count(5) == 3
-    split_cell(@inv, 6)
-    split_cell(@inv, 6)
-    split_cell(@inv, 5)
-    one = @inv.count(6) == 2 && @inv.count(5) == 4 && @held_count == 1
+    @inv.click_half(5, @held)
+    half = @held.count(0) == 4 && @inv.count(5) == 3
+    @inv.click_half(6, @held)
+    @inv.click_half(6, @held)
+    @inv.click_half(5, @held)
+    one = @inv.count(6) == 2 && @inv.count(5) == 4 && @held.count(0) == 1
     return_held
     check("a right-click takes half a stack and puts down one item", half && one && @inv.count(5) == 5)
     @inv.clear
@@ -1746,6 +1745,20 @@ class Game
     dropped = ground_count(Block::DIAMOND) == 7 && @inv.total(Block::DIAMOND) == 0
     collect_items
     check("a broken chest drops its contents", dropped && @inv.total(Block::DIAMOND) == 7 && @chests.empty?)
+    # The stack in the hand goes back when the screen closes. With the
+    # inventory full, it goes onto a stack of its kind in the chest first,
+    # and then into an empty slot of the chest.
+    @inv.clear
+    @items.clear
+    set_block(cx, SKY_Y, cz, Block::CHEST)
+    open_chest(cx, SKY_Y, cz)
+    (0...INV).each { |slot| @inv.set(slot, Block::STONE, 64) }
+    @chest.set(5, Block::DIRT, 60)
+    @held.set(0, Block::DIRT, 10)
+    toggle_inventory
+    check("the stack in the hand fills a stack of its kind in the open chest before an empty slot",
+          @chest.count(5) == 64 && @chest.block(0) == Block::DIRT && @chest.count(0) == 6 && @held.empty?(0) && ground_count(Block::DIRT) == 0)
+    set_block(cx, SKY_Y, cz, Block::AIR)
     # An open chest destroyed by a blast never duplicates its contents.
     @inv.clear
     @items.clear
@@ -2518,14 +2531,12 @@ class Game
     check("a furnace with heat is lit, and a furnace with none is not", dark && lit)
     # A plank runs out 100 ticks into the second item. Then the progress goes
     # back 2 ticks for each tick, and new fuel continues from there.
-    @held_block = Block::OAK_PLANKS
-    @held_count = 1
+    @held.set(0, Block::OAK_PLANKS, 1)
     click_furnace(Furnace::FUEL, true)
     update_furnaces(15.0)
     update_furnaces(1.0)
     cooled = slots.count(Furnace::OUTPUT) == 4 && f.progress == 60 && !f.lit?
-    @held_block = Block::OAK_PLANKS
-    @held_count = 1
+    @held.set(0, Block::OAK_PLANKS, 1)
     click_furnace(Furnace::FUEL, true)
     update_furnaces(7.0)
     resumed = slots.count(Furnace::OUTPUT) == 5 && f.progress == 0
@@ -2553,17 +2564,15 @@ class Game
     craft_recipe(recipe_for(Block::GLASS))
     other = @inv.total(Block::SAND) == 1 && @message == "THE FURNACE HOLDS IRON ORE"
     check("a smelting recipe puts its ingredient into the furnace", first && rest && other)
-    @held_block = Block::IRON_INGOT
-    @held_count = 1
+    @held.set(0, Block::IRON_INGOT, 1)
     click_furnace(Furnace::FUEL, true)
-    not_fuel = @held_count == 1 && slots.count(Furnace::FUEL) == 2 && @message == "NOT A FUEL"
-    @held_block = Block::DIRT
+    not_fuel = @held.count(0) == 1 && slots.count(Furnace::FUEL) == 2 && @message == "NOT A FUEL"
+    @held.set(0, Block::DIRT, 1)
     click_furnace(Furnace::INPUT, true)
-    not_smelted = @held_block == Block::DIRT && slots.block(Furnace::INPUT) == Block::IRON && @message == "THE FURNACE DOES NOT SMELT THAT"
+    not_smelted = @held.block(0) == Block::DIRT && slots.block(Furnace::INPUT) == Block::IRON && @message == "THE FURNACE DOES NOT SMELT THAT"
     click_furnace(Furnace::OUTPUT, true)
-    no_output = @held_block == Block::DIRT && slots.empty?(Furnace::OUTPUT)
-    @held_count = 0
-    @held_block = Block::AIR
+    no_output = @held.block(0) == Block::DIRT && slots.empty?(Furnace::OUTPUT)
+    @held.clear
     survival = @survival
     @survival = true
     @items.clear
@@ -3614,12 +3623,12 @@ class Game
     @inv.clear
     (9 * Slots::STACK + 3).times { @inv.add(Block::DIRT) }
     check("a full hotbar spills into the backpack", @inv.block(9) == Block::DIRT && @inv.count(9) == 3)
-    click_cell(@inv, 9)
-    click_cell(@inv, 20)
-    check("clicks move a stack", @inv.count(9) == 0 && @inv.block(20) == Block::DIRT && @inv.count(20) == 3 && @held_count == 0)
-    click_cell(@inv, 20)
-    click_cell(@inv, 0)
-    check("clicks merge into a full stack and keep the rest", @inv.count(0) == 64 && @held_count == 3)
+    @inv.click(9, @held)
+    @inv.click(20, @held)
+    check("clicks move a stack", @inv.count(9) == 0 && @inv.block(20) == Block::DIRT && @inv.count(20) == 3 && @held.empty?(0))
+    @inv.click(20, @held)
+    @inv.click(0, @held)
+    check("clicks merge into a full stack and keep the rest", @inv.count(0) == 64 && @held.count(0) == 3)
     return_held
   end
 

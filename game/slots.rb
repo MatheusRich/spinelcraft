@@ -99,6 +99,54 @@ class Slots
     end
   end
 
+  # A click on slot index with the stack in slot 0 of hand: the hand picks
+  # up the stack, puts its stack down, merges its stack into the stack of
+  # the same kind, or swaps the two stacks.
+  def click(index, hand)
+    kind = @blocks[index]
+    count = @counts[index]
+    held_kind = hand.block(0)
+    held_count = hand.count(0)
+    if held_count == 0
+      return if count == 0
+      hand.set(0, kind, count)
+      set(index, kind, 0)
+    elsif count == 0
+      set(index, held_kind, held_count)
+      hand.set(0, held_kind, 0)
+    elsif kind == held_kind && !Block.tool?(kind)
+      moved = [Block.stack(kind) - count, held_count].min
+      set(index, kind, count + moved)
+      hand.take(0, moved)
+    else
+      set(index, held_kind, held_count)
+      hand.set(0, kind, count)
+    end
+    nil
+  end
+
+  # A right-click on slot index with the stack in slot 0 of hand. An empty
+  # hand takes half the stack, and a tool goes whole. A hand with a stack
+  # puts one item into an empty slot or onto the same kind, and it swaps
+  # otherwise.
+  def click_half(index, hand)
+    kind = @blocks[index]
+    count = @counts[index]
+    held_kind = hand.block(0)
+    if hand.empty?(0)
+      return if count == 0
+      taken = Block.tool?(kind) ? count : (count + 1) / 2
+      hand.set(0, kind, taken)
+      take(index, taken)
+    elsif Block.tool?(held_kind) || (count > 0 && kind != held_kind)
+      click(index, hand)
+    elsif count < Block.stack(held_kind)
+      set(index, held_kind, count + 1)
+      hand.take(0, 1)
+    end
+    nil
+  end
+
   # Moves the stack in slot i into the slots lo...hi of to: onto stacks of
   # the same kind first, then into empty slots. What does not fit stays in
   # slot i.
@@ -125,5 +173,6 @@ class Slots
       end
       k += 1
     end
+    nil
   end
 end

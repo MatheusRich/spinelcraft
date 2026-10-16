@@ -90,8 +90,8 @@ class Game
     @fluid_x = 0
     @fluid_y = 0
     @fluid_z = 0
-    @held_block = 0
-    @held_count = 0
+    # The stack in the hand while the inventory is open.
+    @held = Slots.new(1)
     @chests = {}
     # The open chest, and its World.key; -1 when no chest is open.
     @chest = Slots.new(CHEST_SLOTS)

@@ -263,11 +263,11 @@ class Game
     label = hover >= 0 && !@inv.empty?(hover) ? Block::NAMES[@inv.block(hover)] : tip
     mid = (top[0] + bottom[0] + bottom[2]) / 2.0
     @ui.text(mid - @ui.text_width(label, 2.0 * s) / 2.0, bottom[1] + bottom[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
-    if @held_count > 0
+    unless @held.empty?(0)
       mx = Gfx.in_mouse_x
       my = Gfx.in_mouse_y
-      @ui.item(mx - 20.0 * s, my - 20.0 * s, 40.0 * s, @held_block, 1.0)
-      draw_count(@held_block, @held_count, mx - 20.0 * s, my - 20.0 * s, 40.0 * s, 2.0 * s, s)
+      @ui.item(mx - 20.0 * s, my - 20.0 * s, 40.0 * s, @held.block(0), 1.0)
+      draw_count(@held.block(0), @held.count(0), mx - 20.0 * s, my - 20.0 * s, 40.0 * s, 2.0 * s, s)
     end
   end
 
