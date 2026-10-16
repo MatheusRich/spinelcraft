@@ -3632,9 +3632,23 @@ class Game
     check("an edited chunk unloads and comes back the same", gone && @world.get(ex, eh + 4, ez) == Block::GLASS && @world.chunk_bytes(ex >> 4, ez >> 4) == before)
     check("an unloaded chunk generates the same blocks again", @world.chunk_bytes((ex >> 4) + 3, ez >> 4) == far)
     set_block(ex, eh + 4, ez, Block::AIR)
-    far = @lods[LEVELS - 1]
+    far = @far.lod(FarTerrain::LEVELS - 1)
     slot = far.build(3, -2)
     check("a far tile has a top face for each cell, sorted by direction", far.faces.size / 2 == far.offsets[7] && far.offsets[3] - far.offsets[2] == Lod::CELLS * Lod::CELLS && slot == Lod.slot(3, -2))
+    # A view of the full reach of level 0 needs no other level. Level 0
+    # builds all of its 11 rings: 23 x 23 tiles.
+    view = FarTerrain::REACH.to_f
+    @far.take_builds
+    @far.build_tiles(ex.to_i, ez.to_i, view, 10_000_000_000)
+    near = @far.lod(0)
+    tx = ex.to_i >> near.tile_shift
+    tz = ez.to_i >> near.tile_shift
+    square = Array.new(4, 0.0)
+    @far.skip_square(0, view, square, 0)
+    check("far terrain builds the rings of tiles around the player, and the next level skips them",
+          @far.take_builds == 23 * 23 && @far.take_builds == 0 && near.ready?(tx, tz) && near.ready?(tx + 11, tz - 11) &&
+          !near.ready?(tx + 12, tz) && !@far.lod(1).ready?(tx >> 1, tz >> 1) &&
+          square[0] == ((tx - 11) * near.tile).to_f && square[3] == ((tz + 12) * near.tile).to_f)
     # The world of the self-test has grass near the player, so animals
     # spawn on it.
     @mobs.clear

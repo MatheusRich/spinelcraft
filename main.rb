@@ -25,6 +25,7 @@ require_relative "game/sounds"
 require_relative "game/music"
 require_relative "game/clouds"
 require_relative "game/lod"
+require_relative "game/far_terrain"
 require_relative "game/constants"
 require_relative "game/save"
 require_relative "game/streaming"
@@ -62,11 +63,6 @@ class Game
     # setup builds the World (reset_world) once it knows the seed: that of
     # the save, or @seed for a new world.
     @lod_visible = Array.new(0, 0)
-    # Per level: the tile the ring walk is centered on, and how far it got.
-    @lod_tx = Array.new(LEVELS, World::NONE)
-    @lod_tz = Array.new(LEVELS, World::NONE)
-    @lod_at = Array.new(LEVELS, 0)
-    make_lod_ring
     @camera = Camera.new
     @ui = Ui.new
     @dyn = Mesh3.new
@@ -83,11 +79,10 @@ class Game
     @stream_cz = World::NONE
     @load_at = 0
     @mesh_at = 0
-    # The chunks loaded and meshed, and the far tiles built, since the
-    # stream center last moved (for Log::STREAM).
+    # The chunks loaded and meshed since the stream center last moved (for
+    # Log::STREAM).
     @stream_loads = 0
     @stream_meshes = 0
-    @lod_builds = 0
     make_ring
     @dirty = Array.new(CX * CZ, false)
     @dirty_list = []
@@ -273,10 +268,10 @@ class Game
   # The C layer in gfx.rb has fixed sizes. Stop at start if one no longer
   # matches the Ruby constants, not later with a wrong picture.
   def check_gfx_limits
-    abort "gfx.rb LEVELS is not #{LEVELS}" if Gfx.gfx_limit(0) != LEVELS
+    abort "gfx.rb LEVELS is not #{FarTerrain::LEVELS}" if Gfx.gfx_limit(0) != FarTerrain::LEVELS
     abort "gfx.rb COLUMNS is not #{Mesher::COLUMNS}" if Gfx.gfx_limit(1) != Mesher::COLUMNS
     abort "the world ring is not Mesher::COLUMNS wide" if WX != Mesher::COLUMNS || Lod::TRING * Lod::CELLS != Mesher::COLUMNS
-    abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + LEVELS * TILE_SLOTS
+    abort "gfx.rb MAX_SLOTS is too small" if Gfx.gfx_limit(2) < LOD_SLOT0 + FarTerrain::LEVELS * FarTerrain::TILE_SLOTS
     abort "gfx.rb UNIFORMS is not #{UNIFORMS}" if Gfx.gfx_limit(3) != UNIFORMS
     abort "gfx.rb TINT_SIZE is not #{Tint::SIZE}" if Gfx.gfx_limit(4) != Tint::SIZE
     abort "gfx.rb SOUNDS is too small" if Gfx.gfx_limit(5) < Sfx::FILES.size
@@ -735,7 +730,7 @@ class Game
       stream_around(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
       t_lod = Gfx.gfx_ns
       left = STREAM_BUDGET_NS - (t_lod - t_stream)
-      stream_lod(left > 500_000 ? left : 500_000)
+      @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, left > 500_000 ? left : 500_000)
       t_flush = Gfx.gfx_ns
       flush_dirty unless @dirty_list.empty? && @later_list.empty?
       t_render = Gfx.gfx_ns

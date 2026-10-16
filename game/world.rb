@@ -266,6 +266,28 @@ class World
   end
 
   def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)
+
+  # Appends the offsets of the square rings 0 to max to dxs and dzs, nearest
+  # ring first.
+  def self.square_rings(max, dxs, dzs)
+    r = 0
+    while r <= max
+      dx = -r
+      while dx <= r
+        dz = -r
+        while dz <= r
+          if dx.abs == r || dz.abs == r
+            dxs << dx
+            dzs << dz
+          end
+          dz += 1
+        end
+        dx += 1
+      end
+      r += 1
+    end
+    nil
+  end
   # A unique Integer for a block anywhere in the world (chest keys).
   def self.key(x, y, z) = ((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y
   def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)

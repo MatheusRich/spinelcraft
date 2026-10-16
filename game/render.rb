@@ -141,15 +141,15 @@ class Game
   def cull_far_tiles(ex, ez, reach)
     @lod_visible.clear
     level = 0
-    while level < LEVELS && @options.view > lod_start(level)
+    while level < FarTerrain::LEVELS && @options.view > FarTerrain.level_start(level)
       # Uniforms 28 + 4 * L hold the square level L skips: full detail for
       # level 0, the complete rings of level L - 1 for the others.
       at = 28 + level * 4
-      lod_square(level - 1, at) if level > 0
-      lod = @lods[level]
+      @far.skip_square(level - 1, @options.view, @uniforms, at) if level > 0
+      lod = @far.lod(level)
       size = lod.tile.to_f
       s = 0
-      while s < TILE_SLOTS
+      while s < FarTerrain::TILE_SLOTS
         if lod.built[s] == 1
           x0 = lod.tile_x[s] * size
           z0 = lod.tile_z[s] * size
@@ -161,7 +161,7 @@ class Game
           dz = 0.0 if dz < 0.0
           inside = x0 >= @uniforms[at] && z0 >= @uniforms[at + 1] && x1 <= @uniforms[at + 2] && z1 <= @uniforms[at + 3]
           if !inside && dx * dx + dz * dz < reach * reach && @camera.box_visible?(x0, 0.0, z0, x1, WY.to_f + 8.0, z1)
-            @lod_visible << LOD_SLOT0 + level * TILE_SLOTS + s << (4 | side_mask(ex, ez, x0, z0, x1, z1))
+            @lod_visible << LOD_SLOT0 + level * FarTerrain::TILE_SLOTS + s << (4 | side_mask(ex, ez, x0, z0, x1, z1))
           end
         end
         s += 1

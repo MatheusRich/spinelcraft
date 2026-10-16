@@ -25,18 +25,10 @@ class Game
                     Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
                     Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::SHEARS,
                     Block::BONE, Block::BONE_MEAL]
-  # Full-detail chunks reach this far at most; far terrain (lod.rb) draws the rest.
-  # This is the limit of the chunk ring: Game#view_radius adds 20 blocks and
-  # one ring, and 460 gives LOAD_R.
-  DETAIL_VIEW = 460.0
-  # Far terrain levels: level L has cells of 4 << L blocks and reaches
-  # LOD_REACH << L blocks, so each level has about the same number of tiles.
-  LEVELS = 4
-  LOD_REACH = 640
   # Floats that render passes to the shaders: 28, one square for each level,
   # 8 for the far cloud layer, 4 for the rain, 4 for the options, then 8
   # for each biome: its grass and foliage ratios for far terrain (Tint).
-  CLOUD_UNIFORMS = 28 + 4 * LEVELS
+  CLOUD_UNIFORMS = 28 + 4 * FarTerrain::LEVELS
   RAIN_UNIFORMS = CLOUD_UNIFORMS + 8
   OPTION_UNIFORMS = RAIN_UNIFORMS + 4
   TINT_UNIFORMS = OPTION_UNIFORMS + 4
@@ -113,9 +105,9 @@ class Game
   SYNC_R = 8
   STREAM_BUDGET_NS = 2_500_000
 
-  # GPU slots after the chunks' opaque and water slots, TILE_SLOTS per level.
+  # GPU slots after the chunks' opaque and water slots, FarTerrain::TILE_SLOTS
+  # per level.
   LOD_SLOT0 = CX * CZ * 2
-  TILE_SLOTS = Lod::TRING * Lod::TRING
 
   # Survival crafting: turns the selected stack into something else.
   # Where a recipe works: by hand (the E screen), on a crafting table, or in

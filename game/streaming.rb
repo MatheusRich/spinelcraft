@@ -6,28 +6,7 @@ class Game
   def make_ring
     @ring_dx = Array.new(0, 0)
     @ring_dz = Array.new(0, 0)
-    square_rings(LOAD_R, @ring_dx, @ring_dz)
-  end
-
-  # Appends the offsets of the square rings 0 to max to dxs and dzs, nearest
-  # ring first.
-  def square_rings(max, dxs, dzs)
-    r = 0
-    while r <= max
-      dx = -r
-      while dx <= r
-        dz = -r
-        while dz <= r
-          if dx.abs == r || dz.abs == r
-            dxs << dx
-            dzs << dz
-          end
-          dz += 1
-        end
-        dx += 1
-      end
-      r += 1
-    end
+    World.square_rings(LOAD_R, @ring_dx, @ring_dz)
   end
 
   # Loads and meshes the chunks within radius of chunk (pcx, pcz), nearest
@@ -42,11 +21,10 @@ class Game
     if pcx != @stream_cx || pcz != @stream_cz
       Log.debug(Log::STREAM) do
         "center chunk #{pcx} #{pcz}, radius #{radius}. Since the last center: #{@stream_loads} chunks loaded, " \
-          "#{@stream_meshes} chunks meshed, #{@lod_builds} far tiles built"
+          "#{@stream_meshes} chunks meshed, #{@far.take_builds} far tiles built"
       end
       @stream_loads = 0
       @stream_meshes = 0
-      @lod_builds = 0
       @stream_cx = pcx
       @stream_cz = pcz
       @load_at = 0
@@ -85,75 +63,12 @@ class Game
   # (one ring less) then reach past the fog.
   def view_radius = (((detail_view + 20.0) / CHUNK).ceil + 1).clamp(SYNC_R, LOAD_R)
 
-  def detail_view = @options.view < DETAIL_VIEW ? @options.view : DETAIL_VIEW
+  def detail_view = @options.view < FarTerrain::DETAIL_VIEW ? @options.view : FarTerrain::DETAIL_VIEW
 
-  def far_terrain? = @options.view > DETAIL_VIEW
+  def far_terrain? = @options.view > FarTerrain::DETAIL_VIEW
 
   # The widest square ring of chunks around the stream center that is all meshed.
   def detail_rings = ((Math.sqrt(@mesh_at.to_f).to_i - 1) / 2)
-
-  # The first distance a level draws: where the next finer one stops.
-  def lod_start(level) = level == 0 ? DETAIL_VIEW : (LOD_REACH << (level - 1)).to_f
-
-  # Tile rings a level builds for the current view.
-  def lod_rings(level)
-    reach = (LOD_REACH << level).to_f
-    reach = @options.view if @options.view < reach
-    (reach / @lods[level].tile).ceil + 1
-  end
-
-  # Far tile offsets in rings, nearest first.
-  def make_lod_ring
-    @lod_dx = Array.new(0, 0)
-    @lod_dz = Array.new(0, 0)
-    # Level L reaches LOD_REACH << L blocks with tiles of (4 << L) * CELLS
-    # blocks, so every level needs the same number of rings as lod_rings gives.
-    square_rings((LOD_REACH.to_f / (4 * Lod::CELLS)).ceil + 1, @lod_dx, @lod_dz)
-  end
-
-  # Builds the far tiles within the view, finest level and nearest first,
-  # until budget_ns has passed.
-  def stream_lod(budget_ns)
-    t0 = Gfx.gfx_ns
-    level = 0
-    while level < LEVELS && @options.view > lod_start(level)
-      lod = @lods[level]
-      ptx = (@player.x.floor >> lod.tile_shift).to_i
-      ptz = (@player.z.floor >> lod.tile_shift).to_i
-      if ptx != @lod_tx[level] || ptz != @lod_tz[level]
-        @lod_tx[level] = ptx
-        @lod_tz[level] = ptz
-        @lod_at[level] = 0
-      end
-      r = lod_rings(level)
-      count = (r * 2 + 1) * (r * 2 + 1)
-      while @lod_at[level] < count
-        return if Gfx.gfx_ns - t0 >= budget_ns
-        at = @lod_at[level]
-        tx = ptx + @lod_dx[at]
-        tz = ptz + @lod_dz[at]
-        @lod_at[level] = at + 1
-        next if lod.ready?(tx, tz)
-        slot = lod.build(tx, tz)
-        @lod_builds += 1
-        upload_mesh(LOD_SLOT0 + level * TILE_SLOTS + slot, lod.faces, lod.offsets)
-      end
-      level += 1
-    end
-  end
-
-  # The square a level covers with complete rings of tiles, into uniforms
-  # at (the coarser level's discard square).
-  def lod_square(level, at)
-    lod = @lods[level]
-    rc = (Math.sqrt(@lod_at[level].to_f).to_i - 1) / 2
-    r = lod_rings(level)
-    rc = r if rc > r
-    @uniforms[at] = ((@lod_tx[level] - rc) * lod.tile).to_f
-    @uniforms[at + 1] = ((@lod_tz[level] - rc) * lod.tile).to_f
-    @uniforms[at + 2] = ((@lod_tx[level] + rc + 1) * lod.tile).to_f
-    @uniforms[at + 3] = ((@lod_tz[level] + rc + 1) * lod.tile).to_f
-  end
 
   def meshable?(cx, cz)
     w = @world

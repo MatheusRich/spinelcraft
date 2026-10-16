@@ -24,7 +24,7 @@ module Gfx
     static SDL_GPUTexture *swap_tex;
     static Uint32 swap_w = 1280, swap_h = 720;
     /* These sizes must match the Ruby side. gfx_limit returns them, and
-       Game#check_gfx_limits compares them with LEVELS, Mesher::COLUMNS,
+       Game#check_gfx_limits compares them with FarTerrain::LEVELS, Mesher::COLUMNS,
        Tint::SIZE, the GPU slots and the sounds that the game uses. */
     #define LEVELS 4
     #define BIOMES 9

@@ -126,8 +126,7 @@ class Game
     @mesher = Mesher.new(@world)
     @tint = Tint.new(@world)
     @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
-    @lods = Array.new(LEVELS) { |l| Lod.new(@world, l) }
-    @lod_tx.fill(World::NONE)
+    @far = FarTerrain.new(@world, LOD_SLOT0)
     @meshed.fill(0)
     @stream_cx = World::NONE
     @dirty_list.each { |i| @dirty[i] = false }
