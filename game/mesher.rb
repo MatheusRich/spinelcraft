@@ -137,11 +137,9 @@ class Mesher
     # 1 when block b shows faces even with covers on all 6 sides: a plant,
     # or a fluid, whose top shows under a block.
     @always = Array.new(Block::COUNT, 0)
-    b = 0
-    while b < Block::COUNT
+    Block::COUNT.times do |b|
       @cover[b] = Block.lava?(b) ? 0 : Block::OPAQUE[b]
       @always[b] = Block.plant?(b) || Mesher.fluid(b) > 0 ? 1 : 0
-      b += 1
     end
     # Masks of the columns of a chunk and of the ring around it, WORDS
     # Integers for each column (fill_masks).
@@ -164,8 +162,7 @@ class Mesher
         t1 = [0, 0, 0]
         t2 = [0, 0, 0]
         found = 0
-        axis = 0
-        while axis < 3
+        3.times do |axis|
           if n[axis] == 0
             sign = corner[axis] == 1 ? 1 : -1
             if found == 0
@@ -175,7 +172,6 @@ class Mesher
             end
             found += 1
           end
-          axis += 1
         end
         base = f * 12 + c * 3
         @ao[base] = offset(n[0] + t1[0], n[1] + t1[1], n[2] + t1[2])
@@ -242,19 +238,15 @@ class Mesher
     h = cell_fluid_height(k, i)
     return 0xFFFF if h >= 1.0
     q = 0
-    cz = 0
-    while cz < 2
-      cx = 0
-      while cx < 2
+    2.times do |cz|
+      2.times do |cx|
         sx = @delta[cx == 1 ? 0 : 1]
         sz = @delta[cz == 1 ? 4 : 5]
         top = corner_height(h, cell_fluid_height(k, i + sx), cell_fluid_height(k, i + sz), cell_fluid_height(k, i + sx + sz))
         v = (top * 15.0 + 0.5).to_i
         v = 1 if v < 1
         q |= v << (4 * (cx + 2 * cz))
-        cx += 1
       end
-      cz += 1
     end
     q
   end
@@ -275,8 +267,7 @@ class Mesher
       ncz = cz - 1
       while ncz <= cz + 1
         torches = @world.torches_of(ncx, ncz)
-        k = 0
-        while k < torches.size
+        (0...torches.size).step(3) do |k|
           tx = torches[k]
           tz = torches[k + 2]
           if tx > x0 - MARGIN && tx < x0 + CHUNK + LIGHT_MAX && tz > z0 - MARGIN && tz < z0 + CHUNK + LIGHT_MAX
@@ -284,7 +275,6 @@ class Mesher
             @ty << torches[k + 1]
             @tz << tz
           end
-          k += 3
         end
         ncz += 1
       end
@@ -300,23 +290,14 @@ class Mesher
     # show which cells can have a face (cells_to_mesh), so the walk skips
     # the cells with covers on all sides.
     row = CHUNK + 2
-    fx = 0
-    while fx < row
-      fz = 0
-      while fz < row
-        fill_masks((fx * row + fz) * WORDS, World.index(x0 + fx - 1, 0, z0 + fz - 1))
-        fz += 1
-      end
-      fx += 1
-    end
+    row.times { |fx| row.times { |fz| fill_masks((fx * row + fz) * WORDS, World.index(x0 + fx - 1, 0, z0 + fz - 1)) } }
     x = x0
     while x < x0 + CHUNK
       z = z0
       while z < z0 + CHUNK
         base = World.index(x, 0, z)
         at = ((x - x0 + 1) * row + z - z0 + 1) * WORDS
-        w = 0
-        while w < WORDS
+        WORDS.times do |w|
           # Up the column, one cell for each bit, lowest first.
           todo = cells_to_mesh(at, w, row * WORDS)
           while todo != 0
@@ -325,7 +306,6 @@ class Mesher
             y = w * BITS + low.bit_length - 1
             mesh_cell(x, y, z, base + y, lit)
           end
-          w += 1
         end
         z += 1
       end
@@ -340,8 +320,7 @@ class Mesher
   # shows (@always).
   def fill_masks(at, base)
     top = @world.column_top(base)
-    w = 0
-    while w < WORDS
+    WORDS.times do |w|
       covers = 0
       blocks = 0
       always = 0
@@ -360,7 +339,6 @@ class Mesher
       @cover_bits[at + w] = covers
       @block_bits[at + w] = blocks
       @always_bits[at + w] = always
-      w += 1
     end
   end
 
@@ -392,11 +370,9 @@ class Mesher
       w1 |= torch_light(x, y, z) << LIGHT_AT if lit
       w1 |= (Block::FACING[id] << FACING_AT) | (TORCH_SHAPE << SHAPE_AT) if Block.wall_torch?(id)
       plants = @lists[6]
-      f = 6
-      while f < 10
+      (6...10).each do |f|
         plants << Mesher.pack(lx, y, lz, f)
         plants << w1
-        f += 1
       end
       return
     end
@@ -405,8 +381,7 @@ class Mesher
     front = Block::FACING[id] >= 0 ? Block::DIR_FACE[Block::FACING[id]] : -1
     # A block with a shape is smaller than its cell, so all its faces show.
     shape = Block::SHAPE[id]
-    f = 0
-    while f < 6
+    6.times do |f|
       nb = cell(i + @delta[f])
       visible = if kind > 0
         # A fluid shows no face to the same fluid. Its top shows
@@ -458,24 +433,17 @@ class Mesher
           list << w1
         end
       end
-      f += 1
     end
   end
 
   # Joins the per-direction lists; offsets are in faces.
   def finish
-    f = 0
-    while f < 7
+    7.times do |f|
       @offsets[f] = @opaque.size / 2
       @opaque.concat(@lists[f])
-      f += 1
     end
     @offsets[7] = @opaque.size / 2
-    i = 1
-    while i < 8
-      @water_offsets[i] = @water.size / 2
-      i += 1
-    end
+    (1...8).each { |i| @water_offsets[i] = @water.size / 2 }
   end
 
   # Spreads the light of torches, lava and jack o'lanterns through cells
@@ -483,11 +451,7 @@ class Mesher
   # chunk plus a margin.
   def flood(x0, z0)
     # Only the cells in the last queue have light, so clear just those.
-    k = 0
-    while k < @queue.size
-      @light[@queue[k]] = 0
-      k += 1
-    end
+    @queue.size.times { |k| @light[@queue[k]] = 0 }
     @queue.clear
     bx = x0 - MARGIN
     bz = z0 - MARGIN
@@ -514,8 +478,7 @@ class Mesher
       qy = n % WY
       qz = (n / WY) % LW
       qx = n / WY / LW
-      d = 0
-      while d < 6
+      6.times do |d|
         inside = d == 0 ? qx + 1 < LW : (d == 1 ? qx > 0 : (d == 2 ? qz + 1 < LW : (d == 3 ? qz > 0 : (d == 4 ? qy + 1 < WY : qy > 0))))
         m = n + @step_n[d]
         if inside && @light[m] < l
@@ -527,7 +490,6 @@ class Mesher
             @queue << m
           end
         end
-        d += 1
       end
     end
   end
