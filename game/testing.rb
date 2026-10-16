@@ -134,6 +134,7 @@ class Game
     @failures = 0
     test_spawn
     test_sandstone
+    test_ores
     x = @spawn_x.floor + 2
     z = @spawn_z.floor + 2
     h = @world.height_at(x, z)
@@ -247,6 +248,47 @@ class Game
     craft_recipe(recipe_for(Block::SANDSTONE))
     check("4 sand make a sandstone", @inv.total(Block::SAND) == 1 && @inv.total(Block::SANDSTONE) == 1)
     @inv.clear
+  end
+
+  # Near spawn, each ore holds its share of the stone at each layer
+  # (World.ore_at), and no ore lies at a layer where that share is 0.
+  def test_ores
+    ores = [Block::COAL_ORE, Block::IRON, Block::DIAMOND]
+    stone = Array.new(WY, 0)
+    found = Array.new(ores.size * WY, 0)
+    x = @spawn_x.floor - 128
+    while x < @spawn_x.floor + 128
+      z = @spawn_z.floor - 128
+      while z < @spawn_z.floor + 128
+        if @world.loaded?(x, z)
+          y = 1
+          while y < WY
+            b = @world.get(x, y, z)
+            k = ores.index(b) || -1
+            stone[y] += 1 if b == Block::STONE || k >= 0
+            found[k * WY + y] += 1 if k >= 0
+            y += 1
+          end
+        end
+        z += 1
+      end
+      x += 1
+    end
+    near = true
+    outside = 0
+    ores.each_with_index do |ore, k|
+      want = 0.0
+      got = 0
+      (1...WY).each do |y|
+        share = World.ore_at(ore, y)
+        want += stone[y] * share / 256
+        got += found[k * WY + y]
+        outside += found[k * WY + y] if share == 0.0
+      end
+      near = false unless got > want * 0.75 && got < want * 1.25
+    end
+    check("each ore fills its share of the stone at each layer", near)
+    check("no ore lies outside the layers of its Minecraft range", outside == 0)
   end
 
   # The commands change the time, the inventory and the place of the

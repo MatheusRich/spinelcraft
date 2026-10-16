@@ -45,17 +45,39 @@ class World
   # below y -54, 10 layers above the bottom of its world
   # (minecraft.wiki/w/Altitude).
   LAVA_LEVEL = 9
-  # Ores follow the y of Minecraft, which has its sea at about the same
-  # height. This world has no layers below 0, so the deep ores stop at
-  # the bedrock. A 2 x 2 x 2 cell of stone holds a clump of an ore at
-  # the odds of that ore at the y of the block, out of 65536. COAL_ODDS
-  # and IRON_ODDS are the odds where the ore is most common (coal_share
-  # and iron_share give the rest).
-  COAL_ODDS = 1400
-  IRON_ODDS = 800
-  # Diamonds are below DIAMOND_TOP (minecraft.wiki/w/Diamond_Ore).
-  DIAMOND_ODDS = 160
-  DIAMOND_TOP = 16
+  # Ores copy the ore veins of Minecraft Java (minecraft.wiki/w/Ore_(feature)).
+  # The world of Minecraft starts at y MC_BOTTOM, and the top water block
+  # of its sea is at y MC_SEA (minecraft.wiki/w/Altitude). This world
+  # starts at y 1, above the bedrock. So each layer from y 1 to the sea
+  # stands for 2 layers of Minecraft and holds the ore of both (mc_y).
+  # Above the sea, each layer stands for 1 layer.
+  MC_BOTTOM = -64
+  MC_SEA = 62
+  # The average number of blocks in a vein of spawn size 4, 8, 9, 12 and
+  # 17, in solid stone. The wiki gives only the largest numbers (5, 10,
+  # 13, 23 and 37). It does not give the averages: they come from a run
+  # of the vein algorithm of Minecraft.
+  VEIN_4 = 2.0
+  VEIN_8 = 5.7
+  VEIN_9 = 6.8
+  VEIN_12 = 11.6
+  VEIN_17 = 22.2
+  # The average diamond vein that starts in the world. Of each chunk's 7
+  # veins of size 4, 4 of size 8 and 1/9 of size 12, half start below
+  # MC_BOTTOM. The 2 veins of size 8 from y -64 to -4 all start in it.
+  # minecraft.wiki/w/Diamond_Ore
+  DIAMOND_VEIN = (3.5 * VEIN_4 + 2.0 * VEIN_8 + 0.5 / 9 * VEIN_12 + 2.0 * VEIN_8) / (3.5 + 2.0 + 0.5 / 9 + 2.0)
+  # A cell of stone holds a clump of an ore at the odds of that ore at
+  # the y of the block, out of 65536 (ore_odds). A coal cell is 4 x 2 x 4
+  # blocks, and an iron or diamond cell is 2 x 2 x 2. Each block of a
+  # clump is ore at the FILL odds, so a clump holds the average vein.
+  COAL_CELL = 32
+  # The coal rolls of one column of coal cells: one for each 2 layers.
+  COAL_ROLLS = WY / 2
+  ORE_CELL = 8
+  COAL_FILL = (65536 * VEIN_17 / COAL_CELL).to_i
+  IRON_FILL = (65536 * VEIN_9 / ORE_CELL).to_i
+  DIAMOND_FILL = (65536 * DIAMOND_VEIN / ORE_CELL).to_i
   # The base height of the land (BASE) at each continent noise value
   # (CONTINENT): deep ocean, ocean, coast, lowland, then highland.
   CONTINENT = [-0.25, -0.17, -0.135, -0.12, -0.07, 0.06, 0.2, 0.34]
@@ -191,10 +213,13 @@ class World
     @corner_b = Array.new(8, 0.0)
     @coal_odds = Array.new(WY, 0)
     @iron_odds = Array.new(WY, 0)
+    @diamond_odds = Array.new(WY, 0)
+    @coal_rolls = Array.new(16 * COAL_ROLLS, 0)
     y = 0
     while y < WY
-      @coal_odds[y] = (COAL_ODDS * World.coal_share(y)).to_i
-      @iron_odds[y] = (IRON_ODDS * World.iron_share(y)).to_i
+      @coal_odds[y] = World.ore_odds(World.ore_at(Block::COAL_ORE, y), COAL_CELL, VEIN_17)
+      @iron_odds[y] = World.ore_odds(World.ore_at(Block::IRON, y), ORE_CELL, VEIN_9)
+      @diamond_odds[y] = World.ore_odds(World.ore_at(Block::DIAMOND, y), ORE_CELL, DIAMOND_VEIN)
       y += 1
     end
     @noise = Noise.new(seed)
@@ -694,20 +719,56 @@ class World
     h.to_i.clamp(4, TOP.to_i)
   end
 
-  # How common coal is at y, as a share of the most. Minecraft has 20
-  # tries in a triangle from y 0 to 192 that peaks at 96, and 30 tries
-  # spread evenly from y 136 to 320. Per layer, the even spread has 0.78
-  # of the peak of the triangle. minecraft.wiki/w/Coal_Ore
-  def self.coal_share(y) = World.triangle(y, 0.0, 96.0, 192.0) + (y >= 136 ? 0.78 : 0.0)
-
-  # How common iron is at y, as a share of its deep peak. Minecraft has 10
-  # tries in a triangle from y -24 to 56 that peaks at 16, 90 tries in a
-  # triangle from y 80 to 384 that peaks at 232 (2.37 times as many per
-  # layer), and 10 tries of small clumps spread evenly from y -64 to 72
-  # (about 0.12). minecraft.wiki/w/Iron_Ore
-  def self.iron_share(y)
-    World.triangle(y, -24.0, 16.0, 56.0) + 2.37 * World.triangle(y, 80.0, 232.0, 384.0) + (y <= 72 ? 0.12 : 0.0)
+  # The y in Minecraft of layer y. Below the sea, layer y also stands for
+  # the layer above that y in Minecraft.
+  def self.mc_y(y)
+    return y - SEA + MC_SEA if y >= SEA
+    MC_BOTTOM + (y - 1) * 2
   end
+
+  # The blocks of an ore in each chunk at layer y, in solid stone.
+  def self.ore_at(ore, y)
+    m = World.mc_y(y)
+    return World.mc_ore(ore, m) if y >= SEA
+    World.mc_ore(ore, m) + World.mc_ore(ore, m + 1)
+  end
+
+  # The blocks of an ore in each chunk of Minecraft at its layer m, in
+  # solid stone: the veins that start at m, times the blocks of a vein.
+  def self.mc_ore(ore, m)
+    # 20 veins of size 17 in a triangle from y 0 to 192, and 30 spread
+    # evenly from y 136 to 320. minecraft.wiki/w/Coal_Ore
+    return VEIN_17 * (20 * World.peaked(m, 0, 192) + 30 * World.even(m, 136, 320)) if ore == Block::COAL_ORE
+    # 90 veins of size 9 in a triangle from y 80 to 384, 10 in a triangle
+    # from y -24 to 56, and 10 of size 4 spread evenly from y -64 to 72.
+    # minecraft.wiki/w/Iron_Ore
+    return VEIN_9 * (90 * World.peaked(m, 80, 384) + 10 * World.peaked(m, -24, 56)) + VEIN_4 * 10 * World.even(m, -64, 72) if ore == Block::IRON
+    # 7 veins of size 4, 4 of size 8 and 1/9 of size 12 in a triangle
+    # that ends at y 16, and 2 of size 8 spread evenly from y -64 to -4.
+    # minecraft.wiki/w/Diamond_Ore gives the range of the triangle as
+    # -64 to 16 and says that the ore is more common lower down. The
+    # wiki does not give the bottom of the triangle, -144 in the data of
+    # the game, 80 layers below the bottom of the world.
+    (7 * VEIN_4 + 4 * VEIN_8 + VEIN_12 / 9) * World.peaked(m, -144, 16) + 2 * VEIN_8 * World.even(m, -64, -4)
+  end
+
+  # The share of the veins that start at layer m, for veins in a triangle
+  # from y low to high.
+  def self.peaked(m, low, high)
+    World.triangle(m, low.to_f, (low + high) / 2.0, high.to_f) * 2.0 / (high - low)
+  end
+
+  # The share of the veins that start at layer m, for veins spread evenly
+  # from y low to high.
+  def self.even(m, low, high)
+    return 0.0 if m < low || m > high
+    1.0 / (high - low + 1)
+  end
+
+  # The odds out of 65536 that a cell of `cell` blocks holds a clump, for
+  # `blocks` of the ore in each layer of a chunk and clumps of `vein`
+  # blocks.
+  def self.ore_odds(blocks, cell, vein) = (blocks * 256 * cell / vein).round
 
   # 1 at peak, 0 at low and high and beyond, and a straight line between.
   def self.triangle(y, low, peak, high)
@@ -859,6 +920,18 @@ class World
       lx += 1
     end
 
+    # The rolls of the 4 x 4 columns of coal cells in the chunk, one for
+    # each 2 layers. The 16 block columns of a cell column read them.
+    i = 0
+    while i < 16
+      j = 0
+      while j <= highest >> 1
+        @coal_rolls[i * COAL_ROLLS + j] = Noise.hash3((x0 >> 2) + (i >> 2), j, (z0 >> 2) + (i & 3), 13)
+        j += 1
+      end
+      i += 1
+    end
+
     # Coarse 3D noise for caves, sampled every 4 blocks and interpolated.
     # Caves stay below the top block of a column, so the grid stops at the
     # layer above the highest top block.
@@ -916,9 +989,11 @@ class World
         iz = fz.to_i
         a_layer = -1
         c_layer = -1
-        # Two layers share the roll for ore.
+        # Two layers share the rolls for ore.
         roll_y = -1
         r = 0
+        coal_r = 0
+        coal_cells = ((lx >> 2) * 4 + (lz >> 2)) * COAL_ROLLS
         y = 0
         while y < h
           b = Block::STONE
@@ -933,20 +1008,21 @@ class World
             b = Block::SANDSTONE
           end
           if b == Block::STONE
-            # One roll for the cell picks its ore, and a second roll for
-            # the block leaves gaps in the clump.
+            # A roll for the coal cell and a roll for the iron or diamond
+            # cell pick the ore, and a roll for the block leaves gaps in
+            # the clump.
             if (y >> 1) != roll_y
               roll_y = y >> 1
+              coal_r = @coal_rolls[coal_cells + roll_y]
               r = Noise.hash3(x >> 1, roll_y, z >> 1, 11)
             end
-            coal = @coal_odds[y]
-            iron = coal + @iron_odds[y]
-            if r < coal
-              b = Block::COAL_ORE if Noise.hash3(x, y, z, 12) < 40000
+            iron = @iron_odds[y]
+            if coal_r < @coal_odds[y]
+              b = Block::COAL_ORE if Noise.hash3(x, y, z, 12) < COAL_FILL
             elsif r < iron
-              b = Block::IRON if Noise.hash3(x, y, z, 14) < 36000
-            elsif y < DIAMOND_TOP && r < iron + DIAMOND_ODDS
-              b = Block::DIAMOND if Noise.hash3(x, y, z, 16) < 30000
+              b = Block::IRON if Noise.hash3(x, y, z, 14) < IRON_FILL
+            elsif r < iron + @diamond_odds[y]
+              b = Block::DIAMOND if Noise.hash3(x, y, z, 16) < DIAMOND_FILL
             end
           end
           if y > 1 && (y < top - 2 || (!beach?(top) && y <= top))
