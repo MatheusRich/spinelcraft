@@ -171,11 +171,9 @@ class Game
   end
 
   def inventory_hover(w, h, s)
-    i = 0
-    while i < CREATIVE_ITEMS.size
+    CREATIVE_ITEMS.size.times do |i|
       c = inventory_cell(i, w, h, s)
       return i if mouse_in?(c[0], c[1], c[2], c[2])
-      i += 1
     end
     -1
   end
@@ -231,11 +229,9 @@ class Game
 
   # The slot of the open furnace under the mouse, or -1.
   def furnace_hover(w, h, s)
-    i = 0
-    while i < 3
+    3.times do |i|
       c = furnace_cell(i, w, h, s)
       return i if mouse_in?(c[0], c[1], c[2], c[2])
-      i += 1
     end
     -1
   end
@@ -252,11 +248,7 @@ class Game
   # Marks what is in the inventory or in the hand as seen, and tells the
   # player about the new recipes.
   def note_seen
-    i = 0
-    while i < INV
-      tell_recipes(@inv.block(i)) unless @inv.empty?(i)
-      i += 1
-    end
+    INV.times { |i| tell_recipes(@inv.block(i)) unless @inv.empty?(i) }
     tell_recipes(@held.block(0)) unless @held.empty?(0)
   end
 
@@ -269,21 +261,17 @@ class Game
   def recipe_hover(w, h, s)
     view = @recipe_book.in_view(active_station)
     skip = recipe_skip
-    place = 0
-    while place < view.size
+    view.size.times do |place|
       c = recipe_cell(place + skip, w, h, s)
       return view[place] if mouse_in?(c[0], c[1], c[2], c[3])
-      place += 1
     end
     -1
   end
 
   def pack_hover(w, h, s)
-    i = 0
-    while i < INV
+    INV.times do |i|
       c = pack_cell(i, w, h, s)
       return i if mouse_in?(c[0], c[1], c[2], c[2])
-      i += 1
     end
     -1
   end
@@ -321,11 +309,9 @@ class Game
   end
 
   def chest_hover(w, h, s)
-    k = 0
-    while k < CHEST_SLOTS
+    CHEST_SLOTS.times do |k|
       c = chest_cell(k, w, h, s)
       return k if mouse_in?(c[0], c[1], c[2], c[2])
-      k += 1
     end
     -1
   end
