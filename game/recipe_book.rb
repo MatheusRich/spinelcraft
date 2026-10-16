@@ -62,11 +62,9 @@ class RecipeBook
 
   # The recipe that smelts b in a furnace, or nil.
   def smelt_recipe(b)
-    index = 0
-    while index < @recipes.size
+    @recipes.size.times do |index|
       recipe = @recipes[index]
       return recipe if recipe.where == Recipe::AT_FURNACE && recipe.ingredient == b
-      index += 1
     end
     nil
   end
@@ -82,8 +80,7 @@ class RecipeBook
     found = 0
     last = 0
     stations = [0, 0, 0]
-    index = 0
-    while index < @recipes.size
+    @recipes.size.times do |index|
       recipe = @recipes[index]
       if Block.fillers(recipe.ingredient).include?(b)
         @fresh[index] = 1
@@ -91,7 +88,6 @@ class RecipeBook
         last = index
         stations[recipe.where] = 1
       end
-      index += 1
     end
     return "" if found == 0
     places = Array.new(0, "")
@@ -121,11 +117,9 @@ class RecipeBook
   # player has seen. Other recipes stay a surprise.
   def shown(open)
     out = Array.new(0, 0)
-    index = 0
-    while index < @recipes.size
+    @recipes.size.times do |index|
       recipe = @recipes[index]
       out << index if seen_ingredient?(recipe.ingredient) && recipe.made_at?(open)
-      index += 1
     end
     out
   end
