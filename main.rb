@@ -32,6 +32,7 @@ require_relative "game/save"
 require_relative "game/block_changes"
 require_relative "game/slots"
 require_relative "game/furnace"
+require_relative "game/recipe_book"
 require_relative "game/inventory"
 require_relative "game/items"
 require_relative "game/boats"
@@ -74,17 +75,13 @@ class Game
     @water_keys = Array.new(0, 0)
     @hotbar = HOTBAR_START.dup
     @inv = Slots.new(INV)
-    @seen = Array.new(Block::COUNT, 0)
-    @recipe_new = Array.new(RECIPES.size, 0)
-    # The first recipe row in view, and the wheel steps not used yet.
-    @recipe_top = 0
-    @recipe_wheel = 0.0
+    @recipe_book = RecipeBook.new
     # The furnaces, by World.key, and the time not yet ticked.
     @furnaces = {}
     @furnace_clock = 0.0
-    # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE),
+    # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE of RecipeBook),
     # and its cell.
-    @station = BY_HAND
+    @station = RecipeBook::BY_HAND
     @station_x = 0
     @station_y = 0
     @station_z = 0
@@ -292,8 +289,7 @@ class Game
     @inv.clear
     @hotbar = HOTBAR_START.dup
     @chests = {}
-    @seen.fill(0)
-    @recipe_new.fill(0)
+    @recipe_book = RecipeBook.new
     @furnaces = {}
     @mobs.clear
     @arrows.clear

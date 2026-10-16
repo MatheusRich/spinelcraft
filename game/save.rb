@@ -38,7 +38,7 @@ class Game
     seen = []
     b = 0
     while b < Block::COUNT
-      seen << b if @seen[b] == 1
+      seen << b if @recipe_book.seen?(b)
       b += 1
     end
     furnace_fields = []
@@ -178,11 +178,11 @@ class Game
       at += ITEM_FIELDS
       c += 1
     end
-    @seen.fill(0)
+    @recipe_book = RecipeBook.new
     seen = f[at].to_i
     c = 0
     while c < seen
-      @seen[f[at + 1 + c].to_i] = 1
+      @recipe_book.learn(f[at + 1 + c].to_i)
       c += 1
     end
     at += 1 + seen

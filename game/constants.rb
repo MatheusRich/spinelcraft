@@ -106,50 +106,6 @@ class Game
   # per level.
   LOD_SLOT0 = CX * CZ * 2
 
-  # Survival crafting: turns the selected stack into something else.
-  # Where a recipe works: by hand (the E screen), on a crafting table, or in
-  # a furnace (the screen that a right-click on one opens).
-  BY_HAND = 0
-  AT_TABLE = 1
-  AT_FURNACE = 2
-  # Each recipe: the ingredient, how many, the result, how many, and where.
-  # The ingredient is a block, or Block::ANY_PLANKS. A recipe with a second
-  # ingredient has it and how many at the end.
-  # The recipe list shows two recipes to a row. The planks and the crafting
-  # table come first, as the first things to make. The tools come next, in
-  # pairs of one material, so that each kind of tool is a column: the
-  # pickaxes and then the axes at the left, the swords and then the
-  # shovels at the right.
-  RECIPES = [[Block::OAK_LOG, 1, Block::OAK_PLANKS, 4, BY_HAND], [Block::SPRUCE_LOG, 1, Block::SPRUCE_PLANKS, 4, BY_HAND],
-             [Block::BIRCH_LOG, 1, Block::BIRCH_PLANKS, 4, BY_HAND], [Block::ANY_PLANKS, 4, Block::CRAFTING_TABLE, 1, BY_HAND],
-             [Block::ANY_PLANKS, 3, Block::WOOD_PICK, 1, AT_TABLE], [Block::ANY_PLANKS, 2, Block::WOOD_SWORD, 1, AT_TABLE],
-             [Block::COBBLE, 3, Block::STONE_PICK, 1, AT_TABLE], [Block::COBBLE, 2, Block::STONE_SWORD, 1, AT_TABLE],
-             [Block::IRON_INGOT, 3, Block::IRON_PICK, 1, AT_TABLE], [Block::IRON_INGOT, 2, Block::IRON_SWORD, 1, AT_TABLE],
-             [Block::DIAMOND, 3, Block::DIAMOND_PICK, 1, AT_TABLE], [Block::DIAMOND, 2, Block::DIAMOND_SWORD, 1, AT_TABLE],
-             [Block::ANY_PLANKS, 3, Block::WOOD_AXE, 1, AT_TABLE], [Block::ANY_PLANKS, 1, Block::WOOD_SHOVEL, 1, AT_TABLE],
-             [Block::COBBLE, 3, Block::STONE_AXE, 1, AT_TABLE], [Block::COBBLE, 1, Block::STONE_SHOVEL, 1, AT_TABLE],
-             [Block::IRON_INGOT, 3, Block::IRON_AXE, 1, AT_TABLE], [Block::IRON_INGOT, 1, Block::IRON_SHOVEL, 1, AT_TABLE],
-             [Block::DIAMOND, 3, Block::DIAMOND_AXE, 1, AT_TABLE], [Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, AT_TABLE],
-             [Block::COAL, 1, Block::TORCH, 4, BY_HAND], [Block::GRAVEL, 1, Block::ARROW, 4, AT_TABLE],
-             [Block::STONE, 2, Block::BRICK, 1, AT_TABLE], [Block::WOOL, 3, Block::BED, 1, AT_TABLE],
-             [Block::ANY_PLANKS, 5, Block::BOW, 1, AT_TABLE], [Block::ANY_PLANKS, 8, Block::CHEST, 1, AT_TABLE],
-             [Block::ANY_PLANKS, 6, Block::DOOR, 3, AT_TABLE], [Block::ANY_PLANKS, 3, Block::LADDER, 4, AT_TABLE],
-             [Block::WHEAT, 3, Block::BREAD, 1, AT_TABLE], [Block::IRON_INGOT, 3, Block::BUCKET, 1, AT_TABLE],
-             [Block::COBBLE, 8, Block::FURNACE, 1, AT_TABLE],
-             # minecraft.wiki/w/Sandstone shows 4 sand in the grid. It does not
-             # give the count of sandstone in text; 1 is the count in Minecraft.
-             [Block::SAND, 4, Block::SANDSTONE, 1, BY_HAND],
-             # A boat takes 5 planks of its wood. minecraft.wiki/w/Boat
-             [Block::OAK_PLANKS, 5, Block::OAK_BOAT, 1, AT_TABLE], [Block::SPRUCE_PLANKS, 5, Block::SPRUCE_BOAT, 1, AT_TABLE],
-             [Block::BIRCH_PLANKS, 5, Block::BIRCH_BOAT, 1, AT_TABLE], [Block::IRON_INGOT, 2, Block::SHEARS, 1, BY_HAND],
-             [Block::PUMPKIN, 1, Block::PUMPKIN_SEEDS, 4, BY_HAND], [Block::BONE, 1, Block::BONE_MEAL, 3, BY_HAND],
-             [Block::CARVED_PUMPKIN, 1, Block::JACK_O_LANTERN, 1, BY_HAND, Block::TORCH, 1],
-             [Block::IRON, 1, Block::IRON_INGOT, 1, AT_FURNACE], [Block::OAK_LOG, 1, Block::COAL, 1, AT_FURNACE],
-             [Block::SPRUCE_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::BIRCH_LOG, 1, Block::COAL, 1, AT_FURNACE], [Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, AT_FURNACE],
-             [Block::MUTTON, 1, Block::COOKED_MUTTON, 1, AT_FURNACE], [Block::BEEF, 1, Block::STEAK, 1, AT_FURNACE],
-             [Block::RAW_CHICKEN, 1, Block::COOKED_CHICKEN, 1, AT_FURNACE],
-             [Block::SAND, 1, Block::GLASS, 1, AT_FURNACE], [Block::COBBLE, 1, Block::STONE, 1, AT_FURNACE]]
-
   INV_COLS = 8
 
   # The files of the game. Game#initialize puts Game#file_prefix in front

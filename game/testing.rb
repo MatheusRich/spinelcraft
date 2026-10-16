@@ -1450,8 +1450,8 @@ class Game
     drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
     @weather.set(true)
     @weather.timer = 77.5
-    @seen.fill(0)
-    @seen[Block::DIAMOND] = 1
+    @recipe_book = RecipeBook.new
+    @recipe_book.learn(Block::DIAMOND)
     @furnaces = {}
     hot = Furnace.new(3, 70, 4)
     hot.burn = 500
@@ -1474,7 +1474,7 @@ class Game
     @inv.set(1, Block::AIR, 0)
     @items.clear
     @weather.set_now(false)
-    @seen.fill(0)
+    @recipe_book = RecipeBook.new
     @furnaces = {}
     @day = 0
     @alive_time = 0.0
@@ -1493,7 +1493,7 @@ class Game
     @riding = -1
     loaded = @furnaces[World.key(3, 70, 4)]
     check("the save keeps the seen items, and the slots and the fire of furnaces",
-          @seen[Block::DIAMOND] == 1 && @furnaces.size == 1 && !loaded.nil? && loaded.x == 3 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&
+          @recipe_book.seen?(Block::DIAMOND) && @furnaces.size == 1 && !loaded.nil? && loaded.x == 3 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&
           loaded.slots.block(Furnace::INPUT) == Block::SAND && loaded.slots.count(Furnace::INPUT) == 2 && loaded.slots.block(Furnace::FUEL) == Block::OAK_LOG && loaded.slots.count(Furnace::FUEL) == 3)
     @furnaces = {}
     @items.clear
@@ -1550,16 +1550,15 @@ class Game
 
   # The recipe list shows a recipe once the player has had its ingredient.
   def test_seen_recipes
-    @seen.fill(0)
-    @recipe_new.fill(0)
+    @recipe_book = RecipeBook.new
     @inv.clear
     @inv.add(Block::OAK_LOG)
     note_seen
     logs = shown_recipes == [recipe_for(Block::OAK_PLANKS)]
-    told = @message == "2 NEW RECIPES - PRESS E, AT A FURNACE" && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 1
+    told = @message == "2 NEW RECIPES - PRESS E, AT A FURNACE" && @recipe_book.fresh?(recipe_for(Block::OAK_PLANKS))
     toggle_inventory
     toggle_inventory
-    check("a new recipe shows a message and a tag until the inventory closes", told && @recipe_new[recipe_for(Block::OAK_PLANKS)] == 0)
+    check("a new recipe shows a message and a tag until the inventory closes", told && !@recipe_book.fresh?(recipe_for(Block::OAK_PLANKS)))
     @inv.add(Block::OAK_PLANKS)
     note_seen
     both = @message.include?("NEW RECIPES - PRESS E, AT A CRAFTING TABLE")
@@ -1580,47 +1579,48 @@ class Game
     z = @player.z.floor
     old = @world.get(x, y, z)
     set_block(x, y, z, Block::CRAFTING_TABLE)
-    open_station(x, y, z, AT_TABLE)
+    open_station(x, y, z, RecipeBook::AT_TABLE)
     table = shown_recipes.include?(recipe_for(Block::OAK_PLANKS)) && shown_recipes.include?(recipe_for(Block::WOOD_PICK)) && !shown_recipes.include?(recipe_for(Block::IRON_INGOT))
     toggle_inventory
     set_block(x, y, z, Block::FURNACE)
-    open_station(x, y, z, AT_FURNACE)
+    open_station(x, y, z, RecipeBook::AT_FURNACE)
     furnace = shown_recipes == [recipe_for(Block::IRON_INGOT), recipe_for(Block::COAL)]
     toggle_inventory
     set_block(x, y, z, old)
-    check("the E screen, a crafting table and a furnace each show their own recipes", hand && table && furnace && @station == BY_HAND)
+    check("the E screen, a crafting table and a furnace each show their own recipes", hand && table && furnace && @station == RecipeBook::BY_HAND)
     @inv.clear
   end
 
   # A crafting table shows more recipes than fit. The list scrolls to its
   # last row and no further, and it starts at the top each time it opens.
   def test_recipe_scroll
-    seen = @seen.dup
-    RECIPES.each { |r| Block.fillers(r[0]).each { |b| @seen[b] = 1 } }
+    book = @recipe_book
+    @recipe_book = RecipeBook.new
+    RecipeBook::RECIPES.size.times { |k| Block.fillers(RecipeBook.ingredient(k)).each { |b| @recipe_book.learn(b) } }
     x = @player.x.floor + 2
     y = @player.y.floor
     z = @player.z.floor
     old = @world.get(x, y, z)
     set_block(x, y, z, Block::CRAFTING_TABLE)
-    open_station(x, y, z, AT_TABLE)
+    open_station(x, y, z, RecipeBook::AT_TABLE)
     shown = shown_recipes
     rows = (shown.size + 1) / 2
-    top = recipes_in_view == shown[0, RECIPE_ROWS * 2]
+    top = @recipe_book.in_view(active_station) == shown[0, RecipeBook::ROWS * 2]
     picks = [Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK].map { |b| shown.index(recipe_for(b)) }
     check("a crafting table shows the planks first, then the pickaxes in one column, one to a row", shown[0] == recipe_for(Block::OAK_PLANKS) && picks == [4, 6, 8, 10])
-    scroll_recipes(100)
-    end_view = recipes_in_view
-    bottom = @recipe_top == rows - RECIPE_ROWS && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_top * 2]
-    scroll_recipes(-100)
-    back = @recipe_top == 0
-    scroll_recipes(2)
+    @recipe_book.scroll_by(100, active_station)
+    end_view = @recipe_book.in_view(active_station)
+    bottom = @recipe_book.top == rows - RecipeBook::ROWS && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_book.top * 2]
+    @recipe_book.scroll_by(-100, active_station)
+    back = @recipe_book.top == 0
+    @recipe_book.scroll_by(2, active_station)
     toggle_inventory
-    open_station(x, y, z, AT_TABLE)
-    reset = @recipe_top == 0
+    open_station(x, y, z, RecipeBook::AT_TABLE)
+    reset = @recipe_book.top == 0
     toggle_inventory
     set_block(x, y, z, old)
-    @seen = seen
-    check("the recipe list scrolls to its last row, and it opens at the top", rows > RECIPE_ROWS && top && bottom && back && reset)
+    @recipe_book = book
+    check("the recipe list scrolls to its last row, and it opens at the top", rows > RecipeBook::ROWS && top && bottom && back && reset)
   end
 
   # The inventory screen fits the frame and leaves the hotbar and the health
@@ -1634,7 +1634,7 @@ class Game
       h = sizes[i + 1]
       s = inventory_scale(w, h)
       first = pack_cell(HOTBAR, w, h, s)
-      last = recipe_cell(RECIPE_ROWS * 2 - 1, w, h, s)
+      last = recipe_cell(RecipeBook::ROWS * 2 - 1, w, h, s)
       pad = 18.0 * s
       fits = false if first[0] - pad < 0.0 || first[1] - pad - 40.0 * s < 0.0
       fits = false if last[0] + last[2] + pad > w || last[1] + last[3] + pad > h - 82.0 * ui_scale(h)
@@ -1644,7 +1644,14 @@ class Game
   end
 
   # The index of the recipe that makes b.
-  def recipe_for(b) = RECIPES.index { |r| r[2] == b }
+  def recipe_for(b)
+    k = 0
+    k += 1 while RecipeBook.result(k) != b
+    k
+  end
+
+  # The recipes that the open screen lists.
+  def shown_recipes = @recipe_book.shown(active_station)
 
   # Crafts recipe k on a crafting table next to the player.
   def craft_at_table(k)
@@ -1653,7 +1660,7 @@ class Game
     z = @player.z.floor
     old = @world.get(x, y, z)
     set_block(x, y, z, Block::CRAFTING_TABLE)
-    open_station(x, y, z, AT_TABLE)
+    open_station(x, y, z, RecipeBook::AT_TABLE)
     craft_recipe(k)
     toggle_inventory
     set_block(x, y, z, old)
@@ -2052,7 +2059,7 @@ class Game
   def cooks?(raw, raw_food, raw_saturation, cooked, cooked_food, cooked_saturation)
     Block.food(raw) == raw_food && Block.saturation(raw) == raw_saturation &&
       Block.food(cooked) == cooked_food && Block.saturation(cooked) == cooked_saturation &&
-      RECIPES.any? { |r| r[0] == raw && r[2] == cooked && r[4] == AT_FURNACE }
+      (0...RecipeBook::RECIPES.size).any? { |k| RecipeBook.ingredient(k) == raw && RecipeBook.result(k) == cooked && RecipeBook.where(k) == RecipeBook::AT_FURNACE }
   end
 
   def collect_items
@@ -2268,7 +2275,7 @@ class Game
       @action_cooldown = 0.0
       @draw_time = -1.0
       right_button(0.05, true)
-      open = @inventory_open && @station != BY_HAND && @draw_time < 0.0
+      open = @inventory_open && @station != RecipeBook::BY_HAND && @draw_time < 0.0
       toggle_inventory if @inventory_open
       open
     end
@@ -2480,7 +2487,7 @@ class Game
     far = @inv.total(Block::IRON) == 9
     check("smelting needs a furnace", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
-    open_station(x + 2, y, z + 3, AT_FURNACE)
+    open_station(x + 2, y, z + 3, RecipeBook::AT_FURNACE)
     f = open_furnace
     slots = f.slots
     @furnace_clock = 0.0
@@ -2557,7 +2564,7 @@ class Game
     check("the furnace slots take only what fits them, and a broken furnace drops what it holds", not_fuel && not_smelted && no_output && dropped)
     # A log smelts into coal, and coal burns for 1600 ticks.
     set_block(x + 2, y, z + 3, Block::FURNACE)
-    open_station(x + 2, y, z + 3, AT_FURNACE)
+    open_station(x + 2, y, z + 3, RecipeBook::AT_FURNACE)
     f = open_furnace
     @furnace_clock = 0.0
     f.slots.set(Furnace::INPUT, Block::OAK_LOG, 1)
@@ -2741,7 +2748,9 @@ class Game
   # Skeletons drop bones, a bone makes 3 bone meal, and bone meal grows a
   # crop, a pumpkin stem, a sapling, and plants on a grass block.
   def test_bone_meal
-    recipe = RECIPES.any? { |r| r[0] == Block::BONE && r[1] == 1 && r[2] == Block::BONE_MEAL && r[3] == 3 && r[4] == BY_HAND }
+    recipe = (0...RecipeBook::RECIPES.size).any? do |k|
+      RecipeBook.need(k) == "1 BONE" && RecipeBook.result(k) == Block::BONE_MEAL && RecipeBook.result_count(k) == 3 && RecipeBook.where(k) == RecipeBook::BY_HAND
+    end
     # Each skeleton drops 0 to 2, so 10 skeletons drop none 1 time in 59049.
     @items.clear
     @mobs.clear
@@ -2952,7 +2961,7 @@ class Game
     @inv.add(Block::IRON_INGOT)
     craft_recipe(recipe_for(Block::SHEARS))
     short = @inv.total(Block::SHEARS) == 0 && @inv.total(Block::IRON_INGOT) == 1
-    text = recipe_need(RECIPES[k]) == "1 CARVED PUMPKIN + 1 TORCH" && recipe_need(RECIPES[recipe_for(Block::SHEARS)]) == "2 IRON INGOT"
+    text = RecipeBook.need(k) == "1 CARVED PUMPKIN + 1 TORCH" && RecipeBook.need(recipe_for(Block::SHEARS)) == "2 IRON INGOT"
     check("a recipe with two ingredients takes each of them for each result, and names both", all && short && text)
     @inv.clear
     @survival = survival
