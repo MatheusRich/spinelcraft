@@ -270,21 +270,15 @@ class World
   # Appends the offsets of the square rings 0 to max to dxs and dzs, nearest
   # ring first.
   def self.square_rings(max, dxs, dzs)
-    r = 0
-    while r <= max
-      dx = -r
-      while dx <= r
-        dz = -r
-        while dz <= r
+    (0..max).each do |r|
+      (-r..r).each do |dx|
+        (-r..r).each do |dz|
           if dx.abs == r || dz.abs == r
             dxs << dx
             dzs << dz
           end
-          dz += 1
         end
-        dx += 1
       end
-      r += 1
     end
     nil
   end
@@ -327,10 +321,8 @@ class World
     while bx <= x1
       by = y.floor
       while by <= y1
-        bz = (z - half).floor
-        while bz <= z1
+        ((z - half).floor..z1).each do |bz|
           return true if block_in_box?(get(bx, by, bz), bx, by, bz, x, y, z, half, tall)
-          bz += 1
         end
         by += 1
       end
@@ -367,11 +359,7 @@ class World
     while bx <= x1
       by = (y - CACTUS_REACH).floor
       while by <= y1
-        bz = (z - half).floor
-        while bz <= z1
-          return true if get(bx, by, bz) == Block::CACTUS
-          bz += 1
-        end
+        ((z - half).floor..z1).each { |bz| return true if get(bx, by, bz) == Block::CACTUS }
         by += 1
       end
       bx += 1
@@ -446,17 +434,11 @@ class World
     return if lx0 != 0 && lx0 + CHUNK != WX && lz0 != 0 && lz0 + CHUNK != WZ
     lx = lx0
     while lx < lx0 + CHUNK
-      lz = lz0
-      while lz < lz0 + CHUNK
+      (lz0...lz0 + CHUNK).each do |lz|
         if lx == 0 || lx == LMASK || lz == 0 || lz == LMASK
           base = World.index(lx, 0, lz)
-          y = 0
-          while y < WY
-            write(base + y, lx, lz, block(base + y))
-            y += 1
-          end
+          WY.times { |y| write(base + y, lx, lz, block(base + y)) }
         end
-        lz += 1
       end
       lx += 1
     end
@@ -483,15 +465,7 @@ class World
     mirror_edges(cx, cz)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
-    x = x0
-    while x < x0 + CHUNK
-      z = z0
-      while z < z0 + CHUNK
-        update_height(x, z)
-        z += 1
-      end
-      x += 1
-    end
+    (x0...x0 + CHUNK).each { |x| (z0...z0 + CHUNK).each { |z| update_height(x, z) } }
     # A generated chunk has no torches and no lava above LAVA_LEVEL.
     find_torches(cx, cz, data.nil? ? LAVA_LEVEL + 1 : WY)
   end
@@ -511,40 +485,26 @@ class World
     col = Array.new(WY, 0)
     x0 = cx.to_i * CHUNK
     z0 = cz.to_i * CHUNK
-    x = x0
-    while x < x0 + CHUNK
-      z = z0
-      while z < z0 + CHUNK
+    (x0...x0 + CHUNK).each do |x|
+      (z0...z0 + CHUNK).each do |z|
         base = World.index(x, 0, z)
-        y = 0
-        while y < WY
-          col[y] = block(base + y)
-          y += 1
-        end
+        WY.times { |y| col[y] = block(base + y) }
         parts << col.pack("C*")
-        z += 1
       end
-      x += 1
     end
     parts.join
   end
 
   def unpack_chunk(cx, cz, data)
     k = 0
-    x = cx * CHUNK
-    while x < cx * CHUNK + CHUNK
-      z = cz * CHUNK
-      while z < cz * CHUNK + CHUNK
+    (cx * CHUNK...cx * CHUNK + CHUNK).each do |x|
+      (cz * CHUNK...cz * CHUNK + CHUNK).each do |z|
         base = World.index(x, 0, z)
-        y = 0
-        while y < WY
+        WY.times do |y|
           put_block(base + y, data.getbyte(k) || 0)
           k += 1
-          y += 1
         end
-        z += 1
       end
-      x += 1
     end
   end
 
@@ -552,10 +512,8 @@ class World
   def edited_chunks
     out = {}
     @store.each { |k, v| out[k] = v }
-    s = 0
-    while s < CX * CZ
+    (CX * CZ).times do |s|
       out[World.chunk_key(@slot_cx[s], @slot_cz[s])] = chunk_bytes(@slot_cx[s], @slot_cz[s]) if @edited[s] == 1
-      s += 1
     end
     out
   end
@@ -569,25 +527,19 @@ class World
   end
 
   def expose_lava(x, y, z)
-    d = 0
-    while d < 6
+    6.times do |d|
       nx = x + (d == 0 ? 1 : (d == 1 ? -1 : 0))
       ny = y + (d == 2 ? 1 : (d == 3 ? -1 : 0))
       nz = z + (d == 4 ? 1 : (d == 5 ? -1 : 0))
       if inside?(nx, ny, nz) && block(World.index(nx, ny, nz)) == Block::LAVA && !listed?(nx, ny, nz)
         add_torch(nx, ny, nz)
       end
-      d += 1
     end
   end
 
   def listed?(x, y, z)
     list = @chunk_torches[World.slot(x >> 4, z >> 4)]
-    k = 0
-    while k < list.size
-      return true if list[k] == x && list[k + 1] == y && list[k + 2] == z
-      k += 3
-    end
+    (0...list.size).step(3) { |k| return true if list[k] == x && list[k + 1] == y && list[k + 2] == z }
     false
   end
 
@@ -616,11 +568,9 @@ class World
       z = cz * CHUNK
       while z < cz * CHUNK + CHUNK
         base = World.index(x, 0, z)
-        y = 0
-        while y < top
+        top.times do |y|
           b = block(base + y)
           add_torch(x, y, z) if Block.torch?(b) || Block.jack_o_lantern?(b) || (b == Block::LAVA && exposed?(base + y))
-          y += 1
         end
         z += 1
       end
@@ -819,10 +769,8 @@ class World
   # The y of v on the line through the points xs, ys (xs in rising order).
   def self.spline(xs, ys, v)
     return ys[0] if v <= xs[0]
-    i = 1
-    while i < xs.size
+    (1...xs.size).each do |i|
       return ys[i - 1] + (ys[i] - ys[i - 1]) * (v - xs[i - 1]) / (xs[i] - xs[i - 1]) if v < xs[i]
-      i += 1
     end
     ys[xs.size - 1]
   end
@@ -890,20 +838,14 @@ class World
     gy = y >> 2
     gz = z >> 2
     n = 0
-    i = 0
-    while i < 2
-      j = 0
-      while j < 2
-        k = 0
-        while k < 2
+    2.times do |i|
+      2.times do |j|
+        2.times do |k|
           @corner_a[n] = cave_a(gx + i, gy + j, gz + k)
           @corner_b[n] = cave_b(gx + i, gy + j, gz + k)
           n += 1
-          k += 1
         end
-        j += 1
       end
-      i += 1
     end
     tx = (x - gx * 4) / 4.0
     ty = (y - gy * 4) / 4.0
@@ -976,25 +918,17 @@ class World
       end
       i += 1
     end
-    i = 0
-    while i < GX - 1
-      j = 0
-      while j < gy - 1
-        k = 0
-        while k < GX - 1
+    (GX - 1).times do |i|
+      (gy - 1).times do |j|
+        (GX - 1).times do |k|
           n = (i * GY + j) * GX + k
           @cave_cell[n] = cave_cell(n)
-          k += 1
         end
-        j += 1
       end
-      i += 1
     end
 
-    lx = 0
-    while lx < CHUNK
-      lz = 0
-      while lz < CHUNK
+    CHUNK.times do |lx|
+      CHUNK.times do |lz|
         x = x0 + lx
         z = z0 + lz
         h = @col_h[lx * CHUNK + lz]
@@ -1076,9 +1010,7 @@ class World
           y += 1
         end
         clear_above(base, y)
-        lz += 1
       end
-      lx += 1
     end
     decorate(cx, cz)
   end
@@ -1090,20 +1022,14 @@ class World
   def cave_cell(n)
     low = 1.0
     high = -1.0
-    di = 0
-    while di < 2
-      dj = 0
-      while dj < 2
-        dk = 0
-        while dk < 2
+    2.times do |di|
+      2.times do |dj|
+        2.times do |dk|
           a = @cave_a[n + (di * GY + dj) * GX + dk]
           low = a if a < low
           high = a if a > high
-          dk += 1
         end
-        dj += 1
       end
-      di += 1
     end
     cave_possible?(low, CAVE_WIDTH) || cave_possible?(high, CAVE_WIDTH) || (low < 0.0 && high > 0.0) ? 1 : 0
   end
@@ -1157,10 +1083,8 @@ class World
       end
       x += 1
     end
-    lx = 0
-    while lx < CHUNK
-      lz = 0
-      while lz < CHUNK
+    CHUNK.times do |lx|
+      CHUNK.times do |lz|
         x = x0 + lx
         z = z0 + lz
         top = @col_h[lx * CHUNK + lz] - 1
@@ -1180,18 +1104,12 @@ class World
           r = Noise.hash3(x, 0, z, 21)
           if r < 350
             tall = 1 + Noise.hash3(x, 1, z, 22) % 3
-            i = 0
-            while i < tall
-              put(x, top + 1 + i, z, Block::CACTUS, x0, z0)
-              i += 1
-            end
+            tall.times { |i| put(x, top + 1 + i, z, Block::CACTUS, x0, z0) }
           elsif r < 350 + DESERT_DRY_GRASS
             put(x, top + 1, z, Block::DRY_GRASS, x0, z0)
           end
         end
-        lz += 1
       end
-      lx += 1
     end
     if Noise.hash3(cx, 3, cz, 40) < WELL_ODDS
       span = CHUNK - WELL_REACH * 2
@@ -1213,18 +1131,14 @@ class World
   # higher, so no part of the well hangs over air.
   def well_top(x, z)
     h = surface_height(x, z)
-    dx = -WELL_REACH
-    while dx <= WELL_REACH
-      dz = -WELL_REACH
-      while dz <= WELL_REACH
+    (-WELL_REACH..WELL_REACH).each do |dx|
+      (-WELL_REACH..WELL_REACH).each do |dz|
         ch = surface_height(x + dx, z + dz)
         return -1 if ch < h || ch > h + 1 || beach?(ch - 1)
         biome = biome(x + dx, z + dz, ch)
         return -1 if biome != Biome::DESERT || top_block(x + dx, z + dz, ch, biome) != Block::SAND
         return -1 if entrance?(x + dx, z + dz) && carved?(x + dx, ch - 1, z + dz)
-        dz += 1
       end
-      dx += 1
     end
     h - 1
   end
@@ -1233,18 +1147,10 @@ class World
   # (minecraft.wiki/w/Desert_Well/Structure). The game has no slabs, so
   # sandstone takes their place.
   def well(x, top, z, x0, z0)
-    dy = -2
-    while dy <= 4
-      dx = -WELL_REACH
-      while dx <= WELL_REACH
-        dz = -WELL_REACH
-        while dz <= WELL_REACH
-          put(x + dx, top + dy, z + dz, well_block(dx, dy, dz), x0, z0)
-          dz += 1
-        end
-        dx += 1
+    (-2..4).each do |dy|
+      (-WELL_REACH..WELL_REACH).each do |dx|
+        (-WELL_REACH..WELL_REACH).each { |dz| put(x + dx, top + dy, z + dz, well_block(dx, dy, dz), x0, z0) }
       end
-      dy += 1
     end
   end
 
@@ -1365,16 +1271,12 @@ class World
     ly = top - 2
     while ly <= top + 1
       radius = ly >= top ? 1 : 2
-      dx = -radius
-      while dx <= radius
-        dz = -radius
-        while dz <= radius
+      (-radius..radius).each do |dx|
+        (-radius..radius).each do |dz|
           corner = dx.abs == radius && dz.abs == radius
           skip = corner && (ly == top + 1 || Noise.hash3(x + dx, ly, z + dz, 24) < 32000)
           put(x + dx, ly, z + dz, @leaves, x0, z0) if !skip && air_in?(x + dx, ly, z + dz, x0, z0)
-          dz += 1
         end
-        dx += 1
       end
       ly += 1
     end
@@ -1407,20 +1309,14 @@ class World
   def jungle_bush(x, y, z, x0, z0)
     return if y + 3 >= WY
     logs(x, y, z, 1, x0, z0)
-    ly = 0
-    while ly < 3
+    3.times do |ly|
       radius = 3 - ly
-      dx = -radius
-      while dx <= radius
-        dz = -radius
-        while dz <= radius
+      (-radius..radius).each do |dx|
+        (-radius..radius).each do |dz|
           skip = dx.abs == radius && dz.abs == radius && Noise.hash3(x + dx, y + ly, z + dz, 24) < 32768
           put(x + dx, y + ly, z + dz, @leaves, x0, z0) if !skip && air_in?(x + dx, y + ly, z + dz, x0, z0)
-          dz += 1
         end
-        dx += 1
       end
-      ly += 1
     end
   end
 
@@ -1435,13 +1331,11 @@ class World
     tall = 10 + r % 3 + r / 3 % 20
     return if y + tall >= WY
     # Each log of the 2 x 2 trunk goes down to the ground of its own column.
-    a = 0
-    while a < 4
+    4.times do |a|
       cx = x + a % 2
       cz = z + a / 2
       ground = a == 0 ? y : [y, surface_height(cx, cz)].min
       logs(cx, ground, cz, y + tall - ground, x0, z0)
-      a += 1
     end
     jungle_crown(x, y + tall, z, 3, 3, true, x0, z0)
     i = tall - 2 - r / 60 % 4
@@ -1450,12 +1344,10 @@ class World
       angle = b / 65536.0 * 2.0 * Math::PI
       bx = 0
       bz = 0
-      l = 0
-      while l < 5
+      5.times do |l|
         bx = (1.5 + Math.cos(angle) * l).to_i
         bz = (1.5 + Math.sin(angle) * l).to_i
         put(x + bx, y + i - 3 + l / 2, z + bz, @log, x0, z0)
-        l += 1
       end
       b = Noise.hash3(x, y + i, z, 30)
       jungle_crown(x + bx, y + i, z + bz, 1, 2 + b % 2, false, x0, z0)
@@ -1469,13 +1361,10 @@ class World
   # z is the corner of.
   def jungle_crown(x, y, z, r, layers, wide, x0, z0)
     w = wide ? 1 : 0
-    i = 0
-    while i < layers
+    layers.times do |i|
       reach = r + i
-      dx = -reach
-      while dx <= reach + w
-        dz = -reach
-        while dz <= reach + w
+      (-reach..reach + w).each do |dx|
+        (-reach..reach + w).each do |dz|
           ax = dx.abs
           az = dz.abs
           ax = (dx - 1).abs if wide && dx > 0
@@ -1483,11 +1372,8 @@ class World
           if ax + az < 7 && ax * ax + az * az <= reach * reach && air_in?(x + dx, y - i, z + dz, x0, z0)
             put(x + dx, y - i, z + dz, @leaves, x0, z0)
           end
-          dz += 1
         end
-        dx += 1
       end
-      i += 1
     end
   end
 
@@ -1512,8 +1398,7 @@ class World
     low = top - [4, tall - bare].max
     step = 1
     narrow = 0
-    ly = top + above
-    while ly >= low
+    (top + above).downto(low) do |ly|
       leaf_row(x, ly, z, reach, x0, z0)
       if reach >= step
         reach = narrow
@@ -1522,7 +1407,6 @@ class World
       else
         reach += 1
       end
-      ly -= 1
     end
   end
 
@@ -1538,36 +1422,24 @@ class World
     return if y + tall + 1 >= WY
     logs(x, y, z, tall, x0, z0)
     top = y + tall
-    i = 0
-    while i < layers
-      leaf_row(x, top + 1 - i, z, i == 0 || i == layers - 1 ? 0 : 1, x0, z0)
-      i += 1
-    end
+    layers.times { |i| leaf_row(x, top + 1 - i, z, i == 0 || i == layers - 1 ? 0 : 1, x0, z0) }
   end
 
   # A trunk of tall logs up from x, y, z, on dirt.
   def logs(x, y, z, tall, x0, z0)
-    i = 0
-    while i < tall
-      put(x, y + i, z, @log, x0, z0)
-      i += 1
-    end
+    tall.times { |i| put(x, y + i, z, @log, x0, z0) }
     put(x, y - 1, z, Block::DIRT, x0, z0)
   end
 
   # A square layer of leaves around x, y, z that reaches out r blocks,
   # without its corners.
   def leaf_row(x, y, z, r, x0, z0)
-    dx = -r
-    while dx <= r
-      dz = -r
-      while dz <= r
+    (-r..r).each do |dx|
+      (-r..r).each do |dz|
         if (dx.abs < r || dz.abs < r || r == 0) && air_in?(x + dx, y, z + dz, x0, z0)
           put(x + dx, y, z + dz, @leaves, x0, z0)
         end
-        dz += 1
       end
-      dx += 1
     end
   end
 
@@ -1585,8 +1457,7 @@ class World
     limb(x, y + trunk, z, x, y + tall - 5, z, x0, z0)
     oak_ball(x, y + tall - 5, z, x0, z0)
     put(x, y - 1, z, Block::DIRT, x0, z0)
-    n = tall - 5
-    while n >= 0
+    (tall - 5).downto(0) do |n|
       spread = large_oak_spread(tall, n)
       if spread >= 0.0
         reach = spread * (Noise.hash3(x, y + n, z, 29) / 65536.0 + 0.328)
@@ -1603,7 +1474,6 @@ class World
           oak_ball(ex, ey, ez, x0, z0)
         end
       end
-      n -= 1
     end
   end
 
@@ -1624,11 +1494,9 @@ class World
     dy = ey - sy
     dz = ez - sz
     steps = [dx.abs, dy.abs, dz.abs].max
-    i = 0
-    while i <= steps
+    (0..steps).each do |i|
       t = steps == 0 ? 0.0 : i.to_f / steps
       put(sx + (0.5 + t * dx).floor, sy + (0.5 + t * dy).floor, sz + (0.5 + t * dz).floor, @log, x0, z0)
-      i += 1
     end
   end
 
@@ -1637,23 +1505,17 @@ class World
   # branch end: a plus at the bottom and at the top (r = 2), and 5 x 5
   # without the corners between them (r = 3).
   def oak_ball(x, y, z, x0, z0)
-    ly = 0
-    while ly <= 4
+    (0..4).each do |ly|
       r = ly == 0 || ly == 4 ? 2 : 3
-      dx = -r
-      while dx <= r
-        dz = -r
-        while dz <= r
+      (-r..r).each do |dx|
+        (-r..r).each do |dz|
           ax = dx.abs + 0.5
           az = dz.abs + 0.5
           if ax * ax + az * az <= r * r && air_in?(x + dx, y + ly, z + dz, x0, z0)
             put(x + dx, y + ly, z + dz, @leaves, x0, z0)
           end
-          dz += 1
         end
-        dx += 1
       end
-      ly += 1
     end
   end
 
@@ -1673,15 +1535,13 @@ class World
     lean = 3 - r / 16 % 3
     tx = x
     tz = z
-    i = 0
-    while i < tall
+    tall.times do |i|
       if i >= bend && lean > 0
         tx += Block::DIR_DX[dir]
         tz += Block::DIR_DZ[dir]
         lean -= 1
       end
       put(tx, y + i, tz, @log, x0, z0)
-      i += 1
     end
     put(x, y - 1, z, Block::DIRT, x0, z0)
     r = Noise.hash3(x, y, z, 27)
@@ -1713,18 +1573,14 @@ class World
   # that reaches 3 adds one block at the middle of each side.
   def acacia_crown(x, y, z, reach, x0, z0)
     leaf_row(x, y, z, reach, x0, z0)
-    dx = -reach
-    while dx <= reach
-      dz = -reach
-      while dz <= reach
+    (-reach..reach).each do |dx|
+      (-reach..reach).each do |dz|
         ax = dx.abs
         az = dz.abs
         if ((ax <= 1 && az <= 1) || ax + az < reach) && air_in?(x + dx, y + 1, z + dz, x0, z0)
           put(x + dx, y + 1, z + dz, @leaves, x0, z0)
         end
-        dz += 1
       end
-      dx += 1
     end
   end
 end
