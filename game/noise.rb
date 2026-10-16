@@ -3,20 +3,14 @@ class Noise
   def initialize(seed)
     p = (0...256).to_a
     rng = Rng.new(seed)
-    i = 255
-    while i > 0
+    255.downto(1) do |i|
       j = rng.next_int % (i + 1)
       t = p[i]
       p[i] = p[j]
       p[j] = t
-      i -= 1
     end
     @perm = Array.new(512, 0)
-    i = 0
-    while i < 512
-      @perm[i] = p[i & 255]
-      i += 1
-    end
+    512.times { |i| @perm[i] = p[i & 255] }
   end
 
   def fade(t) = t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
@@ -104,14 +98,12 @@ class Noise
     amp = 1.0
     freq = 1.0
     norm = 0.0
-    i = 0
-    while i < octaves
+    octaves.times do
       sum += noise2(x * freq, y * freq) * amp
       norm += amp
       # `x *= k` in a loop makes Spinel box x as a possible bigint.
       amp /= 2.0
       freq += freq
-      i += 1
     end
     sum / norm
   end
