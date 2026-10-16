@@ -231,18 +231,14 @@ class Game
     sand = 0
     held = 0
     depth = World::SOIL_DEPTH + World::SANDSTONE_DEPTH
-    x = @spawn_x.floor - 128
-    while x < @spawn_x.floor + 128
-      z = @spawn_z.floor - 128
-      while z < @spawn_z.floor + 128
+    (@spawn_x.floor - 128...@spawn_x.floor + 128).each do |x|
+      (@spawn_z.floor - 128...@spawn_z.floor + 128).each do |z|
         top = @world.height_at(x, z) - 1
         if @world.loaded?(x, z) && @world.get(x, top, z) == Block::SAND && (1...depth).none? { |d| @world.get(x, top - d, z) == Block::AIR }
           sand += 1
           held += 1 if (0...depth).all? { |d| @world.get(x, top - d, z) == (d < World::SOIL_DEPTH ? Block::SAND : Block::SANDSTONE) }
         end
-        z += 1
       end
-      x += 1
     end
     check("sand lies on sandstone", sand > 0 && held == sand)
     @inv.clear
@@ -889,8 +885,7 @@ class Game
     last_x = @hand_dx
     last_y = @hand_dy
     most = 0.0
-    frame = 0
-    while frame < 150
+    150.times do |frame|
       p.vx = frame < 120 ? 4.3 : 0.0
       # As in Game#update.
       @bob += p.vx * dt * 2.6
@@ -899,7 +894,6 @@ class Game
       most = d if d > most
       last_x = @hand_dx
       last_y = @hand_dy
-      frame += 1
     end
     p.vx = 0.0
     check("the held item sways smoothly while the player walks and stops", most < 0.006)
@@ -1150,11 +1144,7 @@ class Game
   def test_monsters
     px = @spawn_x.floor
     pz = @spawn_z.floor
-    i = -2
-    while i <= 16
-      set_block(px + i, SKY_Y - 2, pz, Block::STONE)
-      i += 1
-    end
+    (-2..16).each { |i| set_block(px + i, SKY_Y - 2, pz, Block::STONE) }
     @chunk_meshes.flush
     @mobs.clear
     @clock.time_of_day = 0.75
@@ -1421,10 +1411,8 @@ class Game
   # corner (x, z) to (x + 1, z + 1). A quad has 6 vertices of 11 floats.
   def rain_bottom(x, z)
     v = @weather.mesh.v
-    i = 0
-    while i < v.size
+    (0...v.size).step(66) do |i|
       return v[i + 23] if v[i] == x.to_f && v[i + 2] == z.to_f && v[i + 11] == x + 1.0 && v[i + 13] == z + 1.0
-      i += 66
     end
     -1.0
   end
@@ -1625,8 +1613,7 @@ class Game
   def test_inventory_layout
     sizes = [1280.0, 720.0, 2560.0, 1440.0, 1920.0, 1080.0, 2880.0, 1800.0, 3840.0, 2160.0]
     fits = true
-    i = 0
-    while i < sizes.size
+    (0...sizes.size).step(2) do |i|
       w = sizes[i]
       h = sizes[i + 1]
       s = inventory_scale(w, h)
@@ -1635,18 +1622,13 @@ class Game
       pad = 18.0 * s
       fits = false if first[0] - pad < 0.0 || first[1] - pad - 40.0 * s < 0.0
       fits = false if last[0] + last[2] + pad > w || last[1] + last[3] + pad > h - 82.0 * ui_scale(h)
-      i += 2
     end
     check("the inventory screen fits the frame above the hotbar", fits)
   end
 
   # The index of the recipe that makes b.
   def recipe_for(b)
-    index = 0
-    while index < @recipe_book.recipe_count
-      return index if @recipe_book.recipe(index).result == b
-      index += 1
-    end
+    @recipe_book.recipe_count.times { |index| return index if @recipe_book.recipe(index).result == b }
     abort "no recipe makes #{Block::NAMES[b]}"
   end
 
@@ -1668,11 +1650,7 @@ class Game
 
   # Crafting needs room for the result, and it takes from several stacks.
   def test_crafting_limits
-    i = 0
-    while i < INV
-      @inv.set(i, Block::OAK_PLANKS, 64)
-      i += 1
-    end
+    INV.times { |i| @inv.set(i, Block::OAK_PLANKS, 64) }
     @inv.set(0, Block::OAK_LOG, 5)
     @inv.set(1, Block::OAK_PLANKS, 62)
     @slot = 0
@@ -1708,11 +1686,7 @@ class Game
     @survival = survival
     check("a tool breaks after its last use, and a thrown tool keeps its uses", broke && @inv.count(0) == 7 && @inv.block(0) == Block::WOOD_PICK)
     # The only free slot is the one that the recipe empties.
-    i = 0
-    while i < INV
-      @inv.set(i, Block::DIRT, 64)
-      i += 1
-    end
+    INV.times { |i| @inv.set(i, Block::DIRT, 64) }
     @inv.set(0, Block::OAK_LOG, 1)
     craft_recipe(recipe_for(Block::OAK_PLANKS))
     check("a recipe click counts the slot that it empties as room", @inv.block(0) == Block::OAK_PLANKS && @inv.count(0) == 4)
@@ -2004,15 +1978,7 @@ class Game
   def test_mob_panic
     bx = @spawn_x.floor + 30
     bz = @spawn_z.floor + 20
-    i = -10
-    while i <= 10
-      j = -10
-      while j <= 10
-        set_block(bx + i, SKY_Y - 2, bz + j, Block::STONE)
-        j += 1
-      end
-      i += 1
-    end
+    (-10..10).each { |i| (-10..10).each { |j| set_block(bx + i, SKY_Y - 2, bz + j, Block::STONE) } }
     pig = Mob.new(Mob::PIG, bx + 0.5, SKY_Y - 1.0, bz + 0.5, 5)
     @mobs.clear
     @mobs << pig
@@ -2032,11 +1998,7 @@ class Game
     bz = @spawn_z.floor - 20
     y = SKY_Y - 4
     set_block(bx, y, bz, Block::OAK_LOG)
-    i = 1
-    while i <= 8
-      set_block(bx + i, y, bz, Block::OAK_LEAVES)
-      i += 1
-    end
+    (1..8).each { |i| set_block(bx + i, y, bz, Block::OAK_LEAVES) }
     keep_pose
     survival = @survival
     @survival = false
@@ -2113,11 +2075,7 @@ class Game
     run_items(1.5)
     check("an item falls to the ground and stays out of reach", @items.size == 1 && (@items[0].y - (y + 1.0)).abs < 0.01)
     @items.clear
-    i = 0
-    while i < INV
-      @inv.set(i, Block::STONE, Slots::STACK)
-      i += 1
-    end
+    INV.times { |i| @inv.set(i, Block::STONE, Slots::STACK) }
     drop_item(Block::SAND, 1, cx + 0.5, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     drop_item(Block::SAND, 1, cx + 0.6, y + 1.0, cz + 0.5, 0.0, 0.0, 0.0, 0.0)
     run_items(0.5)
@@ -2147,13 +2105,11 @@ class Game
     mesher = Mesher.new(@world)
     mesher.build(cx / CHUNK, cz / CHUNK)
     tint = -1
-    k = 0
-    while k < mesher.opaque.size
+    (0...mesher.opaque.size).step(2) do |k|
       w0 = mesher.opaque[k]
       if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == (cz & LMASK) && Mesher.face_dir(w0) == f
         tint = Mesher.face_tint(mesher.opaque[k + 1])
       end
-      k += 2
     end
     set_block(cx, SKY_Y, cz, Block::AIR)
     tint
@@ -2181,24 +2137,20 @@ class Game
     mesher.build(cx / CHUNK, cz / CHUNK)
     faces = 0
     glow = false
-    k = 0
-    while k < mesher.opaque.size
+    (0...mesher.opaque.size).step(2) do |k|
       w0 = mesher.opaque[k]
       if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == (cz & LMASK)
         faces += 1
         glow = true if Mesher.face_light(mesher.opaque[k + 1]) == 14
       end
-      k += 2
     end
     check("wool does not glow", faces > 0 && !glow)
     set_block(cx, SKY_Y, cz, Block::AIR)
     lx = @spawn_x.floor - 6
     lz = @spawn_z.floor - 6
-    i = -1
-    while i <= 1
+    (-1..1).each do |i|
       set_block(lx + i, SKY_Y - 5, lz, Block::STONE)
       set_block(lx + i, SKY_Y - 4, lz, Block::AIR)
-      i += 1
     end
     set_block(lx, SKY_Y - 4, lz, Block::LAVA)
     mesher.build(lx / CHUNK, lz / CHUNK)
@@ -2214,11 +2166,7 @@ class Game
   # Builds a stone platform and shoots a pig on it with a full bow draw.
   def test_bow(bx, bz)
     @mobs.clear
-    i = -2
-    while i <= 12
-      set_block(bx + i, SKY_Y - 2, bz, Block::STONE)
-      i += 1
-    end
+    (-2..12).each { |i| set_block(bx + i, SKY_Y - 2, bz, Block::STONE) }
     @player.x = bx + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = bz + 0.5
@@ -2328,19 +2276,11 @@ class Game
   def test_swim_out
     wx = @spawn_x.floor + 20
     wz = @spawn_z.floor + 20
-    i = -1
-    while i <= 3
-      k = -2
-      while k <= 2
+    (-1..3).each do |i|
+      (-2..2).each do |k|
         set_block(wx + i, SKY_Y - 2, wz + k, Block::STONE)
-        y = SKY_Y - 1
-        while y <= SKY_Y + 4
-          set_block(wx + i, y, wz + k, Block::AIR)
-          y += 1
-        end
-        k += 1
+        (SKY_Y - 1..SKY_Y + 4).each { |y| set_block(wx + i, y, wz + k, Block::AIR) }
       end
-      i += 1
     end
     set_block(wx, SKY_Y - 1, wz, Block::WATER)
     set_block(wx, SKY_Y, wz, Block::WATER)
@@ -2607,12 +2547,10 @@ class Game
     x = @spawn_x.floor + 30
     z = @spawn_z.floor - 60
     g = @world.height_at(x, z) + 2
-    dx = -2
-    while dx <= 2
+    (-2..2).each do |dx|
       set_block(x + dx, g, z, Block::STONE)
       set_block(x + dx, g + 1, z, dx == 2 ? Block::STONE : Block::AIR)
       set_block(x + dx, g + 2, z, Block::AIR)
-      dx += 1
     end
     set_block(x, g + 1, z, Block::ROSE)
     p = Player.new(x - 1.5, g + 1.5 - Player::EYE, z + 0.1)
@@ -2787,10 +2725,8 @@ class Game
       use_bone_meal
       spent &&= @inv.count(5) == before - 1
       plants = 0
-      dx = -10
-      while dx <= 10
-        dz = -10
-        while dz <= 10
+      (-10..10).each do |dx|
+        (-10..10).each do |dz|
           b = @world.get(x + dx, g + 1, z + dz)
           if b == Block::TALL_GRASS || b == Block::ROSE || b == Block::DANDELION
             if dx.abs <= 4 && dz.abs <= 4
@@ -2801,9 +2737,7 @@ class Game
             end
           end
           set_block(x + dx, g + 1, z + dz, Block::AIR) if Block.plant?(b) && b != Block::OAK_SAPLING && !Block.growing?(b) && b != Block::WHEAT_RIPE && b != Block::PUMPKIN_STEM_RIPE
-          dz += 1
         end
-        dx += 1
       end
       fewest = plants if plants < fewest
     end
@@ -2937,14 +2871,12 @@ class Game
            mesher.torch_light(bx + 14, y + 1, bz) == 1
     glow = true
     faces = 0
-    i = 0
-    while i < mesher.opaque.size
+    (0...mesher.opaque.size).step(2) do |i|
       w0 = mesher.opaque[i]
       if Mesher.face_x(w0) == (bx & LMASK) && Mesher.face_y(w0) == y + 1 && Mesher.face_z(w0) == (bz & LMASK)
         faces += 1
         glow = false if Mesher.face_light(mesher.opaque[i + 1]) != Mesher::LIGHT_MAX
       end
-      i += 2
     end
     lit = @light.level(bx + 3, y + 1, bz, 0, true, 0) == -1 && @light.level(bx + 14, y + 1, bz, 0, true, 0) == -1 &&
           @light.level(bx + 15, y + 1, bz, 0, true, 0) >= 0
@@ -3420,11 +3352,9 @@ class Game
     x = @spawn_x.floor + 40
     z = @spawn_z.floor - 40
     y = @world.height_at(x, z)
-    i = 0
-    while i < 6
+    6.times do |i|
       set_block(x, y + i, z, Block.facing_id(Block::LADDER, 1))
       set_block(x + 1, y + i, z, Block::STONE)
-      i += 1
     end
     p = Player.new(x + 0.5, y.to_f, z + 0.5)
     50.times { p.update(@world, 0.02, 0.0, 0.0, true, false, false) }
@@ -3443,11 +3373,9 @@ class Game
       frames += 1
     end
     top = p.x >= x + 1.5 && (p.y - (y + 6)).abs < 0.05
-    i = 0
-    while i < 6
+    6.times do |i|
       set_block(x, y + i, z, Block::AIR)
       set_block(x + 1, y + i, z, Block::AIR)
-      i += 1
     end
     check("a ladder climbs at 2.35 m/s on jump, holds on Shift, and slides down at 3 m/s", up && held && slid)
     check("forward on a ladder climbs onto the block at its top", top)
@@ -3527,11 +3455,9 @@ class Game
   def test_water
     wx = @spawn_x.floor
     wz = @spawn_z.floor + 3
-    i = -10
-    while i <= 10
+    (-10..10).each do |i|
       set_block(wx + i, SKY_Y - 5, wz, Block::STONE)
       set_block(wx + i, SKY_Y - 4, wz, Block::AIR)
-      i += 1
     end
     @flow_queue.clear
     set_block(wx, SKY_Y - 4, wz, Block::WATER)
@@ -3588,21 +3514,15 @@ class Game
     pcx = ex.floor >> 4
     pcz = ez.floor >> 4
     sides = {}
-    k = 0
-    while k < visible.size
-      sides[visible[k] / 2] = visible[k + 1]
-      k += 2
-    end
+    (0...visible.size).step(2) { |k| sides[visible[k] / 2] = visible[k + 1] }
     ahead = sides[World.slot(pcx, pcz - 2)]
     check("a chunk ahead draws with the sides that face the eye, and a chunk behind does not draw",
           ahead == (4 | 8 | 64 | 1 | 2 | 16) && !sides.key?(World.slot(pcx, pcz + 3)))
     # The order goes by the whole part of the distance, so chunks with the
     # same whole part can come in either order.
     far_first = true
-    k = 2
-    while k < water.size
+    (2...water.size).step(2) do |k|
       far_first = false if water_distance2(water[k - 2]).to_i < water_distance2(water[k]).to_i
-      k += 2
     end
     check("water draws from the far chunks to the near ones", water.size >= waters.size * 2 && far_first)
     waters.each { |k| set_block(ex.floor, SKY_Y, ez.floor - k * CHUNK, Block::AIR) }
@@ -3614,11 +3534,7 @@ class Game
     @chunk_meshes.detail_square(8, @uniforms, 28)
     @far.cull_tiles(@camera, view, view + 4.0, @uniforms, 28)
     tiles = {}
-    k = 0
-    while k < @far.visible.size
-      tiles[@far.visible[k]] = @far.visible[k + 1]
-      k += 2
-    end
+    (0...@far.visible.size).step(2) { |k| tiles[@far.visible[k]] = @far.visible[k + 1] }
     shift = @far.lod(0).tile_shift
     tx = ex.floor.to_i >> shift
     tz = ez.floor.to_i >> shift
