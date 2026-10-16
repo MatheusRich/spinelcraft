@@ -44,12 +44,10 @@ class Game
     if @vitals.burning? && @survival && !@vitals.dead?
       # Two flames at the bottom corners that flicker.
       size = h * 0.42
-      k = 0
-      while k < 2
+      2.times do |k|
         flick = Math.sin(@anim_time * 23.0 + k * 2.0) * 0.04 * size
         x = k == 0 ? -size * 0.15 : w - size * 0.85
         @ui.quad(x, h - size * 0.8 + flick, size, size, Tex::FIRE, 1.0, 1.0, 1.0, 1.0, 1.0, 0.85)
-        k += 1
       end
     end
     if @damage_flash > 0.0
@@ -72,8 +70,7 @@ class Game
   def draw_hotbar(x0, y0, size, gap, s)
     total = size * HOTBAR + gap * (HOTBAR - 1)
     @ui.rect(x0 - gap, y0 - gap, total + gap * 2.0, size + gap * 2.0, 0.0, 0.0, 0.0, 0.45)
-    i = 0
-    while i < HOTBAR
+    HOTBAR.times do |i|
       x = x0 + i * (size + gap)
       if i == @slot
         @ui.rect(x - 3.0 * s, y0 - 3.0 * s, size + 6.0 * s, size + 6.0 * s, 1.0, 1.0, 1.0, 0.95)
@@ -84,7 +81,6 @@ class Game
         @ui.item(x + 5.0 * s, y0 + 5.0 * s, size - 10.0 * s, slot_block, 1.0)
         draw_count(slot_block, @inv.count(i), x, y0, size, 2.0 * s, s) if @survival
       end
-      i += 1
     end
   end
 
@@ -109,23 +105,19 @@ class Game
     end
     # The Hunger effect turns the food yellow-green. minecraft.wiki/w/Hunger_(effect)
     full = @vitals.hunger_effect? ? Tex::HUNGER_EFFECT : Tex::HUNGER
-    i = 0
-    while i < 10
+    10.times do |i|
       fx = x0 + total - (i + 1) * 20.0 * s
       p = Tex::ICON_PART
       @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::HUNGER_EMPTY, p, p, 1.0, 1.0, 1.0, 1.0)
       if @vitals.hunger - i * 2 >= 1
         @ui.quad(fx, hy, 18.0 * s, 18.0 * s, full, p, p, 1.0, 1.0, 1.0, 1.0)
       end
-      i += 1
     end
     if @vitals.air < Vitals::MAX_AIR
       bubbles = (@vitals.air / Vitals::MAX_AIR * 10.0).ceil
-      i = 0
-      while i < bubbles
+      bubbles.times do |i|
         bx = x0 + total - (i + 1) * 20.0 * s
         @ui.rect(bx + 3.0 * s, hy - 22.0 * s + 3.0 * s, 13.0 * s, 13.0 * s, 0.6, 0.85, 1.0, 0.9)
-        i += 1
       end
     end
   end
@@ -151,14 +143,12 @@ class Game
     per = (w * 0.5 / (4.0 * ts)).to_i
     per = 20 if per < 20
     y = y0 - 120.0 * s
-    i = @chat.lines.size - 1
-    while i >= 0
+    (@chat.lines.size - 1).downto(0) do |i|
       a = @chat.opacity(i)
       if a > 0.0
         line = @chat.lines[i]
         rows = (line.size + per - 1) / per
-        k = rows - 1
-        while k >= 0
+        (rows - 1).downto(0) do |k|
           part = line[k * per, per]
           @ui.rect(4.0 * s, y - 2.0 * s, @ui.text_width(part, ts) + 6.0 * s, row, 0.0, 0.0, 0.0, 0.4 * a)
           if @chat.error?(i)
@@ -167,10 +157,8 @@ class Game
             @ui.text(6.0 * s, y, part, ts, 1.0, 1.0, 1.0, a)
           end
           y -= row
-          k -= 1
         end
       end
-      i -= 1
     end
   end
 
@@ -201,8 +189,7 @@ class Game
     names.each { |n| wide = @ui.text_width(n, ts) if @ui.text_width(n, ts) > wide }
     y = h - 18.0 * s - shown * 12.0 * s
     @ui.rect(x - 2.0 * s, y - 2.0 * s, wide + 4.0 * s, shown * 12.0 * s, 0.0, 0.0, 0.0, 0.75)
-    k = 0
-    while k < shown
+    shown.times do |k|
       i = first + k
       name = names[i].upcase
       if i == current
@@ -210,7 +197,6 @@ class Game
       else
         @ui.text(x, y + k * 12.0 * s, name, ts, 0.65, 0.65, 0.65, 1.0)
       end
-      k += 1
     end
   end
 
@@ -244,14 +230,12 @@ class Game
     @ui.rect(top[0] - pad, top[1] - pad - 40.0 * s, bottom[0] + bottom[2] - top[0] + pad * 2.0, bottom[1] + bottom[2] - top[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
     @ui.text(top[0], top[1] - 36.0 * s, "INVENTORY", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     hover = pack_hover(w, h, s)
-    i = 0
-    while i < INV
+    INV.times do |i|
       c = pack_cell(i, w, h, s)
       if i == @slot
         @ui.rect(c[0] - 3.0 * s, c[1] - 3.0 * s, c[2] + 6.0 * s, c[2] + 6.0 * s, 1.0, 1.0, 1.0, 0.9)
       end
       draw_slot(c, i == hover, @inv, i, 6.0 * s, 2.0 * s, s)
-      i += 1
     end
     if @chest_key >= 0
       draw_chest_panel(w, h, s, pad)
@@ -276,11 +260,9 @@ class Game
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, first[2] + pad * 2.0, last_c[1] + last_c[2] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
     @ui.text(first[0], first[1] - 36.0 * s, "CHEST", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     chover = chest_hover(w, h, s)
-    k = 0
-    while k < CHEST_SLOTS
+    CHEST_SLOTS.times do |k|
       c = chest_cell(k, w, h, s)
       draw_slot(c, k == chover, @chest, k, 3.0 * s, 1.5 * s, s)
-      k += 1
     end
   end
 
@@ -334,8 +316,7 @@ class Game
       @ui.rect(bx, first[1], 4.0 * s, track, 0.1, 0.1, 0.12, 1.0)
       @ui.rect(bx, first[1] + track * @recipe_book.top.to_f / rows.to_f, 4.0 * s, track * RecipeBook::ROWS.to_f / rows.to_f, 0.6, 0.6, 0.65, 1.0)
     end
-    place = 0
-    while place < view.size
+    view.size.times do |place|
       index = view[place]
       c = recipe_cell(place + skip, w, h, s)
       recipe = @recipe_book.recipe(index)
@@ -348,7 +329,6 @@ class Game
       bright = can ? 1.0 : 0.45
       @ui.text(c[0] + 42.0 * s, c[1] + 6.0 * s, "#{recipe.result_count} #{Block::NAMES[recipe.result]}", 2.5 * s, bright, bright, bright, 1.0)
       @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, recipe.need, 2.0 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
-      place += 1
     end
   end
 
@@ -359,8 +339,7 @@ class Game
   def draw_furnace(w, h, s)
     f = open_furnace
     hover = furnace_hover(w, h, s)
-    i = 0
-    while i < 3
+    3.times do |i|
       c = furnace_cell(i, w, h, s)
       if i == Furnace::FUEL
         @ui.text(c[0] + c[2] + 16.0 * s, c[1] + 21.0 * s, "FUEL", 2.0 * s, 1.0, 1.0, 1.0, 1.0)
@@ -368,7 +347,6 @@ class Game
         @ui.text(c[0], c[1] - 14.0 * s, i == Furnace::INPUT ? "IN" : "OUT", 2.0 * s, 1.0, 1.0, 1.0, 1.0)
       end
       draw_slot(c, i == hover, f.slots, i, 6.0 * s, 2.0 * s, s)
-      i += 1
     end
     # The flame is 2 pixels to a texture pixel, on whole pixels: a texture
     # pixel that is not a whole number of pixels shimmers as it burns down.
@@ -398,13 +376,11 @@ class Game
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, last[1] + last[2] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
     @ui.text(first[0], first[1] - 36.0 * s, "ITEMS", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     hover = inventory_hover(w, h, s)
-    i = 0
-    while i < CREATIVE_ITEMS.size
+    CREATIVE_ITEMS.size.times do |i|
       c = inventory_cell(i, w, h, s)
       shade = i == hover ? 0.55 : 0.32
       @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
       @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, CREATIVE_ITEMS[i], 1.0)
-      i += 1
     end
     label = hover >= 0 ? Block::NAMES[CREATIVE_ITEMS[hover]] : "CLICK AN ITEM TO PUT IT IN THE SELECTED SLOT"
     @ui.text((w - @ui.text_width(label, 2.0 * s)) / 2.0, last[1] + last[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
