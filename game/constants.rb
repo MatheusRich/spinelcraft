@@ -94,7 +94,7 @@ class Game
 
   # GPU slots after the chunks' opaque and water slots, FarTerrain::TILE_SLOTS
   # per level.
-  LOD_SLOT0 = CX * CZ * 2
+  LOD_SLOT0 = ChunkMeshes::GPU_SLOTS
 
   INV_COLS = 8
 

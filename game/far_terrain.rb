@@ -13,6 +13,10 @@ class FarTerrain
   # The GPU slots of the tiles of one level.
   TILE_SLOTS = Lod::TRING * Lod::TRING
 
+  # The draw list of the last cull_tiles: a GPU slot and the bits of its
+  # face directions for each tile.
+  attr_reader :visible
+
   # The far terrain of world. Its tiles go to the GPU slots from slot0 on,
   # TILE_SLOTS for each level.
   def initialize(world, slot0)
@@ -30,6 +34,7 @@ class FarTerrain
     @center_z = Array.new(LEVELS, World::NONE)
     @built_at = Array.new(LEVELS, 0)
     @builds = 0
+    @visible = Array.new(0, 0)
   end
 
   # The Lod of level l.
@@ -83,6 +88,38 @@ class FarTerrain
     uniforms[at + 1] = ((@center_z[l] - rc) * tile).to_f
     uniforms[at + 2] = ((@center_x[l] + rc + 1) * tile).to_f
     uniforms[at + 3] = ((@center_z[l] + rc + 1) * tile).to_f
+  end
+
+  # Fills visible with the built tiles that camera sees nearer than reach,
+  # on the levels that a view of view blocks reaches. Level L skips the
+  # square in uniforms at at + 4 * L: the full detail for level 0, which the
+  # caller writes there, and the complete rings of level L - 1 for the
+  # others.
+  def cull_tiles(camera, view, reach, uniforms, at)
+    @visible.clear
+    level = 0
+    while level < LEVELS && view > FarTerrain.level_start(level)
+      skip_at = at + level * 4
+      skip_square(level - 1, view, uniforms, skip_at) if level > 0
+      lod = @lods[level]
+      size = lod.tile.to_f
+      s = 0
+      while s < TILE_SLOTS
+        if lod.built[s] == 1
+          x0 = lod.tile_x[s] * size
+          z0 = lod.tile_z[s] * size
+          x1 = x0 + size
+          z1 = z0 + size
+          inside = x0 >= uniforms[skip_at] && z0 >= uniforms[skip_at + 1] && x1 <= uniforms[skip_at + 2] && z1 <= uniforms[skip_at + 3]
+          if !inside && camera.box_in_view?(x0, 0.0, z0, x1, WY.to_f + 8.0, z1, reach)
+            @visible << @slot0 + level * TILE_SLOTS + s << (4 | camera.facing_sides(x0, z0, x1, z1))
+          end
+        end
+        s += 1
+      end
+      level += 1
+    end
+    nil
   end
 
   # The count of tiles built since the last call, for Log::STREAM.

@@ -9,9 +9,15 @@ class ChunkMeshes
   LOAD_R = RING / 2 - 1
   # The time that flush has each frame for the remeshes that can wait.
   MESH_BUDGET_NS = 1_000_000
+  # The GPU slots of the chunk meshes, two for each chunk slot. The far
+  # terrain tiles come after them.
+  GPU_SLOTS = CX * CZ * 2
 
   # The milliseconds of the last flush, for the debug screen.
   attr_reader :mesh_ms
+  # The draw lists of the last cull_chunks: a GPU slot and the bits of its
+  # face directions for each mesh.
+  attr_reader :visible, :water_visible
 
   # The chunk meshes of world. A chunk gets its tint from tint when it
   # loads.
@@ -44,6 +50,11 @@ class ChunkMeshes
     @later_list = Array.new(0, 0)
     @mesh_ms = 0.0
     @detail = Array.new(0, 0)
+    @visible = Array.new(0, 0)
+    @water_visible = Array.new(0, 0)
+    # The sort keys of the water meshes in view: distance * GPU_SLOTS + GPU
+    # slot.
+    @water_keys = Array.new(0, 0)
   end
 
   # Loads and meshes the chunks within radius of chunk (pcx, pcz), nearest
@@ -123,8 +134,38 @@ class ChunkMeshes
     @detail
   end
 
-  # True when the mesh of slot s has water faces.
-  def water_mesh?(s) = @has_water[s] == 1
+  # Fills visible with the meshed chunks within rings of the center that
+  # camera sees nearer than reach, and water_visible with their water, far
+  # chunks first.
+  def cull_chunks(camera, rings, reach)
+    @visible.clear
+    @water_visible.clear
+    @water_keys.clear
+    slots = detail_slots(rings)
+    k = 0
+    while k < slots.size
+      s = slots[k]
+      x0 = (@world.slot_cx[s] * CHUNK).to_f
+      z0 = (@world.slot_cz[s] * CHUNK).to_f
+      x1 = x0 + 16.0
+      z1 = z0 + 16.0
+      if camera.box_in_view?(x0, 0.0, z0, x1, WY.to_f, z1, reach)
+        slot = s * 2
+        # Only directions that can face the camera.
+        @visible << slot << (4 | 8 | 64 | camera.facing_sides(x0, z0, x1, z1))
+        @water_keys << camera.box_distance2(x0, z0, x1, z1).to_i * GPU_SLOTS + slot + 1 if @has_water[s] == 1
+      end
+      k += 1
+    end
+    # Water blends, so draw the far chunks first.
+    @water_keys.sort!
+    k = @water_keys.size - 1
+    while k >= 0
+      @water_visible << @water_keys[k] % GPU_SLOTS << 127
+      k -= 1
+    end
+    nil
+  end
 
   def meshable?(cx, cz)
     w = @world

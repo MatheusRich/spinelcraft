@@ -16,8 +16,7 @@ class Game
     Gfx.gfx_cloud_boxes(@clouds.mesh.v, @clouds.mesh.count) if @clouds.build(ex, ez, @cloud_drift)
     set_uniforms(ex, ey, ez, w, h)
     reach = @options.view + 4.0
-    cull_chunks(reach)
-    cull_far_tiles(reach)
+    cull_view(reach)
     build_dyn(ex, ey, ez, reach)
     Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_at)
     build_ui(w, h)
@@ -29,11 +28,13 @@ class Game
       @tint.changed = false
     end
     if Gfx.gfx_begin(@uniforms)
-      @faces_drawn = Gfx.gfx_chunks(@visible, @visible.size / 2, 0)
-      @faces_drawn += Gfx.gfx_chunks(@lod_visible, @lod_visible.size / 2, 2)
+      visible = @chunk_meshes.visible
+      @faces_drawn = Gfx.gfx_chunks(visible, visible.size / 2, 0)
+      @faces_drawn += Gfx.gfx_chunks(@far.visible, @far.visible.size / 2, 2)
       Gfx.gfx_draw_dyn
       Gfx.gfx_draw_clouds
-      @faces_drawn += Gfx.gfx_chunks(@water_visible, @water_visible.size / 2, 1)
+      water = @chunk_meshes.water_visible
+      @faces_drawn += Gfx.gfx_chunks(water, water.size / 2, 1)
       Gfx.gfx_draw_rain
       Gfx.gfx_draw_hand
     end
@@ -87,68 +88,15 @@ class Game
 
   def far_terrain? = @options.view > FarTerrain::DETAIL_VIEW
 
-  # Fills @visible with the meshed chunks in the view and @water_visible with
-  # their water, far chunks first.
-  def cull_chunks(reach)
-    @visible.clear
-    @water_visible.clear
-    @water_keys.clear
-    # With far terrain on, full detail stops at the last complete ring, and
-    # the far terrain shader skips the square those rings cover.
+  # The draw lists of the chunks and the far terrain tiles in view, nearer
+  # than reach. With far terrain on, full detail stops at the last complete
+  # ring, and the far terrain shader skips the square those rings cover.
+  # Uniforms 28 + 4 * L hold the square that level L skips.
+  def cull_view(reach)
     rings = far_terrain? ? @chunk_meshes.detail_rings : ChunkMeshes::LOAD_R
     @chunk_meshes.detail_square(rings, @uniforms, 28)
-    slots = @chunk_meshes.detail_slots(rings)
-    k = 0
-    while k < slots.size
-      s = slots[k]
-      x0 = (@world.slot_cx[s] * CHUNK).to_f
-      z0 = (@world.slot_cz[s] * CHUNK).to_f
-      x1 = x0 + 16.0
-      z1 = z0 + 16.0
-      if @camera.box_in_view?(x0, 0.0, z0, x1, WY.to_f, z1, reach)
-        slot = s * 2
-        # Only directions that can face the camera.
-        @visible << slot << (4 | 8 | 64 | @camera.facing_sides(x0, z0, x1, z1))
-        @water_keys << @camera.box_distance2(x0, z0, x1, z1).to_i * LOD_SLOT0 + slot + 1 if @chunk_meshes.water_mesh?(s)
-      end
-      k += 1
-    end
-    # Water blends, so draw the far chunks first.
-    @water_keys.sort!
-    k = @water_keys.size - 1
-    while k >= 0
-      @water_visible << @water_keys[k] % LOD_SLOT0 << 127
-      k -= 1
-    end
-  end
-
-  # Fills @lod_visible with the far terrain tiles in the view.
-  def cull_far_tiles(reach)
-    @lod_visible.clear
-    level = 0
-    while level < FarTerrain::LEVELS && @options.view > FarTerrain.level_start(level)
-      # Uniforms 28 + 4 * L hold the square level L skips: full detail for
-      # level 0, the complete rings of level L - 1 for the others.
-      at = 28 + level * 4
-      @far.skip_square(level - 1, @options.view, @uniforms, at) if level > 0
-      lod = @far.lod(level)
-      size = lod.tile.to_f
-      s = 0
-      while s < FarTerrain::TILE_SLOTS
-        if lod.built[s] == 1
-          x0 = lod.tile_x[s] * size
-          z0 = lod.tile_z[s] * size
-          x1 = x0 + size
-          z1 = z0 + size
-          inside = x0 >= @uniforms[at] && z0 >= @uniforms[at + 1] && x1 <= @uniforms[at + 2] && z1 <= @uniforms[at + 3]
-          if !inside && @camera.box_in_view?(x0, 0.0, z0, x1, WY.to_f + 8.0, z1, reach)
-            @lod_visible << LOD_SLOT0 + level * FarTerrain::TILE_SLOTS + s << (4 | @camera.facing_sides(x0, z0, x1, z1))
-          end
-        end
-        s += 1
-      end
-      level += 1
-    end
+    @chunk_meshes.cull_chunks(@camera, rings, reach)
+    @far.cull_tiles(@camera, @options.view, reach, @uniforms, 28)
   end
 
   # Fills @dyn with the parts that change every frame: mobs, arrows, items,

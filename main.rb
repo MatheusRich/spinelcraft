@@ -68,15 +68,10 @@ class Game
     @shot = ENV["SHOT"] || ""
     # setup builds the World (reset_world) once it knows the seed: that of
     # the save, or @seed for a new world.
-    @lod_visible = Array.new(0, 0)
     @camera = Camera.new
     @ui = Ui.new
     @dyn = Mesh3.new
     @uniforms = Array.new(UNIFORMS, 0.0)
-    @visible = []
-    @water_visible = []
-    # Sort keys of the visible chunks with water: distance * LOD_SLOT0 + slot.
-    @water_keys = Array.new(0, 0)
     @hotbar = HOTBAR_START.dup
     @inv = Slots.new(INV)
     @recipe_book = RecipeBook.new

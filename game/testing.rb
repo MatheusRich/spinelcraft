@@ -3582,13 +3582,15 @@ class Game
     @chunk_meshes.flush_all
     # The camera looks along -z.
     @camera.update_camera(ex, @player.eye_y.to_f, ez, 0.0, 0.0, 16.0 / 9.0, @options.view + 40.0, @fov)
-    cull_chunks(@options.view + 4.0)
+    cull_view(@options.view + 4.0)
+    visible = @chunk_meshes.visible
+    water = @chunk_meshes.water_visible
     pcx = ex.floor >> 4
     pcz = ez.floor >> 4
     sides = {}
     k = 0
-    while k < @visible.size
-      sides[@visible[k] / 2] = @visible[k + 1]
+    while k < visible.size
+      sides[visible[k] / 2] = visible[k + 1]
       k += 2
     end
     ahead = sides[World.slot(pcx, pcz - 2)]
@@ -3598,17 +3600,37 @@ class Game
     # same whole part can come in either order.
     far_first = true
     k = 2
-    while k < @water_visible.size
-      far_first = false if water_distance2(@water_visible[k - 2]).to_i < water_distance2(@water_visible[k]).to_i
+    while k < water.size
+      far_first = false if water_distance2(water[k - 2]).to_i < water_distance2(water[k]).to_i
       k += 2
     end
-    check("water draws from the far chunks to the near ones", @water_visible.size >= waters.size * 2 && far_first)
+    check("water draws from the far chunks to the near ones", water.size >= waters.size * 2 && far_first)
     waters.each { |k| set_block(ex.floor, SKY_Y, ez.floor - k * CHUNK, Block::AIR) }
     @chunk_meshes.flush_all
+    # Far terrain for a view of 1000 blocks. The full detail of 8 rings
+    # covers the tile of the player.
+    view = 1000.0
+    @far.build_tiles(ex.floor.to_i, ez.floor.to_i, view, 10_000_000_000)
+    @chunk_meshes.detail_square(8, @uniforms, 28)
+    @far.cull_tiles(@camera, view, view + 4.0, @uniforms, 28)
+    tiles = {}
+    k = 0
+    while k < @far.visible.size
+      tiles[@far.visible[k]] = @far.visible[k + 1]
+      k += 2
+    end
+    shift = @far.lod(0).tile_shift
+    tx = ex.floor.to_i >> shift
+    tz = ez.floor.to_i >> shift
+    check("a far tile ahead draws with the sides that face the eye, and a tile behind or under the full detail does not draw",
+          tiles[LOD_SLOT0 + Lod.slot(tx, tz - 3)] == (4 | 1 | 2 | 16) && !tiles.key?(LOD_SLOT0 + Lod.slot(tx, tz + 3)) &&
+          !tiles.key?(LOD_SLOT0 + Lod.slot(tx, tz)))
+    # test_streaming counts the tiles that a new far terrain builds.
+    @far = FarTerrain.new(@world, LOD_SLOT0)
   end
 
   # The square of the distance along x and z from the eye to the chunk of
-  # the water mesh of slot, the number that @water_visible holds.
+  # the water mesh of slot, the number that ChunkMeshes#water_visible holds.
   def water_distance2(slot)
     s = slot / 2
     x0 = (@world.slot_cx[s] * CHUNK).to_f
