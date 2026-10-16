@@ -147,13 +147,16 @@ class WorldTest < Minitest::Test
     end
   end
 
-  # Each of the 16 columns of coal cells in a chunk has its own rolls. So
-  # few pairs of cells in one chunk and at one height both hold coal.
-  def test_each_coal_cell_of_a_chunk_has_its_own_roll
+  # Each cell has its own roll. So few pairs of cells at one height both
+  # hold coal in one chunk, or both hold iron or diamond side by side.
+  def test_each_cell_has_its_own_roll
     _, cells = WorldTest.ore_area
+    pairs = ->(keys, &group) { keys.group_by(&group).values.sum { |same| same.size * (same.size - 1) / 2 } }
     coal = cells[Block::COAL_ORE].keys
-    pairs = coal.group_by { |x, y, z| [x >> 2, y, z >> 2] }.values.sum { |same| same.size * (same.size - 1) / 2 }
-    assert_operator pairs, :<, coal.size / 3
+    assert_operator pairs.(coal) { |x, y, z| [x >> 2, y, z >> 2] }, :<, coal.size / 3
+    others = cells[Block::IRON].keys + cells[Block::DIAMOND].keys
+    assert_operator pairs.(others) { |x, y, z| [x >> 1, y, z] }, :<, others.size / 10
+    assert_operator pairs.(others) { |x, y, z| [x, y, z >> 1] }, :<, others.size / 10
   end
 
   # The generator keeps the rolls of the coal cells of the last chunk, so
