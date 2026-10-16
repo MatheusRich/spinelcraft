@@ -103,8 +103,7 @@ class FarTerrain
       skip_square(level - 1, view, uniforms, skip_at) if level > 0
       lod = @lods[level]
       size = lod.tile.to_f
-      s = 0
-      while s < TILE_SLOTS
+      TILE_SLOTS.times do |s|
         if lod.built[s] == 1
           x0 = lod.tile_x[s] * size
           z0 = lod.tile_z[s] * size
@@ -115,7 +114,6 @@ class FarTerrain
             @visible << @slot0 + level * TILE_SLOTS + s << (4 | camera.facing_sides(x0, z0, x1, z1))
           end
         end
-        s += 1
       end
       level += 1
     end
