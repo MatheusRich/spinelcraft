@@ -5,7 +5,7 @@ class Game
       handle_inventory
       return
     end
-    if @chat_open
+    if @chat.open?
       unless Gfx.in_focus_lost
         handle_chat
         return

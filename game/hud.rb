@@ -19,7 +19,7 @@ class Game
     draw_survival_bars(x0, y0, total, s) if @survival
     draw_messages(w, y0, s)
     draw_chat_lines(w, y0, s)
-    draw_chat_line(w, h, s) if @chat_open
+    draw_chat_line(w, h, s) if @chat.open?
     draw_debug(s) if @options.debug
     if @vitals.dead?
       draw_death_screen(w, h, s)
@@ -151,17 +151,17 @@ class Game
     per = (w * 0.5 / (4.0 * ts)).to_i
     per = 20 if per < 20
     y = y0 - 120.0 * s
-    i = @chat_lines.size - 1
+    i = @chat.lines.size - 1
     while i >= 0
-      a = @chat_open ? 1.0 : (CHAT_SHOW - @chat_ages[i]).clamp(0.0, 1.0)
+      a = @chat.opacity(i)
       if a > 0.0
-        line = @chat_lines[i]
+        line = @chat.lines[i]
         rows = (line.size + per - 1) / per
         k = rows - 1
         while k >= 0
           part = line[k * per, per]
           @ui.rect(4.0 * s, y - 2.0 * s, @ui.text_width(part, ts) + 6.0 * s, row, 0.0, 0.0, 0.0, 0.4 * a)
-          if @chat_errors[i] == 1
+          if @chat.error?(i)
             @ui.text(6.0 * s, y, part, ts, 1.0, 0.35, 0.3, a)
           else
             @ui.text(6.0 * s, y, part, ts, 1.0, 1.0, 1.0, a)
@@ -180,7 +180,7 @@ class Game
     ts = 2.0 * s
     @ui.rect(4.0 * s, h - 18.0 * s, w - 8.0 * s, 14.0 * s, 0.0, 0.0, 0.0, 0.6)
     cursor = (@anim_time * 3.0).to_i % 2 == 0 ? "_" : ""
-    shown = @chat_text.upcase + cursor
+    shown = @chat.text.upcase + cursor
     # A line wider than the screen shows its end.
     fit = ((w - 16.0 * s) / (4.0 * ts)).to_i
     shown = shown[shown.size - fit, fit] if shown.size > fit
@@ -191,12 +191,12 @@ class Game
   # The names that Tab can complete, above the chat line, as the
   # suggestions of Minecraft. The name on the line is yellow.
   def draw_chat_matches(h, s, ts)
-    names = chat_matches
-    return if names.empty? || (names.size == 1 && @tab_matches.empty? && @chat_text.end_with?(names[0]))
-    shown = names.size < CHAT_MATCHES ? names.size : CHAT_MATCHES
-    current = @tab_matches.empty? ? -1 : (@tab_at + names.size - 1) % names.size
+    names = @chat.matches
+    return if names.empty?
+    shown = names.size < Chat::MATCHES ? names.size : Chat::MATCHES
+    current = @chat.current_match
     first = current >= shown ? current - shown + 1 : 0
-    x = (8.0 + 4.0 * Command.last_word_at(@chat_text) * 2.0) * s
+    x = (8.0 + 4.0 * Command.last_word_at(@chat.text) * 2.0) * s
     wide = 0.0
     names.each { |n| wide = @ui.text_width(n, ts) if @ui.text_width(n, ts) > wide }
     y = h - 18.0 * s - shown * 12.0 * s

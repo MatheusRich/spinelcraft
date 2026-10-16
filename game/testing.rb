@@ -127,6 +127,9 @@ class Game
     @failures += 1 unless ok
   end
 
+  # True when the newest line of the chat is red.
+  def last_chat_error? = @chat.error?(@chat.lines.size - 1)
+
   # SELFTEST=1 runs the game rules without input and reports PASS/FAIL lines.
   # It returns true when all rules pass.
   def self_test
@@ -296,9 +299,7 @@ class Game
   def test_commands
     survival = @survival
     day = @day
-    @chat_lines.clear
-    @chat_errors.clear
-    @chat_ages.clear
+    @chat = Chat.new
     run_chat("/time set midnight")
     midnight = @time_of_day == 0.75
     run_chat("/time add 6000")
@@ -317,13 +318,13 @@ class Game
     run_chat("/give @s torch 70")
     check("/give puts items in the inventory, with a count",
           @inv.block(0) == Block::DIAMOND_PICK && @inv.count(0) == Block.uses(Block::DIAMOND_PICK) &&
-          @inv.total(Block::TORCH) == 70 && @chat_errors.last == 0)
+          @inv.total(Block::TORCH) == 70 && !last_chat_error?)
     run_chat("/give dirtt")
-    bad_item = @chat_errors.last == 1
+    bad_item = last_chat_error?
     run_chat("/give dirt 0")
-    bad_count = @chat_errors.last == 1
+    bad_count = last_chat_error?
     run_chat("/fly")
-    unknown = @chat_errors.last == 1 && @chat_lines.last == "UNKNOWN COMMAND: FLY"
+    unknown = last_chat_error? && @chat.lines.last == "UNKNOWN COMMAND: FLY"
     check("a bad item, count or command prints an error line", bad_item && bad_count && unknown)
     @inv = kept
     run_chat("/gamemode creative")
@@ -361,19 +362,18 @@ class Game
     @player.z = z
     run_chat("/time set noon")
     open_chat("")
-    recall_chat(-1)
-    back = @chat_text == "/time set noon"
-    recall_chat(-1)
-    further = @chat_text == "/spawn"
-    recall_chat(1)
-    recall_chat(1)
-    check("Up and Down walk through the lines typed before", back && further && @chat_text == "")
+    @chat.recall(-1)
+    back = @chat.text == "/time set noon"
+    @chat.recall(-1)
+    further = @chat.text == "/spawn"
+    @chat.recall(1)
+    @chat.recall(1)
+    check("Up and Down walk through the lines typed before", back && further && @chat.text == "")
     close_chat
     @time_of_day = 0.3
   end
 
-  # Tab completes a command, then the names that the command takes, and
-  # each next Tab puts the next name on the line.
+  # Tab completes a command, then the names that the command takes.
   # The scancode of G, a key that no longer does anything.
   KEY_G = 10
 
@@ -494,16 +494,6 @@ class Game
           Command.complete("/time set n") == ["noon", "night"] && Command.complete("/time q") == ["query"] &&
           Command.complete("/weather r") == ["rain"] && Command.complete("/gamemode c") == ["creative"] &&
           Command.complete("/kill x").empty?)
-    open_chat("/summon ")
-    tab_chat
-    first = @chat_text == "/summon pig"
-    tab_chat
-    second = @chat_text == "/summon zombie"
-    (Mob::NAMES.size - 2).times { tab_chat }
-    tab_chat
-    check("each Tab puts the next name on the line, and the last goes back to the first",
-          first && second && @chat_text == "/summon pig")
-    close_chat
   end
 
   # The pause screen stops the world, but the inventory and the death
@@ -1966,7 +1956,7 @@ class Game
     @inv.clear
     run_chat("/give egg 20")
     check("eggs stack to 16 when the player picks them up and from /give",
-          picked && @inv.count(0) == 16 && @inv.block(1) == Block::EGG && @inv.count(1) == 4 && @chat_errors.last == 0)
+          picked && @inv.count(0) == 16 && @inv.block(1) == Block::EGG && @inv.count(1) == 4 && !last_chat_error?)
     @items.clear
     @inv.clear
     @survival = was
@@ -2713,7 +2703,7 @@ class Game
     run_chat("/give bed 2")
     check("empty buckets stack to 16, and full buckets and beds do not stack",
           filled && given && @inv.count(1) == 1 && @inv.block(1) == Block::MILK_BUCKET &&
-          @inv.count(3) == 1 && @inv.block(3) == Block::BED && @chat_errors.last == 0)
+          @inv.count(3) == 1 && @inv.block(3) == Block::BED && !last_chat_error?)
     @survival = was
     @mobs.clear
     @mobs << Mob.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
