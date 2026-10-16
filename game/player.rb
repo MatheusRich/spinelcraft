@@ -276,11 +276,7 @@ class Player
     y = (@y - 0.05).floor
     x = (@x - HALF).floor
     while x <= (@x + HALF).floor
-      z = (@z - HALF).floor
-      while z <= (@z + HALF).floor
-        return true if Block.solid?(world.get(x, y, z))
-        z += 1
-      end
+      ((@z - HALF).floor..(@z + HALF).floor).each { |z| return true if Block.solid?(world.get(x, y, z)) }
       x += 1
     end
     false
