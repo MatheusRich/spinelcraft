@@ -37,31 +37,23 @@ class Camera
     v0 = [rx, 0.0, rz, -(rx * ex + rz * ez)]
     v1 = [ux, uy, uz, -(ux * ex + uy * ey + uz * ez)]
     v2 = [-fx, -fy, -fz, fx * ex + fy * ey + fz * ez]
-    c = 0
-    while c < 4
+    4.times do |c|
       @vp[c] = sx * v0[c]
       @vp[4 + c] = t * v1[c]
       @vp[8 + c] = a * v2[c] + (c == 3 ? b : 0.0)
       @vp[12 + c] = -v2[c]
-      c += 1
     end
     p = 0
     while p < 4
       # left, right, bottom, top from rows 0 and 1; near is row 2, far is row 3 - row 2.
       row = p / 2
       sign = p % 2 == 0 ? 1.0 : -1.0
-      i = 0
-      while i < 4
-        @planes[p * 4 + i] = @vp[12 + i] + sign * @vp[row * 4 + i]
-        i += 1
-      end
+      4.times { |i| @planes[p * 4 + i] = @vp[12 + i] + sign * @vp[row * 4 + i] }
       p += 1
     end
-    i = 0
-    while i < 4
+    4.times do |i|
       @planes[16 + i] = @vp[8 + i]
       @planes[20 + i] = @vp[12 + i] - @vp[8 + i]
-      i += 1
     end
   end
 
@@ -77,15 +69,7 @@ class Camera
   end
 
   def write_column_major(out)
-    r = 0
-    while r < 4
-      c = 0
-      while c < 4
-        out[c * 4 + r] = @vp[r * 4 + c]
-        c += 1
-      end
-      r += 1
-    end
+    4.times { |r| 4.times { |c| out[c * 4 + r] = @vp[r * 4 + c] } }
   end
 
   # True when the box from x0, z0 to x1, z1 is nearer than reach to the
@@ -121,8 +105,7 @@ class Camera
   # True when a part of the box from x0, y0, z0 to x1, y1, z1 is inside the
   # six planes of the view.
   def box_visible?(x0, y0, z0, x1, y1, z1)
-    p = 0
-    while p < 6
+    6.times do |p|
       a = @planes[p * 4]
       b = @planes[p * 4 + 1]
       c = @planes[p * 4 + 2]
@@ -131,7 +114,6 @@ class Camera
       py = b > 0.0 ? y1 : y0
       pz = c > 0.0 ? z1 : z0
       return false if a * px + b * py + c * pz + d < 0.0
-      p += 1
     end
     true
   end
