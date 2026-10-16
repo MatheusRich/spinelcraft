@@ -91,6 +91,17 @@ class Mob
   # A dead mob falls on its left side for 20 ticks, then its body goes up
   # in smoke. minecraft.wiki/w/Death
   DEATH_TIME = 1.0
+  # A monster farther than DESPAWN_FAR blocks from the player despawns at
+  # once. A monster that has been farther than DESPAWN_NEAR for
+  # IDLE_DESPAWN seconds despawns with a chance of 1 in 800 each tick.
+  # minecraft.wiki/w/Mob_spawning
+  DESPAWN_FAR = 128.0
+  DESPAWN_NEAR = 32.0
+  IDLE_DESPAWN = 30.0
+  DESPAWN_CHANCE = 20.0 / 800.0
+  # An animal despawns farther than this many blocks along x and z from
+  # the player. minecraft.wiki does not give this value.
+  ANIMAL_DESPAWN = 160.0
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :shoot, :explode, :by_player
   # True for one step after a creeper lights its fuse.
@@ -103,7 +114,7 @@ class Mob
   # Seconds that the mob still burns.
   attr_reader :fire
   attr_reader :kind, :half, :tall, :hurt
-  # Seconds that a monster has been far from the player (Game#despawn?).
+  # Seconds that a monster has been far from the player (despawn?).
   attr_accessor :idle
   # Seconds since the mob died; 0.0 while it lives.
   attr_reader :death
@@ -338,6 +349,19 @@ class Mob
   # A dying mob lies on the ground until DEATH_TIME. It does not move on its
   # own, attack or take hits.
   def dying? = @hp <= 0
+
+  # True when the mob despawns after dt seconds more, with player where it
+  # is now.
+  def despawn?(player, dt)
+    dx = @x - player.x
+    dy = @y - player.y
+    dz = @z - player.z
+    return dx * dx + dz * dz > ANIMAL_DESPAWN * ANIMAL_DESPAWN if passive?
+    distance2 = dx * dx + dy * dy + dz * dz
+    return true if distance2 > DESPAWN_FAR * DESPAWN_FAR
+    @idle = distance2 > DESPAWN_NEAR * DESPAWN_NEAR ? @idle + dt : 0.0
+    @idle > IDLE_DESPAWN && @rng.rand01 < dt * DESPAWN_CHANCE
+  end
 
   # Rain or water puts out the fire.
   def douse

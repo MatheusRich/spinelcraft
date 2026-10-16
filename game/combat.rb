@@ -17,8 +17,7 @@ class Game
   # random number from 0 to this. minecraft.wiki/w/Mob_spawning
   SPAWN_LIGHT = 7
 
-  # Monster spawning and despawning as in Minecraft.
-  # minecraft.wiki/w/Mob_spawning
+  # Monster spawning as in Minecraft. minecraft.wiki/w/Mob_spawning
   # The cap for the 17 x 17 chunks around the player. The game always loads
   # all of them, so the cap does not get smaller as in Minecraft.
   # Minecraft's cap is 70, but its world is 384 blocks tall. This world is
@@ -33,15 +32,9 @@ class Game
   # Packs for each center, and monsters for each center at most.
   PACKS = 3
   PACK_SIZE = 4
-  # Monsters spawn at least SPAWN_NEAR blocks from the player and at most
-  # DESPAWN_FAR. A monster farther than DESPAWN_FAR despawns at once. A
-  # monster that has been farther than DESPAWN_NEAR for IDLE_DESPAWN seconds
-  # despawns with a chance of 1 in 800 each tick.
+  # Monsters spawn at least SPAWN_NEAR blocks from the player, and no
+  # farther than where they despawn (Mob::DESPAWN_FAR).
   SPAWN_NEAR = 24.0
-  DESPAWN_FAR = 128.0
-  DESPAWN_NEAR = 32.0
-  IDLE_DESPAWN = 30.0
-  DESPAWN_CHANCE = 20.0 / 800.0
   # The monster kinds and their spawn weights. minecraft.wiki/w/Plains
   MONSTER_KINDS = [Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER]
   MONSTER_WEIGHTS = [95.0, 100.0, 100.0]
@@ -173,29 +166,18 @@ class Game
 
   # True when a monster can spawn in the cell x, y, z: a loaded dark cell
   # with a solid floor and room for its body, between SPAWN_NEAR and
-  # DESPAWN_FAR blocks from the player.
+  # Mob::DESPAWN_FAR blocks from the player.
   def monster_fits?(x, y, z, sky)
     return false if y < 1 || !@world.loaded?(x, z)
     dx = x + 0.5 - @player.x
     dy = y - @player.y
     dz = z + 0.5 - @player.z
     d2 = dx * dx + dy * dy + dz * dz
-    return false if d2 < SPAWN_NEAR * SPAWN_NEAR || d2 > DESPAWN_FAR * DESPAWN_FAR
+    return false if d2 < SPAWN_NEAR * SPAWN_NEAR || d2 > Mob::DESPAWN_FAR * Mob::DESPAWN_FAR
     ground = @world.get(x, y - 1, z)
     return false unless Block.solid?(ground) && !Block.leaves?(ground)
     return false if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
     dark?(x, y, z, sky)
-  end
-
-  # True when the monster m despawns after dt seconds more.
-  def despawn?(m, dt)
-    dx = m.x - @player.x
-    dy = m.y - @player.y
-    dz = m.z - @player.z
-    d2 = dx * dx + dy * dy + dz * dz
-    return true if d2 > DESPAWN_FAR * DESPAWN_FAR
-    m.idle = d2 > DESPAWN_NEAR * DESPAWN_NEAR ? m.idle + dt : 0.0
-    m.idle > IDLE_DESPAWN && @rng.rand01 < dt * DESPAWN_CHANCE
   end
 
   # Puts a pig or a sheep on grass at a random distance from the player in [near, far).
@@ -322,8 +304,7 @@ class Game
     steps.times { update_arrows(dt / steps) }
     update_eggs(dt)
     @mobs.reject! do |m|
-      d2 = (m.x - @player.x) ** 2 + (m.z - @player.z) ** 2
-      gone = !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || (m.passive? ? d2 > 160.0 * 160.0 : despawn?(m, dt))
+      gone = !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || m.despawn?(@player, dt)
       Log.debug(Log::MOBS) { "#{Mob::NAMES[m.kind]} at #{m.x.floor} #{m.y.floor} #{m.z.floor} #{mob_gone_reason(m)}" } if gone
       gone
     end

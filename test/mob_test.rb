@@ -74,6 +74,69 @@ class MobTest < Minitest::Test
     assert_equal Mob::TALL[Mob::CHICKEN], chick.tall
   end
 
+  def test_an_animal_despawns_only_farther_than_160_blocks_along_x_and_z
+    player = Player.new(0.0, 0.0, 0.0)
+    refute Mob.new(Mob::COW, 159.0, 500.0, 0.0, 1).despawn?(player, 40.0)
+    refute Mob.new(Mob::COW, 113.0, 0.0, 113.0, 1).despawn?(player, 40.0)
+    assert Mob.new(Mob::COW, 114.0, 0.0, 114.0, 1).despawn?(player, 0.0)
+    assert Mob.new(Mob::PIG, 0.0, 0.0, -161.0, 1).despawn?(player, 0.0)
+  end
+
+  def test_a_monster_farther_than_128_blocks_despawns_at_once
+    player = Player.new(0.0, 0.0, 0.0)
+    assert Mob.new(Mob::ZOMBIE, 0.0, 129.0, 0.0, 1).despawn?(player, 0.0)
+    assert Mob.new(Mob::ZOMBIE, 91.0, 0.0, 91.0, 1).despawn?(player, 0.0)
+    refute Mob.new(Mob::ZOMBIE, 0.0, 0.0, 127.0, 1).despawn?(player, 0.0)
+  end
+
+  def test_a_monster_farther_than_32_blocks_for_30_seconds_can_despawn
+    player = Player.new(0.0, 0.0, 0.0)
+    zombie = Mob.new(Mob::ZOMBIE, 33.0, 0.0, 0.0, 1)
+    refute zombie.despawn?(player, 29.0)
+    assert_equal 29.0, zombie.idle
+    # With 40 seconds, the chance of 1 in 800 each tick is 1.
+    assert zombie.despawn?(player, 40.0)
+    refute Mob.new(Mob::ZOMBIE, 0.0, 33.0, 0.0, 1).despawn?(player, 30.0)
+  end
+
+  def test_a_monster_that_comes_near_the_player_starts_its_wait_again
+    player = Player.new(0.0, 0.0, 0.0)
+    zombie = Mob.new(Mob::ZOMBIE, 33.0, 0.0, 0.0, 1)
+    zombie.despawn?(player, 29.0)
+    zombie.x = 31.0
+    refute zombie.despawn?(player, 40.0)
+    assert_equal 0.0, zombie.idle
+    zombie.x = 33.0
+    refute zombie.despawn?(player, 29.0)
+  end
+
+  def test_the_despawn_distances_count_from_the_player_and_stop_short_of_their_edge
+    player = Player.new(100.0, 64.0, -50.0)
+    refute Mob.new(Mob::COW, 260.0, 64.0, -50.0, 1).despawn?(player, 0.0)
+    refute Mob.new(Mob::ZOMBIE, 100.0, 64.0, 78.0, 1).despawn?(player, 0.0)
+    assert Mob.new(Mob::ZOMBIE, 100.0, 193.0, -50.0, 1).despawn?(player, 0.0)
+    zombie = Mob.new(Mob::ZOMBIE, 132.0, 64.0, -50.0, 1)
+    refute zombie.despawn?(player, 40.0)
+    assert_equal 0.0, zombie.idle
+  end
+
+  def test_an_idle_monster_despawns_rarely_in_short_steps
+    player = Player.new(0.0, 0.0, 0.0)
+    zombie = Mob.new(Mob::ZOMBIE, 50.0, 0.0, 0.0, 1)
+    zombie.despawn?(player, 31.0) while zombie.idle < 31.0
+    # A chance of 1 in 800 each tick: one tick at a time, 50 ticks.
+    gone = 0
+    50.times { gone += 1 if zombie.despawn?(player, 1.0 / 20.0) }
+    assert_operator gone, :<=, 1
+  end
+
+  def test_a_monster_does_not_despawn_in_an_instant_without_time
+    player = Player.new(0.0, 0.0, 0.0)
+    zombie = Mob.new(Mob::ZOMBIE, 0.0, 0.0, 100.0, 1)
+    zombie.despawn?(player, 31.0)
+    refute zombie.despawn?(player, 0.0)
+  end
+
   private
 
   # A stone floor under SKY_Y - 1 over the whole chunk, in open air.
