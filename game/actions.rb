@@ -56,11 +56,7 @@ class Game
 
   # Number keys and the wheel.
   def select_slot
-    i = 0
-    while i < HOTBAR
-      @slot = i if Gfx.in_key_pressed(Key::N1 + i)
-      i += 1
-    end
+    HOTBAR.times { |i| @slot = i if Gfx.in_key_pressed(Key::N1 + i) }
     wheel = Gfx.in_wheel
     @slot = (@slot + 1) % HOTBAR if wheel < 0.0
     @slot = (@slot + HOTBAR - 1) % HOTBAR if wheel > 0.0
