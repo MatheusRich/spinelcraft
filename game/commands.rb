@@ -143,7 +143,7 @@ class Game
   # The chunks at the spawn point load first, as in respawn: before they
   # load, height_at reads the chunk that fills their slot of the ring.
   def command_spawn
-    stream_around(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
+    @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     teleport(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
   end
 
@@ -151,7 +151,7 @@ class Game
   # next step, so the player does not fall through the ground.
   def teleport(x, y, z)
     @player.move_to(x.clamp(-TP_LIMIT, TP_LIMIT), y.clamp(0.0, (WY - 2).to_f), z.clamp(-TP_LIMIT, TP_LIMIT))
-    stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
+    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     @chat.post("TELEPORTED TO #{@player.x.round(1)}, #{@player.y.round(1)}, #{@player.z.round(1)}")
   end
 

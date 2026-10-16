@@ -21,7 +21,7 @@ class Game
       mark_light_area(x, z)
     end
     @world.set(x, y, z, b)
-    mark_dirty(x, z)
+    @chunk_meshes.mark_block(x, z)
     break_unheld_cactus(x, y + 1, z)
     if b == Block::AIR
       above = @world.get(x, y + 1, z)
@@ -280,7 +280,7 @@ class Game
     while cx <= (x.to_i + r) / CHUNK
       cz = (z.to_i - r) / CHUNK
       while cz <= (z.to_i + r) / CHUNK
-        mark_later(cx, cz)
+        @chunk_meshes.mark_later(cx, cz)
         cz += 1
       end
       cx += 1
@@ -338,7 +338,7 @@ class Game
     batch = @flow_queue
     @flow_queue = []
     # The remeshes of flowing water may wait for later frames.
-    marked = @dirty_list.size
+    marked = @chunk_meshes.dirty_count
     hiss = false
     i = 0
     while i < batch.size && i < 6000
@@ -373,7 +373,7 @@ class Game
       set_block(x, y, z, want)
     end
     @flow_queue.concat(batch[i, batch.size - i]) if i < batch.size
-    postpone_since(marked)
+    @chunk_meshes.postpone_since(marked)
   end
 
   def falls?(b) = b == Block::SAND || b == Block::GRAVEL
@@ -397,7 +397,7 @@ class Game
       end
       y += 1
     end
-    mark_dirty(x, z) if moved
+    @chunk_meshes.mark_block(x, z) if moved
   end
 
   # A falling block lands on the first cell that does not let it fall, and

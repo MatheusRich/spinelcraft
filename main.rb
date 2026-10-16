@@ -26,9 +26,9 @@ require_relative "game/music"
 require_relative "game/clouds"
 require_relative "game/lod"
 require_relative "game/far_terrain"
+require_relative "game/chunk_meshes"
 require_relative "game/constants"
 require_relative "game/save"
-require_relative "game/streaming"
 require_relative "game/block_changes"
 require_relative "game/slots"
 require_relative "game/furnace"
@@ -72,24 +72,6 @@ class Game
     @water_visible = []
     # Sort keys of the visible chunks with water: distance * LOD_SLOT0 + slot.
     @water_keys = Array.new(0, 0)
-    # 1 when a slot's chunk has a current mesh on the GPU.
-    @meshed = Array.new(CX * CZ, 0)
-    # 1 when the chunk's mesh has water faces.
-    @has_water = Array.new(CX * CZ, 0)
-    @stream_cx = World::NONE
-    @stream_cz = World::NONE
-    @load_at = 0
-    @mesh_at = 0
-    # The chunks loaded and meshed since the stream center last moved (for
-    # Log::STREAM).
-    @stream_loads = 0
-    @stream_meshes = 0
-    make_ring
-    @dirty = Array.new(CX * CZ, false)
-    @dirty_list = Array.new(0, 0)
-    # Chunks that can wait a few frames: torch light and flowing water.
-    @later = Array.new(CX * CZ, false)
-    @later_list = Array.new(0, 0)
     @hotbar = HOTBAR_START.dup
     @inv = Slots.new(INV)
     @seen = Array.new(Block::COUNT, 0)
@@ -151,7 +133,6 @@ class Game
     @chat = Chat.new
     @fps = 0.0
     @cpu_ms = 0.0
-    @mesh_ms = 0.0
     @faces_drawn = 0
     @cpu_end = 0
     @survival = ENV["MODE"] == "survival"
@@ -289,7 +270,7 @@ class Game
       spawn
     end
     apply_cam
-    stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
+    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     t1 = Gfx.gfx_ns
     # Collect the world generation garbage now, not in the first minute of play.
     GC.start
@@ -357,7 +338,7 @@ class Game
         k += 64
       end
     end
-    stream_around(ox >> 4, oz >> 4, -1, SYNC_R)
+    @chunk_meshes.stream(ox >> 4, oz >> 4, -1, SYNC_R)
     best_x = ox
     best_z = oz
     r = 0
@@ -398,7 +379,7 @@ class Game
   end
 
   def respawn
-    stream_around(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
+    @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
     @player.move_to(@spawn_x, h + 0.01, @spawn_z)
     Log.debug(Log::WORLD) { "respawn at #{@spawn_x.floor} #{h} #{@spawn_z.floor}" }
@@ -682,6 +663,12 @@ class Game
     (0.5 + s * 0.9).clamp(0.12, 1.0)
   end
 
+  # Chunks to load around the player for the view distance: the meshed ones
+  # (one ring less) then reach past the fog.
+  def view_radius = (((detail_view + 20.0) / CHUNK).ceil + 1).clamp(SYNC_R, ChunkMeshes::LOAD_R)
+
+  def detail_view = @options.view < FarTerrain::DETAIL_VIEW ? @options.view : FarTerrain::DETAIL_VIEW
+
   def run
     setup
     if ENV["SELFTEST"]
@@ -710,12 +697,12 @@ class Game
       update_game(dt)
       update_music(dt)
       t_stream = Gfx.gfx_ns
-      stream_around(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
+      @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
       t_lod = Gfx.gfx_ns
       left = STREAM_BUDGET_NS - (t_lod - t_stream)
       @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, left > 500_000 ? left : 500_000)
       t_flush = Gfx.gfx_ns
-      flush_dirty unless @dirty_list.empty? && @later_list.empty?
+      @chunk_meshes.flush
       t_render = Gfx.gfx_ns
       render
       cpu = (@cpu_end - now) / 1.0e6

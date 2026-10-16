@@ -119,20 +119,14 @@ class Game
     puts "#{@save_path} did not load (#{@load_error}), so the game moved it to #{@bad_save_path}"
   end
 
-  # An empty world for @seed; stream_around fills it.
+  # An empty world for @seed; ChunkMeshes#stream fills it.
   def reset_world
     Log.debug(Log::WORLD) { "an empty world for seed #{@seed}" }
     @world = World.new(@seed)
-    @mesher = Mesher.new(@world)
     @tint = Tint.new(@world)
     @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
     @far = FarTerrain.new(@world, LOD_SLOT0)
-    @meshed.fill(0)
-    @stream_cx = World::NONE
-    @dirty_list.each { |i| @dirty[i] = false }
-    @dirty_list.clear
-    @later_list.each { |i| @later[i] = false }
-    @later_list.clear
+    @chunk_meshes = ChunkMeshes.new(@world, @tint)
     @flow_queue.clear
     @falling.clear
   end
@@ -219,7 +213,7 @@ class Game
       c += 1
     end
     @riding = f[at].to_i
-    stream_around(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
+    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     respawn if @vitals.dead?
   end
 end

@@ -43,7 +43,7 @@ class Game
         set_block(cx, y, cz, Block::STONE)
         rim = cx == bx - 7 || cx == bx + 7 || cz == bz - 16 || cz == bz + 3
         @world.set(cx, y + 1, cz, rim ? Block::STONE : Block::WATER)
-        mark_dirty(cx, cz)
+        @chunk_meshes.mark_block(cx, cz)
       end
     end
     @boats.clear
@@ -948,19 +948,20 @@ class Game
     # A torch sealed in a stone box lights nothing outside the box.
     fill_box(x - 1, ground + 1, z - 1, x + 1, ground + 3, z + 1, Block::STONE)
     set_block(x, ground + 2, z, Block::TORCH)
-    @mesher.build(x / CHUNK, z / CHUNK)
-    inside = @mesher.torch_light(x, ground + 2, z)
-    outside = @mesher.torch_light(x + 2, ground + 2, z)
+    mesher = Mesher.new(@world)
+    mesher.build(x / CHUNK, z / CHUNK)
+    inside = mesher.torch_light(x, ground + 2, z)
+    outside = mesher.torch_light(x + 2, ground + 2, z)
     check("walls stop torch light", inside == Mesher::TORCH_LIGHT && outside == 0)
     set_block(x + 1, ground + 2, z, Block::AIR)
-    @mesher.build(x / CHUNK, z / CHUNK)
-    check("an opening lets torch light out", @mesher.torch_light(x + 2, ground + 2, z) == 12)
+    mesher.build(x / CHUNK, z / CHUNK)
+    check("an opening lets torch light out", mesher.torch_light(x + 2, ground + 2, z) == 12)
     fill_box(x - 1, ground + 1, z - 1, x + 1, ground + 3, z + 1, Block::AIR)
     set_block(x, ground + 1, z, Block::TORCH)
-    flush_dirty
-    puts "torch edit remesh: #{@mesh_ms.round(2)} ms"
+    @chunk_meshes.flush
+    puts "torch edit remesh: #{@chunk_meshes.mesh_ms.round(2)} ms"
     set_block(x, ground + 1, z, Block::AIR)
-    flush_dirty
+    @chunk_meshes.flush
     # Sand that falls onto a torch buries it. A torch in the middle of a
     # chunk lights the next chunk too, so that chunk must remesh.
     tx = (x & ~15) + 8
@@ -968,13 +969,13 @@ class Game
     # The column can be water, and a torch needs ground.
     set_block(tx, th - 1, z, Block::DIRT)
     set_block(tx, th, z, Block::TORCH)
-    flush_dirty while !@later_list.empty?
+    @chunk_meshes.flush_all
     set_block(tx, th + 3, z, Block::SAND)
     fall_for(2.0)
-    lit = World.slot((tx >> 4) + 1, z >> 4)
-    check("sand that buries a torch remeshes the chunks that it lit", @world.get(tx, th, z) == Block::SAND && (@dirty[lit] == true || @later[lit] == true))
+    check("sand that buries a torch remeshes the chunks that it lit",
+          @world.get(tx, th, z) == Block::SAND && @chunk_meshes.queued?((tx >> 4) + 1, z >> 4))
     set_block(tx, th, z, Block::AIR)
-    flush_dirty while !@later_list.empty?
+    @chunk_meshes.flush_all
   end
 
   # Survival basics: crafting, stacks, health, placing, mining, and food.
@@ -1155,7 +1156,7 @@ class Game
       set_block(px + i, SKY_Y - 2, pz, Block::STONE)
       i += 1
     end
-    flush_dirty
+    @chunk_meshes.flush
     @mobs.clear
     @time_of_day = 0.75
     @vitals.health = Vitals::MAX_HEALTH
@@ -2114,7 +2115,7 @@ class Game
     run_items(1.5)
     check("a cactus destroys an item that falls on it or slides into it", top && @items.empty?)
     set_block(cx + 2, y + 1, cz, Block::AIR)
-    flush_dirty while !@later_list.empty? || !@dirty_list.empty?
+    @chunk_meshes.flush_all
   end
 
   # Wool does not glow, lava gives light, and water turns lava into cobblestone.
@@ -2122,13 +2123,14 @@ class Game
   # its face record (Mesher.face_tint), or -1 when the mesh has no such face.
   def face_tint(cx, cz, b, f)
     set_block(cx, SKY_Y, cz, b)
-    @mesher.build(cx / CHUNK, cz / CHUNK)
+    mesher = Mesher.new(@world)
+    mesher.build(cx / CHUNK, cz / CHUNK)
     tint = -1
     k = 0
-    while k < @mesher.opaque.size
-      w0 = @mesher.opaque[k]
+    while k < mesher.opaque.size
+      w0 = mesher.opaque[k]
       if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == (cz & LMASK) && Mesher.face_dir(w0) == f
-        tint = Mesher.face_tint(@mesher.opaque[k + 1])
+        tint = Mesher.face_tint(mesher.opaque[k + 1])
       end
       k += 2
     end
@@ -2142,7 +2144,7 @@ class Game
           face_tint(cx, cz, Block::OAK_LEAVES, 2) == 2 && face_tint(cx, cz, Block::SPRUCE_LEAVES, 2) == 0 &&
           face_tint(cx, cz, Block::STONE, 2) == 0)
     k = ((cz >> 2) & (Tint::SIZE - 1)) * Tint::SIZE + ((cx >> 2) & (Tint::SIZE - 1))
-    # to_i keeps the world generator typed (see stream_around).
+    # to_i keeps the world generator typed (see ChunkMeshes#stream).
     x = ((cx >> 2) * 4 + 2).to_i
     z = ((cz >> 2) * 4 + 2).to_i
     b = @world.biome(x, z, @world.surface_height(x, z))
@@ -2154,15 +2156,16 @@ class Game
   def test_light_sources(cx, cz)
     # Wool is not a light source.
     set_block(cx, SKY_Y, cz, Block::WOOL)
-    @mesher.build(cx / CHUNK, cz / CHUNK)
+    mesher = Mesher.new(@world)
+    mesher.build(cx / CHUNK, cz / CHUNK)
     faces = 0
     glow = false
     k = 0
-    while k < @mesher.opaque.size
-      w0 = @mesher.opaque[k]
+    while k < mesher.opaque.size
+      w0 = mesher.opaque[k]
       if Mesher.face_x(w0) == (cx & LMASK) && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == (cz & LMASK)
         faces += 1
-        glow = true if Mesher.face_light(@mesher.opaque[k + 1]) == 14
+        glow = true if Mesher.face_light(mesher.opaque[k + 1]) == 14
       end
       k += 2
     end
@@ -2177,8 +2180,8 @@ class Game
       i += 1
     end
     set_block(lx, SKY_Y - 4, lz, Block::LAVA)
-    @mesher.build(lx / CHUNK, lz / CHUNK)
-    check("lava lights its surroundings", @mesher.torch_light(lx, SKY_Y - 3, lz) == 14)
+    mesher.build(lx / CHUNK, lz / CHUNK)
+    check("lava lights its surroundings", mesher.torch_light(lx, SKY_Y - 3, lz) == 14)
     set_block(lx + 1, SKY_Y - 4, lz, Block::WATER)
     20.times { update_water }
     check("water turns lava into cobblestone", @world.get(lx, SKY_Y - 4, lz) == Block::COBBLE)
@@ -2959,17 +2962,18 @@ class Game
     set_block(bx, y + 1, bz, Block.facing_id(Block::JACK_O_LANTERN, 2))
     torches = @world.chunk_torches[World.slot(bx >> 4, bz >> 4)]
     listed = (0...torches.size / 3).any? { |i| torches[i * 3] == bx && torches[i * 3 + 1] == y + 1 && torches[i * 3 + 2] == bz }
-    @mesher.build(bx / CHUNK, bz / CHUNK)
-    near = @mesher.torch_light(bx + 1, y + 1, bz) == 14 && @mesher.torch_light(bx + 15, y + 1, bz) == 0 &&
-           @mesher.torch_light(bx + 14, y + 1, bz) == 1
+    mesher = Mesher.new(@world)
+    mesher.build(bx / CHUNK, bz / CHUNK)
+    near = mesher.torch_light(bx + 1, y + 1, bz) == 14 && mesher.torch_light(bx + 15, y + 1, bz) == 0 &&
+           mesher.torch_light(bx + 14, y + 1, bz) == 1
     glow = true
     faces = 0
     i = 0
-    while i < @mesher.opaque.size
-      w0 = @mesher.opaque[i]
+    while i < mesher.opaque.size
+      w0 = mesher.opaque[i]
       if Mesher.face_x(w0) == (bx & LMASK) && Mesher.face_y(w0) == y + 1 && Mesher.face_z(w0) == (bz & LMASK)
         faces += 1
-        glow = false if Mesher.face_light(@mesher.opaque[i + 1]) != Mesher::LIGHT_MAX
+        glow = false if Mesher.face_light(mesher.opaque[i + 1]) != Mesher::LIGHT_MAX
       end
       i += 2
     end
@@ -3616,11 +3620,22 @@ class Game
     set_block(ex, eh + 4, ez, Block::GLASS)
     before = @world.chunk_bytes(ex >> 4, ez >> 4)
     far = @world.chunk_bytes((ex >> 4) + 3, ez >> 4)
-    stream_around((ex >> 4) + RING, ez >> 4, -1, SYNC_R)
+    @chunk_meshes.stream((ex >> 4) + RING, ez >> 4, -1, SYNC_R)
     gone = !@world.loaded?(ex, ez)
-    stream_around(ex >> 4, ez >> 4, -1, SYNC_R)
+    @chunk_meshes.stream(ex >> 4, ez >> 4, -1, SYNC_R)
     check("an edited chunk unloads and comes back the same", gone && @world.get(ex, eh + 4, ez) == Block::GLASS && @world.chunk_bytes(ex >> 4, ez >> 4) == before)
     check("an unloaded chunk generates the same blocks again", @world.chunk_bytes((ex >> 4) + 3, ez >> 4) == far)
+    # The chunks within 2 rings of the player draw in full detail, and the
+    # far terrain skips their square.
+    pcx = ex.to_i >> 4
+    pcz = ez.to_i >> 4
+    square = Array.new(4, 0.0)
+    @chunk_meshes.detail_square(2, square, 0)
+    slots = @chunk_meshes.detail_slots(2)
+    check("the full-detail chunks are the meshed chunks within the rings, and the far terrain skips their square",
+          square == [((pcx - 2) * CHUNK).to_f, ((pcz - 2) * CHUNK).to_f, ((pcx + 3) * CHUNK).to_f, ((pcz + 3) * CHUNK).to_f] &&
+          slots.size == 25 && slots.include?(World.slot(pcx, pcz)) && slots.include?(World.slot(pcx + 2, pcz - 2)) &&
+          !slots.include?(World.slot(pcx + 3, pcz)))
     set_block(ex, eh + 4, ez, Block::AIR)
     far = @far.lod(FarTerrain::LEVELS - 1)
     slot = far.build(3, -2)

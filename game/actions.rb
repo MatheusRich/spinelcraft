@@ -469,7 +469,7 @@ class Game
     @world.set(x, y, z, b)
     partner = @world.get(x, other, z)
     @world.set(x, other, z, Block.door_toggled(partner)) if Block.door?(partner)
-    mark_dirty(x, z)
+    @chunk_meshes.mark_block(x, z)
     play(Block.door_open?(b) ? Sfx::DOOR_OPEN : Sfx::DOOR_CLOSE, 0.6)
     @swing = SWING
   end

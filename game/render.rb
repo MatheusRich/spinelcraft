@@ -85,6 +85,8 @@ class Game
     @uniforms[OPTION_UNIFORMS] = @options.brightness
   end
 
+  def far_terrain? = @options.view > FarTerrain::DETAIL_VIEW
+
   # Fills @visible with the meshed chunks in the view and @water_visible with
   # their water, far chunks first.
   def cull_chunks(ex, ez, reach)
@@ -93,29 +95,26 @@ class Game
     @water_keys.clear
     # With far terrain on, full detail stops at the last complete ring, and
     # the far terrain shader skips the square those rings cover.
-    rings = far_terrain? ? detail_rings : LOAD_R
-    @uniforms[28] = ((@stream_cx - rings) * CHUNK).to_f
-    @uniforms[29] = ((@stream_cz - rings) * CHUNK).to_f
-    @uniforms[30] = ((@stream_cx + rings + 1) * CHUNK).to_f
-    @uniforms[31] = ((@stream_cz + rings + 1) * CHUNK).to_f
-    s = 0
-    while s < CX * CZ
-      if @meshed[s] == 1 && (@world.slot_cx[s] - @stream_cx).abs <= rings && (@world.slot_cz[s] - @stream_cz).abs <= rings
-        x0 = (@world.slot_cx[s] * CHUNK).to_f
-        z0 = (@world.slot_cz[s] * CHUNK).to_f
-        dx = (x0 + 8.0 - ex).abs - 8.0
-        dz = (z0 + 8.0 - ez).abs - 8.0
-        dx = 0.0 if dx < 0.0
-        dz = 0.0 if dz < 0.0
-        d2 = dx * dx + dz * dz
-        if d2 < reach * reach && @camera.box_visible?(x0, 0.0, z0, x0 + 16.0, WY.to_f, z0 + 16.0)
-          slot = s * 2
-          # Only directions that can face the camera.
-          @visible << slot << (4 | 8 | 64 | side_mask(ex, ez, x0, z0, x0 + 16.0, z0 + 16.0))
-          @water_keys << d2.to_i * LOD_SLOT0 + slot + 1 if @has_water[s] == 1
-        end
+    rings = far_terrain? ? @chunk_meshes.detail_rings : ChunkMeshes::LOAD_R
+    @chunk_meshes.detail_square(rings, @uniforms, 28)
+    slots = @chunk_meshes.detail_slots(rings)
+    k = 0
+    while k < slots.size
+      s = slots[k]
+      x0 = (@world.slot_cx[s] * CHUNK).to_f
+      z0 = (@world.slot_cz[s] * CHUNK).to_f
+      dx = (x0 + 8.0 - ex).abs - 8.0
+      dz = (z0 + 8.0 - ez).abs - 8.0
+      dx = 0.0 if dx < 0.0
+      dz = 0.0 if dz < 0.0
+      d2 = dx * dx + dz * dz
+      if d2 < reach * reach && @camera.box_visible?(x0, 0.0, z0, x0 + 16.0, WY.to_f, z0 + 16.0)
+        slot = s * 2
+        # Only directions that can face the camera.
+        @visible << slot << (4 | 8 | 64 | side_mask(ex, ez, x0, z0, x0 + 16.0, z0 + 16.0))
+        @water_keys << d2.to_i * LOD_SLOT0 + slot + 1 if @chunk_meshes.water_mesh?(s)
       end
-      s += 1
+      k += 1
     end
     # Water blends, so draw the far chunks first.
     @water_keys.sort!

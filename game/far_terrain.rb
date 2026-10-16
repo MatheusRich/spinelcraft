@@ -4,7 +4,7 @@
 class FarTerrain
   # Full-detail chunks reach this far at most, and far terrain draws the
   # rest. This is also the limit of the chunk ring: Game#view_radius adds
-  # 20 blocks and one ring, and 460 gives LOAD_R.
+  # 20 blocks and one ring, and 460 gives ChunkMeshes::LOAD_R.
   DETAIL_VIEW = 460.0
   # Level L has cells of 4 << L blocks and reaches REACH << L blocks, so
   # each level has about the same number of tiles.
@@ -96,6 +96,7 @@ class FarTerrain
   # moves to a new tile.
   def center_level(l, tx, tz)
     return if tx == @center_x[l] && tz == @center_z[l]
+    Log.debug(Log::STREAM) { "center far tile #{tx} #{tz}. Since the last center: #{take_builds} far tiles built" } if l == 0
     @center_x[l] = tx
     @center_z[l] = tz
     @built_at[l] = 0
