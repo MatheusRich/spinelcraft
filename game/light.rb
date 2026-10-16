@@ -43,11 +43,7 @@ class Light
     dawn = raining ? SKY_DAWN_RAIN : SKY_DAWN_CLEAR
     ticks = tick >= dawn[0] ? dawn : (raining ? SKY_DUSK_RAIN : SKY_DUSK_CLEAR)
     passed = 0
-    index = 0
-    while index < ticks.size
-      passed += 1 if tick >= ticks[index]
-      index += 1
-    end
+    ticks.size.times { |index| passed += 1 if tick >= ticks[index] }
     tick >= dawn[0] ? 4 + passed : (raining ? SKY_TOP_RAIN : SKY_TOP_CLEAR) - passed
   end
 
@@ -59,10 +55,8 @@ class Light
       cz = (z - LAVA) >> 4
       while cz <= (z + LAVA) >> 4
         list = @world.torches_of(cx, cz)
-        index = 0
-        while index < list.size
+        (0...list.size).step(3) do |index|
           return true if (list[index] - x).abs + (list[index + 1] - y).abs + (list[index + 2] - z).abs < LAVA
-          index += 3
         end
         cz += 1
       end
