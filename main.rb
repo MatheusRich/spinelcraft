@@ -199,6 +199,7 @@ class Game
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
     @was_swimming = false
+    @last_sound = -1
     @particles = Particles.new(@seed)
     @arrows = []
     @eggs = []
@@ -427,7 +428,9 @@ class Game
     @riding = -1
   end
 
+  # The self-test runs with no sound, so it reads @last_sound.
   def play(id, volume)
+    @last_sound = id
     Gfx.au_play(id, volume * @volume, 0.0) if @sound
   end
 
@@ -482,6 +485,8 @@ class Game
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
   def update_game(dt)
+    return if paused?
+
     fwd = 0.0
     strafe = 0.0
     jump = false
@@ -723,7 +728,7 @@ class Game
       last = now
       handle_input(dt) unless @scripted
       demo(frames) if @demo
-      update_game(dt) unless paused?
+      update_game(dt)
       update_music(dt)
       t_stream = Gfx.gfx_ns
       stream_around(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)

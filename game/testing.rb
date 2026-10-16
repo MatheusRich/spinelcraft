@@ -467,16 +467,19 @@ class Game
   # The pause screen stops the world, but the inventory and the death
   # screen do not.
   def test_pause
+    time = @time_of_day
     @captured = false
-    paused = paused?
+    update_game(0.05)
+    stopped = @time_of_day == time
     @inventory_open = true
-    inventory = paused?
+    update_game(0.05)
+    inventory = @time_of_day != time
     @inventory_open = false
     @vitals.health = 0.0
     dead = paused?
     @vitals.health = Vitals::MAX_HEALTH
     @captured = true
-    check("only the pause screen stops the world", paused && !inventory && !dead && !paused?)
+    check("only the pause screen stops the world", stopped && inventory && !dead)
   end
 
   # The sliders of the pause menu set the options, and New world asks for a
@@ -758,20 +761,31 @@ class Game
     x = @player.x.floor
     z = @player.z.floor
     y = WY - 4
+    # A pool of one cell in a box of stone, so the liquid does not flow.
+    fill_box(x - 1, y - 1, z - 1, x + 1, y, z + 1, Block::STONE)
     @player.flying = false
-    @player.x = x + 0.5
-    @player.y = y.to_f
-    @player.z = z + 0.5
+    # In creative, lava does not hurt, so the hurt sound does not hide the
+    # splash.
+    survival = @survival
+    @survival = false
     set_block(x, y, z, Block::LAVA)
-    @player.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false)
-    lava = @player.in_water && @player.in_lava
+    lava = splash_into(x, y, z)
     set_block(x, y, z, Block::WATER)
-    @player.y = y.to_f
-    @player.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false)
-    water = @player.in_water && !@player.in_lava
-    set_block(x, y, z, Block::AIR)
+    water = splash_into(x, y, z)
+    @survival = survival
+    fill_box(x - 1, y - 1, z - 1, x + 1, y, z + 1, Block::AIR)
     restore_pose
-    check("lava is not water for the swim sounds", lava && water)
+    check("the player splashes into water, but not into lava", lava == -1 && water == Sfx::SPLASH)
+  end
+
+  # Drops the player into the pool at x, y, z for one frame, and returns
+  # the sound of that frame, or -1.
+  def splash_into(x, y, z)
+    @player.move_to(x + 0.5, y.to_f, z + 0.5)
+    @was_swimming = false
+    @last_sound = -1
+    update_game(1.0 / 60.0)
+    @last_sound
   end
 
   # Lava under air, flowing water and a lit furnace make sounds, but
