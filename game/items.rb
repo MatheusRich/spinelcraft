@@ -40,13 +40,11 @@ class Game
   # the mouse, where they died.
   def drop_inventory
     p = @player
-    i = 0
-    while i < INV
+    INV.times do |i|
       unless @inv.empty?(i)
         drop_item(@inv.block(i), @inv.count(i), p.x, p.y + 0.5, p.z, (@rng.rand01 - 0.5) * 4.0, 3.0, (@rng.rand01 - 0.5) * 4.0, PICKUP_WAIT)
         @inv.set(i, Block::AIR, 0)
       end
-      i += 1
     end
     drop_item(@held.block(0), @held.count(0), p.x, p.y + 0.5, p.z, 0.0, 3.0, 0.0, PICKUP_WAIT)
     @held.clear
