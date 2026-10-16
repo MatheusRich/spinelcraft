@@ -632,11 +632,9 @@ class Mob
     dz = player.z - oz
     len = Math.sqrt(dx * dx + dy * dy + dz * dz)
     steps = (len * 2.0).to_i
-    i = 1
-    while i < steps
+    (1...steps).each do |i|
       t = i / (len * 2.0)
       return false if Block.solid?(world.get((ox + dx * t).floor, (oy + dy * t).floor, (oz + dz * t).floor))
-      i += 1
     end
     true
   end
@@ -844,11 +842,9 @@ class Mob
   # z hind and front. The legs on one diagonal swing one way, and the other
   # two the other way.
   def legs(mesh, layer, dx, py, hind, front, h, grow, swing, r, gb)
-    i = 0
-    while i < 4
+    4.times do |i|
       sw = (i == 0 || i == 3) ? swing : -swing
       part(mesh, layer, i % 2 == 0 ? -dx : dx, py, i / 2 == 0 ? hind : front, sw, -2.0, 0.0, -2.0, 4.0, h, 4.0, 0.0, 16.0, grow, false, r, gb, gb)
-      i += 1
     end
   end
 end
