@@ -66,6 +66,22 @@ module Command
     out
   end
 
+  # The line with the text of the clipboard at its end. The text loses
+  # the line breaks and each character that the font cannot draw, and the
+  # line stops at max characters. The font draws only ASCII characters,
+  # so the text goes byte by byte, and each byte of a longer UTF-8
+  # character drops.
+  def self.paste(line, text, max)
+    out = line
+    i = 0
+    while i < text.bytesize && out.size < max
+      c = text.getbyte(i).chr
+      out += c if Tex::CHARS.include?(c.upcase)
+      i += 1
+    end
+    out
+  end
+
   def self.words(line)
     s = line.start_with?("/") ? line[1, line.size - 1] : line
     s.upcase.split(" ")

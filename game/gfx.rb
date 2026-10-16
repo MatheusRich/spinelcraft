@@ -105,6 +105,14 @@ module Gfx
     #define TYPED_CAP 64
     static long typed[TYPED_CAP];
     static int ntyped;
+    /* The key that pastes with V: Cmd on macOS, Ctrl on other systems. */
+    #ifdef SDL_PLATFORM_APPLE
+    #define PASTE_MOD SDL_KMOD_GUI
+    #else
+    #define PASTE_MOD SDL_KMOD_CTRL
+    #endif
+    /* The text of the last in_clipboard, which SDL allocates. */
+    static char *clipboard;
 
     static const char *MSL =
       "#include <metal_stdlib>\n"
@@ -1278,6 +1286,7 @@ module Gfx
             SDL_Scancode sc = e.key.scancode;
             long code = sc == SDL_SCANCODE_BACKSPACE ? 8 : sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_KP_ENTER ? 13 :
                         sc == SDL_SCANCODE_ESCAPE ? 27 : sc == SDL_SCANCODE_UP ? 1 : sc == SDL_SCANCODE_DOWN ? 2 : sc == SDL_SCANCODE_TAB ? 9 : 0;
+            if (e.key.key == SDLK_V && (e.key.mod & PASTE_MOD)) code = 22;
             if (code && ntyped < TYPED_CAP) typed[ntyped++] = code;
             break;
           }
@@ -1300,6 +1309,12 @@ module Gfx
     bool in_focus_lost(void) { return focus_lost; }
     long in_typed_count(void) { return ntyped; }
     long in_typed(long i) { return typed[i]; }
+    /* The text on the clipboard. The next call frees it. */
+    const char *in_clipboard(void) {
+      SDL_free(clipboard);
+      clipboard = SDL_GetClipboardText();
+      return clipboard ? clipboard : "";
+    }
     void in_text(long on) { if (on) SDL_StartTextInput(win); else SDL_StopTextInput(win); }
     /* The self-test presses keys through these, in the key state that in_poll fills. */
     void in_test_key(long sc, long on) { keys_now[sc] = on != 0; }
@@ -1361,6 +1376,7 @@ module Gfx
   ffi_func :in_focus_lost, [], :bool
   ffi_func :in_typed_count, [], :long
   ffi_func :in_typed, [:long], :long
+  ffi_func :in_clipboard, [], :str
   ffi_func :in_text, [:long], :void
   ffi_func :in_test_key, [:long, :long], :void
   ffi_func :in_test_frame, [], :void
@@ -1380,6 +1396,7 @@ module Key
   TYPED_BACKSPACE = 8
   TYPED_TAB = 9
   TYPED_ENTER = 13
+  TYPED_PASTE = 22
   TYPED_ESCAPE = 27
   A = 4
   D = 7

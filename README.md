@@ -67,7 +67,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 
 ## Commands
 
-T opens the chat line, and / opens it with a slash. The chat frees the mouse while it is open. Enter runs the line, Esc closes it, and Up and Down bring back the lines that you typed before. Tab completes a command name, an item name in `/give` and a mob name in `/summon`, and each next Tab puts the next name on the line. The names that fit show above the line. A line that starts with a slash is a command. The commands follow the syntax of Minecraft, and `~` gives a coordinate relative to the player.
+T opens the chat line, and / opens it with a slash. The chat frees the mouse while it is open. Enter runs the line, Esc closes it, and Up and Down bring back the lines that you typed before. Cmd+V (Ctrl+V on other systems) pastes the text of the clipboard, without the line breaks and the characters that the font cannot draw. Tab completes a command name, an item name in `/give` and a mob name in `/summon`, and each next Tab puts the next name on the line. The names that fit show above the line. A line that starts with a slash is a command. The commands follow the syntax of Minecraft, and `~` gives a coordinate relative to the player.
 
 | Command | Effect |
 | --- | --- |

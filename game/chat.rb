@@ -41,7 +41,8 @@ class Game
   end
 
   # The keys typed since the last frame edit the line. Enter runs it, Esc
-  # closes the chat, and Tab completes the last word.
+  # closes the chat, Tab completes the last word, and Cmd+V (Ctrl+V on
+  # other systems) pastes the clipboard.
   def handle_chat
     n = Gfx.in_typed_count
     i = 0
@@ -61,6 +62,8 @@ class Game
         @chat_text = @chat_text[0, @chat_text.size - 1].to_s if @chat_text.size > 0
       elsif c == Key::TYPED_UP || c == Key::TYPED_DOWN
         recall_chat(c == Key::TYPED_UP ? -1 : 1)
+      elsif c == Key::TYPED_PASTE
+        @chat_text = Command.paste(@chat_text, Gfx.in_clipboard, CHAT_MAX)
       elsif @chat_text.size < CHAT_MAX
         @chat_text += c.chr
       end

@@ -69,4 +69,22 @@ class CommandTest < Minitest::Test
     assert_equal Mob::PIG, Command.mob("MINECRAFT:PIG")
     assert_equal(-1, Command.mob("GHAST"))
   end
+
+  def test_a_paste_puts_the_text_at_the_end_of_the_line
+    assert_equal "/give dirt 64", Command.paste("/give ", "dirt 64", 100)
+  end
+
+  def test_a_paste_drops_the_line_breaks_and_the_characters_that_the_font_cannot_draw
+    assert_equal "/tp 1 2 3", Command.paste("", "/tp 1\r\n 2\t 3", 100)
+    assert_equal "say  hi", Command.paste("", "say {\u00e9$} h\u2014i\u007f", 100)
+  end
+
+  def test_a_paste_keeps_every_character_that_the_font_draws
+    assert_equal Tex::CHARS + "az", Command.paste("", Tex::CHARS + "az", 100)
+  end
+
+  def test_a_paste_stops_at_the_longest_line
+    assert_equal "/kill", Command.paste("/ki", "llll", 5)
+    assert_equal "/kill", Command.paste("/kill", "x", 5)
+  end
 end
