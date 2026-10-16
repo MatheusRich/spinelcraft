@@ -27,18 +27,14 @@ class Clouds
     @cells = Array.new(GRID * GRID, 0)
     # The radius of the torus keeps the clouds the same size for any GRID.
     r = GRID / 32.0
-    i = 0
-    while i < GRID
-      j = 0
-      while j < GRID
+    GRID.times do |i|
+      GRID.times do |j|
         # Sampled on a torus so the pattern wraps without a seam.
         a = i * 6.283185 / GRID
         b = j * 6.283185 / GRID
         v = noise.noise3(Math.cos(a) * r, Math.sin(a) * r + Math.cos(b) * r, Math.sin(b) * r)
         @cells[i * GRID + j] = v > 0.12 ? 1 : 0
-        j += 1
       end
-      i += 1
     end
   end
 
@@ -51,15 +47,7 @@ class Clouds
     clear = 0xffffff
     cloud = ((ALPHA * 255.0).round << 24) | clear
     px = Array.new(GRID * GRID, clear)
-    i = 0
-    while i < GRID
-      j = 0
-      while j < GRID
-        px[j * GRID + i] = cloud if @cells[i * GRID + j] == 1
-        j += 1
-      end
-      i += 1
-    end
+    GRID.times { |i| GRID.times { |j| px[j * GRID + i] = cloud if @cells[i * GRID + j] == 1 } }
     px
   end
 
@@ -86,8 +74,7 @@ class Clouds
     @built_i = ci
     @built_j = cj
     @mesh.clear
-    di = -NEAR
-    while di <= NEAR
+    (-NEAR..NEAR).each do |di|
       i = ci + di
       x0 = (i * CELL).to_f
       dj = -NEAR
@@ -111,7 +98,6 @@ class Clouds
         end
         dj += 1
       end
-      di += 1
     end
     true
   end
