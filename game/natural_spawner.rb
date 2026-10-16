@@ -55,11 +55,7 @@ class NaturalSpawner
   # mobs reach the cap. sky is the sky light under the open sky now.
   def spawn_monsters(mobs, player, sky, dt)
     monsters = 0
-    i = 0
-    while i < mobs.size
-      monsters += 1 unless mobs[i].passive?
-      i += 1
-    end
+    mobs.size.times { |i| monsters += 1 unless mobs[i].passive? }
     centers = (dt * PACK_CENTERS + @rng.rand01).to_i
     while centers > 0 && monsters < MONSTER_CAP
       monsters += spawn_packs(mobs, player, sky, MONSTER_CAP - monsters)
@@ -88,8 +84,7 @@ class NaturalSpawner
       kind = pick_kind(MONSTER_KINDS, MONSTER_WEIGHTS)
       x = x0
       z = z0
-      step = 0
-      while step < PACK_SIZE
+      PACK_SIZE.times do
         x += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         z += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         if monster_fits?(player, x, y, z, sky)
@@ -100,7 +95,6 @@ class NaturalSpawner
           spawned += 1
           return spawned if spawned >= room
         end
-        step += 1
       end
       pack += 1
     end
@@ -147,11 +141,7 @@ class NaturalSpawner
 
   # ANIMALS animals around player in a new world.
   def spawn_animals(mobs, player)
-    i = 0
-    while i < ANIMALS
-      spawn_animal(mobs, player, 10.0, 120.0)
-      i += 1
-    end
+    ANIMALS.times { spawn_animal(mobs, player, 10.0, 120.0) }
     nil
   end
 
@@ -162,11 +152,7 @@ class NaturalSpawner
     return nil if @refill > 0.0
     @refill = REFILL_TIME
     animals = 0
-    i = 0
-    while i < mobs.size
-      animals += 1 if mobs[i].passive?
-      i += 1
-    end
+    mobs.size.times { |i| animals += 1 if mobs[i].passive? }
     spawn_animal(mobs, player, 40.0, 90.0) if animals < ANIMALS / 2
     nil
   end
