@@ -144,11 +144,9 @@ class Game
 
   # The menu item under the mouse, or -1.
   def menu_hover(w, h, s)
-    i = 0
-    while i < MENU_ITEMS
+    MENU_ITEMS.times do |i|
       c = menu_cell(i, w, h, s)
       return i if mouse_in?(c[0], c[1], c[2], c[3])
-      i += 1
     end
     -1
   end
@@ -159,8 +157,7 @@ class Game
     title = "PAUSED"
     @ui.text((w - @ui.text_width(title, 6.0 * s)) / 2.0, first[1] - 46.0 * s, title, 6.0 * s, 1.0, 1.0, 1.0, 1.0)
     hover = @menu_drag >= 0 ? @menu_drag : menu_hover(w, h, s)
-    i = 0
-    while i < MENU_ITEMS
+    MENU_ITEMS.times do |i|
       c = menu_cell(i, w, h, s)
       shade = i == hover ? 0.42 : 0.26
       @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 0.95)
@@ -171,7 +168,6 @@ class Game
       end
       label = menu_label(i)
       @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, 1.0, 1.0, 1.0, 1.0)
-      i += 1
     end
     last = menu_cell(MENU_ITEMS - 1, w, h, s)
     lines = ["WASD MOVE  SPACE JUMP, TWICE TO FLY  CTRL SPRINT  SHIFT DOWN",
@@ -179,11 +175,9 @@ class Game
              "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  T CHAT  F3 DEBUG  F5 SAVE  F11 FULLSCREEN",
              "SURVIVAL: E TO CRAFT  BY HAND ONLY PLANKS, TORCHES AND A CRAFTING TABLE",
              "RIGHT-CLICK A CRAFTING TABLE FOR TOOLS  PUT FUEL IN A FURNACE TO SMELT  STONE NEEDS A PICKAXE TO DROP"]
-    i = 0
-    while i < lines.size
+    lines.size.times do |i|
       line = lines[i]
       @ui.text((w - @ui.text_width(line, 2.0 * s)) / 2.0, last[1] + last[3] + (24.0 + i * 18.0) * s, line, 2.0 * s, 0.9, 0.9, 0.9, 1.0)
-      i += 1
     end
   end
 end
