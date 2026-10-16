@@ -99,11 +99,7 @@ class Lod
     c0z = tz * CELLS - 1
     i = 0
     while i < CELLS + 2
-      j = 0
-      while j < CELLS + 2
-        sample(c0x + i, c0z + j, i * (CELLS + 2) + j)
-        j += 1
-      end
+      (CELLS + 2).times { |j| sample(c0x + i, c0z + j, i * (CELLS + 2) + j) }
       i += 1
     end
     @lists.each { |l| l.clear }
@@ -118,8 +114,7 @@ class Lod
         # The top face: the cell's top block is at y = h - 1.
         @lists[2] << Mesher.pack(cx, h - 1, cz, 2)
         @lists[2] << (@top[k] | (1 << TALL_AT) | (@shift << CELL_AT) | Lod.tint(@top[k], @biome[k]))
-        f = 0
-        while f < 6
+        6.times do |f|
           if f != 2 && f != 3
             n = @h[(i + @nx[f]) * (CELLS + 2) + j + @nz[f]]
             if n < h
@@ -129,18 +124,15 @@ class Lod
               @lists[f] << (@side[k] | (tall << TALL_AT) | (@shift << CELL_AT) | Lod.tint(@side[k], @biome[k]))
             end
           end
-          f += 1
         end
         j += 1
       end
       i += 1
     end
     @faces.clear
-    f = 0
-    while f < 6
+    6.times do |f|
       @offsets[f] = @faces.size / 2
       @faces.concat(@lists[f])
-      f += 1
     end
     @offsets[6] = @faces.size / 2
     @offsets[7] = @faces.size / 2
