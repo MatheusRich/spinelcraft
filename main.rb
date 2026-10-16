@@ -592,11 +592,7 @@ class Game
   # that makes a sound, at its AMBIENT_RATE. Each sound waits for its last
   # clip to end, so the long clips do not take all the voices.
   def update_block_sounds(dt)
-    i = 0
-    while i < AMBIENT.size
-      @ambient_wait[i] -= dt
-      i += 1
-    end
+    AMBIENT.size.times { |i| @ambient_wait[i] -= dt }
     r = SOUND_RANGE.to_i
     span = r * 2 + 1
     blocks = (span * span * span).to_f
