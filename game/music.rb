@@ -52,13 +52,11 @@ class Music
   # track of a round is not the track that played last.
   def fill(bag, first, stop)
     (first...stop).each { |id| bag << id }
-    i = bag.size - 1
-    while i > 0
+    (bag.size - 1).downto(1) do |i|
       j = (@rng.rand01 * (i + 1)).to_i
       t = bag[i]
       bag[i] = bag[j]
       bag[j] = t
-      i -= 1
     end
     if bag.size > 1 && bag[bag.size - 1] == @last
       bag[bag.size - 1] = bag[0]
