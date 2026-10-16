@@ -136,8 +136,7 @@ class Particles
   # middle, and each one shows a random piece of 4 x 4 pixels of the texture.
   def burst(x, y, z, b)
     layer = Block::SIDE[b]
-    i = 0
-    while i < 64
+    64.times do |i|
       dx = ((i & 3) + 0.5) / 4.0
       dy = (((i >> 2) & 3) + 0.5) / 4.0
       dz = ((i >> 4) + 0.5) / 4.0
@@ -148,7 +147,6 @@ class Particles
       len = 1.0 if len < 0.001
       speed = (@rng.rand01 + @rng.rand01 + 1.0) * 1.2
       chip(x + dx, y + dy, z + dz, vx / len * speed, vy / len * speed + 2.0, vz / len * speed, layer)
-      i += 1
     end
   end
 
