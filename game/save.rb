@@ -133,7 +133,8 @@ class Game
     @player.yaw = f[F_PLAYER + 3].to_f
     @player.pitch = f[F_PLAYER + 4].to_f
     @player.fall_start = @player.y
-    @clock = Clock.new(f[F_TIME].to_f, f[F_DAY].to_i)
+    @clock.time_of_day = f[F_TIME].to_f
+    @clock.day = f[F_DAY].to_i
     @survival = f[F_SURVIVAL] == "1"
     @vitals.health = f[F_HEALTH].to_f
     @alive_time = f[F_ALIVE].to_f

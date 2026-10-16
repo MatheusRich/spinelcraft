@@ -43,6 +43,7 @@ require_relative "game/hand"
 require_relative "game/particles"
 require_relative "game/weather"
 require_relative "game/clock"
+require_relative "game/sky"
 require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
@@ -94,8 +95,6 @@ class Game
     # The open chest, and its World.key; -1 when no chest is open.
     @chest = Slots.new(CHEST_SLOTS)
     @chest_key = -1
-    @sky = Ui.new
-    make_stars
     @flow_queue = []
     # The search of Game#held_by_log?: cells to visit, and the cells seen
     # in the last search (LEAF_REACH around the leaves), by stamp.
@@ -185,6 +184,7 @@ class Game
     # mixes the seconds first.
     @music = Music.new(Noise.hash3(Time.now.to_i, 0, 0, 60))
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
+    @sky = Sky.new(@clock, @weather, @camera)
     @target_mob = -1
     @swing = 0.0
     # Seconds since the last attack, broken block or new item in the hand

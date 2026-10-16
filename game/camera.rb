@@ -10,6 +10,7 @@ class Camera
     @sy = 0.0
     # The eye of the last update_camera.
     @ex = 0.0
+    @ey = 0.0
     @ez = 0.0
   end
 
@@ -19,6 +20,7 @@ class Camera
   # parameter, and this one made the others untyped.
   def update_camera(ex, ey, ez, yaw, pitch, aspect, far, fov)
     @ex = ex
+    @ey = ey
     @ez = ez
     fx = Math.sin(yaw) * Math.cos(pitch)
     fy = Math.sin(pitch)
@@ -66,6 +68,12 @@ class Camera
     @sx = (cx + 1.0) * 0.5 * w
     @sy = (1.0 - cy) * 0.5 * h
     true
+  end
+
+  # Projects the point 100 blocks from the eye in the direction dx, dy, dz,
+  # as project does. The sky puts the sun, the moon and the stars there.
+  def project_direction(dx, dy, dz, w, h)
+    project(@ex + dx * 100.0, @ey + dy * 100.0, @ez + dz * 100.0, w, h)
   end
 
   def write_column_major(out)

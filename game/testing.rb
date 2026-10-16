@@ -1476,6 +1476,21 @@ class Game
     @furnaces = {}
     @items.clear
     @weather.set_now(false)
+    # The sky shows the moon of the loaded day: day 37 has the phase
+    # 37 % 8 = 5.
+    time = @clock.time_of_day
+    @clock.time_of_day = 0.75
+    @camera.update_camera(0.0, 64.0, 0.0, 0.0, 1.3, 16.0 / 9.0, 300.0, 0.6)
+    @sky.build_sky(1280.0, 720.0, 1.0)
+    layers = @sky.mesh.v
+    moon = false
+    i = 4
+    while i < layers.size
+      moon = true if layers[i].to_i == Tex::MOON + 5
+      i += 54
+    end
+    check("the sky shows the moon of the day of the loaded save", moon)
+    @clock.time_of_day = time
     @vitals.health = 0.0
     save
     ok = load

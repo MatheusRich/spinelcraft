@@ -1,7 +1,5 @@
-# The 3D frame: uniforms, chunk and far terrain draws, the sky, and the stars.
+# The 3D frame: uniforms, chunk and far terrain draws, and the sky.
 class Game
-  STARS = 260
-
   def render
     w = Gfx.gfx_width.to_f
     h = Gfx.gfx_height.to_f
@@ -21,8 +19,8 @@ class Game
     Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_at)
     build_ui(w, h)
     Gfx.gfx_ui(@ui.v, @ui.v.size)
-    build_sky(w, h, ui_scale(h))
-    Gfx.gfx_sky(@sky.v, @sky.v.size)
+    @sky.build_sky(w, h, ui_scale(h))
+    Gfx.gfx_sky(@sky.mesh.v, @sky.mesh.v.size)
     if @tint.changed
       Gfx.gfx_tint(@tint.pixels)
       @tint.changed = false
@@ -162,75 +160,5 @@ class Game
 
   def upload_clouds
     abort "cloud upload failed" unless Gfx.gfx_clouds(@clouds.pixels, Clouds::GRID)
-  end
-
-  # Star directions on the upper sphere, fixed for the world.
-  def make_stars
-    @stars = []
-    rng = Rng.new(977)
-    STARS.times do
-      u = (rng.next_int % 10000) / 10000.0
-      v = (rng.next_int % 10000) / 10000.0
-      bright = 0.4 + (rng.next_int % 600) / 1000.0
-      theta = u * 6.283185
-      y = v * 1.6 - 0.6
-      r = Math.sqrt(1.0 - y * y)
-      @stars << r * Math.cos(theta) << y << r * Math.sin(theta) << bright
-    end
-  end
-
-  # Sky layer: drawn before the world, so terrain and clouds cover it.
-  def build_sky(w, h, s)
-    @sky.clear
-    draw_sky_body(w, h, s, 1.0, Tex::WHITE, 1.0, 0.95, 0.75, 70.0, 1.0)
-    draw_sky_body(w, h, s, -1.0, Tex::MOON + @clock.moon_phase, 1.0, 1.0, 1.0, 46.0, @clock.moon_lit)
-    # Rain hides the stars.
-    night = (0.55 - @clock.daylight) * 2.5 * (1.0 - @weather.rain)
-    return if night <= 0.0
-    night = 1.0 if night > 1.0
-    a = @clock.time_of_day * Math::PI * 2.0
-    ca = Math.cos(a)
-    sa = Math.sin(a)
-    ex = @player.x.to_f
-    ey = @player.eye_y.to_f
-    ez = @player.z.to_f
-    i = 0
-    while i < @stars.size
-      # The stars turn with the sun around the z axis.
-      sx = @stars[i]
-      sy = @stars[i + 1]
-      rx = sx * ca - sy * sa
-      ry = sx * sa + sy * ca
-      if ry > -0.05
-        if @camera.project(ex + rx * 100.0, ey + ry * 100.0, ez + @stars[i + 2] * 100.0, w, h)
-          size = 2.0 * s
-          c = @stars[i + 3]
-          @sky.rect(@camera.sx, @camera.sy, size, size, c, c, c * 1.05, night)
-        end
-      end
-      i += 4
-    end
-  end
-
-  # The sun (side 1) or the moon (side -1): the texture layer with the color
-  # r, g, b, in a glow that is as bright as the lit part.
-  def draw_sky_body(w, h, s, side, layer, r, g, b, size, lit)
-    a = @clock.time_of_day * Math::PI * 2.0
-    dx = Math.cos(a) * side
-    dy = Math.sin(a) * side
-    dz = 0.25
-    return if dy < -0.15
-    ex = @player.x.to_f
-    ey = @player.eye_y.to_f
-    ez = @player.z.to_f
-    return unless @camera.project(ex + dx * 100.0, ey + dy * 100.0, ez + dz * 100.0, w, h)
-    half = size * s / 2.0
-    sx = @camera.sx
-    sy = @camera.sy
-    # Rain hides the sun and the moon.
-    clear = 1.0 - @weather.rain
-    return if clear <= 0.0
-    @sky.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18 * clear * lit)
-    @sky.quad(sx - half, sy - half, half * 2.0, half * 2.0, layer, 1.0, 1.0, r, g, b, clear)
   end
 end
