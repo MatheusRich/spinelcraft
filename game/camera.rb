@@ -1,4 +1,5 @@
-# The view-projection matrix, the frustum planes, and screen projection.
+# The view-projection matrix, the frustum planes, screen projection, and
+# the test of a box against the view.
 class Camera
   attr_reader :sx, :sy
 
@@ -7,6 +8,9 @@ class Camera
     @planes = Array.new(24, 0.0)
     @sx = 0.0
     @sy = 0.0
+    # The eye of the last update_camera.
+    @ex = 0.0
+    @ez = 0.0
   end
 
   # Builds the view-projection matrix (row-major in @vp) for Metal's 0..1 depth.
@@ -14,6 +18,8 @@ class Camera
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
   def update_camera(ex, ey, ez, yaw, pitch, aspect, far, fov)
+    @ex = ex
+    @ez = ez
     fx = Math.sin(yaw) * Math.cos(pitch)
     fy = Math.sin(pitch)
     fz = -Math.cos(yaw) * Math.cos(pitch)
@@ -82,6 +88,38 @@ class Camera
     end
   end
 
+  # True when the box from x0, z0 to x1, z1 is nearer than reach to the
+  # eye along x and z, and the box from y0 to y1 is in the view. Chunks and
+  # far terrain tiles reach from the bottom to the top of the world, so the
+  # height does not count for the reach.
+  def box_in_view?(x0, y0, z0, x1, y1, z1, reach)
+    box_distance2(x0, z0, x1, z1) < reach * reach && box_visible?(x0, y0, z0, x1, y1, z1)
+  end
+
+  # The square of the distance along x and z from the eye to the nearest
+  # point of the box from x0, z0 to x1, z1. It is 0.0 when the eye is
+  # above or under the box.
+  def box_distance2(x0, z0, x1, z1)
+    dx = ((x0 + x1) * 0.5 - @ex).abs - (x1 - x0) * 0.5
+    dz = ((z0 + z1) * 0.5 - @ez).abs - (z1 - z0) * 0.5
+    dx = 0.0 if dx < 0.0
+    dz = 0.0 if dz < 0.0
+    dx * dx + dz * dz
+  end
+
+  # The bits of the side directions (+x 1, -x 2, +z 16, -z 32) whose faces
+  # in the box from x0, z0 to x1, z1 can face the eye.
+  def facing_sides(x0, z0, x1, z1)
+    sides = 0
+    sides |= 1 if @ex > x0
+    sides |= 2 if @ex < x1
+    sides |= 16 if @ez > z0
+    sides |= 32 if @ez < z1
+    sides
+  end
+
+  # True when a part of the box from x0, y0, z0 to x1, y1, z1 is inside the
+  # six planes of the view.
   def box_visible?(x0, y0, z0, x1, y1, z1)
     p = 0
     while p < 6

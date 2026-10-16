@@ -208,6 +208,7 @@ class Game
     test_fly_keys
     test_boats
     test_sounds
+    test_culling
     test_streaming
     File.delete(@save_path) if File.exist?(@save_path)
     puts @failures == 0 ? "ALL #{@checks} PASS" : "#{@failures} OF #{@checks} FAILED"
@@ -3566,6 +3567,53 @@ class Game
   def animal_on_grass?(m)
     ground = @world.get(m.x.floor, m.y.floor - 1, m.z.floor)
     m.passive? && (ground == Block::GRASS || ground == Block::SNOW_GRASS)
+  end
+
+  # The chunks in the view draw with the sides that can face the eye, and
+  # their water draws from far to near.
+  def test_culling
+    ex = @player.x.to_f
+    ez = @player.z.to_f
+    @chunk_meshes.stream(ex.floor >> 4, ez.floor >> 4, -1, SYNC_R)
+    # Water in the chunk of the player and in chunks 2, 4 and 6 ahead.
+    waters = [0, 2, 4, 6]
+    waters.each { |k| set_block(ex.floor, SKY_Y, ez.floor - k * CHUNK, Block::WATER) }
+    @flow_queue.clear
+    @chunk_meshes.flush_all
+    # The camera looks along -z.
+    @camera.update_camera(ex, @player.eye_y.to_f, ez, 0.0, 0.0, 16.0 / 9.0, @options.view + 40.0, @fov)
+    cull_chunks(@options.view + 4.0)
+    pcx = ex.floor >> 4
+    pcz = ez.floor >> 4
+    sides = {}
+    k = 0
+    while k < @visible.size
+      sides[@visible[k] / 2] = @visible[k + 1]
+      k += 2
+    end
+    ahead = sides[World.slot(pcx, pcz - 2)]
+    check("a chunk ahead draws with the sides that face the eye, and a chunk behind does not draw",
+          ahead == (4 | 8 | 64 | 1 | 2 | 16) && !sides.key?(World.slot(pcx, pcz + 3)))
+    # The order goes by the whole part of the distance, so chunks with the
+    # same whole part can come in either order.
+    far_first = true
+    k = 2
+    while k < @water_visible.size
+      far_first = false if water_distance2(@water_visible[k - 2]).to_i < water_distance2(@water_visible[k]).to_i
+      k += 2
+    end
+    check("water draws from the far chunks to the near ones", @water_visible.size >= waters.size * 2 && far_first)
+    waters.each { |k| set_block(ex.floor, SKY_Y, ez.floor - k * CHUNK, Block::AIR) }
+    @chunk_meshes.flush_all
+  end
+
+  # The square of the distance along x and z from the eye to the chunk of
+  # the water mesh of slot, the number that @water_visible holds.
+  def water_distance2(slot)
+    s = slot / 2
+    x0 = (@world.slot_cx[s] * CHUNK).to_f
+    z0 = (@world.slot_cz[s] * CHUNK).to_f
+    @camera.box_distance2(x0, z0, x0 + 16.0, z0 + 16.0)
   end
 
   # Chunk streaming, far terrain tiles, and a new world.

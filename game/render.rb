@@ -16,8 +16,8 @@ class Game
     Gfx.gfx_cloud_boxes(@clouds.mesh.v, @clouds.mesh.count) if @clouds.build(ex, ez, @cloud_drift)
     set_uniforms(ex, ey, ez, w, h)
     reach = @options.view + 4.0
-    cull_chunks(ex, ez, reach)
-    cull_far_tiles(ex, ez, reach)
+    cull_chunks(reach)
+    cull_far_tiles(reach)
     build_dyn(ex, ey, ez, reach)
     Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_at)
     build_ui(w, h)
@@ -89,7 +89,7 @@ class Game
 
   # Fills @visible with the meshed chunks in the view and @water_visible with
   # their water, far chunks first.
-  def cull_chunks(ex, ez, reach)
+  def cull_chunks(reach)
     @visible.clear
     @water_visible.clear
     @water_keys.clear
@@ -103,16 +103,13 @@ class Game
       s = slots[k]
       x0 = (@world.slot_cx[s] * CHUNK).to_f
       z0 = (@world.slot_cz[s] * CHUNK).to_f
-      dx = (x0 + 8.0 - ex).abs - 8.0
-      dz = (z0 + 8.0 - ez).abs - 8.0
-      dx = 0.0 if dx < 0.0
-      dz = 0.0 if dz < 0.0
-      d2 = dx * dx + dz * dz
-      if d2 < reach * reach && @camera.box_visible?(x0, 0.0, z0, x0 + 16.0, WY.to_f, z0 + 16.0)
+      x1 = x0 + 16.0
+      z1 = z0 + 16.0
+      if @camera.box_in_view?(x0, 0.0, z0, x1, WY.to_f, z1, reach)
         slot = s * 2
         # Only directions that can face the camera.
-        @visible << slot << (4 | 8 | 64 | side_mask(ex, ez, x0, z0, x0 + 16.0, z0 + 16.0))
-        @water_keys << d2.to_i * LOD_SLOT0 + slot + 1 if @chunk_meshes.water_mesh?(s)
+        @visible << slot << (4 | 8 | 64 | @camera.facing_sides(x0, z0, x1, z1))
+        @water_keys << @camera.box_distance2(x0, z0, x1, z1).to_i * LOD_SLOT0 + slot + 1 if @chunk_meshes.water_mesh?(s)
       end
       k += 1
     end
@@ -125,19 +122,8 @@ class Game
     end
   end
 
-  # The bits of the side directions (+x 1, -x 2, +z 16, -z 32) that can face
-  # a camera at ex, ez, for a box from x0, z0 to x1, z1.
-  def side_mask(ex, ez, x0, z0, x1, z1)
-    mask = 0
-    mask |= 1 if ex > x0
-    mask |= 2 if ex < x1
-    mask |= 16 if ez > z0
-    mask |= 32 if ez < z1
-    mask
-  end
-
   # Fills @lod_visible with the far terrain tiles in the view.
-  def cull_far_tiles(ex, ez, reach)
+  def cull_far_tiles(reach)
     @lod_visible.clear
     level = 0
     while level < FarTerrain::LEVELS && @options.view > FarTerrain.level_start(level)
@@ -154,13 +140,9 @@ class Game
           z0 = lod.tile_z[s] * size
           x1 = x0 + size
           z1 = z0 + size
-          dx = (x0 + size / 2.0 - ex).abs - size / 2.0
-          dz = (z0 + size / 2.0 - ez).abs - size / 2.0
-          dx = 0.0 if dx < 0.0
-          dz = 0.0 if dz < 0.0
           inside = x0 >= @uniforms[at] && z0 >= @uniforms[at + 1] && x1 <= @uniforms[at + 2] && z1 <= @uniforms[at + 3]
-          if !inside && dx * dx + dz * dz < reach * reach && @camera.box_visible?(x0, 0.0, z0, x1, WY.to_f + 8.0, z1)
-            @lod_visible << LOD_SLOT0 + level * FarTerrain::TILE_SLOTS + s << (4 | side_mask(ex, ez, x0, z0, x1, z1))
+          if !inside && @camera.box_in_view?(x0, 0.0, z0, x1, WY.to_f + 8.0, z1, reach)
+            @lod_visible << LOD_SLOT0 + level * FarTerrain::TILE_SLOTS + s << (4 | @camera.facing_sides(x0, z0, x1, z1))
           end
         end
         s += 1
@@ -221,6 +203,8 @@ class Game
 
   # True when x, y, z is within reach of the eye, and the box 2 blocks
   # around it on x and z, from 1 block under it to top over it, is in view.
+  # The reach counts from the point x, y, z, not from the box as in
+  # Camera#box_in_view?.
   def entity_in_view?(x, y, z, top, ex, ez, reach)
     dx = x - ex
     dz = z - ez
