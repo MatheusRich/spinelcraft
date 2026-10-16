@@ -103,8 +103,7 @@ class Game
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
       lived = m.death == 0.0
-      k = 0
-      while k < steps
+      steps.times do
         damage = m.update_mob(@world, sdt, @player, day, held)
         if damage > 0
           hurt(damage, Sfx::HURT)
@@ -118,7 +117,6 @@ class Game
             @player.vy = 5.0
           end
         end
-        k += 1
       end
       bite_grass(m) if m.grass_bite
       lay_egg(m) if m.lay
@@ -243,10 +241,8 @@ class Game
       i += 1
     end
     k = MOB_PUSH * dt
-    i = 0
-    while i < n
-      j = i + 1
-      while j < n
+    n.times do |i|
+      (i + 1...n).each do |j|
         reach = halves[i] + halves[j]
         dx = xs[j] - xs[i]
         dz = zs[j] - zs[i]
@@ -267,15 +263,9 @@ class Game
           dvx[j] += px
           dvz[j] += pz
         end
-        j += 1
       end
-      i += 1
     end
-    i = 0
-    while i < n
-      @mobs[i].nudge(dvx[i], dvz[i]) if dvx[i] != 0.0 || dvz[i] != 0.0
-      i += 1
-    end
+    n.times { |i| @mobs[i].nudge(dvx[i], dvz[i]) if dvx[i] != 0.0 || dvz[i] != 0.0 }
     # A nil return keeps Spinel from boxing the loop.
     nil
   end
