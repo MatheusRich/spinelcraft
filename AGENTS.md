@@ -12,6 +12,8 @@ Spinelcraft is pre-alpha. No player, save or tool depends on old behavior yet.
 ## Tests
 
 - A check that needs no `Game` and no `Gfx` goes in `test/` as a Minitest test, and `rake test` runs it under CRuby. Every other check goes in the self-test (`tools/selftest.sh`), which runs the compiled game.
+- Check what the player sees, such as the health, a sound or a mob that moves. A check of the internal state only (a flag or a helper) can pass while the game is wrong.
+- A bug fix comes with a regression check. Make sure that the check fails without the fix.
 - After you change a file in `game/` that a Minitest test covers, or the test itself, mutation test that pair with mutineer:
 
   ```sh
