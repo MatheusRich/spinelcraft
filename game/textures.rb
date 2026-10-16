@@ -21,22 +21,14 @@ module Tex
   # A layer from each image, in a row; it gives the number of the first.
   def self.image_series(files)
     first = LAYER_FILES.size
-    i = 0
-    while i < files.size
-      add_layer(files[i], 0)
-      i += 1
-    end
+    files.each { |file| add_layer(file, 0) }
     first
   end
 
   # n layers that the code draws; it gives the number of the first.
   def self.drawn(n, bleed: 0)
     first = LAYER_FILES.size
-    i = 0
-    while i < n
-      add_layer("", bleed)
-      i += 1
-    end
+    n.times { add_layer("", bleed) }
     first
   end
 
@@ -252,24 +244,16 @@ module Tex
       if LAYER_FILES[s] != ""
         path = "assets/pixel-perfection/#{LAYER_FILES[s]}.png"
         abort "#{path} did not load" unless Gfx.gfx_png(path, 16, 16)
-        i = 0
-        while i < 256
-          px[s * 256 + i] = Gfx.gfx_png_pixel(i)
-          i += 1
-        end
+        256.times { |i| px[s * 256 + i] = Gfx.gfx_png_pixel(i) }
       end
       s += 1
     end
-    s = 0
-    while s < ICON_LAYERS.size
+    ICON_LAYERS.size.times do |s|
       path = "assets/pixel-perfection/#{ICON_FILES[s]}.png"
       abort "#{path} did not load" unless Gfx.gfx_png(path, ICON_SIZE, ICON_SIZE)
-      i = 0
-      while i < ICON_SIZE * ICON_SIZE
+      (ICON_SIZE * ICON_SIZE).times do |i|
         px[ICON_LAYERS[s] * 256 + i / ICON_SIZE * 16 + i % ICON_SIZE] = Gfx.gfx_png_pixel(i)
-        i += 1
       end
-      s += 1
     end
   end
 
@@ -286,37 +270,23 @@ module Tex
 
   def self.skins
     px = Array.new(SKIN_FILES.size * 4096, 0)
-    s = 0
-    while s < SKIN_FILES.size
+    SKIN_FILES.size.times do |s|
       path = "assets/pixel-perfection/#{SKIN_FILES[s]}.png"
       abort "#{path} did not load" unless Gfx.gfx_png(path, 64, SKIN_HEIGHTS[s])
-      i = 0
-      while i < 64 * SKIN_HEIGHTS[s]
-        px[s * 4096 + i] = Gfx.gfx_png_pixel(i)
-        i += 1
-      end
-      s += 1
+      (64 * SKIN_HEIGHTS[s]).times { |i| px[s * 4096 + i] = Gfx.gfx_png_pixel(i) }
     end
     px
   end
 
   def self.build
     px = Array.new(LAYERS * 256, 0)
-    i = 0
-    while i < 256
-      px[i] = rgba(255, 255, 255, 255)
-      i += 1
-    end
+    256.times { |i| px[i] = rgba(255, 255, 255, 255) }
     puff(px)
     rain(px)
     font(px)
     cracks(px)
     images(px)
-    layer = 0
-    while layer < LAYERS
-      bleed(px, layer) if BLEED[layer] == 1
-      layer += 1
-    end
+    LAYERS.times { |layer| bleed(px, layer) if BLEED[layer] == 1 }
     px
   end
 
@@ -327,29 +297,21 @@ module Tex
     while x < 16
       start = rnd(x, 0, 85) % 16
       len = 3 + rnd(x, 1, 86) % 4
-      k = 0
-      while k < len
-        set(px, RAIN, x, (start + k) % 16, 255, 255, 255, 200)
-        k += 1
-      end
+      len.times { |k| set(px, RAIN, x, (start + k) % 16, 255, 255, 255, 200) }
       x += 3 + rnd(x, 2, 87) % 2
     end
   end
 
   # A white disk with a rough edge.
   def self.puff(px)
-    y = 0
-    while y < 16
-      x = 0
-      while x < 16
+    16.times do |y|
+      16.times do |x|
         dx = x - 7.5
         dy = y - 7.5
         r = 6.0 + rnd(x, y, 83) / 128.0
         v = 225 + rnd(x, y, 84) / 9
         set(px, PUFF, x, y, v, v, v, 255) if dx * dx + dy * dy < r * r
-        x += 1
       end
-      y += 1
     end
   end
 
@@ -361,8 +323,7 @@ module Tex
     dy = [0, 1, 1, 1, 0, -1, -1, -1]
     ox = [3, 12, 4, 11]
     oy = [4, 3, 12, 11]
-    line = 0
-    while line < 8
+    8.times do |line|
       # Four cracks start at the middle; four shorter ones start later, nearer the edges.
       x = line < 4 ? 7 + line % 2 : ox[line - 4]
       y = line < 4 ? 7 + line / 2 % 2 : oy[line - 4]
@@ -379,17 +340,8 @@ module Tex
         y += dy[dir]
         step += 1
       end
-      line += 1
     end
-    s = 0
-    while s < CRACK_STAGES
-      i = 0
-      while i < 256
-        px[(CRACK + s) * 256 + i] = reveal[i] <= s ? rgba(20, 16, 12, 215) : 0
-        i += 1
-      end
-      s += 1
-    end
+    CRACK_STAGES.times { |s| 256.times { |i| px[(CRACK + s) * 256 + i] = reveal[i] <= s ? rgba(20, 16, 12, 215) : 0 } }
   end
 
   # Gives clear texels the layer's average opaque color so mipmaps do not darken.
@@ -398,8 +350,7 @@ module Tex
     g = 0
     b = 0
     n = 0
-    i = 0
-    while i < 256
+    256.times do |i|
       c = px[layer * 256 + i]
       if (c >> 24) & 255 > 0
         r += c & 255
@@ -407,14 +358,9 @@ module Tex
         b += (c >> 16) & 255
         n += 1
       end
-      i += 1
     end
     return if n == 0
-    i = 0
-    while i < 256
-      px[layer * 256 + i] = rgba(r / n, g / n, b / n, 0) if (px[layer * 256 + i] >> 24) & 255 == 0
-      i += 1
-    end
+    256.times { |i| px[layer * 256 + i] = rgba(r / n, g / n, b / n, 0) if (px[layer * 256 + i] >> 24) & 255 == 0 }
   end
 
   # The opaque pixels of each layer as bit masks, for the edges of an item
@@ -423,8 +369,7 @@ module Tex
   # pixel y. A pixel is opaque where fdyn in gfx.rb draws it.
   def self.opaque(px)
     masks = Array.new(LAYERS * 32, 0)
-    i = 0
-    while i < LAYERS * 256
+    (LAYERS * 256).times do |i|
       if (px[i] >> 24) & 255 >= 128
         k = i / 256 * 32
         x = i % 16
@@ -432,37 +377,24 @@ module Tex
         masks[k + y] = masks[k + y] | (1 << x)
         masks[k + 16 + x] = masks[k + 16 + x] | (1 << y)
       end
-      i += 1
     end
     masks
   end
 
   # Each glyph is 3 x 5 cells of 3 x 3 pixels, so it fills a 9 x 15 corner of its layer.
   def self.font(px)
-    g = 0
-    while g < GLYPHS.size
-      rows = GLYPHS[g].split(" ")
+    GLYPHS.each_with_index do |glyph, g|
+      rows = glyph.split(" ")
       layer = FONT + g
-      ry = 0
-      while ry < 5
-        rx = 0
-        while rx < 3
+      5.times do |ry|
+        3.times do |rx|
           if rows[ry][rx] == "#"
-            y = ry * 3
-            while y < ry * 3 + 3
-              x = rx * 3
-              while x < rx * 3 + 3
-                set(px, layer, x, y, 255, 255, 255, 255)
-                x += 1
-              end
-              y += 1
+            (ry * 3...ry * 3 + 3).each do |y|
+              (rx * 3...rx * 3 + 3).each { |x| set(px, layer, x, y, 255, 255, 255, 255) }
             end
           end
-          rx += 1
         end
-        ry += 1
       end
-      g += 1
     end
   end
 
