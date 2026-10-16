@@ -23,11 +23,9 @@ class Tint
     @changed = false
     # The map pixel of each biome: the grass ratio, then the foliage ratio.
     @ratio = Array.new(Biome::ALL.size * 2, 0)
-    b = 0
-    while b < Biome::ALL.size
+    Biome::ALL.size.times do |b|
       @ratio[b * 2] = Tint.ratio(Biome::GRASS_COLOR[b], Biome::GRASS_COLOR[Biome::PLAINS])
       @ratio[b * 2 + 1] = Tint.ratio(Biome::FOLIAGE_COLOR[b], Biome::FOLIAGE_COLOR[Biome::PLAINS])
-      b += 1
     end
   end
 
@@ -47,10 +45,8 @@ class Tint
   # The biome of a square is the biome of the column at its middle.
   def paint(cx, cz)
     n = CHUNK / GROUP
-    i = 0
-    while i < n
-      j = 0
-      while j < n
+    n.times do |i|
+      n.times do |j|
         gx = cx * n + i
         gz = cz * n + j
         x = gx * GROUP + GROUP / 2
@@ -59,9 +55,7 @@ class Tint
         k = (gz & (SIZE - 1)) * SIZE + (gx & (SIZE - 1))
         @pixels[k] = @ratio[b * 2]
         @pixels[SIZE * SIZE + k] = @ratio[b * 2 + 1]
-        j += 1
       end
-      i += 1
     end
     @changed = true
   end
@@ -70,14 +64,12 @@ class Tint
   # the ratios of the biome from the uniforms: at u[at], 4 floats (r, g, b,
   # 1) for each map pixel of @ratio.
   def write_uniforms(u, at)
-    k = 0
-    while k < @ratio.size
+    @ratio.size.times do |k|
       px = @ratio[k]
       u[at + k * 4] = (px & 255) / ONE.to_f
       u[at + k * 4 + 1] = ((px >> 8) & 255) / ONE.to_f
       u[at + k * 4 + 2] = ((px >> 16) & 255) / ONE.to_f
       u[at + k * 4 + 3] = 1.0
-      k += 1
     end
   end
 end
