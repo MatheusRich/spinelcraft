@@ -124,12 +124,10 @@ class ChunkMeshes
   # fills the same Array again.
   def detail_slots(rings)
     @detail.clear
-    s = 0
-    while s < CX * CZ
+    (CX * CZ).times do |s|
       if @meshed[s] == 1 && (@world.slot_cx[s] - @center_x).abs <= rings && (@world.slot_cz[s] - @center_z).abs <= rings
         @detail << s
       end
-      s += 1
     end
     @detail
   end
@@ -142,8 +140,7 @@ class ChunkMeshes
     @water_visible.clear
     @water_keys.clear
     slots = detail_slots(rings)
-    k = 0
-    while k < slots.size
+    slots.size.times do |k|
       s = slots[k]
       x0 = (@world.slot_cx[s] * CHUNK).to_f
       z0 = (@world.slot_cz[s] * CHUNK).to_f
@@ -155,15 +152,10 @@ class ChunkMeshes
         @visible << slot << (4 | 8 | 64 | camera.facing_sides(x0, z0, x1, z1))
         @water_keys << camera.box_distance2(x0, z0, x1, z1).to_i * GPU_SLOTS + slot + 1 if @has_water[s] == 1
       end
-      k += 1
     end
     # Water blends, so draw the far chunks first.
     @water_keys.sort!
-    k = @water_keys.size - 1
-    while k >= 0
-      @water_visible << @water_keys[k] % GPU_SLOTS << 127
-      k -= 1
-    end
+    (@water_keys.size - 1).downto(0) { |k| @water_visible << @water_keys[k] % GPU_SLOTS << 127 }
     nil
   end
 
@@ -229,12 +221,10 @@ class ChunkMeshes
   # Lets the chunks that mark_chunk marked after the first n wait for later
   # frames.
   def postpone_since(n)
-    k = n
-    while k < @dirty_list.size
+    (n...@dirty_list.size).each do |k|
       i = @dirty_list[k]
       @dirty[i] = false
       later_slot(i)
-      k += 1
     end
     @dirty_list.pop while @dirty_list.size > n
     nil
