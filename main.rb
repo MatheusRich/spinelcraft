@@ -1,5 +1,6 @@
 # Game setup, spawn and respawn, the update step, and the game loop.
 require_relative "game/gfx"
+require_relative "game/log"
 require_relative "game/rng"
 require_relative "game/textures"
 require_relative "game/block"
@@ -47,6 +48,7 @@ require_relative "game/testing"
 
 class Game
   def initialize
+    Log.setup(ENV["LOG"] || "")
     @seed = (ENV["SEED"] || "1337").to_i
     @max_frames = (ENV["FRAMES"] || "0").to_i
     # A run with FRAMES set ignores the mouse and the keys, so the person at
@@ -80,6 +82,11 @@ class Game
     @stream_cz = World::NONE
     @load_at = 0
     @mesh_at = 0
+    # The chunks loaded and meshed, and the far tiles built, since the
+    # stream center last moved (for Log::STREAM).
+    @stream_loads = 0
+    @stream_meshes = 0
+    @lod_builds = 0
     make_ring
     @dirty = Array.new(CX * CZ, false)
     @dirty_list = []
@@ -180,6 +187,7 @@ class Game
     @cpu_end = 0
     @survival = ENV["MODE"] == "survival"
     @loaded = [""]
+    @load_error = ""
     @changed = false
     # A scripted run (FRAMES) does not change the save or the options.
     @save_on_quit = ENV["FRAMES"].nil? || !ENV["SAVE"].nil?
@@ -407,6 +415,7 @@ class Game
     @spawn_x = best_x + 0.5
     @spawn_z = best_z + 0.5
     @player = Player.new(@spawn_x, h + 0.01, @spawn_z)
+    Log.debug(Log::WORLD) { "spawn at #{best_x} #{h} #{best_z}#{found ? "" : ", but no dry land was near"}" }
   end
 
   # Land well above the sea, from the noise alone.
@@ -423,6 +432,7 @@ class Game
     stream_around(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
     @player.move_to(@spawn_x, h + 0.01, @spawn_z)
+    Log.debug(Log::WORLD) { "respawn at #{@spawn_x.floor} #{h} #{@spawn_z.floor}" }
     @vitals = Vitals.new
     @alive_time = 0.0
     @riding = -1
@@ -732,11 +742,20 @@ class Game
       update_music(dt)
       t_stream = Gfx.gfx_ns
       stream_around(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
-      left = STREAM_BUDGET_NS - (Gfx.gfx_ns - t_stream)
+      t_lod = Gfx.gfx_ns
+      left = STREAM_BUDGET_NS - (t_lod - t_stream)
       stream_lod(left > 500_000 ? left : 500_000)
+      t_flush = Gfx.gfx_ns
       flush_dirty unless @dirty_list.empty? && @later_list.empty?
+      t_render = Gfx.gfx_ns
       render
       cpu = (@cpu_end - now) / 1.0e6
+      if cpu > Log::SLOW_MS
+        Log.debug(Log::FRAME) do
+          "frame #{frames}: #{cpu.round(2)} ms of CPU. update #{((t_stream - now) / 1.0e6).round(2)}, chunks #{((t_lod - t_stream) / 1.0e6).round(2)}, " \
+            "far tiles #{((t_flush - t_lod) / 1.0e6).round(2)}, remesh #{((t_render - t_flush) / 1.0e6).round(2)}, render #{((@cpu_end - t_render) / 1.0e6).round(2)}"
+        end
+      end
       max_cpu = cpu if cpu > max_cpu && frames > 10
       frame_ms = dt * 1000.0
       max_frame = frame_ms if frame_ms > max_frame && frames > 10

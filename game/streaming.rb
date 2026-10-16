@@ -40,6 +40,13 @@ class Game
     pcz = player_cz.to_i
     t0 = Gfx.gfx_ns
     if pcx != @stream_cx || pcz != @stream_cz
+      Log.debug(Log::STREAM) do
+        "center chunk #{pcx} #{pcz}, radius #{radius}. Since the last center: #{@stream_loads} chunks loaded, " \
+          "#{@stream_meshes} chunks meshed, #{@lod_builds} far tiles built"
+      end
+      @stream_loads = 0
+      @stream_meshes = 0
+      @lod_builds = 0
       @stream_cx = pcx
       @stream_cz = pcz
       @load_at = 0
@@ -57,6 +64,7 @@ class Game
         end
         if meshable?(cx, cz)
           remesh(cx, cz)
+          @stream_meshes += 1
           @mesh_at += 1
           next
         end
@@ -69,6 +77,7 @@ class Game
       @meshed[World.slot(cx, cz)] = 0
       @world.load_chunk(cx, cz)
       @tint.paint(cx, cz)
+      @stream_loads += 1
     end
   end
 
@@ -126,6 +135,7 @@ class Game
         @lod_at[level] = at + 1
         next if lod.ready?(tx, tz)
         slot = lod.build(tx, tz)
+        @lod_builds += 1
         upload_mesh(LOD_SLOT0 + level * TILE_SLOTS + slot, lod.faces, lod.offsets)
       end
       level += 1

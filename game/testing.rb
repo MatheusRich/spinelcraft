@@ -1488,6 +1488,11 @@ class Game
     ok = load
     keep_bad_save
     check("a save that does not load moves aside", !ok && !File.exist?(@save_path) && File.exist?(@bad_save_path))
+    check("a save that does not load gives the reason", @load_error == "its first line has 3 fields, and a save has more than #{F_CHESTS}")
+    File.write(@save_path, "0 #{Array.new(F_CHESTS, "0").join(" ")}\n")
+    ok = load
+    check("a save in an old format gives its format", !ok && @load_error == "its format is 0, not #{SAVE_VERSION}")
+    File.delete(@save_path)
     File.delete(@bad_save_path) if File.exist?(@bad_save_path)
   end
 

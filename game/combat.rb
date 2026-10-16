@@ -205,6 +205,7 @@ class Game
           m = Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
           m.head = halloween_head(kind)
           @mobs << m
+          Log.debug(Log::MOBS) { "#{Mob::NAMES[kind]} spawns at #{x} #{y} #{z}, #{@mobs.size} mobs" }
           spawned += 1
           return spawned if spawned >= room
         end
@@ -320,6 +321,7 @@ class Game
       next unless ground == Block::GRASS || ground == Block::SNOW_GRASS
       next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
       @mobs << Mob.new(kind, x + 0.5, h + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
+      Log.debug(Log::MOBS) { "#{Mob::NAMES[kind]} spawns at #{x} #{h} #{z}, #{@mobs.size} mobs" }
       return
     end
   end
@@ -429,8 +431,17 @@ class Game
     update_eggs(dt)
     @mobs.reject! do |m|
       d2 = (m.x - @player.x) ** 2 + (m.z - @player.z) ** 2
-      !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || (m.passive? ? d2 > 160.0 * 160.0 : despawn?(m, dt))
+      gone = !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || (m.passive? ? d2 > 160.0 * 160.0 : despawn?(m, dt))
+      Log.debug(Log::MOBS) { "#{Mob::NAMES[m.kind]} at #{m.x.floor} #{m.y.floor} #{m.z.floor} #{mob_gone_reason(m)}" } if gone
+      gone
     end
+  end
+
+  # Why update_mobs takes the mob m out, for Log::MOBS.
+  def mob_gone_reason(m)
+    return "dies" unless m.alive
+    return "is out of the loaded chunks" unless @world.loaded?(m.x.floor, m.z.floor)
+    "despawns"
   end
 
   # The sound of the mob m from sounds: a chick peeps for all of them, as

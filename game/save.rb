@@ -57,25 +57,31 @@ class Game
     chunk_fields = [keys.size] + keys
     inv = (@inv.to_a + @hotbar + [@vitals.hunger, @vitals.saturation, @vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + boat_fields + chunk_fields).map(&:to_s).join(" ")
+    line = "#{SAVE_VERSION} #{header} #{inv}\n"
     File.open(@save_path, "wb") do |f|
-      f.write("#{SAVE_VERSION} #{header} #{inv}\n")
+      f.write(line)
       keys.each { |k| f.write(chunks[k]) }
     end
     @changed = false
     say("WORLD SAVED")
     puts "saved #{@save_path} in #{((Gfx.gfx_ns - t0) / 1.0e6).round} ms"
+    Log.debug(Log::SAVE) do
+      "#{line.bytesize + keys.size * CHUNK_BYTES} bytes: #{keys.size} edited chunks, #{@chests.size} chests, #{@items.size} items, " \
+        "#{furnace_fields[0]} furnaces, #{@boats.size} boats"
+    end
   end
 
   # Returns true when a saved world was loaded. A save keeps only the chunks
-  # that differ from the generator.
+  # that differ from the generator. When a save does not load, @load_error
+  # gives the reason.
   def load
     return false unless File.exist?(@save_path)
     data = File.binread(@save_path)
     nl = data.index("\n")
-    return false if nl.nil?
+    return load_failed("it has no first line") if nl.nil?
     f = data[0, nl].split(" ")
-    return false if f.size <= F_CHESTS
-    return false unless f[0] == SAVE_VERSION
+    return load_failed("its first line has #{f.size} fields, and a save has more than #{F_CHESTS}") if f.size <= F_CHESTS
+    return load_failed("its format is #{f[0]}, not #{SAVE_VERSION}") unless f[0] == SAVE_VERSION
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
@@ -83,7 +89,8 @@ class Game
     at += 1 + f[at].to_i * FURNACE_FIELDS
     at += 1 + f[at].to_i * BOAT_FIELDS + 1
     n = f[at].to_i
-    return false if data.bytesize - nl - 1 != n * CHUNK_BYTES
+    chunk_bytes = data.bytesize - nl - 1
+    return load_failed("it has #{chunk_bytes} bytes of chunks, not #{n} * #{CHUNK_BYTES}") if chunk_bytes != n * CHUNK_BYTES
     @seed = f[F_SEED].to_i
     reset_world
     store = @world.store
@@ -93,7 +100,15 @@ class Game
       k += 1
     end
     @loaded = f
+    Log.debug(Log::SAVE) { "loaded #{@save_path}: #{data.bytesize} bytes, seed #{@seed}, #{n} edited chunks" }
     true
+  end
+
+  # Keeps the reason that the save did not load, and returns false.
+  def load_failed(reason)
+    @load_error = reason
+    Log.debug(Log::SAVE) { "#{@save_path} did not load: #{reason}" }
+    false
   end
 
   # Moves a save that exists but did not load to @bad_save_path. Otherwise the
@@ -101,11 +116,12 @@ class Game
   def keep_bad_save
     return unless File.exist?(@save_path)
     File.rename(@save_path, @bad_save_path)
-    puts "#{@save_path} did not load, so the game moved it to #{@bad_save_path}"
+    puts "#{@save_path} did not load (#{@load_error}), so the game moved it to #{@bad_save_path}"
   end
 
   # An empty world for @seed; stream_around fills it.
   def reset_world
+    Log.debug(Log::WORLD) { "an empty world for seed #{@seed}" }
     @world = World.new(@seed)
     @mesher = Mesher.new(@world)
     @tint = Tint.new(@world)
