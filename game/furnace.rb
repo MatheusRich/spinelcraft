@@ -37,11 +37,7 @@ class Furnace
 
   # The ticks of burn time of one b, or 0 when b is not a fuel.
   def self.fuel_ticks(b)
-    i = 0
-    while i < FUEL_BLOCKS.size
-      return FUEL_TICKS[i] if FUEL_BLOCKS[i] == b
-      i += 1
-    end
+    FUEL_BLOCKS.size.times { |i| return FUEL_TICKS[i] if FUEL_BLOCKS[i] == b }
     0
   end
 
