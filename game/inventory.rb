@@ -6,13 +6,6 @@ class Game
   # The recipe list shows this many rows of two recipes. The wheel scrolls
   # the other rows into view.
   RECIPE_ROWS = 10
-  # What a furnace burns, and the ticks of burn time of one of each.
-  # minecraft.wiki/w/Smelting (Fuel)
-  FUEL_BLOCKS = [Block::OAK_PLANKS, Block::SPRUCE_PLANKS, Block::BIRCH_PLANKS, Block::OAK_LOG, Block::SPRUCE_LOG,
-                 Block::BIRCH_LOG, Block::COAL]
-  FUEL_TICKS = [300, 300, 300, 300, 300, 300, 1600]
-  # Furnace ticks in a second, as in Minecraft.
-  TICKS_PER_SECOND = 20
 
   def current_block
     @survival ? @inv.block(@slot) : @hotbar[@slot]
@@ -119,18 +112,6 @@ class Game
   # What a Shift-click on a recipe asks for: all that the inventory holds.
   CRAFT_ALL = Slots::STACK * INV
 
-  # The ticks of burn time of one b, or 0 when b is not a fuel.
-  def fuel_ticks(b)
-    i = 0
-    while i < FUEL_BLOCKS.size
-      return FUEL_TICKS[i] if FUEL_BLOCKS[i] == b
-      i += 1
-    end
-    0
-  end
-
-  def fuel?(b) = fuel_ticks(b) > 0
-
   # The smelting recipe for b, or -1 when a furnace does not smelt b.
   def smelt_recipe(b)
     k = 0
@@ -169,15 +150,15 @@ class Game
   # is lit while it burns.
   def update_furnaces(dt)
     @furnace_clock += dt
-    ticks = (@furnace_clock * TICKS_PER_SECOND).to_i
-    @furnace_clock -= ticks.to_f / TICKS_PER_SECOND
+    ticks = (@furnace_clock * Furnace::TICKS_PER_SECOND).to_i
+    @furnace_clock -= ticks.to_f / Furnace::TICKS_PER_SECOND
     return if ticks == 0
     @furnaces.each do |key, f|
       if @world.loaded?(f.x, f.z)
         k = smelt_recipe(f.slots.block(Furnace::INPUT))
         out = k >= 0 ? RECIPES[k][2] : 0
         out_n = k >= 0 ? RECIPES[k][3] : 0
-        ticks.times { f.tick(out, out_n, fuel_ticks(f.slots.block(Furnace::FUEL))) }
+        ticks.times { f.tick(out, out_n, Furnace.fuel_ticks(f.slots.block(Furnace::FUEL))) }
         b = @world.get(f.x, f.y, f.z)
         lit = Block.furnace_id(Block::FACING[b], f.lit?)
         set_block(f.x, f.y, f.z, lit) if Block::BASE[b] == Block::FURNACE && lit != b
@@ -197,7 +178,7 @@ class Game
       slots.take(i, moved)
       return
     end
-    if @held_count > 0 && i == Furnace::FUEL && !fuel?(@held_block)
+    if @held_count > 0 && i == Furnace::FUEL && !Furnace.fuel?(@held_block)
       say("NOT A FUEL")
       return
     end
@@ -501,7 +482,7 @@ class Game
       @inv.move_stack(i, @chest, 0, CHEST_SLOTS)
     elsif furnace && smelts?(@inv.block(i))
       @inv.move_stack(i, open_furnace.slots, Furnace::INPUT, Furnace::INPUT + 1)
-    elsif furnace && fuel?(@inv.block(i))
+    elsif furnace && Furnace.fuel?(@inv.block(i))
       @inv.move_stack(i, open_furnace.slots, Furnace::FUEL, Furnace::FUEL + 1)
     elsif i < HOTBAR
       @inv.move_stack(i, @inv, HOTBAR, INV)

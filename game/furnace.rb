@@ -12,6 +12,13 @@ class Furnace
   # 14w04a: "reverses at twice the speed of smelting"). The Block data part
   # of that page says that the progress resets to 0 instead.
   COOL_TICKS = 2
+  # What a furnace burns, and the ticks of burn time of one of each.
+  # minecraft.wiki/w/Smelting (Fuel)
+  FUEL_BLOCKS = [Block::OAK_PLANKS, Block::SPRUCE_PLANKS, Block::BIRCH_PLANKS, Block::OAK_LOG, Block::SPRUCE_LOG,
+                 Block::BIRCH_LOG, Block::COAL]
+  FUEL_TICKS = [300, 300, 300, 300, 300, 300, 1600]
+  # Furnace ticks in a second, as in Minecraft.
+  TICKS_PER_SECOND = 20
 
   attr_reader :x, :y, :z, :slots
   # The ticks of burn time left on the fuel item that burns, the burn time
@@ -27,6 +34,18 @@ class Furnace
     @burn_total = 0
     @progress = 0
   end
+
+  # The ticks of burn time of one b, or 0 when b is not a fuel.
+  def self.fuel_ticks(b)
+    i = 0
+    while i < FUEL_BLOCKS.size
+      return FUEL_TICKS[i] if FUEL_BLOCKS[i] == b
+      i += 1
+    end
+    0
+  end
+
+  def self.fuel?(b) = fuel_ticks(b) > 0
 
   def lit? = @burn > 0
 
