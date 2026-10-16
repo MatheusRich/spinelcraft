@@ -94,11 +94,7 @@ covered = Array.new(n, height)
     rgb = color[k * 3, 3]
     # The front row shows the cut through the ground, in the color of earth.
     side = j == n - 1 ? [120, 100, 80] : rgb.map { |v| (v * 0.7).round }
-    y = y_top
-    while y < covered[i]
-      img[(y * n + i) * 3, 3] = y == y_top ? rgb : side
-      y += 1
-    end
+    (y_top...covered[i]).each { |y| img[(y * n + i) * 3, 3] = y == y_top ? rgb : side }
     covered[i] = y_top
   end
 end
