@@ -36,11 +36,7 @@ class Game
       chest_fields.concat(chest.to_a)
     end
     seen = []
-    b = 0
-    while b < Block::COUNT
-      seen << b if @recipe_book.seen?(b)
-      b += 1
-    end
+    Block::COUNT.times { |b| seen << b if @recipe_book.seen?(b) }
     furnace_fields = []
     @furnaces.each do |key, f|
       furnace_fields.concat([f.x, f.y, f.z, f.burn, f.burn_total, f.progress] + f.slots.to_a) unless f.idle?
@@ -94,11 +90,7 @@ class Game
     @seed = f[F_SEED].to_i
     reset_world
     store = @world.store
-    k = 0
-    while k < n
-      store[f[at + 1 + k].to_i] = data.byteslice(nl + 1 + k * CHUNK_BYTES, CHUNK_BYTES)
-      k += 1
-    end
+    n.times { |k| store[f[at + 1 + k].to_i] = data.byteslice(nl + 1 + k * CHUNK_BYTES, CHUNK_BYTES) }
     @loaded = f
     Log.debug(Log::SAVE) { "loaded #{@save_path}: #{data.bytesize} bytes, seed #{@seed}, #{n} edited chunks" }
     true
@@ -148,11 +140,7 @@ class Game
     @spawn_x = f[F_SPAWN].to_f
     @spawn_z = f[F_SPAWN + 1].to_f
     @inv.load(f, F_INV)
-    i = 0
-    while i < HOTBAR
-      @hotbar[i] = f[F_HOTBAR + i].to_i
-      i += 1
-    end
+    HOTBAR.times { |i| @hotbar[i] = f[F_HOTBAR + i].to_i }
     @vitals.hunger = f[F_HUNGER].to_i
     @vitals.saturation = f[F_HUNGER + 1].to_f
     @vitals.exhaustion = f[F_HUNGER + 2].to_f
@@ -162,13 +150,11 @@ class Game
     at = F_CHESTS
     chests = f[at].to_i
     at += 1
-    c = 0
-    while c < chests
+    chests.times do
       chest = Slots.new(CHEST_SLOTS)
       chest.load(f, at + 1)
       @chests[f[at].to_i] = chest
       at += 1 + CHEST_SLOTS * 2
-      c += 1
     end
     @items.clear
     items = f[at].to_i
@@ -181,17 +167,12 @@ class Game
     end
     @recipe_book = RecipeBook.new
     seen = f[at].to_i
-    c = 0
-    while c < seen
-      @recipe_book.learn(f[at + 1 + c].to_i)
-      c += 1
-    end
+    seen.times { |c| @recipe_book.learn(f[at + 1 + c].to_i) }
     at += 1 + seen
     @furnaces = {}
     furnaces = f[at].to_i
     at += 1
-    c = 0
-    while c < furnaces
+    furnaces.times do
       x = f[at].to_i
       y = f[at + 1].to_i
       z = f[at + 2].to_i
@@ -202,7 +183,6 @@ class Game
       furnace.slots.load(f, at + 6)
       @furnaces[World.key(x, y, z)] = furnace
       at += FURNACE_FIELDS
-      c += 1
     end
     @boats.clear
     boats = f[at].to_i
