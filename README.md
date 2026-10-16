@@ -168,8 +168,29 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SELFTEST=1` | Check the game rules and print PASS or FAIL for each, then the totals. The exit status is 1 when a rule fails |
 | `VIEW=200` | Start with that view distance |
 | `NOVSYNC=1` | Ask for no vsync |
+| `LOG=save,mobs` | Write the debug log of these topics to stderr (see [Debug log](#debug-log)) |
 
 `SELFTEST=1` writes and deletes its own save and options files in the temporary folder (`$TMPDIR`). It does not read or change `world.sav` or `options.txt`. `tools/selftest.sh` builds the game, runs the self-test, and prints only the FAIL lines and the totals.
+
+## Debug log
+
+`LOG` turns on the debug log for a list of topics, and `LOG=all` turns on all of them. Each line goes to stderr, with the seconds since the start and the topic:
+
+```sh
+LOG=save,frame ./spinelcraft 2>debug.log
+```
+
+| Topic | Lines |
+| --- | --- |
+| `save` | The size and the contents of each save, each load, and why a save did not load |
+| `world` | Each new world and its seed, the spawn point, and each respawn |
+| `stream` | Each time the player goes into a new chunk: the chunks loaded and meshed, and the far tiles built, since the last new chunk |
+| `mobs` | Each mob that spawns, and each mob that dies, despawns or is out of the loaded chunks |
+| `frame` | Each frame that takes more than 8 ms of CPU time, with the time of each step: update, chunks, far tiles, remesh and render |
+
+A topic that is off costs one array read, and the game builds no string for it. To add a line, call `Log.debug(Log::SAVE) { "text" }`. The block runs only when the topic is on. Do not put log calls in the loops of `World`, `Noise`, `Mesher` or `Lod`.
+
+F3 shows the frame rate, the CPU time, the position, the faces drawn, the visible chunks, the remesh time, the mob count, the day and the time on the screen.
 
 ## Tests
 
