@@ -90,8 +90,7 @@ module Command
   def self.number?(s)
     digits = 0
     dots = 0
-    i = 0
-    while i < s.size
+    s.size.times do |i|
       c = s[i]
       if c >= "0" && c <= "9"
         digits += 1
@@ -100,7 +99,6 @@ module Command
       elsif c != "-" || i > 0
         return false
       end
-      i += 1
     end
     digits > 0 && dots <= 1
   end
@@ -145,11 +143,8 @@ module Command
   # such as a door half or a crop, is not an item.
   def self.item_id(name)
     n = name.start_with?("MINECRAFT:") ? name[10, name.size - 10] : name
-    i = 0
-    while i < Game::CREATIVE_ITEMS.size
-      b = Game::CREATIVE_ITEMS[i]
+    Game::CREATIVE_ITEMS.each do |b|
       return b if id_of(Block::NAMES[b]) == n
-      i += 1
     end
     -1
   end
@@ -167,11 +162,7 @@ module Command
   # The index of the first s in names, or -1. Array#index gives Spinel an
   # untyped result.
   def self.find(names, s)
-    i = 0
-    while i < names.size
-      return i if names[i] == s
-      i += 1
-    end
+    names.size.times { |i| return i if names[i] == s }
     -1
   end
 
