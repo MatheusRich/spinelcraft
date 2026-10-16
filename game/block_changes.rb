@@ -275,19 +275,17 @@ class Game
   # A light that changes at column x, z reaches Mesher::LIGHT_MAX blocks, so
   # every chunk in that square remeshes. These remeshes may wait for later frames.
   def mark_light_area(x, z)
-    deferred = @defer
-    @defer = true
     r = Mesher::LIGHT_MAX
-    cx = (x - r) / CHUNK
-    while cx <= (x + r) / CHUNK
-      cz = (z - r) / CHUNK
-      while cz <= (z + r) / CHUNK
-        mark_chunk(cx, cz)
+    cx = (x.to_i - r) / CHUNK
+    while cx <= (x.to_i + r) / CHUNK
+      cz = (z.to_i - r) / CHUNK
+      while cz <= (z.to_i + r) / CHUNK
+        mark_later(cx, cz)
         cz += 1
       end
       cx += 1
     end
-    @defer = deferred
+    nil
   end
 
   def near_lava?(x, y, z)
@@ -339,7 +337,8 @@ class Game
   def update_water
     batch = @flow_queue
     @flow_queue = []
-    @defer = true
+    # The remeshes of flowing water may wait for later frames.
+    marked = @dirty_list.size
     hiss = false
     i = 0
     while i < batch.size && i < 6000
@@ -374,7 +373,7 @@ class Game
       set_block(x, y, z, want)
     end
     @flow_queue.concat(batch[i, batch.size - i]) if i < batch.size
-    @defer = false
+    postpone_since(marked)
   end
 
   def falls?(b) = b == Block::SAND || b == Block::GRAVEL

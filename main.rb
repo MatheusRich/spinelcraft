@@ -86,11 +86,10 @@ class Game
     @stream_meshes = 0
     make_ring
     @dirty = Array.new(CX * CZ, false)
-    @dirty_list = []
+    @dirty_list = Array.new(0, 0)
     # Chunks that can wait a few frames: torch light and flowing water.
     @later = Array.new(CX * CZ, false)
-    @later_list = []
-    @defer = false
+    @later_list = Array.new(0, 0)
     @hotbar = HOTBAR_START.dup
     @inv = Slots.new(INV)
     @seen = Array.new(Block::COUNT, 0)

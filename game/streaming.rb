@@ -108,16 +108,39 @@ class Game
   def mark_chunk(cx, cz)
     return unless @world.chunk_loaded?(cx, cz)
     i = World.slot(cx.to_i, cz.to_i)
-    return if @meshed[i] == 0
-    if @defer
-      return if @dirty[i] || @later[i]
-      @later[i] = true
-      @later_list << i
-      return
-    end
-    return if @dirty[i]
+    return if @meshed[i] == 0 || @dirty[i]
     @dirty[i] = true
     @dirty_list << i
+  end
+
+  # Marks the chunk cx, cz as mark_chunk does, but its remesh can wait for
+  # later frames.
+  def mark_later(cx, cz)
+    return unless @world.chunk_loaded?(cx, cz)
+    i = World.slot(cx.to_i, cz.to_i)
+    later_slot(i)
+    nil
+  end
+
+  # Lets the chunks that mark_chunk marked after the first n wait for later
+  # frames.
+  def postpone_since(n)
+    k = n
+    while k < @dirty_list.size
+      i = @dirty_list[k]
+      @dirty[i] = false
+      later_slot(i)
+      k += 1
+    end
+    @dirty_list.pop while @dirty_list.size > n
+    nil
+  end
+
+  def later_slot(i)
+    return if @meshed[i] == 0 || @dirty[i] || @later[i]
+    @later[i] = true
+    @later_list << i
+    nil
   end
 
   # Remeshes every chunk that an edit changed. Then it remeshes deferred
