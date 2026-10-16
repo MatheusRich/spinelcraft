@@ -1007,24 +1007,6 @@ class World
           elsif y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
             b = Block::SANDSTONE
           end
-          if b == Block::STONE
-            # A roll for the coal cell and a roll for the iron or diamond
-            # cell pick the ore, and a roll for the block leaves gaps in
-            # the clump.
-            if (y >> 1) != roll_y
-              roll_y = y >> 1
-              coal_r = @coal_rolls[coal_cells + roll_y]
-              r = Noise.hash3(x >> 1, roll_y, z >> 1, 11)
-            end
-            iron = @iron_odds[y]
-            if coal_r < @coal_odds[y]
-              b = Block::COAL_ORE if Noise.hash3(x, y, z, 12) < COAL_FILL
-            elsif r < iron
-              b = Block::IRON if Noise.hash3(x, y, z, 14) < IRON_FILL
-            elsif r < iron + @diamond_odds[y]
-              b = Block::DIAMOND if Noise.hash3(x, y, z, 16) < DIAMOND_FILL
-            end
-          end
           if y > 1 && (y < top - 2 || (!beach?(top) && y <= top))
             fy = y / 4.0
             iy = fy.to_i
@@ -1044,6 +1026,24 @@ class World
                 c = yz_lerp(@edges_c, fy - iy, fz - iz)
                 b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c, width)
               end
+            end
+          end
+          if b == Block::STONE
+            # A roll for the coal cell and a roll for the iron or diamond
+            # cell pick the ore, and a roll for the block leaves gaps in
+            # the clump.
+            if (y >> 1) != roll_y
+              roll_y = y >> 1
+              coal_r = @coal_rolls[coal_cells + roll_y]
+              r = Noise.hash3(x >> 1, roll_y, z >> 1, 11)
+            end
+            iron = @iron_odds[y]
+            if coal_r < @coal_odds[y]
+              b = Block::COAL_ORE if Noise.hash3(x, y, z, 12) < COAL_FILL
+            elsif r < iron
+              b = Block::IRON if Noise.hash3(x, y, z, 14) < IRON_FILL
+            elsif r < iron + @diamond_odds[y]
+              b = Block::DIAMOND if Noise.hash3(x, y, z, 16) < DIAMOND_FILL
             end
           end
           put_block(base + y, b)
