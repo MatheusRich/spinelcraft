@@ -136,8 +136,7 @@ class Game
   # dandelion 1 time in 3, the flower_default feature of Minecraft (not on
   # the wiki). A plant grows only on a grass block, never on dirt or snow.
   def scatter_plants(x, y, z)
-    i = 0
-    while i < 128
+    128.times do |i|
       px = x
       py = y
       pz = z
@@ -155,7 +154,6 @@ class Game
         plant = @rng.rand01 < 2.0 / 3.0 ? Block::ROSE : Block::DANDELION if @rng.rand01 < 0.125
         set_block(px, py, pz, plant)
       end
-      i += 1
     end
   end
 
@@ -163,11 +161,7 @@ class Game
   # direction, when that cell is air over soil (Block.soil?). A stem with a
   # pumpkin next to it waits until the pumpkin goes. minecraft.wiki/w/Pumpkin_Seeds
   def grow_pumpkin(x, y, z)
-    d = 0
-    while d < 4
-      return if @world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]) == Block::PUMPKIN
-      d += 1
-    end
+    4.times { |d| return if @world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]) == Block::PUMPKIN }
     d = (@rng.rand01 * 4).to_i
     px = x + Block::DIR_DX[d]
     pz = z + Block::DIR_DZ[d]
@@ -265,25 +259,15 @@ class Game
   # sapling waits when something is in the way of a log.
   def grow_tree(x, y, z, wood)
     plan = @world.plan_tree(x, y, z, wood)
-    i = 0
-    while i < plan.size
-      set_block(plan[i], plan[i + 1], plan[i + 2], plan[i + 3].to_i)
-      i += 4
-    end
+    (0...plan.size).step(4) { |i| set_block(plan[i], plan[i + 1], plan[i + 2], plan[i + 3].to_i) }
   end
 
   # A light that changes at column x, z reaches Mesher::LIGHT_MAX blocks, so
   # every chunk in that square remeshes. These remeshes may wait for later frames.
   def mark_light_area(x, z)
     r = Mesher::LIGHT_MAX
-    cx = (x.to_i - r) / CHUNK
-    while cx <= (x.to_i + r) / CHUNK
-      cz = (z.to_i - r) / CHUNK
-      while cz <= (z.to_i + r) / CHUNK
-        @chunk_meshes.mark_later(cx, cz)
-        cz += 1
-      end
-      cx += 1
+    ((x.to_i - r) / CHUNK..(x.to_i + r) / CHUNK).each do |cx|
+      ((z.to_i - r) / CHUNK..(z.to_i + r) / CHUNK).each { |cz| @chunk_meshes.mark_later(cx, cz) }
     end
     nil
   end
@@ -385,8 +369,7 @@ class Game
   # blocks in the air. update_falling moves them.
   def settle_column(x, z)
     moved = false
-    y = 1
-    while y < WY
+    (1...WY).each do |y|
       b = @world.get(x, y, z)
       if falls?(b) && lets_fall?(@world.get(x, y - 1, z))
         @world.set(x, y, z, Block::AIR)
@@ -395,7 +378,6 @@ class Game
         moved = true
         break_unheld_cactus(x, y + 1, z)
       end
-      y += 1
     end
     @chunk_meshes.mark_block(x, z) if moved
   end
