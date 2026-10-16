@@ -127,6 +127,7 @@ class Game
     @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
     @far = FarTerrain.new(@world, LOD_SLOT0)
     @chunk_meshes = ChunkMeshes.new(@world, @tint)
+    @light = Light.new(@world)
     @flow_queue.clear
     @falling.clear
   end

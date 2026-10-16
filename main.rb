@@ -7,6 +7,7 @@ require_relative "game/block"
 require_relative "game/biome"
 require_relative "game/noise"
 require_relative "game/world"
+require_relative "game/light"
 require_relative "game/mesher"
 require_relative "game/tint"
 require_relative "game/ray"
@@ -179,11 +180,6 @@ class Game
     @dig_wait = 0.0
     @mine_delay = 0.0
     @mobs = []
-    # The light search of Game#spawn_light: a stamp for each cell of its
-    # cube that it has seen, and its queue of cells and steps.
-    @light_seen = Array.new(LIGHT_SIDE * LIGHT_SIDE * LIGHT_SIDE, 0)
-    @light_stamp = 0
-    @light_queue = []
     @spawn_timer = 0.0
     # The cave sounds (update_cave_sound): seconds to the next check, and
     # the fear that the darkness built up.
@@ -590,8 +586,8 @@ class Game
     y = @player.eye_y.floor
     z = @player.z.floor
     return if y >= SEA || !@world.inside?(x, y, z)
-    sky = sky_light
-    light = spawn_light(x, y, z, sky, lamp_near?(x, y, z), sky)
+    sky = Light.sky(@time_of_day, @weather.raining?)
+    light = @light.level(x, y, z, sky, @light.lamp_near?(x, y, z), sky)
     light = 15 if light < 0
     @cave_fear += 3.0 * (15 - light) / 15.0
     return if @cave_fear < 300.0

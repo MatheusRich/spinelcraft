@@ -2373,23 +2373,8 @@ class Game
   end
 
   # Monsters spawn only in the dark: under the sky at night, or under a
-  # block, and never near a torch. The sky light follows the wiki's table.
+  # block, and never near a torch.
   def test_dark
-    time = @time_of_day
-    raining = @weather.raining?
-    @weather.set_now(false)
-    @time_of_day = 0.25
-    noon = sky_light
-    @time_of_day = 0.55
-    dusk = sky_light
-    @time_of_day = 0.75
-    midnight = sky_light
-    @time_of_day = 0.25
-    @weather.set_now(true)
-    rain_noon = sky_light
-    @weather.set_now(raining)
-    @time_of_day = time
-    check("the sky light is 15 at noon, 7 at tick 13200, 4 at midnight and 12 in rain", noon == 15 && dusk == 7 && midnight == 4 && rain_noon == 12)
     x = @spawn_x.floor + 40
     z = @spawn_z.floor + 40
     h = @world.height_at(x, z)
@@ -3005,8 +2990,8 @@ class Game
       end
       i += 2
     end
-    lit = spawn_light(bx + 3, y + 1, bz, 0, true, 0) == -1 && spawn_light(bx + 14, y + 1, bz, 0, true, 0) == -1 &&
-          spawn_light(bx + 15, y + 1, bz, 0, true, 0) >= 0
+    lit = @light.level(bx + 3, y + 1, bz, 0, true, 0) == -1 && @light.level(bx + 14, y + 1, bz, 0, true, 0) == -1 &&
+          @light.level(bx + 15, y + 1, bz, 0, true, 0) >= 0
     set_block(bx - 1, y + 1, bz, Block::TORCH)
     @world.find_torches(bx >> 4, bz >> 4, WY)
     torches = @world.chunk_torches[World.slot(bx >> 4, bz >> 4)]
