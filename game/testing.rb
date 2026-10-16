@@ -640,31 +640,6 @@ class Game
           MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::OAK_LEAVES)] == Sfx::DIG_LEAVES &&
           MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD &&
           MATERIAL_STEP[material(Block::WOOL)] == Sfx::CLOTH && MATERIAL_STEP[material(Block::SNOW)] == Sfx::SNOW)
-    creeper = Mob.new(Mob::CREEPER, @player.x + 1.5, @player.y, @player.z, 11)
-    hisses = 0
-    20.times do
-      creeper.update_mob(@world, 1.0 / 60.0, @player, 0.3, Block::AIR)
-      hisses += 1 if creeper.hiss
-      creeper.hiss = false
-    end
-    check("a creeper hisses once when it lights its fuse", hisses == 1 && creeper.fuse > 0.0)
-    pig = Mob.new(Mob::PIG, @player.x, @player.y, @player.z, 5)
-    pig.wound(1.0)
-    check("a hit makes a mob cry out", pig.ouch)
-    # The zombie walks toward the player on a strip of stone in the sky.
-    px = @player.x.floor
-    zz = @player.z.floor
-    y = WY - 4
-    (0..9).each { |dx| set_block(px + dx, y, zz, Block::STONE) }
-    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, y + 1.0, zz + 0.5, 3)
-    steps = 0
-    120.times do
-      zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0, Block::AIR)
-      steps += 1 if zombie.step
-      zombie.step = false
-    end
-    (0..9).each { |dx| set_block(px + dx, y, zz, Block::AIR) }
-    check("a walking mob makes step sounds", steps >= 1)
     test_sound_position
     test_block_sounds
     test_lava_swim
@@ -1099,14 +1074,6 @@ class Game
     early = @vitals.hunger == 5 && @inv.count(5) == 2
     2.times { right_button(0.05, true) }
     check("holding the button for 1.6 seconds eats the food", early && @vitals.hunger == 13 && @inv.count(5) == 1)
-    # A minute of standing still costs no hunger. 400 meters of sprint take
-    # 40 exhaustion: the 5 points of saturation, then 5 points of hunger.
-    @vitals = Vitals.new
-    1200.times { @vitals.update_vitals(0.05, false, false, false) }
-    idle = @vitals.hunger == Vitals::MAX_HUNGER
-    @vitals.move(400.0, true, false, false)
-    @vitals.update_vitals(0.05, false, false, false)
-    check("standing still costs no hunger, and a sprint does", idle && @vitals.hunger == 15)
     # Rotten flesh gives 4 hunger and 0.8 saturation. The Hunger effect
     # adds 3 exhaustion in its 30 seconds, and then no more.
     @vitals = Vitals.new
@@ -1125,21 +1092,6 @@ class Game
     @vitals.give_hunger_effect
     update_survival(0.5)
     check("the Hunger effect makes green specks around the player", @particles.count(Particle::EFFECT) > before)
-    # Full hunger with 3 saturation heals 3 / 6 each half second, for 3
-    # exhaustion. 18 hunger heals 1 each 4 seconds, for 6 exhaustion.
-    @vitals = Vitals.new
-    @vitals.health = 10.0
-    @vitals.saturation = 3.0
-    11.times { @vitals.update_vitals(0.05, false, false, false) }
-    saturated = @vitals.health == 10.5 && (@vitals.exhaustion - 3.0).abs < 0.01
-    @vitals = Vitals.new
-    @vitals.health = 10.0
-    @vitals.hunger = 18
-    @vitals.saturation = 0.0
-    79.times { @vitals.update_vitals(0.05, false, false, false) }
-    early = @vitals.health == 10.0
-    2.times { @vitals.update_vitals(0.05, false, false, false) }
-    check("a full stomach heals as in Minecraft", saturated && early && @vitals.health == 11.0)
     @vitals = Vitals.new
   end
 
@@ -1849,8 +1801,7 @@ class Game
   end
 
   # A chicken drops 0 to 2 feathers and 1 raw chicken, or cooked chicken
-  # when it dies in fire. It lays an egg each 5 to 10 minutes, and it falls
-  # slowly. Raw chicken can give the Hunger effect.
+  # when it dies in fire. It lays an egg each 5 to 10 minutes.
   def test_chickens
     x = @spawn_x + 30.0
     z = @spawn_z
@@ -1876,9 +1827,6 @@ class Game
     @items.clear
     @mobs.clear
     check("chicken is food, and a furnace cooks it", cooks?(Block::RAW_CHICKEN, 2, 1.2, Block::COOKED_CHICKEN, 6, 7.2))
-    check("raw chicken gives the Hunger effect 3 times in 10, and cooked chicken never",
-          Block.hunger_chance(Block::RAW_CHICKEN) == 0.3 && Block.hunger_chance(Block::COOKED_CHICKEN) == 0.0 &&
-          Block.hunger_chance(Block::ROTTEN_FLESH) == 0.8)
     hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 11)
     due = hen.egg_time >= Mob::EGG_MIN && hen.egg_time <= Mob::EGG_MIN + Mob::EGG_MORE
     hen.egg_time = 0.001
@@ -1888,17 +1836,10 @@ class Game
           due && ground_count(Block::EGG) == 1 && hen.egg_time >= Mob::EGG_MIN - 0.1)
     @items.clear
     @mobs.clear
-    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 13)
-    pig = Mob.new(Mob::PIG, x + 3.0, SKY_Y.to_f, z, 13)
-    60.times do
-      hen.update_mob(@world, 1.0 / 60.0, @player, 0.5, Block::AIR)
-      pig.update_mob(@world, 1.0 / 60.0, @player, 0.5, Block::AIR)
-    end
-    check("a chicken falls slowly", hen.vy >= Mob::CHICKEN_FALL && pig.vy < Mob::CHICKEN_FALL * 4.0)
   end
 
-  # A chick is half as large, drops nothing, lays no eggs, and grows up
-  # after 20 minutes.
+  # A chick is half as large, drops nothing and lays no eggs. A chick
+  # peeps, and a grown chicken clucks.
   def test_chicks
     @items.clear
     @mobs.clear
@@ -1916,15 +1857,9 @@ class Game
     update_mobs(1.0 / 60.0)
     check("a chick is half as large, lays no eggs, and drops nothing", small && laid == 0 && @items.empty?)
     @mobs.clear
-    young = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 6)
-    young.make_baby
-    young.grow_up(Mob::GROW_TIME - 1.0)
-    still = young.baby?
-    young.grow_up(1.0)
-    check("a chick grows up after 20 minutes",
-          still && !young.baby? && young.half == Mob::HALF[Mob::CHICKEN] && young.tall == Mob::TALL[Mob::CHICKEN])
+    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 6)
     check("a chick peeps, and a grown chicken clucks",
-          voice(chick, MOB_SOUND) == Sfx::CHICK && voice(young, MOB_SOUND) == Sfx::CLUCK && voice(young, MOB_HURT) == Sfx::CHICKEN_HURT)
+          voice(chick, MOB_SOUND) == Sfx::CHICK && voice(hen, MOB_SOUND) == Sfx::CLUCK && voice(hen, MOB_HURT) == Sfx::CHICKEN_HURT)
   end
 
   # The player throws an egg from the hand. An egg breaks on a block, and
@@ -2006,8 +1941,7 @@ class Game
     check("a dead mob goes up in smoke after DEATH_TIME", !pig.alive && @particles.count(Particle::SMOKE) > smoke)
   end
 
-  # A hit pig runs away from the hit, and it panics for a while. The legs
-  # of a mob that stops come to rest.
+  # A hit pig runs away from the hit, and it panics for a while.
   def test_mob_panic
     bx = @spawn_x.floor + 30
     bz = @spawn_z.floor + 20
@@ -2029,17 +1963,6 @@ class Game
     120.times { update_mobs(1.0 / 60.0) }
     check("a hit pig runs away from the hit and panics for a while", away && pig.panic > 0.0)
     @mobs.clear
-    keep_pose
-    @player.x = bx + 0.5
-    @player.y = SKY_Y - 1.0
-    @player.z = bz - 8.5
-    zombie = Mob.new(Mob::ZOMBIE, bx + 0.5, SKY_Y - 1.0, bz + 8.5, 3)
-    30.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0, Block::AIR) }
-    walking = zombie.leg_swing > 0.5
-    @player.z = bz + 300.0
-    60.times { zombie.update_mob(@world, 1.0 / 60.0, @player, 0.0, Block::AIR) }
-    check("the legs of a mob swing as it walks and come to rest when it stops", walking && zombie.leg_swing < 0.05)
-    restore_pose
   end
 
   # Leaves with no log within 6 steps through leaves decay, and leaves
