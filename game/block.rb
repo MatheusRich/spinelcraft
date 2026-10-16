@@ -259,13 +259,11 @@ module Block
   # The blocks first, first + 1 and so on: block of turned to each direction
   # after its own facing, up to direction 3.
   def self.define_turns(first, of)
-    d = FACING[of] + 1
-    while d < 4
+    (FACING[of] + 1...4).each do |d|
       define_block(first + d - FACING[of] - 1, NAMES[of], SIDE[of], top: TOP[of], bottom: BOTTOM[of], front: FRONT[of],
                    facing: d, base: BASE[of], shape: SHAPE[of], opaque: OPAQUE[of], occludes: OCCLUDES[of], solid: SOLID[of],
                    plant: PLANT[of], hardness: HARDNESS[of], drops: DROPS[of], needs_pick: NEEDS_PICK[of], dig: DIG_KIND[of],
                    pick_tier: PICK_TIER[of], water: WATER_LEVEL[of], item: ITEM[of], food: FOOD[of], saturation: SATURATION[of])
-      d += 1
     end
     # A while loop gives an untyped value, so Spinel would box the return.
     nil
@@ -315,19 +313,13 @@ module Block
   define_item STONE_PICK, "STONE PICKAXE", Tex::STONE_PICK, pick_tier: 2
   define_item IRON_PICK, "IRON PICKAXE", Tex::IRON_PICK, pick_tier: 3
   define_item DIAMOND_PICK, "DIAMOND PICKAXE", Tex::DIAMOND_PICK, pick_tier: 4
-  level = 1
-  while level < 8
+  (1...8).each do |level|
     define_block FLOW + level - 1, "WATER", Tex::WATER, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, water: level
-    level += 1
   end
   define_item BOW, "BOW", Tex::BOW
   define_item ARROW, "ARROW", Tex::ARROW
   define_block LAVA, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR
-  level = 1
-  while level < 4
-    define_block LAVA_FLOW + level - 1, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR
-    level += 1
-  end
+  (1...4).each { |level| define_block LAVA_FLOW + level - 1, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR }
   define_block WOOL, "WOOL", Tex::WOOL, hardness: 0.8
   define_block BED, "BED", Tex::BED_ITEM, opaque: 0, solid: 0, hardness: 0.2, dig: DIG_AXE
   define_block CHEST, "CHEST", Tex::CHEST_SIDE, top: Tex::CHEST_TOP, front: Tex::CHEST_FRONT, facing: 0, shape: 4, opaque: 0,
@@ -447,22 +439,16 @@ module Block
   # The wood of a log, leaves, planks or sapling (Block::OAK_WOOD and so
   # on), or -1.
   def self.wood(b)
-    w = 0
-    while w < LOGS.size
-      return w if LOGS[w] == b || LEAVES[w] == BASE[b] || PLANKS[w] == b || SAPLINGS[w] == b
-      w += 1
-    end
+    LOGS.size.times { |w| return w if LOGS[w] == b || LEAVES[w] == BASE[b] || PLANKS[w] == b || SAPLINGS[w] == b }
     -1
   end
   # The boxes of SHAPE_BOX as #defines for the shaders: SHAPE_COUNT, and
   # SHAPE_BOXES, the boxes as an array of 6 numbers each.
   def self.shader_defines
     boxes = ""
-    i = 0
-    while i < SHAPE_BOX.size
+    SHAPE_BOX.size.times do |i|
       boxes += i % 6 == 0 ? (i == 0 ? "{{" : "}, {") : ","
       boxes += SHAPE_BOX[i].to_s
-      i += 1
     end
     "#define SHAPE_COUNT #{SHAPE_BOX.size / 6}\n#define SHAPE_BOXES #{boxes}}}\n"
   end
@@ -497,11 +483,7 @@ module Block
   # The block of kind base that faces direction d; base when the kind has
   # no block for that direction. The first one wins, so a furnace is not lit.
   def self.facing_id(base, d)
-    b = 0
-    while b < COUNT
-      return b if BASE[b] == base && FACING[b] == d
-      b += 1
-    end
+    COUNT.times { |b| return b if BASE[b] == base && FACING[b] == d }
     base
   end
   # The box of a block in its cell: half its size on x and z around the
