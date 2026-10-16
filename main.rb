@@ -42,6 +42,7 @@ require_relative "game/boats"
 require_relative "game/hand"
 require_relative "game/particles"
 require_relative "game/weather"
+require_relative "game/clock"
 require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
@@ -121,10 +122,7 @@ class Game
     @last_jump = -1.0
     @slot = 0
     @captured = false
-    @time_of_day = (ENV["TIME"] || "0.3").to_f
-    # The days since the world started, as Minecraft's daytime / 24000.
-    # minecraft.wiki/w/Daylight_cycle
-    @day = (ENV["DAY"] || "0").to_i
+    @clock = Clock.new((ENV["TIME"] || "0.3").to_f, (ENV["DAY"] || "0").to_i)
     now = Time.now
     @halloween = ENV["HALLOWEEN"] == "1" || (now.month == 10 && now.day == 31)
     @action_cooldown = 0.0
@@ -296,7 +294,7 @@ class Game
     @riding = -1
     @clouds = Clouds.new(@seed)
     upload_clouds
-    @day = 0
+    @clock.day = 0
     spawn
     respawn
     @spawner.spawn_animals(@mobs, @player)
@@ -424,7 +422,7 @@ class Game
     end
     y = @player.eye_y
     underground = y < SEA && !@world.under_sky?(@player.x, y, @player.z)
-    track = @music.next_track(dt, Gfx.au_music_playing, underground, @time_of_day >= 0.5)
+    track = @music.next_track(dt, Gfx.au_music_playing, underground, @clock.time_of_day >= 0.5)
     Music.start(track) if track >= 0
     Gfx.au_music_feed(volume)
   end
@@ -521,7 +519,7 @@ class Game
     @bob += speed * dt * 2.6
     target_fov = @options.half_fov * (speed > 5.0 ? 1.1 : 1.0)
     @fov += (target_fov - @fov) * (6.0 * dt).clamp(0.0, 1.0)
-    update_clock(dt)
+    @clock.advance(dt)
     @message_time -= dt
     @chat.age(dt)
     @damage_flash -= dt
@@ -586,7 +584,7 @@ class Game
     y = @player.eye_y.floor
     z = @player.z.floor
     return if y >= SEA || !@world.inside?(x, y, z)
-    sky = Light.sky(@time_of_day, @weather.raining?)
+    sky = Light.sky(@clock.time_of_day, @weather.raining?)
     light = @light.level(x, y, z, sky, @light.lamp_near?(x, y, z), sky)
     light = 15 if light < 0
     @cave_fear += 3.0 * (15 - light) / 15.0
@@ -633,15 +631,6 @@ class Game
   # True while the player eats or draws the bow.
   def using_item? = @eat_time >= 0.0 || @draw_time >= 0.0
 
-  # The time of day goes past 1.0 at 6:00, and a new day starts.
-  def update_clock(dt)
-    @time_of_day += dt / DAY_SECONDS
-    while @time_of_day >= 1.0
-      @time_of_day -= 1.0
-      @day += 1
-    end
-  end
-
   # The self-test writes and deletes its files in the temporary folder, so
   # that it never changes the save or the options of the player.
   def file_prefix
@@ -649,11 +638,6 @@ class Game
     dir = ENV["TMPDIR"] || "/tmp"
     dir += "/" unless dir.end_with?("/")
     "#{dir}spinelcraft-selftest-"
-  end
-
-  def daylight
-    s = Math.sin(@time_of_day * Math::PI * 2.0)
-    (0.5 + s * 0.9).clamp(0.12, 1.0)
   end
 
   # Chunks to load around the player for the view distance: the meshed ones

@@ -29,7 +29,7 @@ class Game
     @player.yaw = 0.0
     @player.pitch = -0.15
     @player.flying = true
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
   end
 
   # SHOWBOATS=1 puts a boat of each wood on a pool of water, with the
@@ -55,7 +55,7 @@ class Game
     @player.yaw = 0.0
     @player.pitch = -0.3
     board_boat(0)
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
   end
 
   # SHOWITEMS=1 lays a row of dropped items on a stone floor in front of the
@@ -102,7 +102,7 @@ class Game
     @player.yaw = 0.0
     @player.pitch = -0.35
     @player.flying = true
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
   end
 
   # DEMO=1 digs and builds in front of the player through the normal actions,
@@ -159,7 +159,6 @@ class Game
     test_rain
     test_weather_fade
     test_cactus
-    test_clock
     test_save(x, z, ground)
     test_crafting_limits
     test_inventory_layout
@@ -297,19 +296,19 @@ class Game
   # player, and a bad command prints a red line.
   def test_commands
     survival = @survival
-    day = @day
+    day = @clock.day
     @chat = Chat.new
     run_chat("/time set midnight")
-    midnight = @time_of_day == 0.75
+    midnight = @clock.time_of_day == 0.75
     run_chat("/time add 6000")
-    added = @time_of_day == 0.0 && @day == day + 1
+    added = @clock.time_of_day == 0.0 && @clock.day == day + 1
     check("/time set and /time add move the clock, and a new day starts at 6:00", midnight && added)
     run_chat("/time set 0")
     run_chat("/time add 2147483647")
     check("/time add of many days counts them at once",
-          @day == day + 1 + 2147483647 / 24000 && (@time_of_day - (2147483647 % 24000) / 24000.0).abs < 1.0e-9)
-    @time_of_day = 0.3
-    @day = day
+          @clock.day == day + 1 + 2147483647 / 24000 && (@clock.time_of_day - (2147483647 % 24000) / 24000.0).abs < 1.0e-9)
+    @clock.time_of_day = 0.3
+    @clock.day = day
     set_mode(true)
     kept = @inv.copy
     @inv.clear
@@ -369,7 +368,7 @@ class Game
     @chat.recall(1)
     check("Up and Down walk through the lines typed before", back && further && @chat.text == "")
     close_chat
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
   end
 
   # Tab completes a command, then the names that the command takes.
@@ -498,13 +497,13 @@ class Game
   # The pause screen stops the world, but the inventory and the death
   # screen do not.
   def test_pause
-    time = @time_of_day
+    time = @clock.time_of_day
     @captured = false
     update_game(0.05)
-    stopped = @time_of_day == time
+    stopped = @clock.time_of_day == time
     @inventory_open = true
     update_game(0.05)
-    inventory = @time_of_day != time
+    inventory = @clock.time_of_day != time
     @inventory_open = false
     @vitals.health = 0.0
     dead = paused?
@@ -1157,7 +1156,7 @@ class Game
     end
     @chunk_meshes.flush
     @mobs.clear
-    @time_of_day = 0.75
+    @clock.time_of_day = 0.75
     @vitals.health = Vitals::MAX_HEALTH
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
@@ -1201,7 +1200,7 @@ class Game
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
     @items.clear
     @mobs.clear
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
     @vitals.health = Vitals::MAX_HEALTH
   end
 
@@ -1211,7 +1210,7 @@ class Game
     px = @spawn_x.floor
     pz = @spawn_z.floor
     @mobs.clear
-    @time_of_day = 0.25
+    @clock.time_of_day = 0.25
     zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     capped = Mob.new(Mob::ZOMBIE, px + 11.5, SKY_Y - 1.0, pz + 0.5, 10)
@@ -1237,7 +1236,7 @@ class Game
     update_survival(1.0 / 60.0)
     @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
     check("the player burns on after lava, and water puts the fire out", burned && @vitals.fire == 0.0)
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
     @vitals.health = Vitals::MAX_HEALTH
   end
 
@@ -1247,7 +1246,7 @@ class Game
     px = @spawn_x.floor
     pz = @spawn_z.floor
     @mobs.clear
-    @time_of_day = 0.25
+    @clock.time_of_day = 0.25
     @weather.set_now(true)
     zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
@@ -1265,7 +1264,7 @@ class Game
     @world.set(px + 3, SKY_Y + 5, pz, Block::AIR)
     check("the rain in a column stops at the highest block", open < SKY_Y + 6.0 && roofed == SKY_Y + 6.0)
     @weather.set_now(false)
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
   end
 
   # On the sky platform from test_monsters: a cactus hurts the player who
@@ -1429,15 +1428,6 @@ class Game
     -1.0
   end
 
-  # The time of day wraps at 6:00 and counts the day.
-  def test_clock
-    @time_of_day = 0.99
-    @day = 4
-    update_clock(DAY_SECONDS * 0.02)
-    check("the clock counts a day at 6:00", @day == 5 && (@time_of_day - 0.01).abs < 1.0e-9)
-    @time_of_day = 0.3
-  end
-
   # The save keeps blocks, the inventory, health, the day, the time alive,
   # the items on the ground and the weather, and a dead player respawns on
   # load.
@@ -1460,7 +1450,7 @@ class Game
     hot.slots.set(Furnace::FUEL, Block::OAK_LOG, 3)
     @furnaces[World.key(3, 70, 4)] = hot
     @furnaces[World.key(5, 70, 4)] = Furnace.new(5, 70, 4)
-    @day = 37
+    @clock.day = 37
     @alive_time = 1500.0
     @boats.clear
     @boats << Boat.new(Block::SPRUCE_BOAT, x + 0.5, ground + 1.25, z + 0.5, 1.5)
@@ -1475,11 +1465,11 @@ class Game
     @weather.set_now(false)
     @recipe_book = RecipeBook.new
     @furnaces = {}
-    @day = 0
+    @clock.day = 0
     @alive_time = 0.0
     ok = load
     apply_loaded if ok
-    check("the save keeps the day and the time alive", ok && @day == 37 && @alive_time == 1500.0)
+    check("the save keeps the day and the time alive", ok && @clock.day == 37 && @alive_time == 1500.0)
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
@@ -2320,12 +2310,12 @@ class Game
     low = (@player.eye_y - @player.y - Player::SNEAK_EYE).abs < 0.01
     @mobs.clear
     set_block(bx + 6, SKY_Y - 1, bz, Block.bed_id(0, true))
-    @time_of_day = 0.75
-    day = @day
+    @clock.time_of_day = 0.75
+    day = @clock.day
     use_bed(bx + 6, SKY_Y - 1, bz)
-    check("sleeping in a bed skips the night and sets spawn", daylight > 0.35 && @spawn_x == bx + 6.5 && @day == day + 1)
+    check("sleeping in a bed skips the night and sets spawn", @clock.daylight > 0.35 && @spawn_x == bx + 6.5 && @clock.day == day + 1)
     set_block(bx + 6, SKY_Y - 1, bz, Block::AIR)
-    @time_of_day = 0.3
+    @clock.time_of_day = 0.3
     check("sneaking stops at an edge", @player.y > SKY_Y - 1.1 && @player.z < bz + 1.4)
     120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, false, false) }
     check("walking without sneaking falls off", @player.y < SKY_Y - 2.0)

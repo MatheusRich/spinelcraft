@@ -66,8 +66,8 @@ class Game
 
   def update_mobs(dt)
     # Rain dims the day, so monsters do not burn in it.
-    day = daylight * (1.0 - 0.5 * @weather.rain)
-    @spawner.spawn_monsters(@mobs, @player, Light.sky(@time_of_day, @weather.raining?), dt)
+    day = @clock.daylight * (1.0 - 0.5 * @weather.rain)
+    @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.time_of_day, @weather.raining?), dt)
     court_mates
     push_mobs(dt)
     held = current_block.to_i

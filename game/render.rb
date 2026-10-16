@@ -46,12 +46,12 @@ class Game
   # daylight, the fog range, and the frame size. Then the far cloud layer and
   # the rain.
   def set_uniforms(ex, ey, ez, w, h)
-    day = daylight
+    day = @clock.daylight
     under = Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
     sky_r = 0.03 + 0.50 * day
     sky_g = 0.04 + 0.68 * day
     sky_b = 0.10 + 0.88 * day
-    dusk = 1.0 - Math.sin(@time_of_day * Math::PI * 2.0).abs * 4.0
+    dusk = 1.0 - Math.sin(@clock.time_of_day * Math::PI * 2.0).abs * 4.0
     if dusk > 0.0
       dusk *= 0.75
       sky_r += (1.0 - sky_r) * dusk
@@ -253,13 +253,12 @@ class Game
   def build_sky(w, h, s)
     @sky.clear
     draw_sky_body(w, h, s, 1.0, Tex::WHITE, 1.0, 0.95, 0.75, 70.0, 1.0)
-    phase = @day % 8
-    draw_sky_body(w, h, s, -1.0, Tex::MOON + phase, 1.0, 1.0, 1.0, 46.0, MOON_LIT[phase])
+    draw_sky_body(w, h, s, -1.0, Tex::MOON + @clock.moon_phase, 1.0, 1.0, 1.0, 46.0, @clock.moon_lit)
     # Rain hides the stars.
-    night = (0.55 - daylight) * 2.5 * (1.0 - @weather.rain)
+    night = (0.55 - @clock.daylight) * 2.5 * (1.0 - @weather.rain)
     return if night <= 0.0
     night = 1.0 if night > 1.0
-    a = @time_of_day * Math::PI * 2.0
+    a = @clock.time_of_day * Math::PI * 2.0
     ca = Math.cos(a)
     sa = Math.sin(a)
     ex = @player.x.to_f
@@ -286,7 +285,7 @@ class Game
   # The sun (side 1) or the moon (side -1): the texture layer with the color
   # r, g, b, in a glow that is as bright as the lit part.
   def draw_sky_body(w, h, s, side, layer, r, g, b, size, lit)
-    a = @time_of_day * Math::PI * 2.0
+    a = @clock.time_of_day * Math::PI * 2.0
     dx = Math.cos(a) * side
     dy = Math.sin(a) * side
     dz = 0.25

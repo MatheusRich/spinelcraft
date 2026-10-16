@@ -153,7 +153,7 @@ module Tex
   BIRCH_PLANKS = image("birch_planks")
   BIRCH_SAPLING = image("birch_sapling", bleed: 1)
   # The moon in each phase: MOON + 0 is the full moon, in the order of
-  # MOON_LIT.
+  # Clock::MOON_LIT.
   MOON = image_series(%w[moon_0 moon_1 moon_2 moon_3 moon_4 moon_5 moon_6 moon_7])
   MUTTON = image("mutton")
   COOKED_MUTTON = image("cooked_mutton")

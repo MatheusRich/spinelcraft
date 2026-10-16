@@ -26,7 +26,7 @@ class Game
 
   def save
     header = [@seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
-              @time_of_day, @day, @survival ? 1 : 0, @vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
+              @clock.time_of_day, @clock.day, @survival ? 1 : 0, @vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
     close_chest
     land_falling
@@ -141,8 +141,7 @@ class Game
     @player.yaw = f[F_PLAYER + 3].to_f
     @player.pitch = f[F_PLAYER + 4].to_f
     @player.fall_start = @player.y
-    @time_of_day = f[F_TIME].to_f
-    @day = f[F_DAY].to_i
+    @clock = Clock.new(f[F_TIME].to_f, f[F_DAY].to_i)
     @survival = f[F_SURVIVAL] == "1"
     @vitals.health = f[F_HEALTH].to_f
     @alive_time = f[F_ALIVE].to_f

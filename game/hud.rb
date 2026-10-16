@@ -219,16 +219,15 @@ class Game
     @ui.text(8.0 * s, 8.0 * s, "FPS #{@fps.round}  CPU #{@cpu_ms.round(2)}MS", ts, 1.0, 1.0, 1.0, 1.0)
     @ui.text(8.0 * s, 22.0 * s, "XYZ #{@player.x.floor} #{@player.y.floor} #{@player.z.floor}  FACES #{@faces_drawn}", ts, 1.0, 1.0, 1.0, 1.0)
     @ui.text(8.0 * s, 36.0 * s, "CHUNKS #{@visible.size / 2}  REMESH #{@chunk_meshes.mesh_ms.round(2)}MS  MOBS #{@mobs.size}", ts, 1.0, 1.0, 1.0, 1.0)
-    clock = ((@time_of_day * 24.0 + 6.0) % 24.0).floor
     mode = @survival ? "SURVIVAL" : "CREATIVE"
-    @ui.text(8.0 * s, 50.0 * s, "DAY #{@day + 1}  TIME #{clock}:00  #{mode}#{@weather.raining? ? "  RAIN" : ""}", ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(8.0 * s, 50.0 * s, "DAY #{@clock.day + 1}  TIME #{@clock.hour}:00  #{mode}#{@weather.raining? ? "  RAIN" : ""}", ts, 1.0, 1.0, 1.0, 1.0)
   end
 
   def draw_death_screen(w, h, s)
     @ui.rect(0.0, 0.0, w, h, 0.5, 0.0, 0.0, 0.5)
     msg = "YOU DIED"
     @ui.text((w - @ui.text_width(msg, 8.0 * s)) / 2.0, h / 2.0 - 60.0 * s, msg, 8.0 * s, 1.0, 1.0, 1.0, 1.0)
-    days = (@alive_time / DAY_SECONDS).floor
+    days = (@alive_time / Clock::DAY_SECONDS).floor
     lasted = "YOU LASTED #{days} #{days == 1 ? "DAY" : "DAYS"}"
     @ui.text((w - @ui.text_width(lasted, 3.0 * s)) / 2.0, h / 2.0 + 50.0 * s, lasted, 3.0 * s, 1.0, 0.85, 0.6, 1.0)
     sub = "CLICK OR PRESS R TO RESPAWN"

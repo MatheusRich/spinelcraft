@@ -82,15 +82,6 @@ class Game
   # Each second, Game#update_block_sounds looks at this many random blocks
   # within SOUND_RANGE of the player.
   AMBIENT_SAMPLES = 3000.0
-  # A day and a night last 20 minutes, as in Minecraft.
-  # minecraft.wiki/w/Daylight_cycle
-  DAY_SECONDS = 1200.0
-  # The lit part of the moon on each day of its 8-day cycle: full, waning
-  # gibbous, third quarter, waning crescent, new, waxing crescent, first
-  # quarter, waxing gibbous. The glow around the moon follows it.
-  # minecraft.wiki/w/Moon gives the order, and the full moon on day 0. The
-  # wiki does not give the lit parts.
-  MOON_LIT = [1.0, 0.75, 0.5, 0.25, 0.0, 0.25, 0.5, 0.75]
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36
   HOTBAR = 9

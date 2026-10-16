@@ -1,9 +1,7 @@
 # The parts of a chat command that need no game: the words of a line,
 # numbers, coordinates, times and names. minecraft.wiki/w/Commands
 module Command
-  # The ticks of a day, and the times that /time set takes by name.
-  # minecraft.wiki/w/Commands/time
-  DAY_TICKS = 24000
+  # The times that /time set takes by name. minecraft.wiki/w/Commands/time
   TIME_NAMES = ["DAY", "NOON", "NIGHT", "MIDNIGHT"]
   TIME_TICKS = [1000, 6000, 13000, 18000]
   # A time is an int in Minecraft, so it is at most 2^31 - 1 ticks.
@@ -133,7 +131,7 @@ module Command
     n = s
     last = s.size > 0 ? s[s.size - 1] : ""
     if last == "D" || last == "S" || last == "T"
-      unit = last == "D" ? DAY_TICKS : (last == "S" ? 20 : 1)
+      unit = last == "D" ? Clock::DAY_TICKS : (last == "S" ? 20 : 1)
       n = s[0, s.size - 1]
     end
     return -1 unless number?(n) && !n.start_with?("-")

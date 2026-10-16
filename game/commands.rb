@@ -97,19 +97,16 @@ class Game
   # 0.0 is tick 0, at 6:00.
   def command_time(args)
     if args.size == 1 && args[0] == "QUERY" || args.size == 2 && args[0] == "QUERY"
-      return @chat.post("THE TIME IS #{(@time_of_day * Command::DAY_TICKS).to_i}, DAY #{@day + 1}")
+      return @chat.post("THE TIME IS #{@clock.ticks}, DAY #{@clock.day + 1}")
     end
     return @chat.post_error("USE /TIME SET <TIME> OR /TIME ADD <TIME>") if args.size != 2 || (args[0] != "SET" && args[0] != "ADD")
     t = Command.ticks(args[1])
     return @chat.post_error("BAD TIME: #{args[1]}") if t < 0
     if args[0] == "SET"
-      @time_of_day = (t % Command::DAY_TICKS) / Command::DAY_TICKS.to_f
+      @clock.set_ticks(t)
       @chat.post("SET THE TIME TO #{t}")
     else
-      # The whole days go to the count at once: update_clock counts one day
-      # for each pass of its loop.
-      @day += t / Command::DAY_TICKS
-      update_clock((t % Command::DAY_TICKS) * DAY_SECONDS / Command::DAY_TICKS)
+      @clock.add_ticks(t)
       @chat.post("ADDED #{t} TICKS")
     end
   end

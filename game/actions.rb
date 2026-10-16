@@ -421,7 +421,7 @@ class Game
   def use_bed(x, y, z)
     @spawn_x = x + 0.5
     @spawn_z = z + 0.5
-    if daylight > 0.35
+    if @clock.daylight > 0.35
       say("SPAWN SET  YOU CAN ONLY SLEEP AT NIGHT")
       return
     end
@@ -430,9 +430,7 @@ class Game
       say("YOU CANNOT SLEEP NOW  MONSTERS ARE NEARBY")
       return
     end
-    # A night is always before the 6:00 wrap, so the morning is the next day.
-    @time_of_day = 0.02
-    @day += 1
+    @clock.skip_night
     say("GOOD MORNING")
   end
 
