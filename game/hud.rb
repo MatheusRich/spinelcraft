@@ -20,7 +20,7 @@ class Game
     draw_messages(w, y0, s)
     draw_chat_lines(w, y0, s)
     draw_chat_line(w, h, s) if @chat_open
-    draw_debug(s) if @show_debug
+    draw_debug(s) if @options.debug
     if @vitals.dead?
       draw_death_screen(w, h, s)
     elsif @inventory_open && @survival

@@ -77,7 +77,7 @@ class Game
         say(Block::NAMES[@hotbar[@slot]])
       end
     end
-    @show_debug = !@show_debug if Gfx.in_key_pressed(Key::F3)
+    @options.debug = !@options.debug if Gfx.in_key_pressed(Key::F3)
     save if Gfx.in_key_pressed(Key::F5)
     toggle_fullscreen if Gfx.in_key_pressed(Key::F11)
     open_chat("") if Gfx.in_key_pressed(Key::T)
@@ -91,8 +91,8 @@ class Game
   end
 
   def toggle_fullscreen
-    @fullscreen = !@fullscreen
-    Gfx.gfx_fullscreen(@fullscreen ? 1 : 0)
+    @options.fullscreen = !@options.fullscreen
+    Gfx.gfx_fullscreen(@options.fullscreen ? 1 : 0)
   end
 
   # How full the attack cooldown is, from 0 to 1. A hit does 0.2 + 0.8 *

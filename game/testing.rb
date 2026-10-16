@@ -527,21 +527,15 @@ class Game
   # The sliders of the pause menu set the options, and New world asks for a
   # second click.
   def test_menu
-    view = @fog_end
-    brightness = @brightness
-    volume = @volume
-    music = @music_volume
-    fov = @fov_degrees
+    options = @options
+    path = file_prefix + OPTIONS_PATH
+    @options = Options.new(path)
     set_slider(M_VIEW, 0.5)
-    half = @fog_end
-    set_slider(M_VIEW, 0.0)
-    near = @fog_end
-    @fog_end = view
-    check("the render distance slider goes in steps of 100 blocks", half == 2600.0 && near == VIEW_MIN)
+    check("the render distance slider sets the render distance", @options.view == 2600.0 && menu_label(M_VIEW) == "RENDER DISTANCE: 2600 BLOCKS")
     set_slider(M_BRIGHTNESS, 1.0)
     set_slider(M_VOLUME, 0.25)
     set_slider(M_MUSIC, 0.0)
-    check("the brightness and volume sliders set the options", @brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")
+    check("the brightness and volume sliders set the options", @options.brightness == 1.0 && slider_value(M_VOLUME) == 0.25 && menu_label(M_VOLUME) == "VOLUME: 25%")
     check("the music slider sets the music volume", slider_value(M_MUSIC) == 0.0 && menu_label(M_MUSIC) == "MUSIC: OFF")
     set_slider(M_FOV, 0.5)
     normal = menu_label(M_FOV)
@@ -549,29 +543,21 @@ class Game
     quake = menu_label(M_FOV)
     set_slider(M_FOV, 0.0)
     check("the field of view slider goes from 30 to 110 degrees, with 70 as normal",
-          @fov_degrees == FOV_MIN && menu_label(M_FOV) == "FIELD OF VIEW: 30" && normal == "FIELD OF VIEW: NORMAL" && quake == "FIELD OF VIEW: QUAKE PRO")
-    check("the view takes the new field of view at once", @fov == FOV_MIN * Math::PI / 360.0)
-    @fov_degrees = 90.0
-    @fog_end = 1200.0
-    @show_debug = false
-    save_options
-    @brightness = brightness
-    @volume = volume
-    @music_volume = music
-    @fog_end = view
-    @fov_degrees = fov
-    @show_debug = true
-    load_options
-    File.delete(@options_path)
-    check("the options load from the file that save_options writes",
-          @brightness == 1.0 && @volume == 0.25 && @music_volume == 0.0 && @fog_end == 1200.0 && @fov_degrees == 90.0 && !@show_debug && !@fullscreen)
-    @brightness = brightness
-    @volume = volume
-    @music_volume = music
-    @fog_end = view
-    @fov_degrees = fov
-    @fov = option_fov
-    @show_debug = true
+          @options.fov_degrees == Options::FOV_MIN && menu_label(M_FOV) == "FIELD OF VIEW: 30" && normal == "FIELD OF VIEW: NORMAL" && quake == "FIELD OF VIEW: QUAKE PRO")
+    check("the view takes the new field of view at once", @fov == Options::FOV_MIN * Math::PI / 360.0)
+    # The compiled game writes the numbers, so this check runs here and
+    # not only in Minitest.
+    @options.fov_degrees = 90.0
+    @options.view = 1200.0
+    @options.debug = false
+    @options.write_file
+    read = Options.new(path)
+    read.read_file
+    File.delete(path)
+    check("the options load from the file that write_file writes",
+          read.brightness == 1.0 && read.volume == 0.25 && read.music == 0.0 && read.view == 1200.0 && read.fov_degrees == 90.0 && !read.debug && !read.fullscreen)
+    @options = options
+    @fov = @options.half_fov
     seed = @seed
     click_menu(M_NEW_WORLD)
     once = @seed == seed && @menu_confirm

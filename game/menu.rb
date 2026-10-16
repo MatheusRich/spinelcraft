@@ -57,7 +57,7 @@ class Game
     elsif i == M_FULLSCREEN
       toggle_fullscreen
     elsif i == M_DEBUG
-      @show_debug = !@show_debug
+      @options.debug = !@options.debug
     elsif i == M_NEW_WORLD
       if confirm
         new_world
@@ -73,72 +73,33 @@ class Game
   # The value of slider i, from 0 to 1.
   def slider_value(i)
     if i == M_BRIGHTNESS
-      @brightness
+      @options.brightness
     elsif i == M_VOLUME
-      @volume
+      @options.volume
     elsif i == M_MUSIC
-      @music_volume
+      @options.music
     elsif i == M_VIEW
-      (@fog_end - VIEW_MIN) / (VIEW_MAX - VIEW_MIN)
+      @options.view_share
     else
-      (@fov_degrees - FOV_MIN) / (FOV_MAX - FOV_MIN)
+      @options.fov_share
     end
   end
 
-  # Sets slider i to t, from 0 to 1. The render distance goes in steps of
-  # 100 blocks, and the field of view in steps of 1 degree.
+  # Sets slider i to t, from 0 to 1.
   def set_slider(i, t)
     if i == M_BRIGHTNESS
-      @brightness = t
+      @options.brightness = t
     elsif i == M_VOLUME
-      @volume = t
+      @options.volume = t
     elsif i == M_MUSIC
-      @music_volume = t
+      @options.music = t
     elsif i == M_VIEW
-      @fog_end = ((VIEW_MIN + t * (VIEW_MAX - VIEW_MIN)) / 100.0).round * 100.0
+      @options.slide_view(t)
     else
-      @fov_degrees = (FOV_MIN + t * (FOV_MAX - FOV_MIN)).round.to_f
+      @options.slide_fov(t)
       # The world stops while the menu is open, so the view takes the new
       # angle here and does not ease to it.
-      @fov = option_fov
-    end
-  end
-
-  # The half angle of the view in radians for the field of view option.
-  def option_fov = @fov_degrees * Math::PI / 360.0
-
-  # Writes the options to @options_path, one "name:value" line each, as in
-  # the options.txt of Minecraft.
-  def save_options
-    File.open(@options_path, "w") do |f|
-      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nmusic:#{@music_volume}\nview:#{@fog_end}\nfov:#{@fov_degrees}\nfullscreen:#{@fullscreen}\ndebug:#{@show_debug}\n")
-    end
-  end
-
-  # Reads the options that save_options wrote. An option that is not in the
-  # file keeps its default.
-  def load_options
-    return unless File.exist?(@options_path)
-    File.binread(@options_path).split("\n").each do |line|
-      parts = line.split(":")
-      next if parts.size != 2
-      name = parts[0]
-      value = parts[1]
-      if name == "brightness"
-        @brightness = value.to_f.clamp(0.0, 1.0)
-      elsif name == "volume"
-        @volume = value.to_f.clamp(0.0, 1.0)
-      elsif name == "music"
-        @music_volume = value.to_f.clamp(0.0, 1.0)
-      elsif name == "view"
-        @fog_end = value.to_f.clamp(VIEW_MIN, VIEW_MAX)
-      elsif name == "fov"
-        @fov_degrees = value.to_f.clamp(FOV_MIN, FOV_MAX)
-      elsif name == "fullscreen"
-        @fullscreen = value == "true"
-      elsif name == "debug"
-        @show_debug = value == "true"
-      end
+      @fov = @options.half_fov
     end
   end
 
@@ -146,23 +107,23 @@ class Game
     if i == M_RESUME
       "BACK TO GAME"
     elsif i == M_BRIGHTNESS
-      b = (@brightness * 100.0).round
+      b = (@options.brightness * 100.0).round
       "BRIGHTNESS: #{b == 0 ? "MOODY" : (b == 100 ? "BRIGHT" : "#{b}%")}"
     elsif i == M_VOLUME
-      v = (@volume * 100.0).round
+      v = (@options.volume * 100.0).round
       "VOLUME: #{v == 0 ? "OFF" : "#{v}%"}"
     elsif i == M_MUSIC
-      v = (@music_volume * 100.0).round
+      v = (@options.music * 100.0).round
       "MUSIC: #{v == 0 ? "OFF" : "#{v}%"}"
     elsif i == M_VIEW
-      "RENDER DISTANCE: #{@fog_end.to_i} BLOCKS"
+      "RENDER DISTANCE: #{@options.view.to_i} BLOCKS"
     elsif i == M_FOV
-      f = @fov_degrees.to_i
-      "FIELD OF VIEW: #{f == FOV_NORMAL.to_i ? "NORMAL" : (f == FOV_MAX.to_i ? "QUAKE PRO" : f.to_s)}"
+      f = @options.fov_degrees.to_i
+      "FIELD OF VIEW: #{f == Options::FOV_NORMAL.to_i ? "NORMAL" : (f == Options::FOV_MAX.to_i ? "QUAKE PRO" : f.to_s)}"
     elsif i == M_FULLSCREEN
-      "FULLSCREEN: #{@fullscreen ? "ON" : "OFF"}"
+      "FULLSCREEN: #{@options.fullscreen ? "ON" : "OFF"}"
     elsif i == M_DEBUG
-      "DEBUG INFO: #{@show_debug ? "ON" : "OFF"}"
+      "DEBUG INFO: #{@options.debug ? "ON" : "OFF"}"
     elsif i == M_NEW_WORLD
       @menu_confirm ? "LOSE THIS WORLD? CLICK AGAIN" : "NEW WORLD"
     else

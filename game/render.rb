@@ -11,11 +11,11 @@ class Game
     walking = @player.on_ground && !@player.flying
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
     ey += Math.sin(@bob) * 0.05 * (speed / 4.3).clamp(0.0, 1.0) if walking
-    @camera.update_camera(ex, ey, ez, @player.yaw, @player.pitch, w / h, @fog_end + 40.0, @fov)
+    @camera.update_camera(ex, ey, ez, @player.yaw, @player.pitch, w / h, @options.view + 40.0, @fov)
     @camera.write_column_major(@uniforms)
     Gfx.gfx_cloud_boxes(@clouds.mesh.v, @clouds.mesh.count) if @clouds.build(ex, ez, @cloud_drift)
     set_uniforms(ex, ey, ez, w, h)
-    reach = @fog_end + 4.0
+    reach = @options.view + 4.0
     cull_chunks(ex, ez, reach)
     cull_far_tiles(ex, ez, reach)
     build_dyn(ex, ey, ez, reach)
@@ -63,7 +63,7 @@ class Game
     sky_r += (gray - sky_r) * @weather.rain * 0.85
     sky_g += (gray - sky_g) * @weather.rain * 0.85
     sky_b += (gray * 1.08 - sky_b) * @weather.rain * 0.85
-    fog = @fog_end * (1.0 - 0.6 * @weather.rain)
+    fog = @options.view * (1.0 - 0.6 * @weather.rain)
     @uniforms[16] = ex
     @uniforms[17] = ey
     @uniforms[18] = ez
@@ -82,7 +82,7 @@ class Game
     @clouds.write_uniforms(@uniforms, CLOUD_UNIFORMS, ey, @cloud_drift)
     @uniforms[RAIN_UNIFORMS] = @weather.rain
     @uniforms[RAIN_UNIFORMS + 1] = Weather::R.to_f
-    @uniforms[OPTION_UNIFORMS] = @brightness
+    @uniforms[OPTION_UNIFORMS] = @options.brightness
   end
 
   # Fills @visible with the meshed chunks in the view and @water_visible with
@@ -141,7 +141,7 @@ class Game
   def cull_far_tiles(ex, ez, reach)
     @lod_visible.clear
     level = 0
-    while level < LEVELS && @fog_end > lod_start(level)
+    while level < LEVELS && @options.view > lod_start(level)
       # Uniforms 28 + 4 * L hold the square level L skips: full detail for
       # level 0, the complete rings of level L - 1 for the others.
       at = 28 + level * 4

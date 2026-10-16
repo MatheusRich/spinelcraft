@@ -25,16 +25,6 @@ class Game
                     Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
                     Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::SHEARS,
                     Block::BONE, Block::BONE_MEAL]
-  FOG_END = 1600.0
-  # The range of the render distance slider, in blocks.
-  VIEW_MIN = 200.0
-  VIEW_MAX = 5000.0
-  # The range of the field of view slider, and its start, in degrees from
-  # the bottom to the top of the view. Minecraft shows 70 as "Normal" and
-  # 110 as "Quake Pro". minecraft.wiki/w/Options
-  FOV_MIN = 30.0
-  FOV_MAX = 110.0
-  FOV_NORMAL = 70.0
   # Full-detail chunks reach this far at most; far terrain (lod.rb) draws the rest.
   # This is the limit of the chunk ring: Game#view_radius adds 20 blocks and
   # one ring, and 460 gives LOAD_R.
@@ -178,7 +168,7 @@ class Game
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
   SAVE_VERSION = "SPINELCRAFT21"
-  # The options of the pause menu (see Game#save_options).
+  # The options of the pause menu (see Options#write_file).
   OPTIONS_PATH = "options.txt"
   # Where a save that does not load goes, so that the next save does not replace it.
   BAD_SAVE_PATH = "world-bad.sav"

@@ -85,9 +85,9 @@ class Game
   # (one ring less) then reach past the fog.
   def view_radius = (((detail_view + 20.0) / CHUNK).ceil + 1).clamp(SYNC_R, LOAD_R)
 
-  def detail_view = @fog_end < DETAIL_VIEW ? @fog_end : DETAIL_VIEW
+  def detail_view = @options.view < DETAIL_VIEW ? @options.view : DETAIL_VIEW
 
-  def far_terrain? = @fog_end > DETAIL_VIEW
+  def far_terrain? = @options.view > DETAIL_VIEW
 
   # The widest square ring of chunks around the stream center that is all meshed.
   def detail_rings = ((Math.sqrt(@mesh_at.to_f).to_i - 1) / 2)
@@ -98,7 +98,7 @@ class Game
   # Tile rings a level builds for the current view.
   def lod_rings(level)
     reach = (LOD_REACH << level).to_f
-    reach = @fog_end if @fog_end < reach
+    reach = @options.view if @options.view < reach
     (reach / @lods[level].tile).ceil + 1
   end
 
@@ -116,7 +116,7 @@ class Game
   def stream_lod(budget_ns)
     t0 = Gfx.gfx_ns
     level = 0
-    while level < LEVELS && @fog_end > lod_start(level)
+    while level < LEVELS && @options.view > lod_start(level)
       lod = @lods[level]
       ptx = (@player.x.floor >> lod.tile_shift).to_i
       ptz = (@player.z.floor >> lod.tile_shift).to_i

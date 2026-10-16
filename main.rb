@@ -41,6 +41,7 @@ require_relative "game/actions"
 require_relative "game/combat"
 require_relative "game/render"
 require_relative "game/hud"
+require_relative "game/options"
 require_relative "game/menu"
 require_relative "game/command"
 require_relative "game/chat"
@@ -131,15 +132,6 @@ class Game
     @flow_timer = 0.0
     @alive_time = 0.0
     @anim_time = 0.0
-    @fullscreen = false
-    @fog_end = FOG_END.to_f
-    @fov_degrees = FOV_NORMAL
-    # The options of the pause menu (game/menu.rb), from 0 to 1. Brightness 0
-    # is the light without a lift. The brightness, the volume and the music
-    # start at half.
-    @brightness = 0.5
-    @volume = 0.5
-    @music_volume = 0.5
     # The slider that the mouse drags, or -1.
     @menu_drag = -1
     # True after one click on New world.
@@ -183,7 +175,6 @@ class Game
     @cpu_ms = 0.0
     @mesh_ms = 0.0
     @faces_drawn = 0
-    @show_debug = true
     @cpu_end = 0
     @survival = ENV["MODE"] == "survival"
     @loaded = [""]
@@ -194,16 +185,16 @@ class Game
     prefix = file_prefix
     @save_path = prefix + SAVE_PATH
     @bad_save_path = prefix + BAD_SAVE_PATH
-    @options_path = prefix + OPTIONS_PATH
-    load_options if @save_on_quit
-    @fog_end = ENV["VIEW"].to_f if ENV["VIEW"]
+    @options = Options.new(prefix + OPTIONS_PATH)
+    @options.read_file if @save_on_quit
+    @options.view = ENV["VIEW"].to_f if ENV["VIEW"]
     @sound = false
     @demo = !ENV["DEMO"].nil?
     @clouds = Clouds.new(@seed)
     @cloud_drift = 0.0
     @bob = 0.0
     # The half angle of the view in radians. It follows the option and widens in a sprint.
-    @fov = option_fov
+    @fov = @options.half_fov
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
     @was_swimming = false
@@ -301,7 +292,7 @@ class Game
     Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
-    Gfx.gfx_fullscreen(1) if @fullscreen
+    Gfx.gfx_fullscreen(1) if @options.fullscreen
     px = Tex.build
     abort "texture upload failed" unless Gfx.gfx_textures(px, Tex::LAYERS)
     @dyn.opaque = Tex.opaque(px)
@@ -441,12 +432,12 @@ class Game
   # The self-test runs with no sound, so it reads @last_sound.
   def play(id, volume)
     @last_sound = id
-    Gfx.au_play(id, volume * @volume, 0.0) if @sound
+    Gfx.au_play(id, volume * @options.volume, 0.0) if @sound
   end
 
   # Plays a sound that comes from x, y, z and reaches range blocks.
   def play_at(id, x, y, z, gain, range)
-    Gfx.au_play(id, near_volume(x, y, z, gain, range) * @volume, pan_to(x, y, z)) if @sound
+    Gfx.au_play(id, near_volume(x, y, z, gain, range) * @options.volume, pan_to(x, y, z)) if @sound
   end
 
   # Volume for a sound at x, y, z: fades to silence at range blocks.
@@ -474,7 +465,7 @@ class Game
   # track stops.
   def update_music(dt)
     return unless @sound
-    volume = @volume * @music_volume
+    volume = @options.volume * @options.music
     if volume <= 0.0
       Gfx.au_music_stop
       return
@@ -570,13 +561,13 @@ class Game
     note_seen if @survival
     @weather.update_weather(dt)
     @weather.splash(@particles, @world, @player, dt) if @weather.rain > 0.0
-    Gfx.au_loop(Sfx::RAIN, @weather.sound(@world, @player) * @volume) if @sound
+    Gfx.au_loop(Sfx::RAIN, @weather.sound(@world, @player) * @options.volume) if @sound
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
     speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
     @bob += speed * dt * 2.6
-    target_fov = option_fov * (speed > 5.0 ? 1.1 : 1.0)
+    target_fov = @options.half_fov * (speed > 5.0 ? 1.1 : 1.0)
     @fov += (target_fov - @fov) * (6.0 * dt).clamp(0.0, 1.0)
     update_clock(dt)
     @message_time -= dt
@@ -777,7 +768,7 @@ class Game
     end
     if @save_on_quit
       save
-      save_options
+      @options.write_file
     end
     elapsed = (Gfx.gfx_ns - started) / 1.0e9
     puts "gpu_wait_ms=#{Gfx.gfx_gpu_ms.round(2)}" if ENV["GPUTIME"]
