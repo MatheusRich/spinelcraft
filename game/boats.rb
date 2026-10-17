@@ -82,7 +82,7 @@ class Game
         up = 0
         while up < 3 && !found
           y = base + (up == 0 ? 1 : (up == 1 ? 0 : 2))
-          found = dry_stand?(x, y, z)
+          found = p.fits_dry?(@world, x, y, z)
           if found
             sx = x
             sy = y.to_f
@@ -98,13 +98,6 @@ class Game
     p.y = sy
     p.z = sz
     p.fall_start = sy
-  end
-
-  # True when the player fits at x, y, z, out of the water, and stands on
-  # a solid block.
-  def dry_stand?(x, y, z)
-    !@world.solid_in_box?(x, y.to_f, z, Player::HALF, Player::TALL) && @world.solid_in_box?(x, y - 0.1, z, Player::HALF, 0.05) &&
-      !Block.water?(@world.get(x.floor, y, z.floor))
   end
 
   # Moves each boat in a loaded chunk. The boat that the player rides takes

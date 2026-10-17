@@ -2342,7 +2342,7 @@ class Game
     set_block(x, y - 1, z, Block::STONE)
     set_block(x, y, z, Block.door_id(0, false, false))
     set_block(x, y + 1, z, Block.door_id(0, true, false))
-    stacked = door_fits?(x, y + 2, z)
+    stacked = @world.door_fits?(x, y + 2, z)
     toggle_door(x, y, z)
     @mobs.clear
     @mobs << Mob.new(Mob::ZOMBIE, x + 0.5, y.to_f, z + 0.5, 3)
@@ -3046,7 +3046,7 @@ class Game
     set_block(bx, y, bz, Block::STONE)
     sheep.grass_bite = true
     bite_grass(sheep)
-    on_stone = sheep.sheared && !can_graze?(sheep)
+    on_stone = sheep.sheared && !sheep.can_graze?(@world)
     check("a sheared sheep grows its wool back when its bite of grass ends, and grass turns to dirt",
           early && on_grass && on_tall && on_stone && (GRAZE_CHANCE - 0.04).abs < 1.0e-9)
     # A hit makes the sheep panic: it stops eating before the bite, and it
@@ -3071,7 +3071,7 @@ class Game
     aimed = @target_mob == 0
     left_button(1.0 / 60.0, true, true)
     update_mobs(1.0 / 60.0)
-    stopped = sheep.graze <= 0.0 && sheep.sheared && !can_graze?(sheep)
+    stopped = sheep.graze <= 0.0 && sheep.sheared && !sheep.can_graze?(@world)
     sheep.hp = 0.5
     sheep.by_player = true
     (Mob::IMMUNE * 60.0 + 2.0).to_i.times { update_mobs(1.0 / 60.0) }

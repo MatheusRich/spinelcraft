@@ -9,7 +9,7 @@ class Game
     # A door goes as a whole: removing one half removes the other.
     if Block.door?(old) && !Block.door?(b)
       @world.set(x, y, z, b)
-      other = door_partner(x, y, z)
+      other = @world.door_partner(x, y, z)
       set_block(x, other, z, Block::AIR) if Block.door?(@world.get(x, other, z))
     end
     # A bed also goes as a whole. Each half faces away from the other.
@@ -18,7 +18,7 @@ class Game
       d = Block::FACING[old] ^ 1
       set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::AIR) if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
     end
-    if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && near_lava?(x, y, z))
+    if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && @world.near_lava?(x, y, z))
       mark_light_area(x, z)
     end
     @world.set(x, y, z, b)
@@ -101,11 +101,6 @@ class Game
     nil
   end
 
-  def near_lava?(x, y, z)
-    Block.lava?(@world.get(x + 1, y, z)) || Block.lava?(@world.get(x - 1, y, z)) || Block.lava?(@world.get(x, y + 1, z)) ||
-      Block.lava?(@world.get(x, y - 1, z)) || Block.lava?(@world.get(x, y, z + 1)) || Block.lava?(@world.get(x, y, z - 1))
-  end
-
   # Queues a cell and its six neighbors for the water simulation.
   def wake_water(x, y, z)
     @flow_queue << x << y << z
@@ -142,11 +137,6 @@ class Game
   # source) when lava is true; 0 when it is not that fluid.
   def fluid_level(b, lava) = lava ? Block.lava_level(b) : Block::WATER_LEVEL[b]
 
-  def touches_water?(x, y, z)
-    Block.water?(@world.get(x + 1, y, z)) || Block.water?(@world.get(x - 1, y, z)) ||
-      Block.water?(@world.get(x, y + 1, z)) || Block.water?(@world.get(x, y, z + 1)) || Block.water?(@world.get(x, y, z - 1))
-  end
-
   def update_water # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     batch = @flow_queue
     @flow_queue = []
@@ -161,7 +151,7 @@ class Game
       i += 3
       next unless @world.inside?(x, y, z)
       b = @world.get(x, y, z)
-      if Block.lava?(b) && touches_water?(x, y, z)
+      if Block.lava?(b) && @world.touches_water?(x, y, z)
         # Water cools lava into cobblestone.
         set_block(x, y, z, Block::COBBLE)
         play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6, SOUND_RANGE) unless hiss

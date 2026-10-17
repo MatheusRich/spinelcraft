@@ -299,6 +299,39 @@ class World
   # True when nothing above x, y, z stops the rain.
   def under_sky?(x, y, z) = height_at(x.floor, z.floor) <= y.floor
 
+  # Land well above the sea, from the noise alone.
+  def land?(x, z) = surface_height(x, z) > SEA + 4
+
+  # Ground above the beach with no tree or water on top.
+  def dry_land?(x, z)
+    h = height_at(x, z)
+    b = get(x, h - 1, z)
+    h > SEA + 2 && !Block.leaves?(b) && !Block.water?(b)
+  end
+
+  # A door is two blocks tall. It stands on a solid block that is not a
+  # door, and no door stands right above it, so each half has one partner.
+  def door_fits?(x, y, z)
+    below = get(x, y - 1, z)
+    Block.solid?(below) && !Block.door?(below) && get(x, y + 1, z) == Block::AIR && !Block.door?(get(x, y + 2, z))
+  end
+
+  # The y of the other half of the door at x, y, z.
+  def door_partner(x, y, z) = Block.door?(get(x, y + 1, z)) ? y + 1 : y - 1
+
+  # True when lava is on a side of x, y, z.
+  def near_lava?(x, y, z)
+    Block.lava?(get(x + 1, y, z)) || Block.lava?(get(x - 1, y, z)) || Block.lava?(get(x, y + 1, z)) ||
+      Block.lava?(get(x, y - 1, z)) || Block.lava?(get(x, y, z + 1)) || Block.lava?(get(x, y, z - 1))
+  end
+
+  # True when water is on a side of x, y, z or above it. Water under
+  # lava does not cool it.
+  def touches_water?(x, y, z)
+    Block.water?(get(x + 1, y, z)) || Block.water?(get(x - 1, y, z)) ||
+      Block.water?(get(x, y + 1, z)) || Block.water?(get(x, y, z + 1)) || Block.water?(get(x, y, z - 1))
+  end
+
   # The light list of a loaded chunk, else an empty list. (An Array-or-nil
   # return makes Spinel box the elements.)
   def torches_of(cx, cz) = chunk_loaded?(cx, cz) ? @chunk_torches[World.slot(cx.to_i, cz.to_i)] : @no_torches

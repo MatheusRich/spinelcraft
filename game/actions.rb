@@ -454,7 +454,7 @@ class Game
   # Opens or closes the door at x, y, z and the other half above or below it.
   def toggle_door(x, y, z)
     b = Block.door_toggled(@world.get(x, y, z))
-    other = door_partner(x, y, z)
+    other = @world.door_partner(x, y, z)
     # A closed door must not close on the player or a mob.
     unless Block.door_open?(b)
       return if @player.overlaps?(x, y, z) || @player.overlaps?(x, other, z)
@@ -475,13 +475,6 @@ class Game
       return true if x + 1 > m.x - m.half && x < m.x + m.half && y + tall > m.y && y < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
     end
     false
-  end
-
-  # A door is two blocks tall. It stands on a solid block that is not a
-  # door, and no door stands right above it, so each half has one partner.
-  def door_fits?(x, y, z)
-    below = @world.get(x, y - 1, z)
-    Block.solid?(below) && !Block.door?(below) && @world.get(x, y + 1, z) == Block::AIR && !Block.door?(@world.get(x, y + 2, z))
   end
 
   # The direction on the ground that the player looks in most (see
@@ -505,9 +498,6 @@ class Game
     return false unless Block.solid?(@world.get(x, y - 1, z)) && Block.solid?(@world.get(hx, y - 1, hz))
     !@player.overlaps?(hx, y, hz) && !mob_in?(hx, y, hz, 1)
   end
-
-  # The y of the other half of the door at x, y, z.
-  def door_partner(x, y, z) = Block.door?(@world.get(x, y + 1, z)) ? y + 1 : y - 1
 
   # Bone meal on the block in view: it spends one in survival when the
   # block grows, and green sparkles show where it worked.
@@ -628,7 +618,7 @@ class Game
     # It passes water and lava, and a block replaces them, as in Minecraft.
     return unless current == Block::AIR || Block.water?(current) || Block.lava?(current) || Block.replaceable?(current)
     if Block.door?(b)
-      return unless door_fits?(x, y, z)
+      return unless @world.door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)
       set_block(x, y + 1, z, Block.door_id(Block::FACING[b], true, false))
     end

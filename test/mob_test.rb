@@ -137,6 +137,58 @@ class MobTest < Minitest::Test
     refute zombie.despawn?(player, 0.0)
   end
 
+  def test_a_sheep_eats_the_tall_grass_in_its_cell_first_then_the_grass_under_it
+    @world.set(8, SKY_Y - 2, 8, Block::GRASS)
+    sheep = Mob.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    assert_equal 2, sheep.grass_under(@world)
+    @world.set(8, SKY_Y - 1, 8, Block::TALL_GRASS)
+    assert_equal 1, sheep.grass_under(@world)
+    @world.set(8, SKY_Y - 1, 8, Block::AIR)
+    @world.set(8, SKY_Y - 2, 8, Block::STONE)
+    assert_equal 0, sheep.grass_under(@world)
+  end
+
+  def test_only_a_calm_sheep_with_grass_under_it_grazes
+    @world.set(8, SKY_Y - 2, 8, Block::GRASS)
+    sheep = Mob.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    assert sheep.can_graze?(@world)
+    refute Mob.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 3).can_graze?(@world)
+    sheep.start_graze
+    refute sheep.can_graze?(@world)
+    scared = Mob.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    scared.hit(1.0, 7.0, 8.5)
+    refute scared.can_graze?(@world)
+    dead = Mob.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    dead.hp = 0.0
+    refute dead.can_graze?(@world)
+    @world.set(8, SKY_Y - 2, 8, Block::STONE)
+    refute Mob.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3).can_graze?(@world)
+  end
+
+  def test_the_log_says_why_a_mob_goes
+    pig = Mob.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    assert_equal "despawns", pig.gone_reason(@world)
+    pig.x = 40.5
+    assert_equal "is out of the loaded chunks", pig.gone_reason(@world)
+    pig.alive = false
+    assert_equal "dies", pig.gone_reason(@world)
+  end
+
+  def test_a_sheep_on_tall_grass_over_stone_grazes
+    @world.set(8, SKY_Y - 2, 8, Block::STONE)
+    @world.set(8, SKY_Y - 1, 8, Block::TALL_GRASS)
+    assert Mob.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3).can_graze?(@world)
+  end
+
+  # The cell of a sheep is the floor of its place, also below 0, and its
+  # feet a hair under the top of a block still stand on that block.
+  def test_a_sheep_eats_from_the_cell_that_it_stands_in
+    @world.load_chunk(-1, -1)
+    @world.set(-8, SKY_Y - 2, -8, Block::GRASS)
+    sheep = Mob.new(Mob::SHEEP, -7.5, SKY_Y - 1.005, -7.5, 3)
+    assert_equal 2, sheep.grass_under(@world)
+  end
+
   private
 
   # A stone floor under SKY_Y - 1 over the whole chunk, in open air.

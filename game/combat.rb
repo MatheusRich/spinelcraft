@@ -16,25 +16,12 @@ class Game
   LAMB_GRAZE_CHANCE = 20.0 / 25.0
   LAMB_BITE_GROWTH = 60.0
 
-  # A sheep starts to eat when it has grass to eat and does not panic.
-  def can_graze?(m) = m.kind == Mob::SHEEP && !m.dying? && m.graze <= 0.0 && m.panic <= 0.0 && grass_under(m) > 0
-
-  # What the sheep m can eat: 1 for the tall grass in its cell, 2 for the
-  # grass block under it, or 0. minecraft.wiki/w/Sheep
-  def grass_under(m)
-    x = m.x.floor
-    y = (m.y + 0.01).floor
-    z = m.z.floor
-    return 1 if @world.get(x, y, z) == Block::TALL_GRASS
-    @world.get(x, y - 1, z) == Block::GRASS ? 2 : 0
-  end
-
   # The bite of a grazing sheep: the tall grass goes, or else the grass
   # block turns into dirt, the wool grows back, and a baby grows up
   # faster. With the grass gone, nothing happens. minecraft.wiki/w/Sheep
   def bite_grass(m)
     m.grass_bite = false
-    eaten = grass_under(m)
+    eaten = m.grass_under(@world)
     return if eaten == 0
     x = m.x.floor
     y = (m.y + 0.01).floor
@@ -98,7 +85,7 @@ class Game
         explode(m.x, m.y + 0.8, m.z)
       end
       m.douse if m.fire > 0.0 && @weather.rain > 0.5 && @world.under_sky?(m.x, m.y + m.tall, m.z)
-      m.start_graze if can_graze?(m) && @rng.rand01 < dt * (m.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
+      m.start_graze if m.can_graze?(@world) && @rng.rand01 < dt * (m.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
       @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
       sdt = dt / steps
@@ -142,16 +129,9 @@ class Game
     update_eggs(dt)
     @mobs.reject! do |m|
       gone = !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || m.despawn?(@player, dt)
-      Log.debug(Log::MOBS) { "#{Mob::NAMES[m.kind]} at #{m.x.floor} #{m.y.floor} #{m.z.floor} #{mob_gone_reason(m)}" } if gone
+      Log.debug(Log::MOBS) { "#{Mob::NAMES[m.kind]} at #{m.x.floor} #{m.y.floor} #{m.z.floor} #{m.gone_reason(@world)}" } if gone
       gone
     end
-  end
-
-  # Why update_mobs takes the mob m out, for Log::MOBS.
-  def mob_gone_reason(m)
-    return "dies" unless m.alive
-    return "is out of the loaded chunks" unless @world.loaded?(m.x.floor, m.z.floor)
-    "despawns"
   end
 
   # The sound of the mob m from sounds: a chick peeps for all of them, as

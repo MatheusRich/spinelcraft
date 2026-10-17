@@ -282,6 +282,13 @@ class Player
     false
   end
 
+  # True when the player fits at x, y, z, out of the water, and stands on
+  # a solid block.
+  def fits_dry?(world, x, y, z)
+    !world.solid_in_box?(x, y.to_f, z, HALF, TALL) && world.solid_in_box?(x, y - 0.1, z, HALF, 0.05) &&
+      !Block.water?(world.get(x.floor, y, z.floor))
+  end
+
   # True when the block cell at x, y, z overlaps the player's box.
   def overlaps?(bx, by, bz)
     bx + 1 > @x - HALF && bx < @x + HALF && by + 1 > @y && by < @y + TALL && bz + 1 > @z - HALF && bz < @z + HALF

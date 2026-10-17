@@ -194,4 +194,73 @@ class WorldTest < Minitest::Test
     column.each { |y| world.set(8, y, 8, Block::AIR) }
     assert_equal [Block::AIR] * 16, column.map { |y| world.get(8, y, 8) }
   end
+
+  def test_a_door_fits_on_a_solid_block_with_room_for_its_two_halves
+    world = world_with_one_chunk
+    world.set(8, SKY_Y - 1, 8, Block::STONE)
+    assert world.door_fits?(8, SKY_Y, 8)
+    refute world.door_fits?(8, SKY_Y + 1, 8)
+    world.set(8, SKY_Y + 1, 8, Block::STONE)
+    refute world.door_fits?(8, SKY_Y, 8)
+    world.set(8, SKY_Y + 1, 8, Block::AIR)
+    world.set(8, SKY_Y + 2, 8, Block::DOOR_BLOCK)
+    refute world.door_fits?(8, SKY_Y, 8)
+    world.set(4, SKY_Y - 1, 4, Block::DOOR_BLOCK + 4)
+    refute world.door_fits?(4, SKY_Y, 4)
+  end
+
+  def test_each_half_of_a_door_finds_the_other
+    world = world_with_one_chunk
+    world.set(8, SKY_Y, 8, Block::DOOR_BLOCK)
+    world.set(8, SKY_Y + 1, 8, Block::DOOR_BLOCK + 4)
+    assert_equal SKY_Y + 1, world.door_partner(8, SKY_Y, 8)
+    assert_equal SKY_Y, world.door_partner(8, SKY_Y + 1, 8)
+  end
+
+  def test_lava_on_any_side_of_a_cell_is_near
+    world = world_with_one_chunk
+    refute world.near_lava?(8, SKY_Y, 8)
+    [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].each do |dx, dy, dz|
+      world.set(8 + dx, SKY_Y + dy, 8 + dz, Block::LAVA)
+      assert world.near_lava?(8, SKY_Y, 8), [dx, dy, dz].inspect
+      world.set(8 + dx, SKY_Y + dy, 8 + dz, Block::AIR)
+    end
+  end
+
+  def test_water_on_a_side_or_above_touches_a_cell_and_water_below_does_not
+    world = world_with_one_chunk
+    [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, -1]].each do |dx, dy, dz|
+      world.set(8 + dx, SKY_Y + dy, 8 + dz, Block::WATER)
+      assert world.touches_water?(8, SKY_Y, 8), [dx, dy, dz].inspect
+      world.set(8 + dx, SKY_Y + dy, 8 + dz, Block::AIR)
+    end
+    world.set(8, SKY_Y - 1, 8, Block::WATER)
+    refute world.touches_water?(8, SKY_Y, 8)
+  end
+
+  def test_dry_land_is_ground_above_the_beach_with_no_leaves_or_water_on_top
+    world = world_with_one_chunk
+    world.set(8, SEA + 10, 8, Block::STONE)
+    assert world.dry_land?(8, 8)
+    world.set(8, SEA + 11, 8, Block::OAK_LEAVES)
+    refute world.dry_land?(8, 8)
+    world.set(8, SEA + 11, 8, Block::WATER)
+    refute world.dry_land?(8, 8)
+    # The top block must stand at SEA + 2 or higher.
+    (SEA + 2...WY).each { |y| world.set(4, y, 4, Block::AIR) }
+    world.set(4, SEA + 1, 4, Block::STONE)
+    refute world.dry_land?(4, 4)
+    world.set(4, SEA + 2, 4, Block::STONE)
+    assert world.dry_land?(4, 4)
+  end
+
+  # The spawn search looks for land: a column whose noise surface is more
+  # than 4 blocks above the sea.
+  def test_land_rises_more_than_four_blocks_above_the_sea
+    world = World.new(1337)
+    [[SEA + 5, true], [SEA + 4, false], [SEA - 10, false]].each do |surface, land|
+      world.define_singleton_method(:surface_height) { |_x, _z| surface }
+      assert_equal land, world.land?(3, 4), "surface #{surface}"
+    end
+  end
 end

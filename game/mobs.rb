@@ -350,6 +350,26 @@ class Mob
   # own, attack or take hits.
   def dying? = @hp <= 0
 
+  # A sheep starts to eat when it has grass to eat and does not panic.
+  def can_graze?(world) = @kind == SHEEP && !dying? && @graze <= 0.0 && @panic <= 0.0 && grass_under(world) > 0
+
+  # What the sheep can eat: 1 for the tall grass in its cell, 2 for the
+  # grass block under it, or 0. minecraft.wiki/w/Sheep
+  def grass_under(world)
+    x = @x.floor
+    y = (@y + 0.01).floor
+    z = @z.floor
+    return 1 if world.get(x, y, z) == Block::TALL_GRASS
+    world.get(x, y - 1, z) == Block::GRASS ? 2 : 0
+  end
+
+  # Why Game#update_mobs takes the mob out, for Log::MOBS.
+  def gone_reason(world)
+    return "dies" unless @alive
+    return "is out of the loaded chunks" unless world.loaded?(@x.floor, @z.floor)
+    "despawns"
+  end
+
   # True when the mob despawns after dt seconds more, with player where it
   # is now.
   def despawn?(player, dt)
