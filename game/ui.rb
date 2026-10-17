@@ -49,7 +49,7 @@ class Ui
   # the gui display of block/block in Minecraft: rotation (30, 225, 0) and
   # scale 0.625. The top shows TOP, the left face FRONT and the right face
   # SIDE. A block with a shape (a chest) is the box of its shape.
-  def cube(cx, cy, e, b, shade)
+  def cube(cx, cy, e, b, shade) # rubocop:todo Metrics/MethodLength
     @ix = cx
     @iy = cy
     @ie = e

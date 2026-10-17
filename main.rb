@@ -56,7 +56,7 @@ require_relative "game/commands"
 require_relative "game/testing"
 
 class Game
-  def initialize
+  def initialize # rubocop:todo Metrics/MethodLength
     Log.setup(ENV["LOG"] || "")
     @seed = (ENV["SEED"] || "1337").to_i
     @max_frames = (ENV["FRAMES"] || "0").to_i
@@ -233,7 +233,7 @@ class Game
     abort "Mesher::Y_BITS is too narrow for WY" if WY > 1 << Mesher::Y_BITS
   end
 
-  def setup
+  def setup # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     vsync = ENV["NOVSYNC"] ? 0 : 1
     Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
@@ -300,7 +300,7 @@ class Game
   # Finds dry land near x = z = 0 and puts a new player there. The origin
   # can be at sea, so the noise first finds land on squares around it, 64
   # blocks apart. Then the loaded blocks give dry land near that point.
-  def spawn
+  def spawn # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     ox = 0
     oz = 0
     r = 0
@@ -430,7 +430,7 @@ class Game
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_game(dt)
+  def update_game(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     return if paused?
 
     fwd = 0.0
@@ -637,7 +637,7 @@ class Game
 
   def detail_view = @options.view < FarTerrain::DETAIL_VIEW ? @options.view : FarTerrain::DETAIL_VIEW
 
-  def run
+  def run # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     setup
     if ENV["SELFTEST"]
       ok = self_test

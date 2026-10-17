@@ -60,7 +60,7 @@ class ChunkMeshes
   # Loads and meshes the chunks within radius of chunk (pcx, pcz), nearest
   # first, until budget_ns has passed (a negative budget does all of them).
   # A chunk is meshed once its ring of neighbors has loaded.
-  def stream(player_cx, player_cz, budget_ns, radius)
+  def stream(player_cx, player_cz, budget_ns, radius) # rubocop:todo Metrics/MethodLength
     # Spinel cannot type the player's position, so to_i gives the chunk
     # math and the world generator Integers.
     pcx = player_cx.to_i

@@ -71,7 +71,7 @@ class Light
   # the nearest cell under the open sky. It is 0 when no such cell is fewer
   # than sky_reach steps away. The search looks for torches and lava only
   # when lamp is true.
-  def level(x, y, z, sky, lamp, sky_reach)
+  def level(x, y, z, sky, lamp, sky_reach) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     reach = lamp ? REACH : sky_reach - 1
     return 0 if reach < 0
     @stamp += 1

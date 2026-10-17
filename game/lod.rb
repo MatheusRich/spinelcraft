@@ -91,7 +91,7 @@ class Lod
   end
 
   # Builds tile (tx, tz): the faces, sorted by direction, and their offsets.
-  def build(tx, tz)
+  def build(tx, tz) # rubocop:todo Metrics/MethodLength
     s = Lod.slot(tx, tz)
     @tile_x[s] = tx
     @tile_z[s] = tz

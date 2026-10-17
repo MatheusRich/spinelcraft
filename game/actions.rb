@@ -1,6 +1,6 @@
 # Player input: keys, the mouse, mining, placing, beds, and food.
 class Game
-  def handle_input(dt)
+  def handle_input(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     if @inventory_open
       handle_inventory
       return
@@ -99,7 +99,7 @@ class Game
 
   # The left button hits the mob in the crosshair, or else breaks the block:
   # at once in creative, over time in survival.
-  def left_button(dt, held, pressed)
+  def left_button(dt, held, pressed) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     if held && @target_mob >= 0
       if pressed
         mob = @mobs[@target_mob]
@@ -141,7 +141,7 @@ class Game
 
   # The right button gets in a boat, feeds an animal, draws the bow, opens
   # a chest, uses a bed, eats, carves a pumpkin, or places a block or a boat.
-  def right_button(dt, held)
+  def right_button(dt, held) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     if @target_boat >= 0 && !riding?
       @eat_time = -1.0
       @draw_time = -1.0
@@ -271,7 +271,7 @@ class Game
 
   # An empty bucket takes the first water or lava source in view. A full
   # bucket pours its source into the cell where a block would go.
-  def use_bucket
+  def use_bucket # rubocop:todo Metrics/MethodLength
     b = current_block.to_i
     if b == Block::BUCKET && @target_mob >= 0 && @mobs[@target_mob].kind == Mob::COW
       swap_bucket(Block::MILK_BUCKET)
@@ -347,7 +347,7 @@ class Game
   # block needs, it takes 5 seconds for each point and drops nothing. It
   # takes 5 times as long with the head under water, and again 5 times as
   # long off the ground. minecraft.wiki/w/Breaking
-  def mine(dt)
+  def mine(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @mine_delay -= dt
     return if @mine_delay > 0.0
     x = @player.hx
@@ -398,7 +398,7 @@ class Game
   end
 
   # The material of block b for its sounds, as in VoxeLibre (mcl_sounds).
-  def material(b)
+  def material(b) # rubocop:todo Metrics/CyclomaticComplexity
     b = Block::BASE[b]
     return M_GLASS if b == Block::GLASS
     return M_GRAVEL if b == Block::GRAVEL
@@ -569,7 +569,7 @@ class Game
     play(Sfx::DRINK, 0.6)
   end
 
-  def place
+  def place # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # Spinel types an Array read as Integer or nil. A plain Integer here keeps
     # the parameters of Block.solid?, plant? and emits? unboxed.
     b = current_block.to_i

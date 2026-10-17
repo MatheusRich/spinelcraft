@@ -24,7 +24,7 @@ class Player
   # True when the last step started a jump.
   attr_reader :jumped
 
-  def initialize(x, y, z)
+  def initialize(x, y, z) # rubocop:todo Metrics/MethodLength
     @x = x
     @y = y
     @z = z
@@ -135,7 +135,7 @@ class Player
 
   # Moves the player for one step of dt seconds and returns the fall
   # distance when it lands (0.0 otherwise).
-  def update(world, dt, fwd, strafe, jump, down, sprint)
+  def update(world, dt, fwd, strafe, jump, down, sprint) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     feet = world.get(@x.floor, (@y + 0.4).floor, @z.floor)
     @in_lava = Block.lava?(feet)
     @in_water = Block.water?(feet) || @in_lava
@@ -226,7 +226,7 @@ class Player
 
   def blocked?(world) = world.solid_in_box?(@x, @y, @z, HALF, TALL)
 
-  def move(world, dx, dy, dz)
+  def move(world, dx, dy, dz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # Inside a block (placed on us, or spawned in one): climb out instead of sliding.
     if blocked?(world)
       @y = @y.floor + 1.0
@@ -301,7 +301,7 @@ class Player
 
   # Voxel walk along the view ray. Sets hit, the hit cell, and the empty
   # cell in front of it. The ray passes a plant when it misses its box.
-  def raycast(world)
+  def raycast(world) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     ox = @x
     oy = eye_y
     oz = @z

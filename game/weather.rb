@@ -80,7 +80,7 @@ class Weather
 
   # Makes the rain quads again when the player moves to another block, and
   # every second for the blocks that change. Returns true when it did.
-  def build_quads(world, player, dt)
+  def build_quads(world, player, dt) # rubocop:todo Metrics/MethodLength
     @age += dt
     return false if @rain <= 0.0
     cx = player.x.floor

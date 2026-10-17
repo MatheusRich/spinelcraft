@@ -1,6 +1,6 @@
 # The 3D frame: uniforms, chunk and far terrain draws, and the sky.
 class Game
-  def render
+  def render # rubocop:todo Metrics/MethodLength
     w = Gfx.gfx_width.to_f
     h = Gfx.gfx_height.to_f
     ex = @player.x.to_f
@@ -44,7 +44,7 @@ class Game
   # Uniforms 16 to 27: the eye, the animation clock, the sky and fog colors,
   # daylight, the fog range, and the frame size. Then the far cloud layer and
   # the rain.
-  def set_uniforms(ex, ey, ez, w, h)
+  def set_uniforms(ex, ey, ez, w, h) # rubocop:todo Metrics/MethodLength
     day = @clock.daylight
     under = Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
     sky_r = 0.03 + 0.50 * day
@@ -99,7 +99,7 @@ class Game
 
   # Fills @dyn with the parts that change every frame: mobs, arrows, items,
   # particles, the block outline, the cracks, and last the held model.
-  def build_dyn(ex, ey, ez, reach)
+  def build_dyn(ex, ey, ez, reach) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @dyn.clear
     @mobs.each do |m|
       # 2 blocks around the feet also hold a mob that lies on its side.

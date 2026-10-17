@@ -375,7 +375,7 @@ class Mesh3
   end
 
   # One edge of outline, from a to b.
-  def edge_line(ax, ay, az, bx, by, bz, ex, ey, ez, fx, fy, fz, k)
+  def edge_line(ax, ay, az, bx, by, bz, ex, ey, ez, fx, fy, fz, k) # rubocop:todo Metrics/MethodLength
     dx = bx - ax
     dy = by - ay
     dz = bz - az

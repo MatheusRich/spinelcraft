@@ -52,7 +52,7 @@ class Item
   end
 
   # Moves the item for dt seconds. Returns false when it is in lava.
-  def update(world, dt)
+  def update(world, dt) # rubocop:todo Metrics/MethodLength
     @age += dt
     @wait -= dt
     at = world.get(@x.floor, @y.floor, @z.floor)

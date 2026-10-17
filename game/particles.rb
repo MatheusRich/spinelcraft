@@ -75,7 +75,7 @@ class Particle
 
   # Adds the particle to mesh as a square that faces the camera, whose right
   # and up axes are (rx, 0, rz) and (ux, uy, uz).
-  def draw(mesh, rx, rz, ux, uy, uz)
+  def draw(mesh, rx, rz, ux, uy, uz) # rubocop:todo Metrics/MethodLength
     # t goes from 1 at birth to 0 at death.
     t = @life / @max
     case @kind
@@ -273,7 +273,7 @@ class Particles
 
   # Looks at random blocks near x, y, z: a torch gives a flame and smoke, and
   # lava under air throws an ember now and then.
-  def sample_fire(world, x, y, z, dt)
+  def sample_fire(world, x, y, z, dt) # rubocop:todo Metrics/MethodLength
     span = SAMPLE_REACH * 2 + 1
     sx = x.floor - SAMPLE_REACH
     sy = y.floor - SAMPLE_REACH

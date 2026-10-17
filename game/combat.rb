@@ -64,7 +64,7 @@ class Game
     Gfx.in_capture(0)
   end
 
-  def update_mobs(dt)
+  def update_mobs(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # Rain dims the day, so monsters do not burn in it.
     day = @clock.daylight * (1.0 - 0.5 * @weather.rain)
     @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.time_of_day, @weather.raining?), dt)
@@ -219,7 +219,7 @@ class Game
   # dt seconds of pushes between the mobs whose boxes overlap. A dying mob
   # does not push. The positions go into Float arrays first, so the check
   # of each pair is cheap.
-  def push_mobs(dt)
+  def push_mobs(dt) # rubocop:todo Metrics/MethodLength
     n = @mobs.size
     return if n < 2
     xs = Array.new(n, 0.0)
@@ -373,7 +373,7 @@ class Game
     ((impact * impact + impact) / 2.0 * 7.0 * BLAST_REACH + 1.0).to_i
   end
 
-  def explode(cx, cy, cz)
+  def explode(cx, cy, cz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     r = 3
     x = cx.floor - r
     while x <= cx.floor + r
@@ -433,7 +433,7 @@ class Game
     play_at(Sfx::SHOOT, sx, sy, sz, 0.9, SOUND_RANGE)
   end
 
-  def update_arrows(dt)
+  def update_arrows(dt) # rubocop:todo Metrics/MethodLength
     @arrows.each do |a|
       unless a.fly(@world, dt)
         # An arrow makes the same sound when it hits a block as when it

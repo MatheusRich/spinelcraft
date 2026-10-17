@@ -371,7 +371,7 @@ class Game
     Gfx.in_capture(@inventory_open ? 0 : 1)
   end
 
-  def handle_inventory
+  def handle_inventory # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     if Gfx.in_key_pressed(Key::E) || Gfx.in_key_pressed(Key::ESCAPE)
       toggle_inventory
       return

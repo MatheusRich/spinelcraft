@@ -18,7 +18,7 @@ class Camera
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_camera(ex, ey, ez, yaw, pitch, aspect, far, fov)
+  def update_camera(ex, ey, ez, yaw, pitch, aspect, far, fov) # rubocop:todo Metrics/MethodLength
     @ex = ex
     @ey = ey
     @ez = ez

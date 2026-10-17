@@ -70,7 +70,7 @@ class NaturalSpawner
   # packs walk from the center with steps of up to 5 on x and z, and each
   # step can spawn a monster of the pack's kind. Returns how many spawned,
   # room at most.
-  def spawn_packs(mobs, player, sky, room)
+  def spawn_packs(mobs, player, sky, room) # rubocop:todo Metrics/MethodLength
     span = SPAWN_CHUNKS * 2 + 1
     x0 = ((player.x.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
     z0 = ((player.z.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i

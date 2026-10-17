@@ -24,7 +24,7 @@ class Game
   FURNACE_FIELDS = 12 # x, y, z, burn, burn total, progress, then the slots (Slots#to_a)
   BOAT_FIELDS = 5 # item, x, y, z, yaw
 
-  def save
+  def save # rubocop:todo Metrics/MethodLength
     header = [@seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
               @clock.time_of_day, @clock.day, @survival ? 1 : 0, @vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
@@ -125,7 +125,7 @@ class Game
     @falling.clear
   end
 
-  def apply_loaded
+  def apply_loaded # rubocop:todo Metrics/MethodLength
     f = @loaded
     @player.x = f[F_PLAYER].to_f
     @player.y = f[F_PLAYER + 1].to_f

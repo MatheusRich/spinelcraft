@@ -109,7 +109,7 @@ class Mesher
 
   attr_reader :opaque, :water, :offsets, :water_offsets
 
-  def initialize(world)
+  def initialize(world) # rubocop:todo Metrics/MethodLength
     @world = world
     @opaque = []
     @water = []
@@ -252,7 +252,7 @@ class Mesher
   end
 
   # Meshes world chunk (cx, cz). It and the 8 chunks around it must be loaded.
-  def build(cx, cz)
+  def build(cx, cz) # rubocop:todo Metrics/MethodLength
     @opaque.clear
     @water.clear
     @lists.each { |l| l.clear }
@@ -359,7 +359,7 @@ class Mesher
 
   # The faces of the block in cell i, at x, y, z (see build). lit is true
   # when torch light reaches the chunk.
-  def mesh_cell(x, y, z, i, lit)
+  def mesh_cell(x, y, z, i, lit) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # Vertices hold the storage column; the shader finds the world one.
     lx = x & LMASK
     lz = z & LMASK
@@ -449,7 +449,7 @@ class Mesher
   # Spreads the light of torches, lava and jack o'lanterns through cells
   # that are not opaque, one less per step, so walls stop it. Covers the
   # chunk plus a margin.
-  def flood(x0, z0)
+  def flood(x0, z0) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # Only the cells in the last queue have light, so clear just those.
     @queue.size.times { |k| @light[@queue[k]] = 0 }
     @queue.clear

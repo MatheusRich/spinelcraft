@@ -90,7 +90,7 @@ class Boat
 
   # Moves the boat for dt seconds. fwd is 1 forward, -1 back, and turn is 1
   # to the right and -1 to the left.
-  def move_boat(world, dt, fwd, turn)
+  def move_boat(world, dt, fwd, turn) # rubocop:todo Metrics/MethodLength
     @age += dt
     @hurt -= dt
     @damage -= HEAL * dt

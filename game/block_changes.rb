@@ -1,6 +1,6 @@
 # Block changes and what follows them: flowing water and lava, falling sand and gravel.
 class Game
-  def set_block(x, y, z, b)
+  def set_block(x, y, z, b) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @changed = true
     old = @world.get(x, y, z)
     drop_chest(x, y, z) if Block::BASE[b] != Block::CHEST && Block::BASE[old] == Block::CHEST
@@ -221,7 +221,7 @@ class Game
 
   # True when a log is at most LEAF_REACH steps from the leaves at x, y, z,
   # with leaves at each step, as in Minecraft.
-  def held_by_log?(x, y, z)
+  def held_by_log?(x, y, z) # rubocop:todo Metrics/MethodLength
     @leaf_stamp += 1
     q = @leaf_queue
     q.clear
@@ -318,7 +318,7 @@ class Game
       Block.water?(@world.get(x, y + 1, z)) || Block.water?(@world.get(x, y, z + 1)) || Block.water?(@world.get(x, y, z - 1))
   end
 
-  def update_water
+  def update_water # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     batch = @flow_queue
     @flow_queue = []
     # The remeshes of flowing water may wait for later frames.

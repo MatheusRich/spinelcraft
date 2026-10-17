@@ -51,7 +51,7 @@ class Game
   # The player gets out on the side of the boat that they face, or else on
   # another side, on land when there is land. With no room on any side,
   # the player stands on the boat. minecraft.wiki/w/Boat
-  def leave_boat
+  def leave_boat # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     boat = @boats[@riding]
     bx = boat.x.to_f
     by = boat.y.to_f

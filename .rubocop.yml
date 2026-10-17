@@ -1,0 +1,65 @@
+# RuboCop checks the code for bugs (Lint) and for code that is too long or
+# too complex (Metrics). Run `mise exec -- rubocop`.
+#
+# The old offenses wait in two places. A `# rubocop:todo` comment marks
+# each old method that is too long or too complex, so that a new method in
+# the same file is still checked. `.rubocop_todo.yml` lists the files with
+# old Lint and ClassLength offenses. When a fix removes the last offense of
+# a file, make the list again with
+# `mise exec -- rubocop --auto-gen-config --auto-gen-only-exclude --exclude-limit 1000`.
+inherit_from: .rubocop_todo.yml
+# The Exclude lists of this file and of the todo list add up.
+inherit_mode:
+  merge:
+    - Exclude
+
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+  # Spinel compiles only a subset of Ruby, and a style change can make it
+  # box a value or stop the compile. So only the cops below run.
+  DisabledByDefault: true
+
+Lint:
+  Enabled: true
+
+# The game code is mostly math. These two cops ask for parentheses around
+# `a * b + c` and `x - 1..x + 1`, where the order of the operators is the
+# normal order of math.
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: false
+Lint/AmbiguousRange:
+  Enabled: false
+
+# A check compares floats exactly on purpose: the game must give that
+# value.
+Lint/FloatComparison:
+  Exclude:
+    - "test/**/*"
+    - "game/testing.rb"
+
+# A method of 25 lines fits on one screen with its comment. A table literal
+# counts as one line.
+Metrics/MethodLength:
+  Enabled: true
+  Max: 25
+  CountAsOne: [array, hash, heredoc]
+  Exclude: &checks
+    # A check is a list of steps and asserts, so a long check is not hard to
+    # read.
+    - "test/**/*"
+    - "game/testing.rb"
+
+# The limit is high on purpose. A class can grow before it splits, so that
+# the split follows a real abstraction. RuboCop measures each `class Game`
+# block on its own, so this cop never sees all of Game.
+Metrics/ClassLength:
+  Enabled: true
+  Max: 300
+  Exclude: *checks
+
+Metrics/CyclomaticComplexity:
+  Enabled: true
+  Max: 15
+  Exclude: *checks

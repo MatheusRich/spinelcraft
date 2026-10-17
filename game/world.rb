@@ -187,7 +187,7 @@ class World
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :store
 
-  def initialize(seed)
+  def initialize(seed) # rubocop:todo Metrics/MethodLength
     # Eight blocks per Integer, one byte each; see block.
     @blocks = Array.new(PX * PY * PZ / 8 + 1, 0)
     @height = Array.new(WX * WZ, 0)
@@ -371,7 +371,7 @@ class World
   # solid_in_box?, on the x axis (axis 0), the y axis (axis 1) or the z axis
   # (axis 2): the lowest face when dir is 1, and the highest when dir is -1.
   # A move along that axis stops at this face.
-  def box_edge(x, y, z, half, tall, axis, dir)
+  def box_edge(x, y, z, half, tall, axis, dir) # rubocop:todo Metrics/MethodLength
     edge = dir > 0 ? 1.0e9 : -1.0e9
     x1 = (x + half).floor
     y1 = (y + tall).floor
@@ -645,7 +645,7 @@ class World
   # mountain ranges with ridges, plateaus with flat tops, rolling hills or
   # flat lowland. Rivers cut valleys down to the sea where the river noise
   # is near zero.
-  def surface_height(x, z)
+  def surface_height(x, z) # rubocop:todo Metrics/MethodLength
     nx = x + SHIFT
     nz = z + SHIFT
     warp(nx, nz)
@@ -867,7 +867,7 @@ class World
     h - 1
   end
 
-  def generate_chunk(cx, cz)
+  def generate_chunk(cx, cz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     highest = 0
@@ -1066,7 +1066,7 @@ class World
   PATCH_FILL = 65536 / 4
 
   # Trees (also those that grow next door and reach in), then plants and cacti.
-  def decorate(cx, cz)
+  def decorate(cx, cz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     patch = Noise.hash3(cx, 0, cz, 40) < PATCH_ODDS
@@ -1525,7 +1525,7 @@ class World
   # minecraft.wiki/w/Tree_definition (forking_trunk_placer) gives this
   # shape. The wiki does not confirm the heights and the odds: they copy
   # the acacia feature in the game code.
-  def acacia(x, y, z, x0, z0)
+  def acacia(x, y, z, x0, z0) # rubocop:todo Metrics/MethodLength
     r = Noise.hash3(x, y, z, 23)
     tall = TRUNK[Biome::ACACIA] + r % 3 + r / 3 % 3
     return if y + tall + 2 >= WY

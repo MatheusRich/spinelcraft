@@ -66,7 +66,7 @@ class Clouds
   end
 
   # Makes the boxes again when the player's cell changes. Returns true when it did.
-  def build(px, pz, drift)
+  def build(px, pz, drift) # rubocop:todo Metrics/MethodLength
     ci = Clouds.cell(px - drift)
     cj = Clouds.cell(pz)
     return false if @built && ci == @built_i && cj == @built_j

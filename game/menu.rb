@@ -103,7 +103,7 @@ class Game
     end
   end
 
-  def menu_label(i)
+  def menu_label(i) # rubocop:todo Metrics/CyclomaticComplexity
     if i == M_RESUME
       "BACK TO GAME"
     elsif i == M_BRIGHTNESS

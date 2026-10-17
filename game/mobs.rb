@@ -148,7 +148,7 @@ class Mob
   # True when a lover gives off a heart, until Game#update_mobs shows it.
   attr_accessor :love_heart
 
-  def initialize(kind, x, y, z, seed)
+  def initialize(kind, x, y, z, seed) # rubocop:todo Metrics/MethodLength
     @kind = kind
     @x = x
     @y = y
@@ -416,7 +416,7 @@ class Mob
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_mob(world, dt, player, day, held)
+  def update_mob(world, dt, player, day, held) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @hurt -= dt
     if @graze > 0.0
       @graze = 0.0 if @panic > 0.0 || dying?

@@ -34,7 +34,7 @@ class Game
 
   # Tints for water, lava and damage, flames while the player burns, the
   # crosshair, and the bow pull or the attack cooldown.
-  def draw_view_overlays(w, h, s)
+  def draw_view_overlays(w, h, s) # rubocop:todo Metrics/MethodLength
     eye_block = @world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor)
     if Block.water?(eye_block)
       @ui.rect(0.0, 0.0, w, h, 0.1, 0.25, 0.6, 0.25)
@@ -86,7 +86,7 @@ class Game
 
   # Hearts on the left above the hotbar, food on the right, and up to 10 air
   # bubbles above the food.
-  def draw_survival_bars(x0, y0, total, s)
+  def draw_survival_bars(x0, y0, total, s) # rubocop:todo Metrics/MethodLength
     hy = y0 - 26.0 * s
     i = 0
     while i < 10
@@ -222,7 +222,7 @@ class Game
 
   # The survival inventory screen: the 36 slots, the chest or the recipes on
   # the side, and the stack that the mouse holds.
-  def draw_backpack(w, h, s)
+  def draw_backpack(w, h, s) # rubocop:todo Metrics/MethodLength
     @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.55)
     top = pack_cell(HOTBAR, w, h, s)
     bottom = pack_cell(8, w, h, s)
@@ -294,7 +294,7 @@ class Game
   # The panel grows with the shown recipes, up to RecipeBook::ROWS rows. A bar
   # at the right shows where the view is when the list is longer. A furnace
   # shows its slots above its recipes.
-  def draw_recipe_panel(w, h, s, pad)
+  def draw_recipe_panel(w, h, s, pad) # rubocop:todo Metrics/MethodLength
     shown = @recipe_book.shown(active_station)
     view = @recipe_book.in_view(active_station)
     furnace = station_makes?(Recipe::AT_FURNACE)

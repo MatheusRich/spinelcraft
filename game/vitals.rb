@@ -121,7 +121,7 @@ class Vitals
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_vitals(dt, in_lava, on_cactus, under_water)
+  def update_vitals(dt, in_lava, on_cactus, under_water) # rubocop:todo Metrics/MethodLength
     health = @health
     # Lava does 4 each half second, and fire 1 each second, and drowning 2
     # each second. minecraft.wiki/w/Damage
@@ -183,7 +183,7 @@ class Vitals
   # saturation up to 6, and that much saturation goes to exhaustion. With
   # 18 hunger or more, the player heals 1 each 4 seconds for 6 exhaustion.
   # With no hunger, the player starves 1 each 4 seconds, down to 1 health.
-  def update_regen(dt)
+  def update_regen(dt) # rubocop:todo Metrics/MethodLength
     wounded = @health < MAX_HEALTH
     saturated = wounded && @saturation > 0.0 && @hunger >= MAX_HUNGER
     wait = if saturated
