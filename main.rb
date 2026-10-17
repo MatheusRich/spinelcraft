@@ -18,6 +18,7 @@ require_relative "game/ui"
 require_relative "game/mesh3"
 require_relative "game/mobs"
 require_relative "game/natural_spawner"
+require_relative "game/plants"
 require_relative "game/arrow"
 require_relative "game/egg"
 require_relative "game/item"
@@ -96,11 +97,8 @@ class Game
     @chest = Slots.new(CHEST_SLOTS)
     @chest_key = -1
     @flow_queue = []
-    # The search of Game#held_by_log?: cells to visit, and the cells seen
-    # in the last search (LEAF_REACH around the leaves), by stamp.
-    @leaf_queue = Array.new(0, 0)
-    @leaf_seen = Array.new(LEAF_SPAN * LEAF_SPAN * LEAF_SPAN, 0)
-    @leaf_stamp = 0
+    # The block changes of Plants: x, y, z and the block, for each one.
+    @changes = Array.new(0, 0)
     @flow_timer = 0.0
     @alive_time = 0.0
     @anim_time = 0.0

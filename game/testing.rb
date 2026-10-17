@@ -380,6 +380,12 @@ class Game
     Gfx.in_test_frame
   end
 
+  # The ripe stem at x, y, z tries once to grow a pumpkin.
+  def grow_pumpkin_now(x, y, z)
+    @plants.grow_pumpkin(x, y, z, @changes)
+    apply_changes
+  end
+
   # Sets each block from x0, y0, z0 to x1, y1, z1 to b, in the order x, y, z.
   def fill_box(x0, y0, z0, x1, y1, z1, b)
     (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, b) } } }
@@ -1300,7 +1306,10 @@ class Game
     set_block(px + 3, SKY_Y - 1, pz, Block::CACTUS)
     grow_plants(8000.0)
     grew = @world.get(px + 3, SKY_Y, pz) == Block::CACTUS
-    4.times { grow_cactus(px + 3, @world.height_at(px + 3, pz) - 1, pz) }
+    4.times do
+      @plants.grow_cactus(px + 3, @world.height_at(px + 3, pz) - 1, pz, @changes)
+      apply_changes
+    end
     three = @world.get(px + 3, SKY_Y + 1, pz) == Block::CACTUS && @world.get(px + 3, SKY_Y + 2, pz) == Block::AIR
     check("a cactus grows, up to 3 blocks", grew && three)
     set_block(px + 3, SKY_Y + 1, pz, Block::AIR)
@@ -2043,6 +2052,14 @@ class Game
     set_block(bx + 10, y, bz, Block::AIR)
     @items.clear
     check("leaves with no log near decay, and placed leaves stay", placed && near && far && cut && kept)
+    # Oak leaves drop a sapling or an apple 3 times in 20 when they decay,
+    # so 50 leaves drop at least one.
+    fill_box(bx + 1, y + 3, bz + 3, bx + 5, y + 4, bz + 7, Block::OAK_LEAVES)
+    decay_leaves(1200.0)
+    gone = @world.get(bx + 3, y + 3, bz + 5) == Block::AIR && @world.get(bx + 3, y + 4, bz + 5) == Block::AIR
+    dropped = @items.any? { |item| item.block == Block::OAK_SAPLING || item.block == Block::APPLE }
+    @items.clear
+    check("decayed leaves drop a sapling or an apple now and then", gone && dropped)
   end
 
   # Stands the player on the first item until the ground is empty or the
@@ -2688,8 +2705,8 @@ class Game
     fill_box(x - 10, g + 1, z - 10, x + 10, g + 8, z + 10, Block::AIR)
     # Bone meal adds 2 to 5 of the 8 ages of a Minecraft crop or stem. Wheat
     # has 3 steps of stage here, and a stem 2.
-    wheat = [2, 3, 4, 5].map { |a| Game.meal_stage(0, a, 3) } == [1, 1, 2, 2] && Game.meal_stage(2, 5, 3) == 3
-    stem = [2, 3, 4, 5].map { |a| Game.meal_stage(0, a, 2) } == [1, 1, 1, 1]
+    wheat = [2, 3, 4, 5].map { |a| Plants.meal_stage(0, a, 3) } == [1, 1, 2, 2] && Plants.meal_stage(2, 5, 3) == 3
+    stem = [2, 3, 4, 5].map { |a| Plants.meal_stage(0, a, 2) } == [1, 1, 1, 1]
     survival = @survival
     @survival = true
     @inv.set(5, Block::BONE_MEAL, 20)
@@ -2907,22 +2924,22 @@ class Game
     set_block(bx, y + 1, bz, Block::PUMPKIN_STEM_RIPE)
     grown = 0
     40.times do
-      grow_pumpkin(bx, y + 1, bz)
+      grow_pumpkin_now(bx, y + 1, bz)
       grown = (0...4).count { |d| @world.get(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d]) == Block::PUMPKIN }
     end
     # With stone on three sides, the pumpkin can only go on the fourth, and
     # only over dirt or grass.
     (0...4).each { |d| set_block(bx + Block::DIR_DX[d], y + 1, bz + Block::DIR_DZ[d], d == 1 ? Block::AIR : Block::STONE) }
-    40.times { grow_pumpkin(bx, y + 1, bz) }
+    40.times { grow_pumpkin_now(bx, y + 1, bz) }
     on_grass = @world.get(bx - 1, y + 1, bz) == Block::PUMPKIN
     set_block(bx - 1, y + 1, bz, Block::AIR)
     set_block(bx - 1, y, bz, Block::STONE)
-    40.times { grow_pumpkin(bx, y + 1, bz) }
+    40.times { grow_pumpkin_now(bx, y + 1, bz) }
     on_stone = @world.get(bx - 1, y + 1, bz) == Block::AIR
     on_dirt = [Block::DIRT, Block::SNOW_GRASS].all? do |ground|
       set_block(bx - 1, y + 1, bz, Block::AIR)
       set_block(bx - 1, y, bz, ground)
-      40.times { grow_pumpkin(bx, y + 1, bz) }
+      40.times { grow_pumpkin_now(bx, y + 1, bz) }
       @world.get(bx - 1, y + 1, bz) == Block::PUMPKIN
     end
     set_block(bx - 1, y, bz, Block::GRASS)

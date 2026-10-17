@@ -121,6 +121,7 @@ class Game
     @chunk_meshes = ChunkMeshes.new(@world, @tint)
     @light = Light.new(@world)
     @spawner = NaturalSpawner.new(@world, @seed * 11 + 5, @halloween)
+    @plants = Plants.new(@world, @seed * 13 + 3)
     @flow_queue.clear
     @falling.clear
   end

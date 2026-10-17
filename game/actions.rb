@@ -516,7 +516,9 @@ class Game
     y = @player.hy.to_i
     z = @player.hz.to_i
     grass = @world.get(x, y, z) == Block::GRASS
-    return unless fertilize(x, y, z)
+    grows = @plants.fertilize(x, y, z, @changes)
+    apply_changes
+    return unless grows
     @inv.take(@slot, 1) if @survival
     @particles.growth(x, y, z, grass)
   end
