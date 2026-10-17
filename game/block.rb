@@ -563,6 +563,24 @@ module Block
   # gives 2 for some other blocks, but not which ones, so the others take
   # 1. minecraft.wiki/w/Shears
   def self.shear_speed(b) = leaves?(b) ? 15.0 : (b == WOOL ? 5.0 : 1.0)
+  # The speed of a wooden, stone, iron and diamond tool on the blocks that
+  # it digs fast, as in Minecraft. minecraft.wiki/w/Breaking
+  TOOL_SPEED = [2.0, 4.0, 6.0, 8.0]
+  # How fast tool digs b. A hand has speed 1, and so has a tool on a
+  # block that it does not dig fast. minecraft.wiki/w/Breaking
+  def self.dig_speed(tool, b)
+    return shear_speed(b) if tool == SHEARS
+    tier = dig_tier(tool, b)
+    return TOOL_SPEED[tier - 1] if tier > 0
+
+    1.0
+  end
+  # The tier of tool when it is the kind that digs b fast, else 0.
+  def self.dig_tier(tool, b)
+    return 0 if tool_kind(tool) != DIG_KIND[b]
+
+    tool_tier(tool)
+  end
   # What breaking b with shears gives: leaves and grass give themselves,
   # and the rest give what they give by hand. minecraft.wiki/w/Shears
   def self.shear_drop(b) = leaves?(b) ? BASE[b] : (replaceable?(b) ? b : DROPS[b])

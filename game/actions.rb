@@ -334,10 +334,6 @@ class Game
     end
   end
 
-  # The speed of a wooden, stone, iron and diamond tool on the blocks that
-  # it digs fast, as in Minecraft. A hand has speed 1.
-  # minecraft.wiki/w/Breaking
-  TOOL_SPEED = [2.0, 4.0, 6.0, 8.0]
   # Seconds before the next block starts to break, after a block that did
   # not break at once: 6 ticks. minecraft.wiki/w/Breaking
   MINE_DELAY = 0.3
@@ -372,11 +368,10 @@ class Game
     # A held button swings again when the last swing ends.
     @swing = SWING if @swing <= 0.0
     tool = current_block.to_i
-    # The tier of the tool when it is the kind that digs b fast, else 0.
-    tier = Block::DIG_KIND[b] != 0 && Block.tool_kind(tool) == Block::DIG_KIND[b] ? Block.tool_tier(tool) : 0
+    tier = Block.dig_tier(tool, b)
     need = Block::NEEDS_PICK[b]
     shears = tool == Block::SHEARS
-    speed = shears ? Block.shear_speed(b) : (tier > 0 ? TOOL_SPEED[tier - 1] : 1.0)
+    speed = Block.dig_speed(tool, b)
     speed /= 5.0 if Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
     speed /= 5.0 unless @player.on_ground
     seconds = hardness * (tier >= need ? 1.5 : 5.0)
