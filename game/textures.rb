@@ -181,6 +181,8 @@ module Tex
   COOKED_CHICKEN = image("cooked_chicken")
   FEATHER = image("feather")
   EGG = image("egg")
+  SPINEL_ORE = image("spinel_ore")
+  SPINEL = image("spinel")
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size

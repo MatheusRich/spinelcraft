@@ -49,7 +49,7 @@ class WorldTest < Minitest::Test
   # So the ore of a column is that of a column of Minecraft from its
   # bottom to the y of the top layer here.
   def test_a_column_holds_as_much_of_each_ore_as_in_minecraft
-    [Block::COAL_ORE, Block::IRON, Block::DIAMOND].each do |ore|
+    ORES.each do |ore|
       here = (1...WY).sum { |y| World.ore_at(ore, y) }
       there = (World::MC_BOTTOM..World.mc_y(WY - 1)).sum { |m| World.mc_ore(ore, m) }
       assert_in_delta there, here, 1e-9
@@ -62,6 +62,7 @@ class WorldTest < Minitest::Test
     assert_in_delta 50 * World::VEIN_17, total.(Block::COAL_ORE), 1e-9
     assert_in_delta 100 * World::VEIN_9 + 10 * World::VEIN_4, total.(Block::IRON), 1e-9
     assert_in_delta 7 * World::VEIN_4 + 6 * World::VEIN_8 + World::VEIN_12 / 9, total.(Block::DIAMOND), 1e-9
+    assert_in_delta 4.5 * World::VEIN_9, total.(Block::SPINEL_ORE), 1e-9
   end
 
   # minecraft.wiki/w/Ore lists the layers with none of each ore.
@@ -76,13 +77,17 @@ class WorldTest < Minitest::Test
     assert_equal 0.0, World.mc_ore(Block::IRON, -65)
     assert_operator World.mc_ore(Block::DIAMOND, 15), :>, 0.0
     assert_equal 0.0, World.mc_ore(Block::DIAMOND, 16)
+    assert_operator World.mc_ore(Block::SPINEL_ORE, 31), :>, 0.0
+    assert_equal 0.0, World.mc_ore(Block::SPINEL_ORE, 32)
+    assert_operator World.mc_ore(Block::SPINEL_ORE, -64), :>, 0.0
+    assert_equal 0.0, World.mc_ore(Block::SPINEL_ORE, -65)
   end
 
   # A layer holds the veins that start at it, times their blocks. In a
   # triangle from y low to high, the peak layer gets 2 / (high - low) of
   # the veins. In an even spread, each layer gets 1 / (high - low + 1).
-  # minecraft.wiki/w/Coal_Ore, /w/Iron_Ore and /w/Diamond_Ore give the
-  # veins and the spreads.
+  # minecraft.wiki/w/Coal_Ore, /w/Iron_Ore, /w/Diamond_Ore and
+  # /w/Gold_Ore (which spinel copies) give the veins and the spreads.
   def test_each_layer_of_minecraft_holds_the_veins_that_start_at_it
     coal = World::VEIN_17
     assert_in_delta coal * 20 * 2 / 192, World.mc_ore(Block::COAL_ORE, 96), 1e-9
@@ -101,9 +106,15 @@ class WorldTest < Minitest::Test
     assert_in_delta veins * 2 / 160 + medium, World.mc_ore(Block::DIAMOND, -64), 1e-9
     assert_in_delta veins * 2 / 160 * 20 / 80 + medium, World.mc_ore(Block::DIAMOND, -4), 1e-9
     assert_in_delta veins * 2 / 160 * 19 / 80, World.mc_ore(Block::DIAMOND, -3), 1e-9
+    spinel = World::VEIN_9 * 4 * 2 / 96
+    lower = World::VEIN_9 * 0.5 / 17
+    assert_in_delta lower, World.mc_ore(Block::SPINEL_ORE, -64), 1e-9
+    assert_in_delta spinel * 16 / 48 + lower, World.mc_ore(Block::SPINEL_ORE, -48), 1e-9
+    assert_in_delta spinel * 17 / 48, World.mc_ore(Block::SPINEL_ORE, -47), 1e-9
+    assert_in_delta spinel, World.mc_ore(Block::SPINEL_ORE, -16), 1e-9
   end
 
-  ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND].freeze
+  ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE].freeze
 
   # The stone and ore blocks of each layer, and the blocks of each ore by
   # its cell (x >> 2, y >> 1, z >> 2 for coal, x >> 1, y >> 1, z >> 1 for
@@ -141,7 +152,8 @@ class WorldTest < Minitest::Test
   # less than a vein.
   def test_a_clump_of_ore_fills_its_cell_with_about_the_blocks_of_a_vein
     _, cells = WorldTest.ore_area
-    { Block::COAL_ORE => World::VEIN_17, Block::IRON => World::VEIN_9, Block::DIAMOND => World::DIAMOND_VEIN }.each do |ore, vein|
+    { Block::COAL_ORE => World::VEIN_17, Block::IRON => World::VEIN_9, Block::DIAMOND => World::DIAMOND_VEIN,
+      Block::SPINEL_ORE => World::VEIN_9 }.each do |ore, vein|
       mean = cells[ore].values.sum.to_f / cells[ore].size
       assert_in_delta 0.93 * vein, mean, 0.08 * vein, Block::NAMES[ore]
     end
@@ -154,7 +166,7 @@ class WorldTest < Minitest::Test
     pairs = ->(keys, &group) { keys.group_by(&group).values.sum { |same| same.size * (same.size - 1) / 2 } }
     coal = cells[Block::COAL_ORE].keys
     assert_operator pairs.(coal) { |x, y, z| [x >> 2, y, z >> 2] }, :<, coal.size / 3
-    others = cells[Block::IRON].keys + cells[Block::DIAMOND].keys
+    others = cells[Block::IRON].keys + cells[Block::DIAMOND].keys + cells[Block::SPINEL_ORE].keys
     assert_operator pairs.(others) { |x, y, z| [x >> 1, y, z] }, :<, others.size / 10
     assert_operator pairs.(others) { |x, y, z| [x, y, z >> 1] }, :<, others.size / 10
   end

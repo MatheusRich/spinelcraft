@@ -69,7 +69,7 @@ class World
   DIAMOND_VEIN = (3.5 * VEIN_4 + 2.0 * VEIN_8 + 0.5 / 9 * VEIN_12 + 2.0 * VEIN_8) / (3.5 + 2.0 + 0.5 / 9 + 2.0)
   # A cell of stone holds a clump of an ore at the odds of that ore at
   # the y of the block, out of 65536 (ore_odds). A coal cell is 4 x 2 x 4
-  # blocks, and an iron or diamond cell is 2 x 2 x 2. Each block of a
+  # blocks, and an iron, diamond or spinel cell is 2 x 2 x 2. Each block of a
   # clump is ore at the FILL odds, so a clump holds the average vein.
   COAL_CELL = 32
   # The coal rolls of one column of coal cells: one for each 2 layers.
@@ -78,6 +78,7 @@ class World
   COAL_FILL = (65536 * VEIN_17 / COAL_CELL).to_i
   IRON_FILL = (65536 * VEIN_9 / ORE_CELL).to_i
   DIAMOND_FILL = (65536 * DIAMOND_VEIN / ORE_CELL).to_i
+  SPINEL_FILL = (65536 * VEIN_9 / ORE_CELL).to_i
   # The base height of the land (BASE) at each continent noise value
   # (CONTINENT): deep ocean, ocean, coast, lowland, then highland.
   CONTINENT = [-0.25, -0.17, -0.135, -0.12, -0.07, 0.06, 0.2, 0.34]
@@ -214,12 +215,14 @@ class World
     @coal_odds = Array.new(WY, 0)
     @iron_odds = Array.new(WY, 0)
     @diamond_odds = Array.new(WY, 0)
+    @spinel_odds = Array.new(WY, 0)
     @coal_rolls = Array.new(16 * COAL_ROLLS, 0)
     y = 0
     while y < WY
       @coal_odds[y] = World.ore_odds(World.ore_at(Block::COAL_ORE, y), COAL_CELL, VEIN_17)
       @iron_odds[y] = World.ore_odds(World.ore_at(Block::IRON, y), ORE_CELL, VEIN_9)
       @diamond_odds[y] = World.ore_odds(World.ore_at(Block::DIAMOND, y), ORE_CELL, DIAMOND_VEIN)
+      @spinel_odds[y] = World.ore_odds(World.ore_at(Block::SPINEL_ORE, y), ORE_CELL, VEIN_9)
       y += 1
     end
     @noise = Noise.new(seed)
@@ -748,6 +751,14 @@ class World
     # from y -24 to 56, and 10 of size 4 spread evenly from y -64 to 72.
     # minecraft.wiki/w/Iron_Ore
     return VEIN_9 * (90 * World.peaked(m, 80, 384) + 10 * World.peaked(m, -24, 56)) + VEIN_4 * 10 * World.even(m, -64, 72) if ore == Block::IRON
+    # Spinel copies gold ore: 4 veins of size 9 from y -64 to 32, most of
+    # them near y -16, and half a vein of size 9 spread evenly from y -64
+    # to -48. minecraft.wiki/w/Gold_Ore gives the veins as 0 to 13 blocks,
+    # the largest of size 9. The wiki also says that half of these blocks
+    # do not generate where they touch air. The game skips that rule. It
+    # also skips the extra gold of the badlands, a biome that it does not
+    # have.
+    return VEIN_9 * (4 * World.peaked(m, -64, 32) + 0.5 * World.even(m, -64, -48)) if ore == Block::SPINEL_ORE
     # 7 veins of size 4, 4 of size 8 and 1/9 of size 12 in a triangle
     # that ends at y 16, and 2 of size 8 spread evenly from y -64 to -4.
     # minecraft.wiki/w/Diamond_Ore gives the range of the triangle as
@@ -1018,9 +1029,11 @@ class World
             end
           end
           if b == Block::STONE
-            # A roll for the coal cell and a roll for the iron or diamond
-            # cell pick the ore, and a roll for the block leaves gaps in
-            # the clump.
+            # A roll for the coal cell and a roll for the iron, diamond or
+            # spinel cell pick the ore, and a roll for the block leaves gaps in
+            # the clump. Spinel takes the top of the roll. Its range then
+            # starts at the same roll in both layers of a cell, even where
+            # the odds of iron and diamond change from layer to layer.
             if (y >> 1) != roll_y
               roll_y = y >> 1
               coal_r = @coal_rolls[coal_cells + roll_y]
@@ -1033,6 +1046,8 @@ class World
               b = Block::IRON if Noise.hash3(x, y, z, 14) < IRON_FILL
             elsif r < iron + @diamond_odds[y]
               b = Block::DIAMOND if Noise.hash3(x, y, z, 16) < DIAMOND_FILL
+            elsif r >= 65536 - @spinel_odds[y]
+              b = Block::SPINEL_ORE if Noise.hash3(x, y, z, 18) < SPINEL_FILL
             end
           end
           put_block(base + y, b)

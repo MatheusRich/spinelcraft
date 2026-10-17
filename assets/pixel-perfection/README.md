@@ -106,6 +106,13 @@ In Minecraft, the stem of a pumpkin is gray, and its age gives it its color: red
 | `pumpkin_stem.png` | The color of age 2, `#40EF08` |
 | `pumpkin_stem_ripe.png` | The color of age 7, `#E0C71C` |
 
+Minecraft has no spinel. Its images are gold or emerald images with a red palette: each gold or emerald color becomes the red of the same lightness, from `#FF9AA8` (the lightest) to `#5E0C22` (the darkest). `tools/` has no script for it. The images were made once with ImageMagick (`magick -fill <red> -opaque <gold>`).
+
+| File | Change |
+| --- | --- |
+| `spinel_ore.png` | `mcl_core_gold_ore.png` in red |
+| `spinel.png` | `mcl_core_emerald.png` in red |
+
 ## Add an image
 
 1. Find the texture in the VoxeLibre `textures/` folder. Its raw URL is `https://git.minetest.land/VoxeLibre/VoxeLibre/raw/branch/master/textures/<name>.png`.

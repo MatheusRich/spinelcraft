@@ -135,6 +135,8 @@ module Block
   COOKED_CHICKEN = 155
   FEATHER = 156
   EGG = 157
+  SPINEL_ORE = 158
+  SPINEL = 159
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -419,6 +421,10 @@ module Block
   define_item COOKED_CHICKEN, "COOKED CHICKEN", Tex::COOKED_CHICKEN, food: 6, saturation: 7.2 # minecraft.wiki/w/Cooked_Chicken
   define_item FEATHER, "FEATHER", Tex::FEATHER
   define_item EGG, "EGG", Tex::EGG
+  # Minecraft has no spinel. Its ore copies gold ore, but it drops the
+  # gem, as coal ore drops coal. minecraft.wiki/w/Gold_Ore
+  define_block SPINEL_ORE, "SPINEL ORE", Tex::SPINEL_ORE, hardness: 3.0, drops: SPINEL, needs_pick: 3, dig: DIG_PICK
+  define_item SPINEL, "SPINEL", Tex::SPINEL
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)

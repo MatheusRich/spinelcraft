@@ -251,7 +251,7 @@ class Game
   # Near spawn, each ore holds its share of the stone at each layer
   # (World.ore_at), and no ore lies at a layer where that share is 0.
   def test_ores
-    ores = [Block::COAL_ORE, Block::IRON, Block::DIAMOND]
+    ores = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE]
     stone = Array.new(WY, 0)
     found = Array.new(ores.size * WY, 0)
     x = @spawn_x.floor - 128
@@ -1094,6 +1094,11 @@ class Game
     check("leaves, tall grass and dry grass that shears cut drop themselves and nothing else, and each cut takes 1 use", drops && worn)
     # 1.5 hardness * 1.5 seconds / speed 4 = 0.5625 seconds, as in Minecraft.
     check("a stone pickaxe breaks stone in 12 frames", frames_to_mine(x, ground + 1, z, Block::STONE, Block::STONE_PICK) == 12)
+    @items.clear
+    frames_to_mine(x, ground + 1, z, Block::SPINEL_ORE, Block::STONE_PICK)
+    by_stone = @items.size
+    frames_to_mine(x, ground + 1, z, Block::SPINEL_ORE, Block::IRON_PICK)
+    check("spinel ore drops a spinel gem, and only to an iron pickaxe or better", by_stone == 0 && @items.size == 1 && ground_count(Block::SPINEL) == 1)
     @items.clear
     @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
