@@ -112,6 +112,7 @@ Minecraft has no spinel. Its images are gold or emerald images with a red palett
 | --- | --- |
 | `spinel_ore.png` | `mcl_core_gold_ore.png` in red |
 | `spinel.png` | `mcl_core_emerald.png` in red |
+| `spinel_mattock.png` | `default_tool_goldpick.png` without its top-left arm (columns 0-12 of rows 0-2), with the blade of `default_tool_goldaxe.png` (columns 7-12 of rows 0-3) in its place, in red. The axe blade is on one side of the handle, and the point of the pickaxe on the other. |
 
 ## Add an image
 

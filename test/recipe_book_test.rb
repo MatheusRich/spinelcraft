@@ -88,7 +88,7 @@ class RecipeBookTest < Minitest::Test
     book = RecipeBook.new
     book.recipe_count.times do |index|
       ingredient = book.recipe(index).ingredient
-      Block.fillers(ingredient).each { |b| book.learn(b) } unless ingredient == Block::COAL
+      Block.fillers(ingredient).each { |b| book.learn(b) } unless [Block::COAL, Block::SPINEL].include?(ingredient)
     end
     assert_equal 38, book.shown(TABLE).size
     book.scroll_by(100, TABLE)

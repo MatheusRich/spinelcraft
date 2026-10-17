@@ -16,7 +16,7 @@ class Game
                     Block::WOOD_SWORD, Block::STONE_SWORD, Block::IRON_SWORD, Block::DIAMOND_SWORD,
                     Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK,
                     Block::WOOD_AXE, Block::STONE_AXE, Block::IRON_AXE, Block::DIAMOND_AXE,
-                    Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL,
+                    Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL, Block::SPINEL_MATTOCK,
                     Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
                     Block::COAL, Block::IRON_INGOT, Block::SPINEL, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
                     Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::BEEF, Block::STEAK,

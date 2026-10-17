@@ -1100,6 +1100,13 @@ class Game
     frames_to_mine(x, ground + 1, z, Block::SPINEL_ORE, Block::IRON_PICK)
     check("spinel ore drops a spinel gem, and only to an iron pickaxe or better", by_stone == 0 && @items.size == 1 && ground_count(Block::SPINEL) == 1)
     @items.clear
+    fast = frames_to_mine(x, ground + 1, z, Block::STONE, Block::SPINEL_MATTOCK) < frames_to_mine(x, ground + 1, z, Block::STONE, Block::DIAMOND_PICK) &&
+           frames_to_mine(x, ground + 1, z, Block::OAK_LOG, Block::SPINEL_MATTOCK) < frames_to_mine(x, ground + 1, z, Block::OAK_LOG, Block::DIAMOND_AXE) &&
+           frames_to_mine(x, ground + 1, z, Block::DIRT, Block::SPINEL_MATTOCK) < frames_to_mine(x, ground + 1, z, Block::DIRT, Block::IRON_SHOVEL)
+    @items.clear
+    frames_to_mine(x, ground + 1, z, Block::DIAMOND, Block::SPINEL_MATTOCK)
+    check("a spinel mattock digs stone, logs and dirt fast, and it mines diamond ore", fast && ground_count(Block::DIAMOND) == 1)
+    @items.clear
     @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
     @vitals.hunger = 5

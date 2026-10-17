@@ -137,6 +137,8 @@ module Block
   EGG = 157
   SPINEL_ORE = 158
   SPINEL = 159
+  # One tool that digs as a pickaxe, an axe and a shovel (see dig_tier).
+  SPINEL_MATTOCK = 160
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -425,6 +427,7 @@ module Block
   # gem, as coal ore drops coal. minecraft.wiki/w/Gold_Ore
   define_block SPINEL_ORE, "SPINEL ORE", Tex::SPINEL_ORE, hardness: 3.0, drops: SPINEL, needs_pick: 3, dig: DIG_PICK
   define_item SPINEL, "SPINEL", Tex::SPINEL
+  define_item SPINEL_MATTOCK, "SPINEL MATTOCK", Tex::SPINEL_MATTOCK
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
@@ -572,17 +575,24 @@ module Block
   # The speed of a wooden, stone, iron and diamond tool on the blocks that
   # it digs fast, as in Minecraft. minecraft.wiki/w/Breaking
   TOOL_SPEED = [2.0, 4.0, 6.0, 8.0]
+  # Minecraft has no mattock. The spinel mattock digs as fast as a gold
+  # tool of Minecraft (minecraft.wiki/w/Breaking). The wiki does not
+  # confirm its iron tier and its uses: they are a choice for balance.
+  MATTOCK_SPEED = 12.0
   # How fast tool digs b. A hand has speed 1, and so has a tool on a
   # block that it does not dig fast. minecraft.wiki/w/Breaking
   def self.dig_speed(tool, b)
     return shear_speed(b) if tool == SHEARS
     tier = dig_tier(tool, b)
-    return TOOL_SPEED[tier - 1] if tier > 0
+    return 1.0 if tier == 0
+    return MATTOCK_SPEED if tool == SPINEL_MATTOCK
 
-    1.0
+    TOOL_SPEED[tier - 1]
   end
   # The tier of tool when it is the kind that digs b fast, else 0.
   def self.dig_tier(tool, b)
+    return 0 if DIG_KIND[b] == 0
+    return tool_tier(tool) if tool == SPINEL_MATTOCK
     return 0 if tool_kind(tool) != DIG_KIND[b]
 
     tool_tier(tool)
@@ -602,11 +612,19 @@ module Block
     # minecraft.wiki/w/Item_durability
     b == BOW ? 384 : (b == SHEARS ? 238 : 0)
   end
-  # The kind of a digging tool, as in DIG_KIND; 0 for anything else.
-  def self.tool_kind(b) = PICK_TIER[b] > 0 ? 1 : (b >= WOOD_AXE && b <= DIAMOND_AXE ? 2 : (b >= WOOD_SHOVEL && b <= DIAMOND_SHOVEL ? 3 : 0))
+  # The kind of a digging tool, as in DIG_KIND; 0 for anything else. The
+  # spinel mattock is an axe here, so it hits and wears as an axe.
+  def self.tool_kind(b)
+    return DIG_PICK if PICK_TIER[b] > 0
+    return DIG_AXE if (b >= WOOD_AXE && b <= DIAMOND_AXE) || b == SPINEL_MATTOCK
+    return DIG_SHOVEL if b >= WOOD_SHOVEL && b <= DIAMOND_SHOVEL
+
+    0
+  end
   # The tier of a digging tool: 1 wood, 2 stone, 3 iron, 4 diamond; 0 for anything else.
   def self.tool_tier(b)
     return PICK_TIER[b] if PICK_TIER[b] > 0
+    return 3 if b == SPINEL_MATTOCK
     return b - WOOD_AXE + 1 if b >= WOOD_AXE && b <= DIAMOND_AXE
     b >= WOOD_SHOVEL && b <= DIAMOND_SHOVEL ? b - WOOD_SHOVEL + 1 : 0
   end

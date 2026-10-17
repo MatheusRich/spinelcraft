@@ -183,6 +183,7 @@ module Tex
   EGG = image("egg")
   SPINEL_ORE = image("spinel_ore")
   SPINEL = image("spinel")
+  SPINEL_MATTOCK = image("spinel_mattock")
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size
