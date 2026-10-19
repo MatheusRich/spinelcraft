@@ -520,6 +520,13 @@ module Gfx
       if (!SDL_Init(SDL_INIT_VIDEO)) return fail("SDL_Init");
       win = SDL_CreateWindow("Spinelcraft", (int)w, (int)h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
       if (!win) return fail("SDL_CreateWindow");
+      /* On macOS, the icon of the window is also the icon in the Dock. */
+      char icon_path[1024];
+      SDL_snprintf(icon_path, sizeof icon_path, "%sassets/icon.png", SDL_GetBasePath());
+      SDL_Surface *icon = SDL_LoadPNG(icon_path);
+      if (!icon) return fail(icon_path);
+      SDL_SetWindowIcon(win, icon);
+      SDL_DestroySurface(icon);
       dev = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_MSL, false, NULL);
       if (!dev) return fail("SDL_CreateGPUDevice");
       if (!SDL_ClaimWindowForGPUDevice(dev, win)) return fail("SDL_ClaimWindowForGPUDevice");
