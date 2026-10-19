@@ -210,6 +210,7 @@ class Game
     test_sounds
     test_culling
     test_streaming
+    test_title
     File.delete(@save_path) if File.exist?(@save_path)
     puts @failures == 0 ? "ALL #{@checks} PASS" : "#{@failures} OF #{@checks} FAILED"
     @failures == 0
@@ -513,6 +514,36 @@ class Game
     @vitals.health = Vitals::MAX_HEALTH
     @captured = true
     check("only the pause screen stops the world", stopped && inventory && !dead)
+  end
+
+  # The world waits behind the title screen, and the view turns. PLAY
+  # starts the game in the same world, and NEW WORLD asks for a second
+  # click. A click on PLAY or NEW WORLD takes the mouse, as a click on Back
+  # to game does, so the check gives it back.
+  def test_title
+    time = @clock.time_of_day
+    yaw = @player.yaw
+    @title_open = true
+    @captured = false
+    update_game(0.5)
+    check("the world waits behind the title screen, and the view turns",
+          @clock.time_of_day == time && @player.yaw == yaw + TITLE_TURN * 0.5)
+    click_title(2)
+    quit = @quit
+    @quit = false
+    check("QUIT on the title screen quits the game", quit)
+    seed = @seed
+    click_title(1)
+    asks = @title_open && !@captured && title_label(1) == "LOSE THIS WORLD? CLICK AGAIN"
+    click_title(0)
+    Gfx.in_capture(0)
+    check("PLAY on the title screen starts the game in the same world", asks && !@title_open && @captured && @seed == seed)
+    @title_open = true
+    @captured = false
+    click_title(1)
+    click_title(1)
+    Gfx.in_capture(0)
+    check("a second click on NEW WORLD on the title screen starts a new world", !@title_open && @captured && @seed != seed)
   end
 
   # The sliders of the pause menu set the options, and New world asks for a

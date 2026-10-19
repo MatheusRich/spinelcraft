@@ -12,6 +12,13 @@ class Game
   M_QUIT = 9
   MENU_ITEMS = 10
 
+  # The buttons of the title screen. Each one does what its item of the
+  # pause menu does (click_menu).
+  TITLE_ITEMS = [M_RESUME, M_NEW_WORLD, M_QUIT]
+  # How fast the view turns behind the title, in radians each second: one
+  # turn in about two minutes.
+  TITLE_TURN = 0.05
+
   def slider?(i) = i == M_BRIGHTNESS || i == M_VOLUME || i == M_MUSIC || i == M_VIEW || i == M_FOV
 
   # The input on the pause screen. Esc goes back to the game. A click on a
@@ -39,6 +46,23 @@ class Game
       c = menu_cell(@menu_drag, w, h, s)
       set_slider(@menu_drag, ((Gfx.in_mouse_x - c[0]) / c[2]).clamp(0.0, 1.0))
     end
+  end
+
+  # The title screen at start. The world waits behind it, and the view
+  # turns (update_game). PLAY, or a second click on NEW WORLD, starts the
+  # game.
+  def handle_title
+    return unless Gfx.in_button_pressed(1)
+    h = Gfx.gfx_height.to_f
+    i = title_hover(Gfx.gfx_width.to_f, h, ui_scale(h))
+    return if i < 0
+    play(Sfx::CLICK, 0.4)
+    click_title(i)
+  end
+
+  def click_title(i)
+    click_menu(TITLE_ITEMS[i])
+    @title_open = false if @captured
   end
 
   def resume
@@ -142,6 +166,20 @@ class Game
     [(w - bw) / 2.0, top + i * (bh + gap), bw, bh]
   end
 
+  # x, y, width and height of button i of the title screen, below the middle
+  # of the screen.
+  def title_cell(i, w, h, s)
+    c = menu_cell(0, w, h, s)
+    [c[0], h * 0.5 + i * (c[3] + 8.0 * s), c[2], c[3]]
+  end
+
+  def title_label(i)
+    item = TITLE_ITEMS[i]
+    return "PLAY" if item == M_RESUME
+    return "QUIT" if item == M_QUIT
+    menu_label(item)
+  end
+
   # The menu item under the mouse, or -1.
   def menu_hover(w, h, s)
     MENU_ITEMS.times do |i|
@@ -149,6 +187,37 @@ class Game
       return i if mouse_in?(c[0], c[1], c[2], c[3])
     end
     -1
+  end
+
+  # The button of the title screen under the mouse, or -1.
+  def title_hover(w, h, s)
+    TITLE_ITEMS.size.times do |i|
+      c = title_cell(i, w, h, s)
+      return i if mouse_in?(c[0], c[1], c[2], c[3])
+    end
+    -1
+  end
+
+  # SPINELCRAFT in blocks, as assets/logo.png, above the buttons. A glyph
+  # pixel is 16 pixels on a screen 720 pixels high, and less on a narrow
+  # screen.
+  def draw_title_screen(w, h, s)
+    @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.25)
+    cell = 16.0 * s
+    fit = (w * 0.9 / (@ui.text_width("SPINELCRAFT", 1.0) - 1.0)).floor.to_f
+    cell = fit if fit < cell
+    x = (w - @ui.text_width("SPINELCRAFT", cell) + cell) / 2.0
+    y = h * 0.5 - 5.0 * cell - 60.0 * s
+    @ui.block_text(x, y, "SPINEL", cell, Tex::SPINEL_BLOCK)
+    @ui.block_text(x + @ui.text_width("SPINEL", cell), y, "CRAFT", cell, Tex::COBBLE)
+    hover = title_hover(w, h, s)
+    TITLE_ITEMS.size.times do |i|
+      c = title_cell(i, w, h, s)
+      shade = i == hover ? 0.42 : 0.26
+      @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 0.95)
+      label = title_label(i)
+      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, 1.0, 1.0, 1.0, 1.0)
+    end
   end
 
   def draw_pause_screen(w, h, s)

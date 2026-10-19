@@ -107,6 +107,8 @@ class Game
     # True after one click on New world.
     @menu_confirm = false
     @quit = false
+    # The title screen is open (game/menu.rb).
+    @title_open = false
     @last_w = -1.0
     @w_sprint = false
     # When jump was last pressed, for a double press that starts or stops
@@ -264,8 +266,15 @@ class Game
     show_items if ENV["SHOWITEMS"]
     show_boats if ENV["SHOWBOATS"]
     @spawner.spawn_animals(@mobs, @player)
-    Gfx.in_capture(1) unless @scripted
-    @captured = true
+    # A screenshot, a benchmark or the self-test starts in the world. The
+    # title shows the horizon.
+    @title_open = !@scripted && !@autopilot && ENV["SELFTEST"].nil?
+    if @title_open
+      @player.pitch = 0.0
+    else
+      Gfx.in_capture(1) unless @scripted
+      @captured = true
+    end
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
   end
 
@@ -419,6 +428,7 @@ class Game
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
   def update_game(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+    @player.yaw += TITLE_TURN * dt if @title_open
     return if paused?
 
     fwd = 0.0

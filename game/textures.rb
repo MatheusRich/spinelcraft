@@ -184,6 +184,8 @@ module Tex
   SPINEL_ORE = image("spinel_ore")
   SPINEL = image("spinel")
   SPINEL_MATTOCK = image("spinel_mattock")
+  # The red blocks of SPINEL in the title (tools/logo.rb).
+  SPINEL_BLOCK = image("spinel_block")
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size

@@ -9,6 +9,10 @@ class Game
   def build_ui(w, h)
     @ui.clear
     s = ui_scale(h)
+    if @title_open
+      draw_title_screen(w, h, s)
+      return
+    end
     draw_view_overlays(w, h, s)
     size = 44.0 * s
     gap = 4.0 * s
@@ -21,6 +25,11 @@ class Game
     draw_chat_lines(w, y0, s)
     draw_chat_line(w, h, s) if @chat.open?
     draw_debug(s) if @options.debug
+    draw_open_screen(w, h, s)
+  end
+
+  # The screen over the game: death, the inventory or the pause menu.
+  def draw_open_screen(w, h, s)
     if @vitals.dead?
       draw_death_screen(w, h, s)
     elsif @inventory_open && @survival

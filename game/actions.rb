@@ -1,6 +1,10 @@
 # Player input: keys, the mouse, mining, placing, beds, and food.
 class Game
   def handle_input(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+    if @title_open
+      handle_title
+      return
+    end
     if @inventory_open
       handle_inventory
       return

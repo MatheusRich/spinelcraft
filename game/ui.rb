@@ -121,4 +121,27 @@ class Ui
   end
 
   def text_width(s, scale) = s.size * 4.0 * scale
+
+  # Text in the font of the game, where each pixel of a glyph is a square
+  # of the side cell with the texture layer. A dark edge goes below and to
+  # the right of each square, as in assets/logo.png (tools/logo.rb). The
+  # edge is a stack of copies, one pixel apart, that get darker away from
+  # the front.
+  def block_text(x, y, s, cell, layer)
+    depth = (cell / 3.0).to_i
+    depth.downto(0) do |d|
+      light = d == 0 ? 1.0 : 0.25 + 0.2 * (1.0 - d.to_f / depth)
+      cx = x + d
+      s.each_char do |ch|
+        rows = Tex::GLYPHS[Tex.glyph(ch) - Tex::FONT].split(" ")
+        5.times do |row|
+          3.times do |col|
+            next if rows[row][col] != "#"
+            quad(cx + col * cell, y + d + row * cell, cell, cell, layer, 1.0, 1.0, light, light, light, 1.0)
+          end
+        end
+        cx += 4.0 * cell
+      end
+    end
+  end
 end
