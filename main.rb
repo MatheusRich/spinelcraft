@@ -104,7 +104,7 @@ class Game
     @anim_time = 0.0
     # The slider that the mouse drags, or -1.
     @menu_drag = -1
-    # True after one click on New world.
+    # True after one click on NEW WORLD of the title screen.
     @menu_confirm = false
     @quit = false
     # The title screen is open (game/menu.rb).
@@ -266,11 +266,9 @@ class Game
     show_items if ENV["SHOWITEMS"]
     show_boats if ENV["SHOWBOATS"]
     @spawner.spawn_animals(@mobs, @player)
-    # A screenshot, a benchmark or the self-test starts in the world. The
-    # title shows the horizon.
-    @title_open = !@scripted && !@autopilot && ENV["SELFTEST"].nil?
-    if @title_open
-      @player.pitch = 0.0
+    # A screenshot, a benchmark or the self-test starts in the world.
+    if !@scripted && !@autopilot && ENV["SELFTEST"].nil?
+      open_title
     else
       Gfx.in_capture(1) unless @scripted
       @captured = true
@@ -278,7 +276,7 @@ class Game
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
   end
 
-  # New world on the pause menu: a fresh world from a new seed, same game mode.
+  # NEW WORLD on the title screen: a fresh world from a new seed, same game mode.
   # The player starts again with an empty inventory.
   def new_world
     @seed = (Gfx.gfx_ns / 1000) % 1000000

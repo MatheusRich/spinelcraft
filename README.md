@@ -47,7 +47,7 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | T, / | Chat and commands |
 | Esc | Pause, play again |
 
-The pause menu has sliders for brightness, volume and render distance, and buttons for fullscreen, the debug text, a new world, and save and quit.
+The game starts on a title screen, with buttons to play, to start a new world, and to quit. The pause menu has sliders for brightness, volume and render distance, and buttons for fullscreen, the debug text, and save and quit to the title.
 
 In survival, start by punching a tree. The inventory shows a recipe after you have had its ingredient. Some recipes need a crafting table or a furnace near you.
 

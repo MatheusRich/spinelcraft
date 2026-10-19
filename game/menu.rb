@@ -1,4 +1,5 @@
-# The pause menu: a column of buttons and sliders for the options.
+# The pause menu, a column of buttons and sliders for the options, and the
+# title screen.
 class Game
   M_RESUME = 0
   M_BRIGHTNESS = 1
@@ -8,13 +9,14 @@ class Game
   M_FOV = 5
   M_FULLSCREEN = 6
   M_DEBUG = 7
-  M_NEW_WORLD = 8
-  M_QUIT = 9
-  MENU_ITEMS = 10
+  M_QUIT = 8
+  MENU_ITEMS = 9
 
-  # The buttons of the title screen. Each one does what its item of the
-  # pause menu does (click_menu).
-  TITLE_ITEMS = [M_RESUME, M_NEW_WORLD, M_QUIT]
+  # The buttons of the title screen.
+  T_PLAY = 0
+  T_NEW_WORLD = 1
+  T_QUIT = 2
+  TITLE_ITEMS = 3
   # How fast the view turns behind the title, in radians each second: one
   # turn in about two minutes.
   TITLE_TURN = 0.05
@@ -60,9 +62,30 @@ class Game
     click_title(i)
   end
 
+  # New world asks for a second click, because the old world is lost.
   def click_title(i)
-    click_menu(TITLE_ITEMS[i])
-    @title_open = false if @captured
+    confirm = @menu_confirm
+    @menu_confirm = false
+    if i == T_PLAY
+      @title_open = false
+      resume
+    elsif i == T_NEW_WORLD
+      if confirm
+        new_world
+        @title_open = false
+        resume
+      else
+        @menu_confirm = true
+      end
+    elsif i == T_QUIT
+      @quit = true
+    end
+  end
+
+  # The title shows the horizon behind it.
+  def open_title
+    @title_open = true
+    @player.pitch = 0.0
   end
 
   def resume
@@ -72,25 +95,16 @@ class Game
     @menu_confirm = false
   end
 
-  # New world asks for a second click, because the old world is lost.
   def click_menu(i)
-    confirm = @menu_confirm
-    @menu_confirm = false
     if i == M_RESUME
       resume
     elsif i == M_FULLSCREEN
       toggle_fullscreen
     elsif i == M_DEBUG
       @options.debug = !@options.debug
-    elsif i == M_NEW_WORLD
-      if confirm
-        new_world
-        resume
-      else
-        @menu_confirm = true
-      end
     elsif i == M_QUIT
-      @quit = true
+      save if @save_on_quit
+      open_title
     end
   end
 
@@ -148,10 +162,8 @@ class Game
       "FULLSCREEN: #{@options.fullscreen ? "ON" : "OFF"}"
     elsif i == M_DEBUG
       "DEBUG INFO: #{@options.debug ? "ON" : "OFF"}"
-    elsif i == M_NEW_WORLD
-      @menu_confirm ? "LOSE THIS WORLD? CLICK AGAIN" : "NEW WORLD"
     else
-      "SAVE AND QUIT"
+      "SAVE AND QUIT TO TITLE"
     end
   end
 
@@ -174,10 +186,10 @@ class Game
   end
 
   def title_label(i)
-    item = TITLE_ITEMS[i]
-    return "PLAY" if item == M_RESUME
-    return "QUIT" if item == M_QUIT
-    menu_label(item)
+    return "PLAY" if i == T_PLAY
+    return "QUIT" if i == T_QUIT
+    return "LOSE THIS WORLD? CLICK AGAIN" if @menu_confirm
+    "NEW WORLD"
   end
 
   # The menu item under the mouse, or -1.
@@ -191,7 +203,7 @@ class Game
 
   # The button of the title screen under the mouse, or -1.
   def title_hover(w, h, s)
-    TITLE_ITEMS.size.times do |i|
+    TITLE_ITEMS.times do |i|
       c = title_cell(i, w, h, s)
       return i if mouse_in?(c[0], c[1], c[2], c[3])
     end
@@ -211,7 +223,7 @@ class Game
     @ui.block_text(x, y, "SPINEL", cell, Tex::SPINEL_BLOCK)
     @ui.block_text(x + @ui.text_width("SPINEL", cell), y, "CRAFT", cell, Tex::COBBLE)
     hover = title_hover(w, h, s)
-    TITLE_ITEMS.size.times do |i|
+    TITLE_ITEMS.times do |i|
       c = title_cell(i, w, h, s)
       shade = i == hover ? 0.42 : 0.26
       @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 0.95)

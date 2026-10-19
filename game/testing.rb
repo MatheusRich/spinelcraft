@@ -516,38 +516,41 @@ class Game
     check("only the pause screen stops the world", stopped && inventory && !dead)
   end
 
-  # The world waits behind the title screen, and the view turns. PLAY
-  # starts the game in the same world, and NEW WORLD asks for a second
-  # click. A click on PLAY or NEW WORLD takes the mouse, as a click on Back
-  # to game does, so the check gives it back.
+  # Save and quit to title saves the world and opens the title screen. The
+  # world waits behind it, and the view turns. PLAY starts the game in the
+  # same world, and NEW WORLD asks for a second click. A click on PLAY or
+  # NEW WORLD takes the mouse, as a click on Back to game does, so the
+  # check gives it back.
   def test_title
+    File.delete(@save_path) if File.exist?(@save_path)
+    @captured = false
+    click_menu(M_QUIT)
+    check("save and quit to title saves the world and opens the title screen", File.exist?(@save_path) && @title_open && !@quit)
     time = @clock.time_of_day
     yaw = @player.yaw
-    @title_open = true
-    @captured = false
     update_game(0.5)
     check("the world waits behind the title screen, and the view turns",
           @clock.time_of_day == time && @player.yaw == yaw + TITLE_TURN * 0.5)
-    click_title(2)
+    click_title(T_QUIT)
     quit = @quit
     @quit = false
     check("QUIT on the title screen quits the game", quit)
     seed = @seed
-    click_title(1)
-    asks = @title_open && !@captured && title_label(1) == "LOSE THIS WORLD? CLICK AGAIN"
-    click_title(0)
+    click_title(T_NEW_WORLD)
+    asks = @title_open && !@captured && title_label(T_NEW_WORLD) == "LOSE THIS WORLD? CLICK AGAIN"
+    click_title(T_PLAY)
     Gfx.in_capture(0)
-    check("PLAY on the title screen starts the game in the same world", asks && !@title_open && @captured && @seed == seed)
-    @title_open = true
+    check("PLAY on the title screen starts the game in the same world, and ends the question of NEW WORLD",
+          asks && !@title_open && @captured && @seed == seed && title_label(T_NEW_WORLD) == "NEW WORLD")
     @captured = false
-    click_title(1)
-    click_title(1)
+    open_title
+    click_title(T_NEW_WORLD)
+    click_title(T_NEW_WORLD)
     Gfx.in_capture(0)
     check("a second click on NEW WORLD on the title screen starts a new world", !@title_open && @captured && @seed != seed)
   end
 
-  # The sliders of the pause menu set the options, and New world asks for a
-  # second click.
+  # The sliders of the pause menu set the options.
   def test_menu
     options = @options
     path = file_prefix + OPTIONS_PATH
@@ -580,12 +583,6 @@ class Game
           read.brightness == 1.0 && read.volume == 0.25 && read.music == 0.0 && read.view == 1200.0 && read.fov_degrees == 90.0 && !read.debug && !read.fullscreen)
     @options = options
     @fov = @options.half_fov
-    seed = @seed
-    click_menu(M_NEW_WORLD)
-    once = @seed == seed && @menu_confirm
-    click_menu(M_DEBUG)
-    check("new world asks for a second click", once && !@menu_confirm && @seed == seed)
-    click_menu(M_DEBUG)
   end
 
   # Every sound file loads, footsteps follow the block underfoot, and a
