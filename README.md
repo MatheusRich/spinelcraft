@@ -1,4 +1,4 @@
-# ![Spinelcraft](assets/logo.png)
+# <img src="assets/icon.png" alt="" height="96"> <img src="assets/logo.png" alt="Spinelcraft" height="96">
 
 A small Minecraft-like game written in Ruby. The Spinel compiler turns the Ruby into a native executable, and SDL3 GPU (Metal on macOS) draws it. All game logic is Ruby. The only C is a thin layer in `game/gfx.rb` that passes data to SDL.
 
