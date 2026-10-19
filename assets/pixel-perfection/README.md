@@ -114,7 +114,7 @@ Minecraft has no spinel. Its images are gold or emerald images with a red palett
 | `spinel.png` | `mcl_core_emerald.png` in red |
 | `spinel_mattock.png` | `default_tool_goldpick.png` without its top-left arm (columns 0-12 of rows 0-2), with the blade of `default_tool_goldaxe.png` (columns 7-12 of rows 0-3) in its place, in red. The axe blade is on one side of the handle, and the point of the pickaxe on the other. |
 
-`tools/logo.rb` draws the icon of the game, `assets/icon.png`, from `spinel_ore.png`. It draws the title, `assets/logo.png`, from `stone.png` in the spinel red and from `cobble.png`. These two images also keep the license of this pack.
+`tools/logo.rb` draws `spinel_block.png`: `stone.png` with its lightness on the red palette, from `#5E0C22` to `#D8304A` to `#FF9AA8`. The title screen of the game draws SPINEL with it. The tool also draws the icon of the game, `assets/icon.png`, from `spinel_ore.png`, and the title, `assets/logo.png`, from `spinel_block.png` and `cobble.png`. These two images also keep the license of this pack.
 
 ## Add an image
 

@@ -1,10 +1,12 @@
 # Draws the icon and the title of the game from its textures. Runs under
 # CRuby, and needs ImageMagick (`magick`) to read and write the PNGs.
 #   ruby tools/logo.rb
+# assets/pixel-perfection/spinel_block.png is stone in the spinel red.
 # assets/icon.png is a block of spinel ore, as the inventory shows a block.
 # assets/logo.png is SPINELCRAFT in the font of the game. Each pixel of a
 # glyph is a block, with a dark edge below it and to its right. SPINEL is
-# stone in the spinel red, and CRAFT is cobblestone.
+# spinel_block.png, and CRAFT is cobblestone. The title screen of the game
+# (Ui#block_text) draws the same title.
 require_relative "../game/textures"
 
 ROOT = File.expand_path("..", __dir__)
@@ -15,8 +17,11 @@ def texture(name)
   IO.popen(["magick", path, "-alpha", "on", "-depth", "8", "rgba:-"], "rb", &:read).bytes.each_slice(4).to_a
 end
 
+# Writes the image at assets/<name>.png.
 def write_png(name, w, h, pixels)
-  IO.popen(["magick", "-size", "#{w}x#{h}", "-depth", "8", "rgba:-", File.join(ROOT, "assets/#{name}.png")], "wb") do |io|
+  path = File.join(ROOT, "assets/#{name}.png")
+  # Without a date in the file, the same pixels give the same file.
+  IO.popen(["magick", "-size", "#{w}x#{h}", "-depth", "8", "rgba:-", "-define", "png:exclude-chunks=date,time", path], "wb") do |io|
     io.write(pixels.flatten.pack("C*"))
   end
 end
@@ -28,16 +33,17 @@ def lerp(from, to, t) = from.zip(to).map { |a, b| (a + ((b - a) * t)).round }
 # The stone texture, with its lightness on the spinel red palette:
 # #5E0C22 (the darkest) to #D8304A (the gem) to #FF9AA8 (the lightest), as
 # in assets/pixel-perfection/README.md.
-def spinel_stone
+def draw_spinel_block
   dark = [0x5E, 0x0C, 0x22]
   gem = [0xD8, 0x30, 0x4A]
   light = [0xFF, 0x9A, 0xA8]
   lums = texture("stone").map { |r, g, b, _| (r * 0.3) + (g * 0.59) + (b * 0.11) }
   lo, hi = lums.minmax
-  lums.map do |lum|
+  pixels = lums.map do |lum|
     t = (lum - lo) / (hi - lo)
     (t < 0.5 ? lerp(dark, gem, t * 2) : lerp(gem, light, (t - 0.5) * 2)) + [255]
   end
+  write_png("pixel-perfection/spinel_block", 16, 16, pixels)
 end
 
 # The three faces of the icon in a 512 x 512 image: the corner of the
@@ -91,7 +97,7 @@ MARGIN = BLOCK / 2
 def logo_blocks
   blocks = []
   column = 0
-  [["SPINEL", spinel_stone], ["CRAFT", texture("cobble")]].each do |word, tex|
+  [["SPINEL", texture("spinel_block")], ["CRAFT", texture("cobble")]].each do |word, tex|
     word.each_char do |ch|
       Tex::GLYPHS[Tex::CHARS.index(ch)].split.each_with_index do |row, y|
         row.each_char.with_index { |cell, x| blocks << [column + x, y, tex] if cell == "#" }
@@ -128,5 +134,6 @@ def draw_logo
   write_png("logo", width, height, pixels)
 end
 
+draw_spinel_block
 draw_icon
 draw_logo
