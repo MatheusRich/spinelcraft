@@ -18,7 +18,7 @@ class Options
   attr_accessor :brightness, :volume, :music, :view, :fov_degrees, :fullscreen, :debug
 
   # Options that path keeps. The brightness, the volume and the music
-  # start at half.
+  # start at half, and the debug lines start off.
   def initialize(path)
     @path = path
     @brightness = 0.5
@@ -27,7 +27,7 @@ class Options
     @view = VIEW_START
     @fov_degrees = FOV_NORMAL
     @fullscreen = false
-    @debug = true
+    @debug = false
   end
 
   # Where the render distance is on its slider, from 0 to 1.

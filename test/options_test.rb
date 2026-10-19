@@ -7,7 +7,7 @@ class OptionsTest < Minitest::Test
   # A file that no test makes.
   NO_FILE = File.join(Dir.tmpdir, "spinelcraft-no-such-options.txt")
 
-  def test_new_options_start_at_half_with_the_normal_view_and_the_debug_lines
+  def test_new_options_start_at_half_with_the_normal_view_and_no_debug_lines
     options = Options.new(NO_FILE)
     assert_equal 0.5, options.brightness
     assert_equal 0.5, options.volume
@@ -15,7 +15,7 @@ class OptionsTest < Minitest::Test
     assert_equal 1600.0, options.view
     assert_equal 70.0, options.fov_degrees
     assert_equal false, options.fullscreen
-    assert options.debug
+    assert_equal false, options.debug
   end
 
   def test_the_render_distance_slider_goes_from_200_to_5000_in_steps_of_100_blocks
@@ -63,7 +63,7 @@ class OptionsTest < Minitest::Test
       written.view = 1200.0
       written.fov_degrees = 90.0
       written.fullscreen = true
-      written.debug = false
+      written.debug = true
       written.write_file
       read = Options.new(path)
       read.read_file
@@ -73,7 +73,7 @@ class OptionsTest < Minitest::Test
       assert_equal 1200.0, read.view
       assert_equal 90.0, read.fov_degrees
       assert read.fullscreen
-      refute read.debug
+      assert read.debug
     end
   end
 
@@ -90,7 +90,7 @@ class OptionsTest < Minitest::Test
   end
 
   def test_an_option_that_the_file_does_not_have_keeps_its_value
-    read = read_text("volume:0.25\nnoise\nfov:a:b\nspeed:3\n")
+    read = read_text("volume:0.25\nnoise\nfov:a:b\nspeed:3\n") { |o| o.debug = true }
     assert_equal 0.25, read.volume
     assert_equal 0.5, read.brightness
     assert_equal 70.0, read.fov_degrees
@@ -98,7 +98,7 @@ class OptionsTest < Minitest::Test
   end
 
   def test_only_the_word_true_turns_an_on_or_off_option_on
-    read = read_text("fullscreen:true\ndebug:yes\n")
+    read = read_text("fullscreen:true\ndebug:yes\n") { |o| o.debug = true }
     assert read.fullscreen
     refute read.debug
     assert read_text("debug:true\n") { |o| o.debug = false }.debug
