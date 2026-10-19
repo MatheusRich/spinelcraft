@@ -12,8 +12,8 @@ class Clouds
   HEIGHT = 192.0
   DEPTH = 3.0
   ALPHA = 0.82
-  # Boxes go out to NEAR cells from the player's cell, about 400 blocks.
-  NEAR = 33
+  # Boxes go out to NEAR cells from the player's cell, about 800 blocks.
+  NEAR = 66
 
   # The boxes for the cells around (built_i, built_j).
   attr_reader :mesh
