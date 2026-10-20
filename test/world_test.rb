@@ -221,6 +221,19 @@ class WorldTest < Minitest::Test
     refute world.door_fits?(4, SKY_Y, 4)
   end
 
+  # The upper half goes with the lower half, so it needs nothing itself.
+  def test_the_lower_half_of_a_door_needs_a_solid_block_under_it_and_the_upper_half_needs_nothing
+    world = world_with_one_chunk
+    [false, true].each do |open|
+      lower = Block.door_id(0, false, open)
+      refute world.can_hold?(lower, 8, SKY_Y, 8), "open #{open}"
+      assert world.can_hold?(Block.door_id(0, true, open), 8, SKY_Y, 8), "open #{open}"
+      world.set(8, SKY_Y - 1, 8, Block::STONE)
+      assert world.can_hold?(lower, 8, SKY_Y, 8), "open #{open}"
+      world.set(8, SKY_Y - 1, 8, Block::AIR)
+    end
+  end
+
   def test_each_half_of_a_door_finds_the_other
     world = world_with_one_chunk
     world.set(8, SKY_Y, 8, Block::DOOR_BLOCK)

@@ -313,9 +313,12 @@ module Block
   def self.define_leaves(id, name, tex, base: id) =
     define_block(id, name, tex, base: base, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR)
 
-  # A door half (see DOOR_BLOCK) that faces +x, and its turns.
-  def self.define_door(first, tex, shape)
-    define_block(first, "DOOR", tex, facing: 0, base: DOOR, shape: shape, opaque: 0, hardness: 3.0, drops: DOOR, dig: DIG_AXE)
+  # A door half (see DOOR_BLOCK) that faces +x, and its turns. The lower
+  # half stands on a solid block (minecraft.wiki/w/Door). The upper half
+  # goes with the lower half (see Game#set_block).
+  def self.define_door(first, tex, shape, hold: HOLD_NONE)
+    define_block(first, "DOOR", tex, facing: 0, base: DOOR, shape: shape, opaque: 0, hardness: 3.0, drops: DOOR, dig: DIG_AXE,
+                 hold: hold)
     define_turns(first + 1, first)
   end
 
@@ -400,9 +403,9 @@ module Block
                hold: HOLD_WALL
   define_turns WALL_TORCH + 1, WALL_TORCH
   define_turns FURNACE_TURNS, FURNACE
-  define_door DOOR_BLOCK, Tex::DOOR_LOWER, 1
+  define_door DOOR_BLOCK, Tex::DOOR_LOWER, 1, hold: HOLD_FLOOR
   define_door DOOR_BLOCK + 4, Tex::DOOR_UPPER, 1
-  define_door DOOR_BLOCK + 8, Tex::DOOR_LOWER, 2
+  define_door DOOR_BLOCK + 8, Tex::DOOR_LOWER, 2, hold: HOLD_FLOOR
   define_door DOOR_BLOCK + 12, Tex::DOOR_UPPER, 2
   define_turns LADDER_TURNS, LADDER
   define_turns CHEST_TURNS, CHEST

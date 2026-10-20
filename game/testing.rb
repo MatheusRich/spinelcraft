@@ -2515,6 +2515,17 @@ class Game
     closed = @world.get(x, y, z) == Block.door_id(0, false, false) && @world.get(x, y + 1, z) == Block.door_id(0, true, false)
     set_block(x, y, z, Block::AIR)
     check("a door opens and closes as a whole, and breaks as a whole", opened && closed && @world.get(x, y + 1, z) == Block::AIR)
+    unheld = [false, true].all? do |open|
+      @items.clear
+      set_block(x, y - 1, z, Block::GRASS)
+      set_block(x, y, z, Block.door_id(0, false, open))
+      set_block(x, y + 1, z, Block.door_id(0, true, open))
+      set_block(x, y - 1, z, Block::AIR)
+      @world.get(x, y, z) == Block::AIR && @world.get(x, y + 1, z) == Block::AIR && ground_count(Block::DOOR) == 1
+    end
+    @items.clear
+    set_block(x, y - 1, z, Block::GRASS)
+    check("a closed or an open door breaks and drops once when the block under it goes", unheld)
     @player.x = x + 0.5
     @player.y = y.to_f
     @player.z = z + 3.5
