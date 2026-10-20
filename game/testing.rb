@@ -962,8 +962,10 @@ class Game
     set_block(x, ground + 3, z, Block::AIR)
     check("broken torch is unlisted", torches.size == lights)
     set_block(x, ground + 1, z, Block::TORCH)
+    @items.clear
     set_block(x, ground, z, Block::AIR)
-    check("breaking the block under a torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
+    check("breaking the block under a torch removes it and drops the torch",
+          torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR && ground_count(Block::TORCH) == 1)
     set_block(x, ground, z, Block::DIRT)
     # A wall torch on the -x side of a stone.
     set_block(x + 1, ground + 1, z, Block::STONE)
@@ -973,8 +975,11 @@ class Game
     set_block(x, ground, z, Block::AIR)
     check("breaking the block under a wall torch keeps it", @world.get(x, ground + 1, z) == wall_torch)
     set_block(x, ground, z, Block::DIRT)
+    @items.clear
     set_block(x + 1, ground + 1, z, Block::AIR)
-    check("breaking the block that holds a wall torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
+    check("breaking the block that holds a wall torch removes it and drops the torch",
+          torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR && ground_count(Block::TORCH) == 1)
+    @items.clear
     # A torch sealed in a stone box lights nothing outside the box.
     fill_box(x - 1, ground + 1, z - 1, x + 1, ground + 3, z + 1, Block::STONE)
     set_block(x, ground + 2, z, Block::TORCH)

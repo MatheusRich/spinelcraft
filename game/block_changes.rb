@@ -30,14 +30,21 @@ class Game
     break_unheld_cactus(x, y + 1, z)
     if b == Block::AIR
       above = @world.get(x, y + 1, z)
-      set_block(x, y + 1, z, Block::AIR) if Block.plant?(above) && !Block.wall_torch?(above)
+      if Block.plant?(above) && !Block.wall_torch?(above)
+        set_block(x, y + 1, z, Block::AIR)
+        # A torch drops when its block goes. minecraft.wiki/w/Torch
+        drop_from_block(Block::TORCH, 1, x, y + 1, z) if above == Block::TORCH
+      end
       # A wall torch or a ladder falls with the block that holds it.
       d = 0
       while d < 4
         tx = x + Block::DIR_DX[d]
         tz = z + Block::DIR_DZ[d]
         t = @world.get(tx, y, tz)
-        set_block(tx, y, tz, Block::AIR) if t == Block.facing_id(Block::TORCH, d) || t == Block.facing_id(Block::LADDER, d)
+        if t == Block.facing_id(Block::TORCH, d) || t == Block.facing_id(Block::LADDER, d)
+          set_block(tx, y, tz, Block::AIR)
+          drop_from_block(Block::TORCH, 1, tx, y, tz) if Block.torch?(t)
+        end
         d += 1
       end
     end
