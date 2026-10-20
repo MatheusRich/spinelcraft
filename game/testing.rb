@@ -1327,6 +1327,15 @@ class Game
     end
     check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, SKY_Y - 2, pz) == Block::AIR && @vitals.health < 100.0 && frames > 60)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
+    # A block that a blast breaks drops its extras too, so ripe wheat drops
+    # seeds. Each of the 20 blasts drops with chance BLAST_DROP.
+    @rng = Rng.new(5)
+    @items.clear
+    20.times do
+      @world.set(px + 20, SKY_Y + 2, pz + 20, Block::WHEAT_RIPE)
+      explode(px + 20.5, SKY_Y + 2.5, pz + 20.5)
+    end
+    check("ripe wheat that a blast breaks drops wheat and seeds", ground_count(Block::WHEAT) > 0 && ground_count(Block::SEEDS) > 0)
     @items.clear
     @mobs.clear
     @clock.time_of_day = 0.3

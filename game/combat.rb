@@ -339,8 +339,8 @@ class Game
   end
 
   # Removes blocks within the radius and hurts what is near, less with distance.
-  # In survival, each block that an explosion breaks drops with this chance.
-  # minecraft.wiki/w/Explosion
+  # In survival, each block that an explosion breaks drops with this chance,
+  # as if it broke with no tool (see drop_broken). minecraft.wiki/w/Explosion
   BLAST_DROP = 1.0 / 3.0
   # A creeper's blast hurts what is this near, as in Minecraft.
   # minecraft.wiki/w/Explosion
@@ -368,7 +368,7 @@ class Game
           if dx * dx + dy * dy + dz * dz < 9.5 - @rng.rand01 * 2.5 && b != Block::AIR && b != Block::BEDROCK && !Block.water?(b) && !Block.lava?(b)
             @particles.burst(x, y, z, b) if @rng.rand01 < 0.15
             set_block(x, y, z, Block::AIR)
-            drop_from_block(Block::DROPS[b], 1, x, y, z) if @survival && @rng.rand01 < BLAST_DROP
+            drop_broken(b, x, y, z, Block::AIR) if @survival && @rng.rand01 < BLAST_DROP
           end
           z += 1
         end
