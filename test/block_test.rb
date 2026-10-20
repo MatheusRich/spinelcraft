@@ -5,7 +5,7 @@ class BlockTest < Minitest::Test
   # Game#update_falling would never end.
   def test_a_falling_block_passes_each_block_that_sand_falls_into
     Block::COUNT.times do |block|
-      assert Block.lets_fall?(block), Block::NAMES[block] if Block.falls_into?(block)
+      assert Block.lets_fall?(block), Block::NAMES[block] if Block.replaceable?(block)
     end
   end
 

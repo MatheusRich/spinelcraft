@@ -234,8 +234,8 @@ class Game
     end
   end
 
-  # The block takes the place of air, water, lava, or the grass that
-  # Block.replaceable? names. In a torch or another plant it breaks and
+  # The block takes the place of a block that Block.replaceable? names:
+  # air, water, lava or grass. In a torch or another plant it breaks and
   # drops as an item, and the plant stays. minecraft.wiki/w/Falling_Block;
   # the wiki does not list the blocks that a falling block replaces.
   def land(f)

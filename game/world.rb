@@ -314,9 +314,11 @@ class World
 
   # A door is two blocks tall. It stands on a solid block that is not a
   # door, and no door stands right above it, so each half has one partner.
+  # The upper half takes the place of a block that Block.replaceable?
+  # names, as the lower half does.
   def door_fits?(x, y, z)
     below = get(x, y - 1, z)
-    Block.solid?(below) && !Block.door?(below) && get(x, y + 1, z) == Block::AIR && !Block.door?(get(x, y + 2, z))
+    Block.solid?(below) && !Block.door?(below) && Block.replaceable?(get(x, y + 1, z)) && !Block.door?(get(x, y + 2, z))
   end
 
   # True when the cells around x, y, z give block what Block::HOLD says
@@ -334,7 +336,7 @@ class World
     return Block.solid?(ground) if hold == Block::HOLD_FLOOR
     return Block.soil?(ground) if hold == Block::HOLD_SOIL
     return Block.soil?(ground) || ground == Block::SAND if hold == Block::HOLD_SOIL_OR_SAND
-    return !Block.falls_into?(ground) if hold == Block::HOLD_FALL
+    return !Block.replaceable?(ground) if hold == Block::HOLD_FALL
     return false unless ground == Block::SAND || ground == Block::CACTUS
 
     cactus_room?(ix, iy, iz)

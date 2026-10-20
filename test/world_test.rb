@@ -221,6 +221,17 @@ class WorldTest < Minitest::Test
     refute world.door_fits?(4, SKY_Y, 4)
   end
 
+  # The upper half takes the place of the blocks that a placed block takes
+  # the place of, and not of a flower.
+  def test_the_upper_half_of_a_door_takes_the_place_of_water_lava_and_grass
+    world = world_with_one_chunk
+    world.set(8, SKY_Y - 1, 8, Block::STONE)
+    [[Block::WATER, true], [Block::LAVA_FLOW, true], [Block::TALL_GRASS, true], [Block::ROSE, false]].each do |cell, fits|
+      world.set(8, SKY_Y + 1, 8, cell)
+      assert_equal fits, world.door_fits?(8, SKY_Y, 8), Block::NAMES[cell]
+    end
+  end
+
   # The upper half goes with the lower half, so it needs nothing itself.
   def test_the_lower_half_of_a_door_needs_a_solid_block_under_it_and_the_upper_half_needs_nothing
     world = world_with_one_chunk

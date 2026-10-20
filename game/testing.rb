@@ -184,6 +184,7 @@ class Game
     test_low_blocks
     test_plant_box
     test_bed
+    test_place_cells
     test_large_chest
     test_buckets
     test_pumpkins
@@ -2779,6 +2780,46 @@ class Game
     @inv.clear
     check("a bed takes two blocks along the view and breaks as a whole", blocked && two && gone)
     check("a furnace and a door turn their front to the player", furnace == Block.facing_id(Block::FURNACE, 1) && door)
+  end
+
+  # Each half of a bed and of a door takes the place of water and of tall
+  # grass, as the block that a player places does.
+  def test_place_cells
+    x = @spawn_x.floor + 20
+    z = @spawn_z.floor - 70
+    g = @world.height_at(x, z) + 2
+    fill_box(x - 3, g - 1, z - 2, x + 3, g - 1, z + 2, Block::STONE)
+    survival = @survival
+    @survival = true
+    @player.x = x - 1.5
+    @player.y = g.to_f
+    @player.z = z + 0.5
+    @player.yaw = Math::PI / 2.0
+    @player.pitch = -Math.atan(Player::EYE / 2.0)
+    placed = [Block::WATER, Block::TALL_GRASS].map do |cell|
+      bed = place_with_cell(Block::BED, x + 1, g, z, cell, x, g, z) == Block.bed_id(1, false)
+      door = place_with_cell(Block::DOOR, x, g + 1, z, cell, x, g, z) == Block.door_id(1, false, false)
+      bed && door
+    end
+    @fluids.clear
+    @survival = survival
+    @inv.clear
+    check("each half of a bed and of a door takes the place of water and of tall grass", placed == [true, true])
+  end
+
+  # Puts cell at cx, cy, cz, places block from the hand, and gives the block
+  # that it leaves at x, y, z. The cells of the test go back to air.
+  def place_with_cell(block, cx, cy, cz, cell, x, y, z)
+    fill_box(x - 1, y, z - 1, x + 2, y + 2, z + 1, Block::AIR)
+    @world.set(cx, cy, cz, cell)
+    @inv.clear
+    @inv.add(block)
+    @slot = 0
+    @player.raycast(@world)
+    place
+    left = @world.get(x, y, z)
+    fill_box(x - 1, y, z - 1, x + 2, y + 2, z + 1, Block::AIR)
+    left
   end
 
   # A chest placed next to a chest that faces the same way joins it into a

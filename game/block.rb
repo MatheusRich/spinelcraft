@@ -250,8 +250,11 @@ module Block
   HOLD_CACTUS = 4
   # A solid block on the side that it faces away from.
   HOLD_WALL = 5
-  # A block under it that it does not fall into (see falls_into?).
-  # Without one, it falls (see Game#start_fall).
+  # A block under it that a placed block does not take the place of (see
+  # replaceable?). Sand and gravel fall into air, water, lava and grass
+  # (minecraft.wiki/w/Falling_Block). A torch or a flower holds them up,
+  # but a falling block passes it (see lets_fall?). Without a block under
+  # it, it falls (see Game#start_fall).
   HOLD_FALL = 6
   # 1 for a thing that lives in the inventory but is never placed.
   ITEM = []
@@ -489,14 +492,12 @@ module Block
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
   def self.solid?(b) = SOLID[b] == 1
   def self.plant?(b) = PLANT[b] == 1
-  # A placed block takes the cell of grass, as in Minecraft.
-  def self.replaceable?(b) = b == TALL_GRASS || b == DRY_GRASS
+  # A placed block takes the cell of air, water, lava, tall grass or dry
+  # grass. Each half of a bed and of a door does too. The wiki does not
+  # list the blocks that a placed block takes the place of.
+  def self.replaceable?(b) = b == AIR || water?(b) || lava?(b) || b == TALL_GRASS || b == DRY_GRASS
   def self.water?(b) = WATER_LEVEL[b] > 0
   def self.falls?(b) = HOLD[b] == HOLD_FALL
-  # Sand and gravel fall into air, water, lava and the grass that a placed
-  # block replaces (minecraft.wiki/w/Falling_Block). A torch or a flower
-  # holds them up, but a falling block passes it (see lets_fall?).
-  def self.falls_into?(b) = b == AIR || water?(b) || lava?(b) || replaceable?(b)
   # A falling block passes air, water, lava and plants. The wiki does not
   # say what a falling block does in lava. Here it lands at the bottom and
   # takes the place of the lava, so sand and gravel fill a pool of lava.
@@ -668,7 +669,7 @@ module Block
   end
   # Leaves and grass that shears cut drop themselves, and nothing else. The
   # rest drop what they drop by hand. minecraft.wiki/w/Shears
-  def self.shears_cut?(b) = leaves?(b) || replaceable?(b)
+  def self.shears_cut?(b) = leaves?(b) || b == TALL_GRASS || b == DRY_GRASS
 
   # Uses before a wooden, stone, iron or diamond tool breaks, and a bow.
   # minecraft.wiki/w/Item_durability
