@@ -420,4 +420,55 @@ class PlantsTest < Minitest::Test
     end
     assert_operator grown.map { |x, _, z, _| [(x - X).abs, (z - Z).abs].max }.max, :>=, 5
   end
+
+  # The cells that count random ticks of the grass at X, Y, Z turn to grass.
+  def grass_ticks(count)
+    count.times { @plants.grass_tick(X, Y, Z, @changes) }
+    apply.uniq
+  end
+
+  def test_grass_spreads_onto_dirt_from_3_below_to_1_above_it
+    @world.set(X, Y, Z, Block::GRASS)
+    near = [[X + 1, Y, Z], [X - 1, Y - 3, Z + 1], [X, Y + 1, Z - 1]]
+    far = [[X + 2, Y, Z], [X, Y - 4, Z], [X, Y + 2, Z]]
+    (near + far).each { |x, y, z| @world.set(x, y, z, Block::DIRT) }
+    assert_equal near.map { |cell| cell + [Block::GRASS] }.sort, grass_ticks(500).sort
+  end
+
+  def test_grass_spreads_only_onto_dirt_under_a_block_that_lets_light_through
+    @world.set(X, Y, Z, Block::GRASS)
+    covers = [Block::GLASS, Block::STONE, Block::WATER, Block::LAVA]
+    covers.each_with_index do |cover, index|
+      @world.set(X - 1 + index % 3, Y - 1, Z - 1 + index / 3, Block::DIRT)
+      @world.set(X - 1 + index % 3, Y, Z - 1 + index / 3, cover)
+    end
+    assert_equal [[X - 1, Y - 1, Z - 1, Block::GRASS]], grass_ticks(500)
+  end
+
+  # The grass that count random ticks around px, pz find on top of their
+  # columns, as [x, y, z] lists.
+  def grass_columns(count, px, pz)
+    found = []
+    count.times do
+      y = @plants.grass_column(px, pz)
+      found << [@plants.column_x, y, @plants.column_z] if y >= 0
+    end
+    found.uniq.sort
+  end
+
+  def test_a_grass_column_finds_the_grass_under_leaves_and_air
+    @world.set(X, Y, Z, Block::GRASS)
+    @world.set(X, Y + 2, Z, Block::OAK_LEAVES)
+    # A column of air, and grass at the bottom of the world.
+    WY.times { |y| @world.set(X + 4, y, Z, Block::AIR) }
+    WY.times { |y| @world.set(X + 5, y, Z, Block::AIR) }
+    @world.set(X + 5, 0, Z, Block::GRASS)
+    assert_equal [[X, Y, Z], [X + 5, 0, Z]], grass_columns(50_000, X, Z)
+  end
+
+  def test_a_grass_column_skips_the_columns_that_are_not_loaded
+    @world.set(X, Y, Z, Block::GRASS)
+    # Column X + WX shares its place in the ring of chunks with column X.
+    assert_empty grass_columns(50_000, X + WX, Z)
+  end
 end

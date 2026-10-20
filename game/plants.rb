@@ -32,6 +32,12 @@ class Plants
   # leaves with no log near decay (minecraft.wiki/w/Leaves). With 96, a
   # column comes up about each 81 * 81 / 96 = 68 seconds.
   DECAY_SAMPLES = 96.0
+  # Grass spreads only when the light above it is at least this. Here only
+  # the sky light counts, not the light of a torch. minecraft.wiki/w/Grass_Block
+  GRASS_LIGHT = 9
+  # Each random tick of a grass block tries this many cells near it.
+  # minecraft.wiki/w/Grass_Block
+  GRASS_TRIES = 4
   # Leaves stay while a log is at most this many steps away through leaves.
   # minecraft.wiki/w/Leaves
   LEAF_REACH = 6
@@ -49,6 +55,9 @@ class Plants
   # stage for 2 or 3 ages and 2 stages for 4 or 5. A stem grows 1 stage.
   def self.meal_stage(stage, ages, last) = (stage + (ages * last * 2 + 7) / 14).clamp(0, last)
 
+  # The column of the last random tick.
+  attr_reader :column_x, :column_z
+
   def initialize(world, seed)
     @world = world
     @rng = Rng.new(seed)
@@ -57,7 +66,6 @@ class Plants
     @leaf_queue = Array.new(0, 0)
     @leaf_seen = Array.new(LEAF_SPAN * LEAF_SPAN * LEAF_SPAN, 0)
     @leaf_stamp = 0
-    # The column of the last random tick.
     @column_x = 0
     @column_z = 0
     nil
@@ -108,6 +116,36 @@ class Plants
         break
       end
       y -= 1
+    end
+    nil
+  end
+
+  # The y of the grass block on top of a column within GROW_REACH of px, pz,
+  # under the air, the leaves and the plants, or -1 when that block is not
+  # grass. The column is column_x, column_z.
+  def grass_column(px, pz)
+    pick_column(px, pz)
+    y = @world.height_at(@column_x, @column_z)
+    y -= 1 while y > 0 && Block::OPAQUE[@world.get(@column_x, y, @column_z)] == 0
+    return y if @world.get(@column_x, y, @column_z) == Block::GRASS
+
+    -1
+  end
+
+  # A random tick of the grass at x, y, z: GRASS_TRIES random cells of the
+  # 3 x 5 x 3 cells around it, from 3 below it to 1 above it, turn from
+  # dirt to grass. The block above such a cell must let light through, and
+  # it must not be water or lava. Lava is opaque, so the light rule keeps it
+  # out. minecraft.wiki/w/Grass_Block
+  def grass_tick(x, y, z, changes)
+    GRASS_TRIES.times do
+      tx = x - 1 + (@rng.rand01 * 3.0).to_i
+      ty = y - 3 + (@rng.rand01 * 5.0).to_i
+      tz = z - 1 + (@rng.rand01 * 3.0).to_i
+      above = @world.get(tx, ty + 1, tz)
+      next if @world.get(tx, ty, tz) != Block::DIRT || Block::OPAQUE[above] != 0 || Block.water?(above)
+
+      changes << tx << ty << tz << Block::GRASS
     end
     nil
   end

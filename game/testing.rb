@@ -174,6 +174,7 @@ class Game
     test_mob_death
     test_mob_panic
     test_leaf_decay
+    test_grass_spread
     test_drop_rates
     test_items(cx, cz)
     test_light_sources(cx, cz)
@@ -398,6 +399,13 @@ class Game
   # Sets each block from x0, y0, z0 to x1, y1, z1 to b, in the order x, y, z.
   def fill_box(x0, y0, z0, x1, y1, z1, b)
     (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, b) } } }
+  end
+
+  # The number of cells from x0, y0, z0 to x1, y1, z1 that hold block.
+  def count_box(x0, y0, z0, x1, y1, z1, block)
+    count = 0
+    (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| count += 1 if @world.get(x, y, z) == block } } }
+    count
   end
 
   # Saves the place, the view and the flight of the player. restore_pose
@@ -2271,6 +2279,37 @@ class Game
     120.times { update_mobs(1.0 / 60.0) }
     check("a hit pig runs away from the hit and panics for a while", away && pig.panic > 0.0)
     @mobs.clear
+  end
+
+  # By day, grass spreads onto the dirt in the middle of a patch of grass,
+  # but not onto dirt under stone or under water. At night it does not
+  # spread.
+  def test_grass_spread
+    bx = @spawn_x.floor - 30
+    bz = @spawn_z.floor + 30
+    y = SKY_Y - 4
+    time = @clock.time_of_day
+    keep_pose
+    @player.x = bx + 0.5
+    @player.z = bz + 0.5
+    fill_box(bx - 3, y + 1, bz - 3, bx + 3, SKY_Y - 1, bz + 3, Block::AIR)
+    fill_box(bx - 3, y, bz - 3, bx + 3, y, bz + 3, Block::GRASS)
+    fill_box(bx - 1, y, bz - 1, bx + 1, y, bz + 1, Block::DIRT)
+    @clock.time_of_day = 0.75
+    spread_grass(1800.0)
+    night = count_box(bx - 1, y, bz - 1, bx + 1, y, bz + 1, Block::DIRT) == 9
+    set_block(bx + 3, y, bz - 3, Block::DIRT)
+    set_block(bx + 3, y + 1, bz - 3, Block::STONE)
+    set_block(bx - 3, y, bz + 3, Block::DIRT)
+    set_block(bx - 3, y + 1, bz + 3, Block::WATER)
+    @clock.time_of_day = 0.3
+    spread_grass(1800.0)
+    day = count_box(bx - 1, y, bz - 1, bx + 1, y, bz + 1, Block::GRASS) == 9
+    covered = @world.get(bx + 3, y, bz - 3) == Block::DIRT && @world.get(bx - 3, y, bz + 3) == Block::DIRT
+    check("grass spreads onto dirt by day, but not at night, under stone or under water", night && day && covered)
+    fill_box(bx - 3, y, bz - 3, bx + 3, y + 1, bz + 3, Block::AIR)
+    @clock.time_of_day = time
+    restore_pose
   end
 
   # Leaves with no log within 6 steps through leaves decay, and leaves

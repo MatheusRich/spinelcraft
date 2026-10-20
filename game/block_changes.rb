@@ -144,6 +144,28 @@ class Game
     nil
   end
 
+  # Grass spreads onto dirt near it in the random ticks of the columns near
+  # the player, when the sky light above the grass is at least
+  # Plants::GRASS_LIGHT (see Plants#grass_tick). At night the sky light
+  # is less, so grass does not spread.
+  def spread_grass(dt)
+    sky = Light.sky(@clock.time_of_day, @weather.raining?)
+    return if sky < Plants::GRASS_LIGHT
+
+    @plants.random_ticks(dt, Plants::DECAY_SAMPLES).times do
+      y = @plants.grass_column(@player.x.floor.to_i, @player.z.floor.to_i)
+      next if y < 0
+
+      x = @plants.column_x
+      z = @plants.column_z
+      next if @light.level(x, y + 1, z, sky, false, sky - Plants::GRASS_LIGHT + 1) < Plants::GRASS_LIGHT
+
+      @plants.grass_tick(x, y, z, @changes)
+      apply_changes
+    end
+    nil
+  end
+
   # Decayed leaves break, and now and then they drop a sapling or an
   # apple. Each change of Plants#decay_column is air.
   def decay_leaves(dt)
