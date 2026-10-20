@@ -50,15 +50,16 @@ class Game
     end
   end
 
-  # Breaks the block at x, y, z as a hand does (see drop_broken).
+  # Breaks the block at x, y, z with no tool (see drop_broken).
   def break_block(x, y, z)
     b = @world.get(x, y, z)
     set_block(x, y, z, Block::AIR)
     drop_broken(b, x, y, z)
   end
 
-  # Drops what block b drops when a hand breaks it at x, y, z: its item and
-  # its extras (see drop_extra).
+  # Drops what block b drops when it breaks at x, y, z with no tool: its
+  # item and its extras (see drop_extra). Unlike mine, it does not check
+  # the pickaxe tier, because no block that it breaks needs a pickaxe.
   def drop_broken(b, x, y, z)
     drop_from_block(Block::DROPS[b], 1, x, y, z)
     drop_extra(b, x, y, z)
@@ -263,10 +264,10 @@ class Game
     end
   end
 
-  # The block takes the place of air, water or grass (Block.replaceable?).
-  # In a torch or a flower it breaks and drops as an item, and the torch
-  # or the flower stays. minecraft.wiki/w/Falling_Block; the wiki does not
-  # list the blocks that a falling block replaces.
+  # The block takes the place of air, water, or the grass that
+  # Block.replaceable? names. In a torch or another plant it breaks and
+  # drops as an item, and the plant stays. minecraft.wiki/w/Falling_Block;
+  # the wiki does not list the blocks that a falling block replaces.
   def land(f)
     y = f.y.floor + 1
     y += 1 while y < WY - 1 && !lets_fall?(@world.get(f.x, y, f.z))
