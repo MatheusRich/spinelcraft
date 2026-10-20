@@ -19,6 +19,7 @@ require_relative "game/mesh3"
 require_relative "game/mobs"
 require_relative "game/natural_spawner"
 require_relative "game/plants"
+require_relative "game/flow_queue"
 require_relative "game/fluids"
 require_relative "game/arrow"
 require_relative "game/egg"
@@ -525,7 +526,7 @@ class Game
     update_block_sounds(dt)
     update_survival(dt)
     update_mobs(dt)
-    update_water if @fluids.due?(dt)
+    update_fluids(dt)
     find_target_boat
     find_target_mob
   end

@@ -20,18 +20,22 @@ class FluidsTest < Minitest::Test
     @fluids.wake(x, y, z)
   end
 
-  # Runs count steps, and puts each change in the world before the next
-  # one, as Game#update_water does.
-  def steps(count)
-    count.times do
-      @fluids.start_step
-      while @fluids.next_change(@changes)
-        x, y, z, block = @changes
-        @changes.clear
-        put(x, y, z, block)
-      end
-    end
+  # Runs a frame of dt seconds: the steps of water and lava that start,
+  # with each change in the world before the next one, as
+  # Game#update_fluids does.
+  def frame(dt)
+    pour while @fluids.next_water(@changes) if @fluids.water_step?(dt)
+    pour while @fluids.next_lava(@changes) if @fluids.lava_step?(dt)
   end
+
+  def pour
+    x, y, z, block = @changes
+    @changes.clear
+    put(x, y, z, block)
+  end
+
+  # Runs count steps of water and of lava.
+  def steps(count) = count.times { frame(Fluids::LAVA_STEP) }
 
   def levels(row, y = Y) = row.map { |x| Block::WATER_LEVEL[@world.get(x, y, Z)] }
   def lava_levels(row) = row.map { |x| Block::LAVA_LEVEL[@world.get(x, Y, Z)] }
@@ -51,7 +55,7 @@ class FluidsTest < Minitest::Test
       [8 - source_x, 4].each { |x| @world.set(x, Y, Z + 1, Block::FLOW + 6) }
       [8 - source_x, 4].each { |x| @world.set(x, Y, Z - 1, Block::FLOW + 6) }
       @world.set(8 - source_x, Y, Z, Block::FLOW + 6)
-      assert_equal Block::FLOW + 6, @fluids.wanted(4, Y, Z), source_x
+      assert_equal Block::FLOW + 6, @fluids.water_wanted(4, Y, Z), source_x
     end
   end
 
@@ -75,6 +79,20 @@ class FluidsTest < Minitest::Test
     put(4, Y, Z, Block::LAVA)
     steps(10)
     assert_equal [4, 3, 2, 1, 0], lava_levels(4..8)
+    assert_equal([-1] * 5, (4..8).map { |x| @fluids.lava_wanted(x, Y, Z) })
+  end
+
+  def test_lava_flows_into_a_plant_and_into_water_of_each_flowing_level
+    @world.set(5, Y, Z, Block::ROSE)
+    @world.set(3, Y, Z, Block::FLOW)
+    @world.set(4, Y, Z, Block::LAVA)
+    assert_equal [Block::LAVA_FLOW + 2] * 2, [@fluids.lava_wanted(5, Y, Z), @fluids.lava_wanted(3, Y, Z)]
+  end
+
+  def test_no_fluid_flows_out_of_the_world
+    @world.set(4, 0, Z, Block::LAVA)
+    @world.set(5, 0, Z, Block::WATER)
+    assert_equal [-1, -1], [@fluids.lava_wanted(4, -1, Z), @fluids.water_wanted(5, -1, Z)]
   end
 
   def test_lava_falls_with_level_3_and_a_lava_source_spreads_in_the_air
@@ -123,11 +141,40 @@ class FluidsTest < Minitest::Test
     assert_equal Block::COBBLE, @world.get(4, Y, Z)
   end
 
-  def test_lava_flows_into_a_cell_before_water
-    @world.set(3, Y, Z, Block::WATER)
-    put(5, Y, Z, Block::LAVA)
-    steps(1)
-    assert_equal 3, Block::LAVA_LEVEL[@world.get(4, Y, Z)]
+  # Lava that falls onto flowing water takes its place, and the water
+  # next to it cools it.
+  def test_lava_takes_the_place_of_flowing_water_and_the_water_cools_it
+    @world.set(2, Y, Z, Block::WATER)
+    @world.set(3, Y, Z, Block::FLOW + 6)
+    put(3, Y + 1, Z, Block::LAVA)
+    assert_equal Block::LAVA_FLOW + 2, @fluids.lava_wanted(3, Y, Z)
+    steps(2)
+    assert_equal Block::COBBLE, @world.get(3, Y, Z)
+  end
+
+  def test_lava_does_not_take_the_place_of_a_water_source
+    @world.set(4, Y, Z, Block::WATER)
+    @world.set(4, Y + 1, Z, Block::LAVA)
+    assert_equal(-1, @fluids.lava_wanted(4, Y, Z))
+  end
+
+  # Water moves 1 block in each 0.25 s, and lava 1 block in each 1.5 s.
+  # The first frame starts the first step, and the steps after it start at
+  # 0.25 s, 0.5 s and so on. A frame of 1/16 s is exact in binary.
+  def test_water_moves_1_block_in_each_0_25_seconds
+    put(4, Y, Z, Block::WATER)
+    15.times { frame(1.0 / 16) }
+    assert_equal [8, 7, 6, 5, 4, 0], levels(4..9)
+    frame(1.0 / 16)
+    assert_equal 3, levels([9]).first
+  end
+
+  def test_lava_moves_1_block_in_each_1_5_seconds
+    put(4, Y, Z, Block::LAVA)
+    47.times { frame(1.0 / 16) }
+    assert_equal [4, 3, 2, 0], lava_levels(4..7)
+    frame(1.0 / 16)
+    assert_equal 1, lava_levels([7]).first
   end
 
   def test_water_flows_into_a_plant_and_not_into_a_solid_block
@@ -143,47 +190,16 @@ class FluidsTest < Minitest::Test
     @world.set(4, Y, Z, Block::WATER)
     @world.set(10, Y, Z, Block::LAVA)
     @world.set(7, Y, Z, Block::ROSE)
-    assert_equal([-1, -1, -1, -1], [4, 10, 7, 13].map { |x| @fluids.wanted(x, Y, Z) })
-  end
-
-  # The cells past Fluids::STEP_CELLS wait for the next step. Each wake
-  # adds 7 cells, so the 6000th cell is the source, and the cells next to
-  # it wait.
-  def test_a_step_looks_at_6000_cells_at_most
-    (Fluids::STEP_CELLS / 7).times { @fluids.wake(12, Y + 4, Z) }
-    put(4, Y, Z, Block::WATER)
-    steps(1)
-    assert_equal [0, 8, 0], levels(3..5)
-    steps(1)
-    assert_equal [7, 8, 7], levels(3..5)
-  end
-
-  def test_a_cell_that_wakes_during_a_step_waits_for_the_next_step
-    put(4, Y, Z, Block::WATER)
-    @fluids.start_step
-    assert @fluids.next_change(@changes)
-    put(*@changes)
-    @changes.clear
-    put(10, Y, Z, Block::WATER)
-    @changes.clear while @fluids.next_change(@changes)
-    assert_equal 0, Block::WATER_LEVEL[@world.get(11, Y, Z)]
-  end
-
-  def test_a_step_is_due_each_0_15_seconds_while_a_cell_is_awake
-    refute @fluids.due?(0.01)
-    @fluids.wake(4, Y, Z)
-    refute @fluids.due?(0.1)
-    assert @fluids.due?(0.06)
-    refute @fluids.due?(0.14)
-    assert @fluids.due?(0.02)
-    assert @fluids.due?(Fluids::STEP)
+    assert_equal([-1, -1, -1, -1], [4, 10, 7, 13].map { |x| @fluids.water_wanted(x, Y, Z) })
+    assert_equal([-1, -1, -1, -1], [4, 10, 7, 13].map { |x| @fluids.lava_wanted(x, Y, Z) })
   end
 
   def test_clear_forgets_the_cells_that_woke
     put(4, Y, Z, Block::WATER)
+    put(10, Y, Z, Block::LAVA)
     @fluids.clear
     steps(1)
     assert_equal [8, 0], levels(4..5)
-    refute @fluids.due?(1.0)
+    assert_equal [4, 0], lava_levels(10..11)
   end
 end

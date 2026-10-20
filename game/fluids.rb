@@ -1,106 +1,98 @@
 # The rules of flowing water and lava. Fluids does not change the world.
-# Game#set_block wakes the cells next to each change. Each step looks at
-# the cells that woke before it, and next_change gives the changes one at
-# a time, as four Integers (x, y, z and the new block). Game puts each one
-# in the world with Game#pour before it asks for the next one, so each
-# cell sees the cells that changed before it in the step.
+# Game#set_block wakes the cells next to each change. Water and lava each
+# take steps at their own speed (see FlowQueue). next_water and next_lava
+# give the changes of a step one at a time, as four Integers (x, y, z and
+# the new block). Game puts each one in the world with Game#pour before it
+# asks for the next one, so each cell sees the cells that changed before
+# it in the step.
 class Fluids
-  # The time from one step to the next, in seconds.
-  STEP = 0.15
-  # A step looks at this many cells at most. The rest wait for the next
-  # step.
-  STEP_CELLS = 6000
+  # Water moves 1 block every 5 ticks, and lava in the overworld 1 block
+  # every 30 ticks. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
+  WATER_STEP = 0.25
+  LAVA_STEP = 1.5
 
   def initialize(world)
     @world = world
-    # The cells that woke since the step started: x, y and z for each one.
-    @queue = Array.new(0, 0)
-    # The cells of this step, and the index of the next one.
-    @batch = Array.new(0, 0)
-    @next = 0
-    @timer = 0.0
+    @water = FlowQueue.new(WATER_STEP)
+    @lava = FlowQueue.new(LAVA_STEP)
     nil
   end
 
-  # Wakes the cell x, y, z and its six neighbors for the next step.
+  # Wakes the cell x, y, z and its six neighbors for the next step of
+  # water and of lava.
   def wake(x, y, z)
-    @queue << x << y << z
-    @queue << x + 1 << y << z
-    @queue << x - 1 << y << z
-    @queue << x << y + 1 << z
-    @queue << x << y - 1 << z
-    @queue << x << y << z + 1
-    @queue << x << y << z - 1
-    nil
+    @water.wake(x, y, z)
+    @lava.wake(x, y, z)
   end
 
   # Forgets the cells that woke.
   def clear
-    @queue.clear
-    nil
+    @water.clear
+    @lava.clear
   end
 
-  # True when a step is due after dt more seconds and a cell woke.
-  def due?(dt)
-    @timer -= dt
-    return false if @timer > 0.0
-    @timer = STEP
-    !@queue.empty?
-  end
+  # True when a step of water starts after dt more seconds (see
+  # FlowQueue#start?).
+  def water_step?(dt) = @water.start?(dt)
 
-  # Starts a step with the cells that woke. A cell that wakes during the
-  # step waits for the next step.
-  def start_step
-    @batch = @queue
-    @queue = Array.new(0, 0)
-    @next = 0
-    nil
-  end
+  # True when a step of lava starts after dt more seconds.
+  def lava_step?(dt) = @lava.start?(dt)
 
-  # Adds the next change of the step to changes and gives true. At the end
-  # of the step it gives false, and the cells past STEP_CELLS wait for the
-  # next step.
-  def next_change(changes)
-    while @next < @batch.size && @next < STEP_CELLS * 3
-      x = @batch[@next]
-      y = @batch[@next + 1]
-      z = @batch[@next + 2]
-      @next += 3
-      block = wanted(x, y, z)
+  # Adds the next change of the step of water to changes and gives true,
+  # or gives false at the end of the step.
+  def next_water(changes)
+    while @water.next?
+      block = water_wanted(@water.x, @water.y, @water.z)
       next if block < 0
-      changes << x << y << z << block
+      changes << @water.x << @water.y << @water.z << block
       return true
     end
-    @queue.concat(@batch[@next, @batch.size - @next]) if @next < @batch.size
     false
   end
 
-  # The block that the cell x, y, z should change to, or -1 when it
-  # stays. Water cools lava into cobblestone, and flowing fluid with no
-  # fluid to feed it drains. A source stays.
-  def wanted(x, y, z)
+  # Adds the next change of the step of lava to changes and gives true,
+  # or gives false at the end of the step.
+  def next_lava(changes)
+    while @lava.next?
+      block = lava_wanted(@lava.x, @lava.y, @lava.z)
+      next if block < 0
+      changes << @lava.x << @lava.y << @lava.z << block
+      return true
+    end
+    false
+  end
+
+  # The block that the cell x, y, z should change to in a step of water,
+  # or -1 when it stays. Water cools lava next to it into cobblestone.
+  # Water flows into air and plants, and flowing water with no water to
+  # feed it drains. A source stays, and water does not flow into lava.
+  def water_wanted(x, y, z)
     return -1 unless @world.inside?(x, y, z)
     block = @world.get(x, y, z)
     return Block::COBBLE if Block.lava?(block) && @world.touches_water?(x, y, z)
-    water = Block::WATER_LEVEL[block]
-    lava = Block::LAVA_LEVEL[block]
-    return -1 if water == 8 || lava == 4
-    return -1 unless block == Block::AIR || water > 0 || lava > 0 || Block.plant?(block)
-    want = flow_block(x, y, z)
+    level = Block::WATER_LEVEL[block]
+    return -1 unless block == Block::AIR || Block.plant?(block) || (level > 0 && level < 8)
+    water = flow_target(x, y, z, Block::WATER_LEVEL, 8)
+    want = water > 0 ? Block::FLOW + water - 1 : Block::AIR
     return -1 if want == block
-    return -1 if want == Block::AIR && water == 0 && lava == 0
+    return -1 if want == Block::AIR && level == 0
     want
   end
 
-  # The flowing lava or water that the cell x, y, z gets from its
-  # neighbors (see flow_target), or air when it gets neither. Lava comes
-  # before water.
-  def flow_block(x, y, z)
+  # The block that the cell x, y, z should change to in a step of lava,
+  # or -1 when it stays. Lava flows into air, plants and flowing water,
+  # and flowing lava with no lava to feed it drains. A source stays.
+  def lava_wanted(x, y, z)
+    return -1 unless @world.inside?(x, y, z)
+    block = @world.get(x, y, z)
+    level = Block::LAVA_LEVEL[block]
+    water = Block::WATER_LEVEL[block]
+    return -1 unless block == Block::AIR || Block.plant?(block) || (level > 0 && level < 4) || (water > 0 && water < 8)
     lava = flow_target(x, y, z, Block::LAVA_LEVEL, 4)
-    return Block::LAVA_FLOW + lava - 1 if lava > 0
-    water = flow_target(x, y, z, Block::WATER_LEVEL, 8)
-    return Block::FLOW + water - 1 if water > 0
-    Block::AIR
+    want = lava > 0 ? Block::LAVA_FLOW + lava - 1 : Block::AIR
+    return -1 if want == block
+    return -1 if want == Block::AIR && level == 0
+    want
   end
 
   # The level of a fluid that the cell x, y, z should have. levels is the

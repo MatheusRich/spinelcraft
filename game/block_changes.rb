@@ -176,25 +176,43 @@ class Game
     nil
   end
 
-  # Puts the changes of a step of Fluids in the world, one at a time. The
-  # remeshes of flowing water may wait for later frames.
-  def update_water
+  # Puts the changes of the steps of water and lava that start after dt
+  # more seconds in the world (see Fluids). The remeshes of flowing water
+  # and lava may wait for later frames.
+  def update_fluids(dt)
     marked = @chunk_meshes.dirty_count
+    flow_water if @fluids.water_step?(dt)
+    flow_lava if @fluids.lava_step?(dt)
+    @chunk_meshes.postpone_since(marked)
+  end
+
+  # Puts the changes of a step of water in the world, one at a time. Water
+  # that cools lava hisses once in a step.
+  def flow_water
     hiss = false
-    @fluids.start_step
-    while @fluids.next_change(@changes)
-      x = @changes[0]
-      y = @changes[1]
-      z = @changes[2]
-      block = @changes[3]
-      @changes.clear
-      if block == Block::COBBLE && !hiss
-        play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6, SOUND_RANGE)
+    while @fluids.next_water(@changes)
+      if @changes[3] == Block::COBBLE && !hiss
+        play_at(Sfx::FIZZ, @changes[0] + 0.5, @changes[1] + 0.5, @changes[2] + 0.5, 0.6, SOUND_RANGE)
         hiss = true
       end
-      pour(x, y, z, block)
+      pour_change
     end
-    @chunk_meshes.postpone_since(marked)
+  end
+
+  # Puts the changes of a step of lava in the world, one at a time.
+  def flow_lava
+    pour_change while @fluids.next_lava(@changes)
+  end
+
+  # Pours the one change in @changes (x, y, z and the block), and clears
+  # the list.
+  def pour_change
+    x = @changes[0]
+    y = @changes[1]
+    z = @changes[2]
+    block = @changes[3]
+    @changes.clear
+    pour(x, y, z, block)
   end
 
   # A falling block lands on the first cell that does not let it fall (see
