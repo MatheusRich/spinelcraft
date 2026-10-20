@@ -110,6 +110,8 @@ class Game
     @menu_drag = -1
     # True after one click on NEW WORLD of the title screen.
     @menu_confirm = false
+    # Seconds until a second click on NEW WORLD counts.
+    @confirm_wait = 0.0
     @quit = false
     # The title screen is open (game/menu.rb).
     @title_open = false
@@ -431,7 +433,10 @@ class Game
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
   def update_game(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
-    @player.yaw += TITLE_TURN * dt if @title_open
+    if @title_open
+      @player.yaw += TITLE_TURN * dt
+      @confirm_wait -= dt
+    end
     return if paused?
 
     fwd = 0.0

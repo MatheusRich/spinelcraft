@@ -522,9 +522,9 @@ class Game
 
   # Save and quit to title saves the world and opens the title screen. The
   # world waits behind it, and the view turns. PLAY starts the game in the
-  # same world, and NEW WORLD asks for a second click. A click on PLAY or
-  # NEW WORLD takes the mouse, as a click on Back to game does, so the
-  # check gives it back.
+  # same world, and NEW WORLD asks for a second click that comes at least
+  # CONFIRM_WAIT after the first. A click on PLAY or NEW WORLD takes the
+  # mouse, as a click on Back to game does, so the check gives it back.
   def test_title
     File.delete(@save_path) if File.exist?(@save_path)
     @captured = false
@@ -549,6 +549,11 @@ class Game
     @captured = false
     open_title
     click_title(T_NEW_WORLD)
+    update_game(0.2)
+    click_title(T_NEW_WORLD)
+    check("a double-click on NEW WORLD keeps the world and asks again",
+          @title_open && @seed == seed && title_label(T_NEW_WORLD) == "LOSE THIS WORLD? CLICK AGAIN")
+    update_game(CONFIRM_WAIT)
     click_title(T_NEW_WORLD)
     Gfx.in_capture(0)
     check("a second click on NEW WORLD on the title screen starts a new world", !@title_open && @captured && @seed != seed)

@@ -20,6 +20,9 @@ class Game
   # How fast the view turns behind the title, in radians each second: one
   # turn in about two minutes.
   TITLE_TURN = 0.05
+  # The second click on NEW WORLD counts only this many seconds after the
+  # first, so that a double-click does not lose the world.
+  CONFIRM_WAIT = 0.5
 
   def slider?(i) = i == M_BRIGHTNESS || i == M_VOLUME || i == M_MUSIC || i == M_VIEW || i == M_FOV
 
@@ -64,6 +67,8 @@ class Game
 
   # New world asks for a second click, because the old world is lost.
   def click_title(i)
+    return if i == T_NEW_WORLD && @menu_confirm && @confirm_wait > 0.0
+
     confirm = @menu_confirm
     @menu_confirm = false
     if i == T_PLAY
@@ -76,6 +81,7 @@ class Game
         resume
       else
         @menu_confirm = true
+        @confirm_wait = CONFIRM_WAIT
       end
     elsif i == T_QUIT
       @quit = true
