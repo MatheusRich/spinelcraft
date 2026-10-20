@@ -490,12 +490,14 @@ module Block
   def self.replaceable?(b) = b == TALL_GRASS || b == DRY_GRASS
   def self.water?(b) = WATER_LEVEL[b] > 0
   def self.falls?(b) = HOLD[b] == HOLD_FALL
-  # Sand and gravel fall into air, water and the grass that a placed block
-  # replaces (minecraft.wiki/w/Falling_Block). A torch or a flower holds
-  # them up, but a falling block passes it (see lets_fall?).
-  def self.falls_into?(b) = b == AIR || water?(b) || replaceable?(b)
-  # A falling block passes air, water and plants.
-  def self.lets_fall?(b) = b == AIR || water?(b) || plant?(b)
+  # Sand and gravel fall into air, water, lava and the grass that a placed
+  # block replaces (minecraft.wiki/w/Falling_Block). A torch or a flower
+  # holds them up, but a falling block passes it (see lets_fall?).
+  def self.falls_into?(b) = b == AIR || water?(b) || lava?(b) || replaceable?(b)
+  # A falling block passes air, water, lava and plants. The wiki does not
+  # say what a falling block does in lava. Here it lands at the bottom and
+  # takes the place of the lava, so sand and gravel fill a pool of lava.
+  def self.lets_fall?(b) = b == AIR || water?(b) || lava?(b) || plant?(b)
   def self.log?(b) = LOGS.include?(b)
   # Leaves of a tree or leaves that the player placed.
   def self.leaves?(b) = LEAVES.include?(BASE[b])

@@ -324,8 +324,9 @@ class WorldTest < Minitest::Test
   def test_sand_and_gravel_need_a_block_under_them_that_they_do_not_fall_into
     world = world_with_one_chunk
     [Block::SAND, Block::GRAVEL].each do |falling|
-      [[Block::STONE, true], [Block::LAVA, true], [Block::TORCH, true], [Block::ROSE, true], [Block::AIR, false],
-       [Block::WATER, false], [Block::FLOW, false], [Block::TALL_GRASS, false], [Block::DRY_GRASS, false]].each do |ground, held|
+      [[Block::STONE, true], [Block::TORCH, true], [Block::ROSE, true], [Block::AIR, false], [Block::WATER, false],
+       [Block::FLOW, false], [Block::LAVA, false], [Block::LAVA_FLOW, false], [Block::TALL_GRASS, false],
+       [Block::DRY_GRASS, false]].each do |ground, held|
         world.set(8, SKY_Y - 1, 8, ground)
         assert_equal held, world.can_hold?(falling, 8, SKY_Y, 8), "#{Block::NAMES[falling]} on #{Block::NAMES[ground]}"
       end

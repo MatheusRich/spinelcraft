@@ -969,6 +969,15 @@ class Game
     set_block(x + 1, ground + 6, z, Block::AIR)
     set_block(x, ground + 3, z, Block::AIR)
     set_block(x, ground + 2, z, Block::AIR)
+    # Gravel falls through lava and takes its place at the bottom.
+    set_block(x, ground + 1, z, Block::LAVA)
+    set_block(x, ground + 2, z, Block::LAVA)
+    set_block(x, ground + 6, z, Block::GRAVEL)
+    fall_for(2.0)
+    filled = @world.get(x, ground + 1, z) == Block::GRAVEL && Block.lava?(@world.get(x, ground + 2, z)) && @falling.empty?
+    check("gravel falls through lava and takes its place at the bottom", filled)
+    set_block(x, ground + 2, z, Block::AIR)
+    set_block(x, ground + 1, z, Block::AIR)
     torches = @world.chunk_torches[World.slot(x >> 4, z >> 4)]
     lights = torches.size
     set_block(x, ground + 3, z, Block::TORCH)

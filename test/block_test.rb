@@ -1,6 +1,14 @@
 require_relative "test_helper"
 
 class BlockTest < Minitest::Test
+  # Sand that lands on a block that it falls into falls again at once, so
+  # Game#update_falling would never end.
+  def test_a_falling_block_passes_each_block_that_sand_falls_into
+    Block::COUNT.times do |block|
+      assert Block.lets_fall?(block), Block::NAMES[block] if Block.falls_into?(block)
+    end
+  end
+
   def test_raw_chicken_gives_the_hunger_effect_3_times_in_10_and_cooked_chicken_never
     assert_equal 0.3, Block.hunger_chance(Block::RAW_CHICKEN)
     assert_equal 0.0, Block.hunger_chance(Block::COOKED_CHICKEN)
