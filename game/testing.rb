@@ -173,6 +173,7 @@ class Game
     test_mob_death
     test_mob_panic
     test_leaf_decay
+    test_drop_rates
     test_items(cx, cz)
     test_light_sources(cx, cz)
     test_tint(cx, cz)
@@ -2248,14 +2249,51 @@ class Game
     set_block(bx + 10, y, bz, Block::AIR)
     @items.clear
     check("leaves with no log near decay, and placed leaves stay", placed && near && far && cut && kept)
-    # Oak leaves drop a sapling or an apple 3 times in 20 when they decay,
-    # so 50 leaves drop at least one.
-    fill_box(bx + 1, y + 3, bz + 3, bx + 5, y + 4, bz + 7, Block::OAK_LEAVES)
+    # Oak leaves drop a sapling or an apple about 1 time in 18 when they
+    # decay, so 100 leaves drop at least one with this seed.
+    @rng = Rng.new(3)
+    fill_box(bx + 1, y + 3, bz + 3, bx + 5, y + 6, bz + 7, Block::OAK_LEAVES)
     decay_leaves(1200.0)
-    gone = @world.get(bx + 3, y + 3, bz + 5) == Block::AIR && @world.get(bx + 3, y + 4, bz + 5) == Block::AIR
+    gone = (3..6).all? { |dy| @world.get(bx + 3, y + dy, bz + 5) == Block::AIR }
     dropped = @items.any? { |item| item.block == Block::OAK_SAPLING || item.block == Block::APPLE }
     @items.clear
     check("decayed leaves drop a sapling or an apple now and then", gone && dropped)
+  end
+
+  # Oak leaves drop a sapling 1 time in 20 and an apple 1 time in 200,
+  # and spruce leaves never drop an apple (minecraft.wiki/w/Leaves). Ripe
+  # wheat drops 1 to 4 seeds, about 2 5/7 on average
+  # (minecraft.wiki/w/Wheat_Seeds). The bounds are more than 3 standard
+  # deviations wide, and the seed of @rng is fixed.
+  def test_drop_rates
+    @rng = Rng.new(11)
+    oak = [0, 0]
+    spruce = [0, 0]
+    seeds = [0, 0, 0, 0, 0]
+    4000.times do
+      oak[0] += drops_of(Block::OAK_LEAVES, Block::OAK_SAPLING)
+      oak[1] += ground_count(Block::APPLE)
+      spruce[0] += drops_of(Block::SPRUCE_LEAVES, Block::SPRUCE_SAPLING)
+      spruce[1] += ground_count(Block::APPLE)
+    end
+    2000.times do
+      count = drops_of(Block::WHEAT_RIPE, Block::SEEDS)
+      seeds[count] += 1 if count <= 4
+    end
+    @items.clear
+    average = (seeds[1] + seeds[2] * 2 + seeds[3] * 3 + seeds[4] * 4) / 2000.0
+    check("oak leaves drop a sapling 1 time in 20 and an apple 1 time in 200, and spruce leaves no apple",
+          oak[0].between?(160, 240) && oak[1].between?(8, 34) && spruce[0].between?(160, 240) && spruce[1] == 0)
+    check("ripe wheat drops 1 to 4 seeds, about 2 5/7 on average",
+          seeds.sum == 2000 && seeds[0] == 0 && seeds[1] > 0 && seeds[4] > 0 && (average - 2.714).abs < 0.1)
+  end
+
+  # Breaks block with no tool on an empty ground, and gives how many of
+  # item it drops. The other drops stay on the ground.
+  def drops_of(block, item)
+    @items.clear
+    drop_broken(block, @spawn_x.floor + 30, SKY_Y, @spawn_z.floor + 30, Block::AIR)
+    ground_count(item)
   end
 
   # Stands the player on the first item until the ground is empty or the

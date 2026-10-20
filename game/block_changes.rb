@@ -90,24 +90,28 @@ class Game
   end
 
   # What a broken block drops besides Block::DROPS: leaves now and then a
-  # sapling of their wood, oak leaves more rarely an apple, tall grass now
-  # and then seeds, and ripe wheat 1 or 2 seeds.
+  # sapling of their wood, oak leaves also now and then an apple, tall
+  # grass now and then seeds, and ripe wheat 1 to 4 seeds.
   def drop_extra(b, x, y, z)
-    r = @rng.rand01
     if Block.leaves?(b)
-      # Spruce and birch leaves drop a sapling 1 time in 20, and no apple.
-      # minecraft.wiki/w/Leaves
-      sapling = Block::BASE[b] == Block::OAK_LEAVES ? 0.1 : 0.05
-      if r < sapling
-        drop_from_block(Block::SAPLINGS[Block.wood(b)], 1, x, y, z)
-      elsif Block::BASE[b] == Block::OAK_LEAVES && r < 0.15
-        drop_from_block(Block::APPLE, 1, x, y, z)
-      end
+      # Leaves drop a sapling 1 time in 20, and oak leaves also an apple 1
+      # time in 200. Leaves also drop a stick 1 time in 50, but the game
+      # has no sticks. minecraft.wiki/w/Leaves
+      drop_from_block(Block::SAPLINGS[Block.wood(b)], 1, x, y, z) if @rng.rand01 < 0.05
+      drop_from_block(Block::APPLE, 1, x, y, z) if Block::BASE[b] == Block::OAK_LEAVES && @rng.rand01 < 0.005
     elsif b == Block::TALL_GRASS
-      drop_from_block(Block::SEEDS, 1, x, y, z) if r < 0.125
+      drop_from_block(Block::SEEDS, 1, x, y, z) if @rng.rand01 < 0.125
     elsif b == Block::WHEAT_RIPE
-      drop_from_block(Block::SEEDS, r < 0.5 ? 1 : 2, x, y, z)
+      drop_from_block(Block::SEEDS, ripe_wheat_seeds, x, y, z)
     end
+  end
+
+  # Ripe wheat drops 1 seed, and 1 more for each of 3 tries with a chance
+  # of 4/7, so about 2 5/7 seeds. minecraft.wiki/w/Wheat_Seeds
+  def ripe_wheat_seeds
+    seeds = 1
+    3.times { seeds += 1 if @rng.rand01 < 4.0 / 7.0 }
+    seeds
   end
 
   # Puts b, water, lava or the air of drained fluid, at x, y, z. Water
