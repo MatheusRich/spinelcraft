@@ -183,6 +183,7 @@ class Game
     test_low_blocks
     test_plant_box
     test_bed
+    test_large_chest
     test_buckets
     test_pumpkins
     test_bone_meal
@@ -1801,12 +1802,12 @@ class Game
     test_chest_screen
   end
 
-  # The chest cells are as big as the inventory cells, and they fit on the
-  # screen at each window size.
+  # The chest cells are as big as the inventory cells, and the cells of a
+  # large chest fit on the screen at each window size.
   def test_chest_screen
     fits = [[1280.0, 720.0], [1920.0, 1080.0], [2560.0, 1440.0], [3840.0, 2160.0]].all? do |w, h|
       s = inventory_scale(w, h)
-      last = chest_cell(CHEST_SLOTS - 1, w, h, s)
+      last = chest_cell(CHEST_SLOTS * 2 - 1, w, h, s)
       chest_cell(0, w, h, s)[2] == pack_cell(0, w, h, s)[2] && last[0] + last[2] <= w && last[1] + last[2] <= h
     end
     check("the chest cells are as big as the inventory cells and fit on the screen", fits)
@@ -2626,6 +2627,61 @@ class Game
     @inv.clear
     check("a bed takes two blocks along the view and breaks as a whole", blocked && two && gone)
     check("a furnace and a door turn their front to the player", furnace == Block.facing_id(Block::FURNACE, 1) && door)
+  end
+
+  # A chest placed next to a chest that faces the same way joins it into a
+  # large chest of 54 slots. When one half breaks, it drops what it holds,
+  # and the other half is a chest again with its own contents.
+  def test_large_chest
+    x = @spawn_x.floor + 20
+    z = @spawn_z.floor - 80
+    g = @world.height_at(x, z) + 2
+    fill_box(x - 3, g - 1, z - 2, x + 3, g - 1, z + 3, Block::STONE)
+    fill_box(x - 3, g, z - 2, x + 3, g + 2, z + 3, Block::AIR)
+    survival = @survival
+    @survival = true
+    @items.clear
+    @inv.clear
+    @inv.set(0, Block::CHEST, 2)
+    @slot = 0
+    @player.x = x - 1.5
+    @player.y = g.to_f
+    @player.yaw = Math::PI / 2.0
+    @player.pitch = -Math.atan(Player::EYE / 2.0)
+    # The player looks along +x, so the chest on the left is at -z.
+    [z, z + 1].each do |cz|
+      @player.z = cz + 0.5
+      @player.raycast(@world)
+      place
+    end
+    left = @world.get(x, g, z)
+    right = @world.get(x, g, z + 1)
+    check("two chests side by side join into a large chest", Block.chest_left?(left) && Block.chest_right?(right) &&
+          Block::FACING[left] == 1 && Block::FACING[right] == 1)
+    open_chest(x, g, z + 1)
+    INV.times { |i| @inv.set(i, Block::DIRT, 64) }
+    INV.times { |i| quick_move_slot(i) }
+    check("a large chest takes more than 27 stacks", @inventory_open && chest_cells == CHEST_SLOTS * 2 && @inv.total(Block::DIRT) == 0)
+    toggle_inventory
+    set_block(x, g, z + 1, Block::AIR)
+    kept = @chests[World.key(x, g, z)]
+    check("a broken half of a large chest drops its half, and the other half is a chest",
+          ground_count(Block::DIRT) == 9 * 64 && @world.get(x, g, z) == Block.facing_id(Block::CHEST, 1) &&
+          !kept.nil? && kept.total(Block::DIRT) == CHEST_SLOTS * 64)
+    @items.clear
+    @inv.clear
+    # A large chest that loses a half while it is open closes.
+    @player.z = z + 1.5
+    @player.raycast(@world)
+    @inv.set(0, Block::CHEST, 1)
+    place
+    open_chest(x, g, z)
+    set_block(x, g, z + 1, Block::AIR)
+    check("a large chest closes when a half breaks while it is open", !@inventory_open && @chest_key < 0)
+    set_block(x, g, z, Block::AIR)
+    @items.clear
+    @inv.clear
+    @survival = survival
   end
 
   # The view ray hits a plant only in its small box, and goes on past it.

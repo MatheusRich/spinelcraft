@@ -127,6 +127,11 @@ module Tex
   FURNACE_TOP = image("furnace_top")
   DOOR_ITEM = image("door_item")
   CHEST_FRONT = image("chest_front", bleed: 1)
+  # The halves of a large chest.
+  CHEST_LEFT_FRONT = image("chest_left_front", bleed: 1)
+  CHEST_RIGHT_FRONT = image("chest_right_front", bleed: 1)
+  CHEST_LEFT_TOP = image("chest_left_top", bleed: 1)
+  CHEST_RIGHT_TOP = image("chest_right_top", bleed: 1)
   BED_HEAD_SIDE = image("bed_head_side", bleed: 1)
   # The ends of a bed: the foot of the foot half, and the head of the head half.
   BED_FOOT_END = image("bed_foot_end", bleed: 1)

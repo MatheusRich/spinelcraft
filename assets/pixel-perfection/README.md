@@ -82,13 +82,15 @@ In Minecraft, grass, leaves and water are gray, and the biome gives them their c
 | `water.png` | The first frame of `mcl_core_water_source_animation.png` with the water tint. The alpha is 170 at most. |
 | `lava.png` | The first frame of `mcl_core_lava_source_animation.png` |
 
-The chest and the bed are not blocks in VoxeLibre. They are models with one 64x64 image for all their faces: `mcl_chests_normal.png` and `mcl_beds_bed_red.png`. These images are parts of those two images, cut out and put together in a 16x16 image. A face takes the part of its image that it covers on the block, so the parts sit where the face is in its cell. The other pixels are clear.
+The chest and the bed are not blocks in VoxeLibre. They are models with one 64x64 image for all their faces: `mcl_chests_normal.png` and `mcl_beds_bed_red.png`. A large chest has one 128x64 image, `mcl_chests_normal_double.png`. These images are parts of those two images, cut out and put together in a 16x16 image. A face takes the part of its image that it covers on the block, so the parts sit where the face is in its cell. The other pixels are clear.
 
 | File | Change |
 | --- | --- |
 | `chest_front.png` | The front of the lid (5 rows) over the front of the base (its lower 9 rows), 1 pixel in from the left and the right, with the front of the latch in the middle |
 | `chest_side.png` | The side of the lid over the side of the base, in the same way |
 | `chest_top.png` | The top of the lid, turned a quarter turn, 1 pixel in from each edge |
+| `chest_left_front.png`, `chest_right_front.png` | From `mcl_chests_normal_double.png`, the image of a large chest: each half of its front, in the way of `chest_front.png`. The latch takes one column at the inner edge of each half. |
+| `chest_left_top.png`, `chest_right_top.png` | From `mcl_chests_normal_double.png`: each half of the top of the lid, in the way of `chest_top.png`, out to the inner edge |
 | `bed_head_top.png`, `bed_top.png` | The top of the head half and of the foot half, turned so that the outer end of the half is on the right |
 | `bed_head_side.png`, `bed_side.png` | The side of each half in rows 7-12, with the outer end on the right, and a leg in rows 13-15 at the outer end |
 | `bed_head_end.png`, `bed_foot_end.png` | The outer end of each half in rows 7-12, with a leg in rows 13-15 at each corner |

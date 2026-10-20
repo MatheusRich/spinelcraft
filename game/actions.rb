@@ -626,9 +626,27 @@ class Game
       return unless bed_fits?(x, y, z, x + Block::DIR_DX[d], z + Block::DIR_DZ[d])
       set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block.bed_id(d, true))
     end
+    b = join_chest(x, y, z, b) if Block::BASE[b] == Block::CHEST
     set_block(x, y, z, b)
     play(MATERIAL_PLACE[material(b)], 0.7)
     @swing = 0.25
     @inv.take(@slot, 1) if @survival
+  end
+
+  # A chest b placed at x, y, z next to a chest of one block that faces the
+  # same way joins it into a large chest. A chest on its left joins first.
+  # It gives the block for x, y, z. minecraft.wiki/w/Chest
+  def join_chest(x, y, z, b)
+    d = Block::FACING[b]
+    left = Block::CHEST_LEFT_DIR[d]
+    if @world.get(x + Block::DIR_DX[left], y, z + Block::DIR_DZ[left]) == b
+      set_block(x + Block::DIR_DX[left], y, z + Block::DIR_DZ[left], Block::CHEST_LEFT + d)
+      return Block::CHEST_RIGHT + d
+    end
+    if @world.get(x - Block::DIR_DX[left], y, z - Block::DIR_DZ[left]) == b
+      set_block(x - Block::DIR_DX[left], y, z - Block::DIR_DZ[left], Block::CHEST_RIGHT + d)
+      return Block::CHEST_LEFT + d
+    end
+    b
   end
 end

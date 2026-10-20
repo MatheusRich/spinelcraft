@@ -265,13 +265,13 @@ class Game
 
   def draw_chest_panel(w, h, s, pad)
     first = recipe_cell(0, w, h, s)
-    last_c = chest_cell(CHEST_SLOTS - 1, w, h, s)
+    last_c = chest_cell(chest_cells - 1, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, last_c[0] + last_c[2] - first[0] + pad * 2.0, last_c[1] + last_c[2] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(first[0], first[1] - 36.0 * s, "CHEST", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(first[0], first[1] - 36.0 * s, @pair_key >= 0 ? "LARGE CHEST" : "CHEST", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     chover = chest_hover(w, h, s)
-    CHEST_SLOTS.times do |k|
+    chest_cells.times do |k|
       c = chest_cell(k, w, h, s)
-      draw_slot(c, k == chover, @chest, k, 6.0 * s, 2.0 * s, s)
+      draw_slot(c, k == chover, chest_part(k), k % CHEST_SLOTS, 6.0 * s, 2.0 * s, s)
     end
   end
 

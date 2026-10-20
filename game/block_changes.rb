@@ -18,6 +18,10 @@ class Game
       d = Block::FACING[old] ^ 1
       set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::AIR) if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
     end
+    if b != old && (Block.chest_left?(old) || Block.chest_right?(old))
+      @world.set(x, y, z, b)
+      split_chest(x, y, z, old)
+    end
     if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && @world.near_lava?(x, y, z))
       mark_light_area(x, z)
     end
@@ -39,6 +43,17 @@ class Game
     end
     settle_column(x, z)
     wake_water(x, y, z)
+  end
+
+  # The half old of a large chest at x, y, z is gone, so the other half is
+  # a chest of one block again. It keeps its contents.
+  def split_chest(x, y, z, old)
+    d = Block.chest_partner_dir(old)
+    px = x + Block::DIR_DX[d]
+    pz = z + Block::DIR_DZ[d]
+    other = @world.get(px, y, pz)
+    paired = Block.chest_left?(old) ? Block.chest_right?(other) : Block.chest_left?(other)
+    set_block(px, y, pz, Block.facing_id(Block::CHEST, Block::FACING[old])) if paired && Block::FACING[other] == Block::FACING[old]
   end
 
   # A cactus breaks and drops when the block under it is not sand or a

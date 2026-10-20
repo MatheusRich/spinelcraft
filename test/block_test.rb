@@ -59,4 +59,50 @@ class BlockTest < Minitest::Test
     assert_equal Block.uses(Block::IRON_AXE), Block.uses(Block::SPINEL_MATTOCK)
     assert_equal Block.wear(Block::IRON_AXE, true), Block.wear(Block::SPINEL_MATTOCK, true)
   end
+
+  def test_each_half_of_a_large_chest_is_a_chest_that_faces_its_own_way
+    4.times do |d|
+      [Block::CHEST_LEFT + d, Block::CHEST_RIGHT + d].each do |b|
+        assert_equal Block::CHEST, Block::BASE[b]
+        assert_equal Block::CHEST, Block::DROPS[b]
+        assert_equal d, Block::FACING[b]
+      end
+      assert Block.chest_left?(Block::CHEST_LEFT + d)
+      refute Block.chest_right?(Block::CHEST_LEFT + d)
+      assert Block.chest_right?(Block::CHEST_RIGHT + d)
+      refute Block.chest_left?(Block::CHEST_RIGHT + d)
+    end
+    [Block::CHEST, Block.facing_id(Block::CHEST, 3), Block::CHEST_LEFT - 1, Block::CHEST_RIGHT + 4].each do |b|
+      refute Block.chest_left?(b)
+      refute Block.chest_right?(b)
+    end
+  end
+
+  # A player who looks at the front of a chest that faces d looks along
+  # -d, so the left of the player is (-dz, dx).
+  def test_the_left_half_of_a_large_chest_is_on_the_left_of_a_player_at_its_front
+    4.times do |d|
+      to_left = Block.chest_partner_dir(Block::CHEST_RIGHT + d)
+      assert_equal [-Block::DIR_DZ[d], Block::DIR_DX[d]], [Block::DIR_DX[to_left], Block::DIR_DZ[to_left]]
+      assert_equal to_left ^ 1, Block.chest_partner_dir(Block::CHEST_LEFT + d)
+    end
+  end
+
+  def test_the_halves_of_a_large_chest_reach_the_edge_between_them
+    4.times do |d|
+      left = Block::CHEST_LEFT + d
+      right = Block::CHEST_RIGHT + d
+      assert_in_delta 0.5, box_reach(left, Block.chest_partner_dir(left)), 1e-9
+      assert_in_delta 0.5, box_reach(right, Block.chest_partner_dir(right)), 1e-9
+      # The other side keeps the gap of a chest of one block.
+      assert_in_delta 7.0 / 16.0, box_reach(left, Block.chest_partner_dir(left) ^ 1), 1e-9
+    end
+  end
+
+  # How far the box of b reaches from the middle of its cell in direction d.
+  def box_reach(b, d)
+    dx = Block::DIR_DX[d]
+    dz = Block::DIR_DZ[d]
+    dx * Block.box_dx(b) + dz * Block.box_dz(b) + dx.abs * Block.box_hx(b) + dz.abs * Block.box_hz(b)
+  end
 end

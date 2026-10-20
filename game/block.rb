@@ -139,6 +139,12 @@ module Block
   SPINEL = 159
   # One tool that digs as a pickaxe, an axe and a shovel (see dig_tier).
   SPINEL_MATTOCK = 160
+  # The halves of a large chest: two chests side by side that face the
+  # same way. CHEST_LEFT is the half on the left of a player who looks at
+  # the front. Each half faces direction 0, and the 3 ids after it face
+  # the directions 1-3. CHEST is the item. minecraft.wiki/w/Chest
+  CHEST_LEFT = 161
+  CHEST_RIGHT = 165
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -165,10 +171,17 @@ module Block
   # the +x edge; 2 an open door, the same board on the +z edge, so that
   # both share the hinge corner; 3 a ladder, a board 1 thick on its wall;
   # 4 a chest; 5 a bed; 6 a cactus, 1 narrower on each side, so that the
-  # clear edges of its texture fall outside the box. Shape 0 is the full
-  # cube. Block.shader_defines gives the boxes to the chunk shader.
+  # clear edges of its texture fall outside the box; 7 and 8 the right and
+  # the left half of a large chest, a chest that reaches the edge of the
+  # cell next to the other half. Shape 0 is the full cube.
+  # Block.shader_defines gives the boxes to the chunk shader.
   SHAPE_BOX = [0, 0, 0, 16, 16, 16, 13, 0, 0, 16, 16, 16, 0, 0, 13, 16, 16, 16, 0, 0, 0, 1, 16, 16,
-               1, 0, 1, 15, 14, 15, 0, 0, 0, 16, 9, 16, 1, 0, 1, 15, 16, 15]
+               1, 0, 1, 15, 14, 15, 0, 0, 0, 16, 9, 16, 1, 0, 1, 15, 16, 15, 1, 0, 1, 15, 14, 16,
+               1, 0, 0, 15, 14, 15]
+  # The direction from the right half of a large chest that faces each
+  # direction to its left half: +z of the box of shape 7 turned to the
+  # facing.
+  CHEST_LEFT_DIR = [2, 3, 1, 0]
 
   # The tables below have one entry for each block, at the index of its
   # id. Block.define_block fills them, and each block is one call to it, after
@@ -428,6 +441,12 @@ module Block
   define_block SPINEL_ORE, "SPINEL ORE", Tex::SPINEL_ORE, hardness: 3.0, drops: SPINEL, needs_pick: 3, dig: DIG_PICK
   define_item SPINEL, "SPINEL", Tex::SPINEL
   define_item SPINEL_MATTOCK, "SPINEL MATTOCK", Tex::SPINEL_MATTOCK
+  define_block CHEST_LEFT, "CHEST", Tex::CHEST_SIDE, top: Tex::CHEST_LEFT_TOP, front: Tex::CHEST_LEFT_FRONT, facing: 0, base: CHEST,
+               shape: 8, opaque: 0, hardness: 2.5, drops: CHEST, dig: DIG_AXE
+  define_turns CHEST_LEFT + 1, CHEST_LEFT
+  define_block CHEST_RIGHT, "CHEST", Tex::CHEST_SIDE, top: Tex::CHEST_RIGHT_TOP, front: Tex::CHEST_RIGHT_FRONT, facing: 0, base: CHEST,
+               shape: 7, opaque: 0, hardness: 2.5, drops: CHEST, dig: DIG_AXE
+  define_turns CHEST_RIGHT + 1, CHEST_RIGHT
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
@@ -486,6 +505,10 @@ module Block
   def self.wall_torch?(b) = torch?(b) && FACING[b] >= 0
   def self.bed?(b) = b >= BED_BLOCK && b < BED_BLOCK + 8
   def self.bed_id(facing, head) = BED_BLOCK + (head ? 4 : 0) + facing
+  def self.chest_left?(b) = b >= CHEST_LEFT && b < CHEST_LEFT + 4
+  def self.chest_right?(b) = b >= CHEST_RIGHT && b < CHEST_RIGHT + 4
+  # The direction from a half of a large chest to the other half.
+  def self.chest_partner_dir(b) = chest_right?(b) ? CHEST_LEFT_DIR[FACING[b]] : CHEST_LEFT_DIR[FACING[b]] ^ 1
   def self.furnace_lit?(b) = b >= FURNACE_LIT && b < FURNACE_LIT + 4
   # The furnace that faces direction d, lit when it has heat.
   def self.furnace_id(d, lit) = lit ? FURNACE_LIT + d : facing_id(FURNACE, d)
