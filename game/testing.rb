@@ -1042,16 +1042,17 @@ class Game
     fall_for(2.0)
     check("sand that falls drops the torches that it held",
           @world.get(x, ground + 3, z) == Block::AIR && @world.get(x - 1, ground + 2, z) == Block::AIR && ground_count(Block::TORCH) == 2)
+    fill_box(x - 1, ground + 1, z, x + 1, ground + 4, z, Block::AIR)
+    set_block(x - 1, ground + 1, z, Block::OAK_SAPLING)
     set_block(x, ground + 1, z, Block::TORCH)
     set_block(x + 1, ground + 1, z, Block::TALL_GRASS)
     @items.clear
-    set_block(x, ground + 4, z, Block::SAND)
-    set_block(x + 1, ground + 4, z, Block::SAND)
+    (x - 1..x + 1).each { |sx| set_block(sx, ground + 4, z, Block::SAND) }
     fall_for(2.0)
-    check("sand breaks into an item on a torch, and takes the place of tall grass",
-          @world.get(x, ground + 1, z) == Block::TORCH && @world.get(x + 1, ground + 1, z) == Block::SAND && ground_count(Block::SAND) == 1)
-    set_block(x, ground + 1, z, Block::AIR)
-    set_block(x + 1, ground + 1, z, Block::AIR)
+    check("sand breaks into an item on a torch or a sapling, and takes the place of tall grass",
+          @world.get(x - 1, ground + 1, z) == Block::OAK_SAPLING && @world.get(x, ground + 1, z) == Block::TORCH &&
+          @world.get(x + 1, ground + 1, z) == Block::SAND && ground_count(Block::SAND) == 2)
+    fill_box(x - 1, ground + 1, z, x + 1, ground + 4, z, Block::AIR)
     @items.clear
   end
 
