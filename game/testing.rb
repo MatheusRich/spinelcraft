@@ -153,6 +153,7 @@ class Game
     end
     land_falling
     test_falling_and_torches(x, z, ground)
+    test_held_blocks_drop(x, z, ground)
     test_survival(x, z, ground)
     test_monsters
     test_fire
@@ -962,10 +963,8 @@ class Game
     set_block(x, ground + 3, z, Block::AIR)
     check("broken torch is unlisted", torches.size == lights)
     set_block(x, ground + 1, z, Block::TORCH)
-    @items.clear
     set_block(x, ground, z, Block::AIR)
-    check("breaking the block under a torch removes it and drops the torch",
-          torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR && ground_count(Block::TORCH) == 1)
+    check("breaking the block under a torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
     set_block(x, ground, z, Block::DIRT)
     # A wall torch on the -x side of a stone.
     set_block(x + 1, ground + 1, z, Block::STONE)
@@ -975,10 +974,8 @@ class Game
     set_block(x, ground, z, Block::AIR)
     check("breaking the block under a wall torch keeps it", @world.get(x, ground + 1, z) == wall_torch)
     set_block(x, ground, z, Block::DIRT)
-    @items.clear
     set_block(x + 1, ground + 1, z, Block::AIR)
-    check("breaking the block that holds a wall torch removes it and drops the torch",
-          torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR && ground_count(Block::TORCH) == 1)
+    check("breaking the block that holds a wall torch removes it", torches.size == lights && @world.get(x, ground + 1, z) == Block::AIR)
     @items.clear
     # A torch sealed in a stone box lights nothing outside the box.
     fill_box(x - 1, ground + 1, z - 1, x + 1, ground + 3, z + 1, Block::STONE)
@@ -1011,6 +1008,35 @@ class Game
           @world.get(tx, th, z) == Block::SAND && @chunk_meshes.queued?((tx >> 4) + 1, z >> 4))
     set_block(tx, th, z, Block::AIR)
     @chunk_meshes.flush_all
+  end
+
+  # Each block that stands on a block or hangs on its side drops its item
+  # when that block goes.
+  def test_held_blocks_drop(x, z, ground)
+    lost = []
+    Block::COUNT.times do |b|
+      next unless Block.plant?(b) && !Block.wall_torch?(b)
+      @items.clear
+      set_block(x, ground, z, Block::DIRT)
+      set_block(x, ground + 1, z, b)
+      set_block(x, ground, z, Block::AIR)
+      dropped = Block::DROPS[b] == Block::AIR || ground_count(Block::DROPS[b]) == 1
+      lost << Block::NAMES[b] unless @world.get(x, ground + 1, z) == Block::AIR && dropped
+    end
+    set_block(x, ground, z, Block::DIRT)
+    [Block::TORCH, Block::LADDER].each do |base|
+      4.times do |d|
+        hung = Block.facing_id(base, d)
+        @items.clear
+        set_block(x - Block::DIR_DX[d], ground + 1, z - Block::DIR_DZ[d], Block::STONE)
+        set_block(x, ground + 1, z, hung)
+        set_block(x - Block::DIR_DX[d], ground + 1, z - Block::DIR_DZ[d], Block::AIR)
+        lost << "#{Block::NAMES[hung]} #{d}" unless @world.get(x, ground + 1, z) == Block::AIR && ground_count(Block::DROPS[hung]) == 1
+      end
+    end
+    @items.clear
+    puts "lost: #{lost.join(", ")}" unless lost.empty?
+    check("each plant, torch and ladder drops its item when the block that holds it goes", lost.empty?)
   end
 
   # Survival basics: crafting, stacks, health, placing, mining, and food.

@@ -28,28 +28,35 @@ class Game
     @world.set(x, y, z, b)
     @chunk_meshes.mark_block(x, z)
     break_unheld_cactus(x, y + 1, z)
-    if b == Block::AIR
-      above = @world.get(x, y + 1, z)
-      if Block.plant?(above) && !Block.wall_torch?(above)
-        set_block(x, y + 1, z, Block::AIR)
-        # A torch drops when its block goes. minecraft.wiki/w/Torch
-        drop_from_block(Block::TORCH, 1, x, y + 1, z) if above == Block::TORCH
-      end
-      # A wall torch or a ladder falls with the block that holds it.
-      d = 0
-      while d < 4
-        tx = x + Block::DIR_DX[d]
-        tz = z + Block::DIR_DZ[d]
-        t = @world.get(tx, y, tz)
-        if t == Block.facing_id(Block::TORCH, d) || t == Block.facing_id(Block::LADDER, d)
-          set_block(tx, y, tz, Block::AIR)
-          drop_from_block(Block::TORCH, 1, tx, y, tz) if Block.torch?(t)
-        end
-        d += 1
-      end
-    end
+    break_held(x, y, z) if b == Block::AIR
     settle_column(x, z)
     wake_water(x, y, z)
+  end
+
+  # Breaks the blocks that the cell x, y, z held: a plant or a torch on
+  # top, and a wall torch or a ladder on each side. Each one drops its
+  # item, as a torch does in Minecraft (minecraft.wiki/w/Torch). The wiki
+  # does not say this for each plant and for a ladder.
+  def break_held(x, y, z)
+    above = @world.get(x, y + 1, z)
+    break_block(x, y + 1, z) if Block.plant?(above) && !Block.wall_torch?(above)
+    d = 0
+    while d < 4
+      tx = x + Block::DIR_DX[d]
+      tz = z + Block::DIR_DZ[d]
+      t = @world.get(tx, y, tz)
+      break_block(tx, y, tz) if t == Block.facing_id(Block::TORCH, d) || t == Block.facing_id(Block::LADDER, d)
+      d += 1
+    end
+  end
+
+  # Breaks the block at x, y, z as a hand does: it drops its item and its
+  # extras (see drop_extra).
+  def break_block(x, y, z)
+    b = @world.get(x, y, z)
+    set_block(x, y, z, Block::AIR)
+    drop_from_block(Block::DROPS[b], 1, x, y, z)
+    drop_extra(b, x, y, z)
   end
 
   # The half old of a large chest at x, y, z is gone, so the other half is
@@ -69,8 +76,7 @@ class Game
     return unless @world.get(x, y, z) == Block::CACTUS
     below = @world.get(x, y - 1, z)
     return if below == Block::SAND || below == Block::CACTUS
-    set_block(x, y, z, Block::AIR)
-    drop_from_block(Block::CACTUS, 1, x, y, z)
+    break_block(x, y, z)
   end
 
   # The random ticks of growth and of decay near the player, and the
