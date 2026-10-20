@@ -328,7 +328,7 @@ class World
     iz = z.to_i
     hold = Block::HOLD[block]
     return true if hold == Block::HOLD_NONE
-    return Block.solid?(get(ix - Block::DIR_DX[Block::FACING[block]], iy, iz - Block::DIR_DZ[Block::FACING[block]])) if hold == Block::HOLD_WALL
+    return wall_holds?(ix, iy, iz, Block::FACING[block]) if hold == Block::HOLD_WALL
 
     ground = get(ix, iy - 1, iz)
     return Block.solid?(ground) if hold == Block::HOLD_FLOOR
@@ -337,6 +337,15 @@ class World
     return false unless ground == Block::SAND || ground == Block::CACTUS
 
     cactus_room?(ix, iy, iz)
+  end
+
+  # True when the wall of a block at x, y, z that faces dir is solid, or
+  # is in a chunk that is not loaded. get gives air there, but the wall
+  # can still be solid.
+  def wall_holds?(x, y, z, dir)
+    wall_x = x - Block::DIR_DX[dir]
+    wall_z = z - Block::DIR_DZ[dir]
+    !loaded?(wall_x, wall_z) || Block.solid?(get(wall_x, y, wall_z))
   end
 
   # True when no solid block or lava is beside x, y, z, and no water or

@@ -320,6 +320,13 @@ class WorldTest < Minitest::Test
     end
   end
 
+  # Only the chunk at x = z = 0 to 15 is loaded, so x = -1 is not.
+  def test_a_wall_in_a_chunk_that_is_not_loaded_holds_a_wall_torch
+    world = world_with_one_chunk
+    assert world.can_hold?(Block.facing_id(Block::TORCH, 0), 0, SKY_Y, 8)
+    refute world.can_hold?(Block.facing_id(Block::TORCH, 1), 0, SKY_Y, 8)
+  end
+
   def test_a_cactus_needs_no_solid_block_or_lava_beside_it
     world = world_with_one_chunk
     world.set(8, SKY_Y - 1, 8, Block::SAND)
