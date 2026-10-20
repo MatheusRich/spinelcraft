@@ -772,7 +772,7 @@ class Game
       set_block(x, y + 1, z - d, Block::AIR)
       set_block(x, y + 2, z - d, Block::AIR)
     end
-    @flow_queue.clear
+    @fluids.clear
     restore_pose
     check("the player swims at 2.2 m/s, 1.97 m/s under water, and 3.918 m/s in a sprint",
           (speeds[0] - 2.2).abs < 0.05 && (speeds[1] - 3.918).abs < 0.05 && (speeds[2] - 1.97).abs < 0.05)
@@ -2515,7 +2515,7 @@ class Game
     set_block(wx + 1, SKY_Y, wz, Block::WATER)
     set_block(wx + 2, SKY_Y - 1, wz, Block::STONE)
     set_block(wx + 2, SKY_Y, wz, Block::STONE)
-    @flow_queue.clear
+    @fluids.clear
     @player.move_to(wx + 0.5, SKY_Y - 1.0, wz + 0.5)
     @player.yaw = 1.5708
     @player.flying = false
@@ -3770,7 +3770,7 @@ class Game
       set_block(wx + i, SKY_Y - 5, wz, Block::STONE)
       set_block(wx + i, SKY_Y - 4, wz, Block::AIR)
     end
-    @flow_queue.clear
+    @fluids.clear
     @items.clear
     set_block(wx + 2, SKY_Y - 4, wz, Block::TORCH)
     set_block(wx - 2, SKY_Y - 4, wz, Block::ROSE)
@@ -3823,7 +3823,7 @@ class Game
     # Water in the chunk of the player and in chunks 2, 4 and 6 ahead.
     waters = [0, 2, 4, 6]
     waters.each { |k| set_block(ex.floor, SKY_Y, ez.floor - k * CHUNK, Block::WATER) }
-    @flow_queue.clear
+    @fluids.clear
     @chunk_meshes.flush_all
     # The camera looks along -z.
     @camera.update_camera(ex, @player.eye_y.to_f, ez, 0.0, 0.0, 16.0 / 9.0, @options.view + 40.0, @fov)

@@ -1,6 +1,6 @@
 # Block changes and what follows them: the blocks that break and what they
-# drop, flowing water and lava, falling sand and gravel, and the plants
-# that grow and the leaves that decay.
+# drop, the changes of flowing water and lava (see Fluids), falling sand
+# and gravel, and the plants that grow and the leaves that decay.
 class Game
   def set_block(x, y, z, b) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @changed = true
@@ -30,7 +30,7 @@ class Game
     @chunk_meshes.mark_block(x, z)
     release_unheld(x, y, z)
     release_if_unheld(x, y, z) if Block.falls?(b)
-    wake_water(x, y, z)
+    @fluids.wake(x, y, z)
   end
 
   # Releases each block next to x, y, z that the world can no longer hold
@@ -176,81 +176,24 @@ class Game
     nil
   end
 
-  # Queues a cell and its six neighbors for the water simulation.
-  def wake_water(x, y, z)
-    @flow_queue << x << y << z
-    @flow_queue << x + 1 << y << z
-    @flow_queue << x - 1 << y << z
-    @flow_queue << x << y + 1 << z
-    @flow_queue << x << y - 1 << z
-    @flow_queue << x << y << z + 1
-    @flow_queue << x << y << z - 1
-  end
-
-  # The level of water (or of lava, when lava is true) that a cell should
-  # have: one less than a source under falling fluid, else one less than
-  # the best neighbor that spreads sideways (a source, or fluid resting on a
-  # solid block). Water spreads 7 blocks and lava 3.
-  def flow_target(x, y, z, lava)
-    source = lava ? 4 : 8
-    return source - 1 if fluid_level(@world.get(x, y + 1, z), lava) > 0
-    best = 0
-    d = 0
-    while d < 4
-      nx = x + Block::DIR_DX[d]
-      nz = z + Block::DIR_DZ[d]
-      level = fluid_level(@world.get(nx, y, nz), lava)
-      if level > 0 && (level == source || Block.solid?(@world.get(nx, y - 1, nz)))
-        best = level - 1 if level - 1 > best
-      end
-      d += 1
-    end
-    best
-  end
-
-  # The level of block b as water (8 for a source), or as lava (4 for a
-  # source) when lava is true; 0 when it is not that fluid.
-  def fluid_level(b, lava) = lava ? Block::LAVA_LEVEL[b] : Block::WATER_LEVEL[b]
-
-  def update_water # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
-    batch = @flow_queue
-    @flow_queue = []
-    # The remeshes of flowing water may wait for later frames.
+  # Puts the changes of a step of Fluids in the world, one at a time. The
+  # remeshes of flowing water may wait for later frames.
+  def update_water
     marked = @chunk_meshes.dirty_count
     hiss = false
-    i = 0
-    while i < batch.size && i < 6000
-      x = batch[i]
-      y = batch[i + 1]
-      z = batch[i + 2]
-      i += 3
-      next unless @world.inside?(x, y, z)
-      b = @world.get(x, y, z)
-      if Block.lava?(b) && @world.touches_water?(x, y, z)
-        # Water cools lava into cobblestone.
-        set_block(x, y, z, Block::COBBLE)
-        play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6, SOUND_RANGE) unless hiss
+    @fluids.start_step
+    while @fluids.next_change(@changes)
+      x = @changes[0]
+      y = @changes[1]
+      z = @changes[2]
+      block = @changes[3]
+      @changes.clear
+      if block == Block::COBBLE && !hiss
+        play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6, SOUND_RANGE)
         hiss = true
-        next
       end
-      level = Block::WATER_LEVEL[b]
-      lava = Block::LAVA_LEVEL[b]
-      next if level == 8 || lava == 4
-      next unless b == Block::AIR || level > 0 || lava > 0 || Block.plant?(b)
-      target = flow_target(x, y, z, false)
-      lava_to = flow_target(x, y, z, true)
-      want = if lava_to > 0
-        Block::LAVA_FLOW + lava_to - 1
-      elsif target > 0
-        Block::FLOW + target - 1
-      else
-        Block::AIR
-      end
-      next if want == b
-      next if want == Block::AIR && level == 0 && lava == 0
-      pour(x, y, z, want)
+      pour(x, y, z, block)
     end
-    @flow_queue.concat(batch[i, batch.size - i]) if i < batch.size
     @chunk_meshes.postpone_since(marked)
   end
 

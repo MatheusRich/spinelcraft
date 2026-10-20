@@ -19,6 +19,7 @@ require_relative "game/mesh3"
 require_relative "game/mobs"
 require_relative "game/natural_spawner"
 require_relative "game/plants"
+require_relative "game/fluids"
 require_relative "game/arrow"
 require_relative "game/egg"
 require_relative "game/item"
@@ -100,10 +101,8 @@ class Game
     @chest_key = -1
     @chest_pair = Slots.new(CHEST_SLOTS)
     @pair_key = -1
-    @flow_queue = []
     # The block changes of Plants: x, y, z and the block, for each one.
     @changes = Array.new(0, 0)
-    @flow_timer = 0.0
     @alive_time = 0.0
     @anim_time = 0.0
     # The slider that the mouse drags, or -1.
@@ -526,11 +525,7 @@ class Game
     update_block_sounds(dt)
     update_survival(dt)
     update_mobs(dt)
-    @flow_timer -= dt
-    if @flow_timer <= 0.0
-      @flow_timer = 0.15
-      update_water unless @flow_queue.empty?
-    end
+    update_water if @fluids.due?(dt)
     find_target_boat
     find_target_mob
   end
