@@ -238,10 +238,9 @@ class Game
     @chunk_meshes.mark_block(x, z) if moved
   end
 
-  # A falling block lands on the first cell that does not let it fall, and
-  # set_block puts it there. It takes the place of a plant or a torch, so a
-  # buried torch's light goes out. A block over a chunk that is not loaded
-  # waits. A landing can make more blocks fall, so the list grows in the loop.
+  # A falling block lands on the first cell that does not let it fall (see
+  # land). A block over a chunk that is not loaded waits. A landing can make
+  # more blocks fall, so the list grows in the loop.
   def update_falling(dt)
     i = 0
     while i < @falling.size
@@ -258,10 +257,19 @@ class Game
     end
   end
 
+  # The block takes the place of air, water or grass (Block.replaceable?).
+  # In a torch or a flower it breaks and drops as an item, and the torch
+  # or the flower stays. minecraft.wiki/w/Falling_Block; the wiki does not
+  # list the blocks that a falling block replaces.
   def land(f)
     y = f.y.floor + 1
     y += 1 while y < WY - 1 && !lets_fall?(@world.get(f.x, y, f.z))
-    set_block(f.x, y, f.z, f.block)
+    cell = @world.get(f.x, y, f.z)
+    if Block.plant?(cell) && !Block.replaceable?(cell)
+      drop_from_block(f.block, 1, f.x, y, f.z)
+    else
+      set_block(f.x, y, f.z, f.block)
+    end
   end
 
   # Lands the falling blocks at once, so that the save keeps them.

@@ -994,19 +994,16 @@ class Game
     puts "torch edit remesh: #{@chunk_meshes.mesh_ms.round(2)} ms"
     set_block(x, ground + 1, z, Block::AIR)
     @chunk_meshes.flush
-    # Sand that falls onto a torch buries it. A torch in the middle of a
-    # chunk lights the next chunk too, so that chunk must remesh.
+    # A torch in the middle of a chunk lights the next chunk too, so
+    # that chunk must remesh when the torch goes.
     tx = (x & ~15) + 8
     th = @world.height_at(tx, z)
     # The column can be water, and a torch needs ground.
     set_block(tx, th - 1, z, Block::DIRT)
     set_block(tx, th, z, Block::TORCH)
     @chunk_meshes.flush_all
-    set_block(tx, th + 3, z, Block::SAND)
-    fall_for(2.0)
-    check("sand that buries a torch remeshes the chunks that it lit",
-          @world.get(tx, th, z) == Block::SAND && @chunk_meshes.queued?((tx >> 4) + 1, z >> 4))
     set_block(tx, th, z, Block::AIR)
+    check("breaking a torch remeshes the chunks that it lit", @chunk_meshes.queued?((tx >> 4) + 1, z >> 4))
     @chunk_meshes.flush_all
   end
 
@@ -1045,7 +1042,16 @@ class Game
     fall_for(2.0)
     check("sand that falls drops the torches that it held",
           @world.get(x, ground + 3, z) == Block::AIR && @world.get(x - 1, ground + 2, z) == Block::AIR && ground_count(Block::TORCH) == 2)
+    set_block(x, ground + 1, z, Block::TORCH)
+    set_block(x + 1, ground + 1, z, Block::TALL_GRASS)
+    @items.clear
+    set_block(x, ground + 4, z, Block::SAND)
+    set_block(x + 1, ground + 4, z, Block::SAND)
+    fall_for(2.0)
+    check("sand breaks into an item on a torch, and takes the place of tall grass",
+          @world.get(x, ground + 1, z) == Block::TORCH && @world.get(x + 1, ground + 1, z) == Block::SAND && ground_count(Block::SAND) == 1)
     set_block(x, ground + 1, z, Block::AIR)
+    set_block(x + 1, ground + 1, z, Block::AIR)
     @items.clear
   end
 
