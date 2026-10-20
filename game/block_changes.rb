@@ -223,6 +223,7 @@ class Game
         wake_water(x, y, z)
         @falling << FallingBlock.new(b, x, y.to_f, z)
         moved = true
+        break_held(x, y, z)
         break_unheld_cactus(x, y + 1, z)
       end
     end

@@ -1037,6 +1037,16 @@ class Game
     @items.clear
     puts "lost: #{lost.join(", ")}" unless lost.empty?
     check("each plant, torch and ladder drops its item when the block that holds it goes", lost.empty?)
+    set_block(x, ground + 1, z, Block::STONE)
+    set_block(x, ground + 2, z, Block::SAND)
+    set_block(x, ground + 3, z, Block::TORCH)
+    set_block(x - 1, ground + 2, z, Block.facing_id(Block::TORCH, 1))
+    set_block(x, ground + 1, z, Block::AIR)
+    fall_for(2.0)
+    check("sand that falls drops the torches that it held",
+          @world.get(x, ground + 3, z) == Block::AIR && @world.get(x - 1, ground + 2, z) == Block::AIR && ground_count(Block::TORCH) == 2)
+    set_block(x, ground + 1, z, Block::AIR)
+    @items.clear
   end
 
   # Survival basics: crafting, stacks, health, placing, mining, and food.
