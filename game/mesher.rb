@@ -206,7 +206,7 @@ class Mesher
   def fluid_height(k, b, over)
     if Mesher.fluid(b) == k
       return 1.0 if Mesher.fluid(over) == k
-      return k == 1 ? Block::WATER_LEVEL[b] / 9.0 : Block.lava_level(b) * 2 / 9.0
+      return k == 1 ? Block::WATER_LEVEL[b] / 9.0 : Block::LAVA_LEVEL[b] * 2 / 9.0
     end
     Block.solid?(b) ? -1.0 : 0.0
   end

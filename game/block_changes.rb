@@ -210,7 +210,7 @@ class Game
 
   # The level of block b as water (8 for a source), or as lava (4 for a
   # source) when lava is true; 0 when it is not that fluid.
-  def fluid_level(b, lava) = lava ? Block.lava_level(b) : Block::WATER_LEVEL[b]
+  def fluid_level(b, lava) = lava ? Block::LAVA_LEVEL[b] : Block::WATER_LEVEL[b]
 
   def update_water # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     batch = @flow_queue
@@ -234,7 +234,7 @@ class Game
         next
       end
       level = Block::WATER_LEVEL[b]
-      lava = Block.lava_level(b)
+      lava = Block::LAVA_LEVEL[b]
       next if level == 8 || lava == 4
       next unless b == Block::AIR || level > 0 || lava > 0 || Block.plant?(b)
       target = flow_target(x, y, z, false)

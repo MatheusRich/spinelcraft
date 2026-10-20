@@ -3786,7 +3786,7 @@ class Game
     set_block(wx + 2, SKY_Y - 4, wz, Block::TORCH)
     set_block(wx, SKY_Y - 4, wz, Block::LAVA)
     40.times { update_water }
-    check("lava spreads 3 blocks over a floor", Block.lava_level(@world.get(wx + 3, SKY_Y - 4, wz)) == 1 && @world.get(wx + 4, SKY_Y - 4, wz) == Block::AIR && Block.lava_level(@world.get(wx - 1, SKY_Y - 4, wz)) == 3)
+    check("lava spreads 3 blocks over a floor", Block::LAVA_LEVEL[@world.get(wx + 3, SKY_Y - 4, wz)] == 1 && @world.get(wx + 4, SKY_Y - 4, wz) == Block::AIR && Block::LAVA_LEVEL[@world.get(wx - 1, SKY_Y - 4, wz)] == 3)
     check("lava burns a torch, and it drops nothing", Block.lava?(@world.get(wx + 2, SKY_Y - 4, wz)) && @items.empty?)
     set_block(wx, SKY_Y - 4, wz, Block::AIR)
     40.times { update_water }

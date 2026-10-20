@@ -227,6 +227,8 @@ module Block
   PICK_TIER = []
   # Water level: 8 for a source, 1..7 for flowing water, 0 for anything else.
   WATER_LEVEL = []
+  # Lava level: 4 for a source, 1..3 for flowing lava, 0 for anything else.
+  LAVA_LEVEL = []
   # What each block needs from the cells around it to stay in its cell
   # (see World#can_hold?): HOLD_NONE for nothing, or one of the others.
   HOLD = []
@@ -264,7 +266,7 @@ module Block
   # the arguments say something else.
   def self.define_block(id, name, side, top: side, bottom: top, front: side, facing: -1, base: id, shape: 0, opaque: 1,
                         occludes: opaque, solid: 1, plant: 0, hardness: 0.0, drops: id, needs_pick: 0, dig: 0, pick_tier: 0,
-                        water: 0, hold: HOLD_NONE, item: 0, food: 0, saturation: 0.0)
+                        water: 0, lava: 0, hold: HOLD_NONE, item: 0, food: 0, saturation: 0.0)
     abort "Block.define_block: block #{id} comes out of order" if id != NAMES.size
     NAMES << name
     TOP << top
@@ -284,6 +286,7 @@ module Block
     DIG_KIND << dig
     PICK_TIER << pick_tier
     WATER_LEVEL << water
+    LAVA_LEVEL << lava
     HOLD << hold
     ITEM << item
     FOOD << food
@@ -307,7 +310,7 @@ module Block
       define_block(first + d - FACING[of] - 1, NAMES[of], SIDE[of], top: TOP[of], bottom: BOTTOM[of], front: FRONT[of],
                    facing: d, base: BASE[of], shape: SHAPE[of], opaque: OPAQUE[of], occludes: OCCLUDES[of], solid: SOLID[of],
                    plant: PLANT[of], hardness: HARDNESS[of], drops: DROPS[of], needs_pick: NEEDS_PICK[of], dig: DIG_KIND[of],
-                   pick_tier: PICK_TIER[of], water: WATER_LEVEL[of], hold: HOLD[of], item: ITEM[of], food: FOOD[of],
+                   pick_tier: PICK_TIER[of], water: WATER_LEVEL[of], lava: LAVA_LEVEL[of], hold: HOLD[of], item: ITEM[of], food: FOOD[of],
                    saturation: SATURATION[of])
     end
     # A while loop gives an untyped value, so Spinel would box the return.
@@ -367,8 +370,8 @@ module Block
   end
   define_item BOW, "BOW", Tex::BOW
   define_item ARROW, "ARROW", Tex::ARROW
-  define_block LAVA, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR
-  (1...4).each { |level| define_block LAVA_FLOW + level - 1, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR }
+  define_block LAVA, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR, lava: 4
+  (1...4).each { |level| define_block LAVA_FLOW + level - 1, "LAVA", Tex::LAVA, solid: 0, hardness: -1.0, drops: AIR, lava: level }
   define_block WOOL, "WOOL", Tex::WOOL, hardness: 0.8
   define_block BED, "BED", Tex::BED_ITEM, opaque: 0, solid: 0, hardness: 0.2, dig: DIG_AXE
   define_block CHEST, "CHEST", Tex::CHEST_SIDE, top: Tex::CHEST_TOP, front: Tex::CHEST_FRONT, facing: 0, shape: 4, opaque: 0,
@@ -695,8 +698,7 @@ module Block
     b >= WOOD_SHOVEL && b <= DIAMOND_SHOVEL ? b - WOOD_SHOVEL + 1 : 0
   end
   def self.tool?(b) = uses(b) > 0
-  def self.lava?(b) = b >= LAVA && b < LAVA_FLOW + 3
-  def self.lava_level(b) = b == LAVA ? 4 : (lava?(b) ? b - LAVA_FLOW + 1 : 0)
+  def self.lava?(b) = LAVA_LEVEL[b] > 0
   def self.jack_o_lantern?(b) = BASE[b] == JACK_O_LANTERN
   # A pumpkin, a carved pumpkin or a jack o'lantern.
   def self.pumpkin?(b) = b >= PUMPKIN && b < SHEARS
