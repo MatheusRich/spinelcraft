@@ -1,5 +1,6 @@
-# Block changes and what follows them: flowing water and lava, falling sand
-# and gravel, and the plants that grow and the leaves that decay.
+# Block changes and what follows them: the blocks that break and what they
+# drop, flowing water and lava, falling sand and gravel, and the plants
+# that grow and the leaves that decay.
 class Game
   def set_block(x, y, z, b) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @changed = true
@@ -71,15 +72,42 @@ class Game
   def break_block(x, y, z)
     b = @world.get(x, y, z)
     set_block(x, y, z, Block::AIR)
-    drop_broken(b, x, y, z)
+    drop_broken(b, x, y, z, Block::AIR)
   end
 
-  # Drops what block b drops when it breaks at x, y, z with no tool: its
-  # item and its extras (see drop_extra). Unlike mine, it does not check
-  # the pickaxe tier, because no block that it breaks needs a pickaxe.
-  def drop_broken(b, x, y, z)
-    drop_from_block(Block::DROPS[b], 1, x, y, z)
-    drop_extra(b, x, y, z)
+  # Drops what block drops when tool breaks it at x, y, z. Block::AIR is no
+  # tool, as when water washes a plant away. Leaves or grass that shears
+  # cut drop themselves (see Block.shears_cut?). Any other block drops its
+  # Block::DROPS and its extras (see drop_extra). The pickaxe tier counts
+  # only when the player mines, so mine checks it.
+  def drop_broken(block, x, y, z, tool)
+    if tool == Block::SHEARS && Block.shears_cut?(block)
+      drop_from_block(Block::BASE[block], 1, x, y, z)
+    else
+      drop_from_block(Block::DROPS[block], 1, x, y, z)
+      drop_extra(block, x, y, z)
+    end
+  end
+
+  # What a broken block drops besides Block::DROPS: leaves now and then a
+  # sapling of their wood, oak leaves more rarely an apple, tall grass now
+  # and then seeds, and ripe wheat 1 or 2 seeds.
+  def drop_extra(b, x, y, z)
+    r = @rng.rand01
+    if Block.leaves?(b)
+      # Spruce and birch leaves drop a sapling 1 time in 20, and no apple.
+      # minecraft.wiki/w/Leaves
+      sapling = Block::BASE[b] == Block::OAK_LEAVES ? 0.1 : 0.05
+      if r < sapling
+        drop_from_block(Block::SAPLINGS[Block.wood(b)], 1, x, y, z)
+      elsif Block::BASE[b] == Block::OAK_LEAVES && r < 0.15
+        drop_from_block(Block::APPLE, 1, x, y, z)
+      end
+    elsif b == Block::TALL_GRASS
+      drop_from_block(Block::SEEDS, 1, x, y, z) if r < 0.125
+    elsif b == Block::WHEAT_RIPE
+      drop_from_block(Block::SEEDS, r < 0.5 ? 1 : 2, x, y, z)
+    end
   end
 
   # Puts b, water, lava or the air of drained fluid, at x, y, z. Water
@@ -87,7 +115,7 @@ class Game
   # drops nothing. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
   def pour(x, y, z, b)
     old = @world.get(x, y, z)
-    drop_broken(old, x, y, z) if Block.plant?(old) && Block.water?(b)
+    drop_broken(old, x, y, z, Block::AIR) if Block.plant?(old) && Block.water?(b)
     set_block(x, y, z, b)
   end
 
@@ -112,18 +140,14 @@ class Game
     nil
   end
 
-  # Decayed leaves drop their extras: now and then a sapling or an apple.
+  # Decayed leaves break, and now and then they drop a sapling or an
+  # apple. Each change of Plants#decay_column is air.
   def decay_leaves(dt)
     @plants.random_ticks(dt, Plants::DECAY_SAMPLES).times do
       @plants.decay_column(@player.x.floor.to_i, @player.z.floor.to_i, @changes)
       i = 0
       while i < @changes.size
-        x = @changes[i]
-        y = @changes[i + 1]
-        z = @changes[i + 2]
-        b = @world.get(x, y, z)
-        set_block(x, y, z, @changes[i + 3])
-        drop_extra(b, x, y, z)
+        break_block(@changes[i], @changes[i + 1], @changes[i + 2])
         i += 4
       end
       @changes.clear

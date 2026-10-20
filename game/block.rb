@@ -663,9 +663,9 @@ module Block
 
     tool_tier(tool)
   end
-  # What breaking b with shears gives: leaves and grass give themselves,
-  # and the rest give what they give by hand. minecraft.wiki/w/Shears
-  def self.shear_drop(b) = leaves?(b) ? BASE[b] : (replaceable?(b) ? b : DROPS[b])
+  # Leaves and grass that shears cut drop themselves, and nothing else. The
+  # rest drop what they drop by hand. minecraft.wiki/w/Shears
+  def self.shears_cut?(b) = leaves?(b) || replaceable?(b)
 
   # Uses before a wooden, stone, iron or diamond tool breaks, and a bow.
   # minecraft.wiki/w/Item_durability

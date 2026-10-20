@@ -1197,9 +1197,17 @@ class Game
     worn = @inv.count(8) == uses - 20
     @particles.update(@world, 60.0)
     @inv.set(8, Block::AIR, 0)
-    drops = ground_count(Block::OAK_LEAVES) == 20 && @items.all? { |item| item.block == Block::OAK_LEAVES } &&
-            Block.shear_drop(Block::TALL_GRASS) == Block::TALL_GRASS && Block.shear_drop(Block::DRY_GRASS) == Block::DRY_GRASS &&
-            Block::DROPS[Block::DRY_GRASS] == Block::AIR && Block.shear_drop(Block::STONE) == Block::COBBLE
+    leaves = ground_count(Block::OAK_LEAVES) == 20 && @items.all? { |item| item.block == Block::OAK_LEAVES }
+    @items.clear
+    # Shears cut leaves that the player placed, tall grass and dry grass,
+    # and dig dirt as a hand does. Dry grass by hand drops nothing.
+    frames_to_mine(x, ground + 1, z, Block::PLACED_BIRCH_LEAVES, Block::SHEARS)
+    frames_to_mine(x, ground + 1, z, Block::TALL_GRASS, Block::SHEARS)
+    frames_to_mine(x, ground + 1, z, Block::DRY_GRASS, Block::SHEARS)
+    frames_to_mine(x, ground + 1, z, Block::DRY_GRASS, Block::AIR)
+    frames_to_mine(x, ground + 1, z, Block::DIRT, Block::SHEARS)
+    drops = leaves && ground_count(Block::BIRCH_LEAVES) == 1 && ground_count(Block::TALL_GRASS) == 1 &&
+            ground_count(Block::DRY_GRASS) == 1 && ground_count(Block::DIRT) == 1 && @items.size == 4
     @items.clear
     check("shears cut wool 5 times and leaves 15 times as fast, and other blocks as fast as a hand",
           wool_shears < wool_hand / 4 && leaves_shears == 1 && leaves_hand > 4 && dirt_shears == dirt_hand)

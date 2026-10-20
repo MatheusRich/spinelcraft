@@ -376,7 +376,6 @@ class Game
     tool = current_block.to_i
     tier = Block.dig_tier(tool, b)
     need = Block::NEEDS_PICK[b]
-    shears = tool == Block::SHEARS
     speed = Block.dig_speed(tool, b)
     speed /= 5.0 if Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
     speed /= 5.0 unless @player.on_ground
@@ -387,8 +386,7 @@ class Game
       play(MATERIAL_BREAK[material(b)], 0.7)
       set_block(x, y, z, Block::AIR)
       @attack_time = 0.0
-      drop_from_block(shears ? Block.shear_drop(b) : Block::DROPS[b], 1, x, y, z) if tier >= need
-      drop_extra(b, x, y, z) unless shears && (Block.leaves?(b) || b == Block::TALL_GRASS)
+      drop_broken(b, x, y, z, tool) if tier >= need
       if hardness > 0.0
         wear_tool(Block.wear(tool, false))
         @mine_delay = MINE_DELAY
@@ -429,27 +427,6 @@ class Game
     end
     @clock.skip_night
     say("GOOD MORNING")
-  end
-
-  # What a broken block drops besides Block::DROPS: leaves now and then a
-  # sapling of their wood, oak leaves more rarely an apple, tall grass now
-  # and then seeds, and ripe wheat 1 or 2 seeds.
-  def drop_extra(b, x, y, z)
-    r = @rng.rand01
-    if Block.leaves?(b)
-      # Spruce and birch leaves drop a sapling 1 time in 20, and no apple.
-      # minecraft.wiki/w/Leaves
-      sapling = Block::BASE[b] == Block::OAK_LEAVES ? 0.1 : 0.05
-      if r < sapling
-        drop_from_block(Block::SAPLINGS[Block.wood(b)], 1, x, y, z)
-      elsif Block::BASE[b] == Block::OAK_LEAVES && r < 0.15
-        drop_from_block(Block::APPLE, 1, x, y, z)
-      end
-    elsif b == Block::TALL_GRASS
-      drop_from_block(Block::SEEDS, 1, x, y, z) if r < 0.125
-    elsif b == Block::WHEAT_RIPE
-      drop_from_block(Block::SEEDS, r < 0.5 ? 1 : 2, x, y, z)
-    end
   end
 
   # Opens or closes the door at x, y, z and the other half above or below it.
