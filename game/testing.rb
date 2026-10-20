@@ -1798,6 +1798,18 @@ class Game
     set_block(cx, SKY_Y, cz, Block::AIR)
     check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.empty?)
     @items.clear
+    test_chest_screen
+  end
+
+  # The chest cells are as big as the inventory cells, and they fit on the
+  # screen at each window size.
+  def test_chest_screen
+    fits = [[1280.0, 720.0], [1920.0, 1080.0], [2560.0, 1440.0], [3840.0, 2160.0]].all? do |w, h|
+      s = inventory_scale(w, h)
+      last = chest_cell(CHEST_SLOTS - 1, w, h, s)
+      chest_cell(0, w, h, s)[2] == pack_cell(0, w, h, s)[2] && last[0] + last[2] <= w && last[1] + last[2] <= h
+    end
+    check("the chest cells are as big as the inventory cells and fit on the screen", fits)
   end
 
   # Mobs that die without the player's help drop nothing.

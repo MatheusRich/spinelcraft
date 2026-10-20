@@ -301,11 +301,13 @@ class Game
     @chest.move_stack(k, @inv, 0, INV)
   end
 
-  # Chest cell k, in the place of the recipe list: x, y, size.
+  # Chest cell k, in the place of the recipe list: x, y, size. The cells
+  # are as big as those of the inventory.
   def chest_cell(k, w, h, s)
     first = recipe_cell(0, w, h, s)
-    size = 31.0 * s
-    [first[0] + (k % 9) * (size + 2.0 * s), first[1] + (k / 9) * (size + 2.0 * s), size]
+    size = 52.0 * s
+    gap = 6.0 * s
+    [first[0] + (k % 9) * (size + gap), first[1] + (k / 9) * (size + gap), size]
   end
 
   def chest_hover(w, h, s)
