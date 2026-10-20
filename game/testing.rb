@@ -1462,16 +1462,25 @@ class Game
       set_block(sx, SKY_Y - 3, pz, Block::STONE)
       set_block(sx, SKY_Y - 2, pz, Block::SAND)
     end
-    broken = [[1, 0, Block::STONE], [-1, 0, Block::CACTUS], [0, 1, Block::LAVA], [0, -1, Block::GLASS],
-              [0, 0, Block::WATER], [0, 0, Block::LAVA]].map do |dx, dz, block|
+    # Spinel does not type the rows of a nested Array, so each list here
+    # holds Integers only.
+    beside = [Block::STONE, Block::CACTUS, Block::LAVA, Block::GLASS]
+    broken = (0...4).map do |dir|
+      side_x = px + 5 + Block::DIR_DX[dir]
+      side_z = pz + Block::DIR_DZ[dir]
       @items.clear
       set_block(px + 5, SKY_Y - 1, pz, Block::CACTUS)
-      # dx = dz = 0 puts the block above the cactus.
-      block_y = dx == 0 && dz == 0 ? SKY_Y : SKY_Y - 1
-      set_block(px + 5 + dx, block_y, pz + dz, block)
+      set_block(side_x, SKY_Y - 1, side_z, beside[dir])
       gone = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR && ground_count(Block::CACTUS) == 1
-      set_block(px + 5 + dx, block_y, pz + dz, Block::AIR)
+      set_block(side_x, SKY_Y - 1, side_z, Block::AIR)
       gone
+    end
+    [Block::WATER, Block::LAVA].each do |above|
+      @items.clear
+      set_block(px + 5, SKY_Y - 1, pz, Block::CACTUS)
+      set_block(px + 5, SKY_Y, pz, above)
+      broken << (@world.get(px + 5, SKY_Y - 1, pz) == Block::AIR && ground_count(Block::CACTUS) == 1)
+      set_block(px + 5, SKY_Y, pz, Block::AIR)
     end
     @items.clear
     set_block(px + 6, SKY_Y - 1, pz, Block::STONE)
@@ -2548,11 +2557,12 @@ class Game
     closed = @world.get(x, y, z) == Block.door_id(0, false, false) && @world.get(x, y + 1, z) == Block.door_id(0, true, false)
     set_block(x, y, z, Block::AIR)
     check("a door opens and closes as a whole, and breaks as a whole", opened && closed && @world.get(x, y + 1, z) == Block::AIR)
-    unheld = [false, true].all? do |open|
+    # Each lower half takes its upper half: the closed door, then the open door.
+    unheld = [Block.door_id(0, false, false), Block.door_id(0, false, true)].all? do |lower|
       @items.clear
       set_block(x, y - 1, z, Block::GRASS)
-      set_block(x, y, z, Block.door_id(0, false, open))
-      set_block(x, y + 1, z, Block.door_id(0, true, open))
+      set_block(x, y, z, lower)
+      set_block(x, y + 1, z, Block.door_id(0, true, Block.door_open?(lower)))
       set_block(x, y - 1, z, Block::AIR)
       @world.get(x, y, z) == Block::AIR && @world.get(x, y + 1, z) == Block::AIR && ground_count(Block::DOOR) == 1
     end
