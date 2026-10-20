@@ -64,6 +64,15 @@ class Game
     drop_extra(b, x, y, z)
   end
 
+  # Puts b, water, lava or the air of drained fluid, at x, y, z. Water
+  # washes a plant or a torch away, and it drops. Lava burns it, and it
+  # drops nothing. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
+  def pour(x, y, z, b)
+    old = @world.get(x, y, z)
+    drop_broken(old, x, y, z) if Block.plant?(old) && Block.water?(b)
+    set_block(x, y, z, b)
+  end
+
   # The half old of a large chest at x, y, z is gone, so the other half is
   # a chest of one block again. It keeps its contents.
   def split_chest(x, y, z, old)
@@ -206,10 +215,7 @@ class Game
       end
       next if want == b
       next if want == Block::AIR && level == 0 && lava == 0
-      # Water washes a plant or a torch away, and it drops. Lava burns it,
-      # and it drops nothing. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
-      drop_broken(b, x, y, z) if Block.plant?(b) && Block.water?(want)
-      set_block(x, y, z, want)
+      pour(x, y, z, want)
     end
     @flow_queue.concat(batch[i, batch.size - i]) if i < batch.size
     @chunk_meshes.postpone_since(marked)

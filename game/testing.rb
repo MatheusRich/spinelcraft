@@ -2791,6 +2791,22 @@ class Game
     filled = @inv.count(0) == 14 && @inv.block(1) == Block::WATER_BUCKET && @inv.block(2) == Block::WATER_BUCKET &&
              @inv.count(1) == 1 && @inv.count(2) == 1
     set_block(x, y - 1, z, Block::STONE)
+    # The player stands beside the rose, so the view ray passes it.
+    @player.x = x + 0.05
+    roses = [Block::WATER_BUCKET, Block::LAVA_BUCKET].map do |full|
+      @items.clear
+      set_block(x, y, z, Block::ROSE)
+      @inv.clear
+      @inv.add(full)
+      @player.raycast(@world)
+      use_bucket
+      poured = @world.get(x, y, z) != Block::ROSE
+      set_block(x, y, z, Block::AIR)
+      poured ? ground_count(Block::ROSE) : -1
+    end
+    @player.x = x + 0.5
+    @items.clear
+    check("water from a bucket washes away a rose and it drops, and lava burns it", roses == [1, 0])
     was = @survival
     @survival = true
     @inv.clear

@@ -299,7 +299,9 @@ class Game
       return unless @world.inside?(x, y, z)
       current = @world.get(x, y, z)
       return if Block.solid?(current) || Block.door?(current)
-      set_block(x, y, z, b == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
+      # The wiki does not say what a bucket does to a plant; pour uses the
+      # rule of flowing water and lava.
+      pour(x, y, z, b == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
       swap_bucket(Block::BUCKET)
       play(b == Block::WATER_BUCKET ? Sfx::WATER_POUR : Sfx::LAVA_POUR, 0.5)
     end
