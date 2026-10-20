@@ -196,6 +196,7 @@ class Game
     test_mob_hides_block
     test_resume_click
     test_lambs
+    test_graze_rate
     test_breeding
     test_push
     test_far_items
@@ -3521,7 +3522,7 @@ class Game
     bite_grass(sheep)
     on_stone = sheep.sheared && !sheep.can_graze?(@world)
     check("a sheared sheep grows its wool back when its bite of grass ends, and grass turns to dirt",
-          early && on_grass && on_tall && on_stone && (GRAZE_CHANCE - 0.04).abs < 1.0e-9)
+          early && on_grass && on_tall && on_stone)
     # A hit makes the sheep panic: it stops eating before the bite, and it
     # does not start again while it panics. So a sheep sheared in creative
     # and then killed in survival stays bare and drops no wool.
@@ -3566,8 +3567,32 @@ class Game
     fill_box(bx - 2, y, bz - 2, bx + 2, y + 1, bz + 2, Block::AIR)
   end
 
-  # A baby sheep has wool that shears do not take. It grazes 20 times as
-  # often as an adult, and each bite takes 1 minute off its growth time.
+  # An adult sheep on grass starts to eat about once each 50 seconds:
+  # GRAZE_CHANCE is 10/500 each second. Each time that it is done, the
+  # pen gets its grass back.
+  def test_graze_rate
+    bx = @spawn_x.floor + 50
+    bz = @spawn_z.floor - 100
+    y = SKY_Y - 20
+    fill_box(bx - 3, y, bz - 3, bx + 3, y + 3, bz + 3, Block::STONE)
+    fill_box(bx - 2, y + 1, bz - 2, bx + 2, y + 3, bz + 2, Block::AIR)
+    fill_box(bx - 2, y, bz - 2, bx + 2, y, bz + 2, Block::GRASS)
+    @mobs.clear
+    sheep = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    @mobs << sheep
+    grazes = 0
+    60_000.times do
+      eating = sheep.graze > 0.0
+      update_mobs(0.05)
+      grazes += 1 if !eating && sheep.graze > 0.0
+      fill_box(bx - 2, y, bz - 2, bx + 2, y, bz + 2, Block::GRASS) if eating && sheep.graze <= 0.0
+    end
+    check("an adult sheep on grass starts to eat about once each 50 seconds", grazes >= 30 && grazes <= 90)
+    @mobs.clear
+  end
+
+  # A baby sheep has wool that shears do not take. Each bite of grass
+  # takes 1 minute off its growth time.
   def test_lambs
     bx = @spawn_x.floor + 50
     bz = @spawn_z.floor - 80
@@ -3590,9 +3615,8 @@ class Game
     grow = lamb.grow_left
     lamb.grass_bite = true
     bite_grass(lamb)
-    check("a baby sheep grazes 20 times as often as an adult, and a bite of grass takes 1 minute off its growth time",
-          (lamb.grow_left - (grow - 60.0)).abs < 0.001 && @world.get(bx, y, bz) == Block::DIRT &&
-          (LAMB_GRAZE_CHANCE - GRAZE_CHANCE * 20.0).abs < 1.0e-9)
+    check("a bite of grass takes 1 minute off the growth time of a baby sheep",
+          (lamb.grow_left - (grow - 60.0)).abs < 0.001 && @world.get(bx, y, bz) == Block::DIRT)
     @mobs.clear
     @inv.clear
     @items.clear

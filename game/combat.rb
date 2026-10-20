@@ -8,12 +8,12 @@ class Game
   MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1, Sfx::MOO, Sfx::CLUCK]
   MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT, Sfx::COW_HURT, Sfx::CHICKEN_HURT]
   MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH, Sfx::COW_HURT, Sfx::CHICKEN_HURT]
-  # An adult sheep starts to eat grass with chance 1/500 each tick, so 20/500
-  # each second. minecraft.wiki/w/Sheep
-  GRAZE_CHANCE = 20.0 / 500.0
+  # An adult sheep starts to eat grass with chance "1⁄500 every other game
+  # tick", so 10/500 each second. minecraft.wiki/w/Sheep
+  GRAZE_CHANCE = 10.0 / 500.0
   # A baby sheep has the chance 1/25 where an adult has 1/500, and each
   # bite takes 1 minute off its growth time. minecraft.wiki/w/Sheep
-  LAMB_GRAZE_CHANCE = 20.0 / 25.0
+  LAMB_GRAZE_CHANCE = 10.0 / 25.0
   LAMB_BITE_GROWTH = 60.0
 
   # The bite of a grazing sheep: the tall grass goes, or else the grass
