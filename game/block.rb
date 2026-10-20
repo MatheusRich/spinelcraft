@@ -248,7 +248,7 @@ module Block
   HOLD_CACTUS = 4
   # A solid block on the side that it faces away from.
   HOLD_WALL = 5
-  # A block under it that a falling block does not pass (see lets_fall?).
+  # A block under it that it does not fall into (see falls_into?).
   # Without one, it falls (see Game#start_fall).
   HOLD_FALL = 6
   # 1 for a thing that lives in the inventory but is never placed.
@@ -490,6 +490,10 @@ module Block
   def self.replaceable?(b) = b == TALL_GRASS || b == DRY_GRASS
   def self.water?(b) = WATER_LEVEL[b] > 0
   def self.falls?(b) = HOLD[b] == HOLD_FALL
+  # Sand and gravel fall into air, water and the grass that a placed block
+  # replaces (minecraft.wiki/w/Falling_Block). A torch or a flower holds
+  # them up, but a falling block passes it (see lets_fall?).
+  def self.falls_into?(b) = b == AIR || water?(b) || replaceable?(b)
   # A falling block passes air, water and plants.
   def self.lets_fall?(b) = b == AIR || water?(b) || plant?(b)
   def self.log?(b) = LOGS.include?(b)

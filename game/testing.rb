@@ -1067,6 +1067,17 @@ class Game
           @world.get(x + 1, ground + 1, z) == Block::SAND && ground_count(Block::SAND) == 2)
     fill_box(x - 1, ground + 1, z, x + 1, ground + 4, z, Block::AIR)
     @items.clear
+    fill_box(x - 1, ground, z, x + 1, ground, z, Block::DIRT)
+    set_block(x - 1, ground + 1, z, Block::OAK_SAPLING)
+    set_block(x, ground + 1, z, Block::TORCH)
+    set_block(x + 1, ground + 1, z, Block::ROSE)
+    (x - 1..x + 1).each { |sx| set_block(sx, ground + 2, z, Block::SAND) }
+    rested = (x - 1..x + 1).all? { |sx| @world.get(sx, ground + 2, z) == Block::SAND } && @falling.empty?
+    check("sand on a torch, a sapling or a flower stays", rested)
+    # The sand goes first, so that it does not fall.
+    fill_box(x - 1, ground + 2, z, x + 1, ground + 2, z, Block::AIR)
+    fill_box(x - 1, ground + 1, z, x + 1, ground + 1, z, Block::AIR)
+    @items.clear
   end
 
   # Survival basics: crafting, stacks, health, placing, mining, and food.
