@@ -193,6 +193,7 @@ class Game
     test_seed_soil
     test_shear_sheep
     test_mob_hides_block
+    test_resume_click
     test_lambs
     test_breeding
     test_push
@@ -519,6 +520,49 @@ class Game
     @vitals.health = Vitals::MAX_HEALTH
     @captured = true
     check("only the pause screen stops the world", stopped && inventory && !dead)
+  end
+
+  # A click on BACK TO GAME takes the mouse while the button is still down.
+  # The held button does nothing until the player lets it go, so the click
+  # does not also break the block in view. The next click does.
+  def test_resume_click
+    bx = @spawn_x.floor + 50
+    bz = @spawn_z.floor - 120
+    y = SKY_Y - 20
+    fill_box(bx - 2, y + 1, bz - 2, bx + 2, y + 4, bz + 2, Block::AIR)
+    fill_box(bx - 2, y, bz - 2, bx + 2, y, bz + 2, Block::STONE)
+    survival = @survival
+    keep_pose
+    @survival = false
+    @mobs.clear
+    @target_mob = -1
+    @target_boat = -1
+    @player.x = bx + 0.5
+    @player.y = y + 1.0
+    @player.z = bz + 0.5
+    @player.flying = true
+    @player.pitch = -1.55
+    @player.raycast(@world)
+    @captured = false
+    Gfx.in_test_button(1, 1)
+    click_menu(M_RESUME)
+    Gfx.in_test_frame
+    5.times do
+      handle_input(0.05)
+      Gfx.in_test_frame
+    end
+    kept = @world.get(bx, y, bz) == Block::STONE
+    Gfx.in_test_button(1, 0)
+    handle_input(0.05)
+    Gfx.in_test_frame
+    Gfx.in_test_button(1, 1)
+    handle_input(0.05)
+    Gfx.in_test_button(1, 0)
+    Gfx.in_test_frame
+    Gfx.in_capture(0)
+    check("the click on BACK TO GAME breaks no block, and the next click does", kept && @world.get(bx, y, bz) == Block::AIR)
+    @survival = survival
+    restore_pose
   end
 
   # Save and quit to title saves the world and opens the title screen. The

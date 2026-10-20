@@ -126,6 +126,9 @@ class Game
     now = Time.now
     @halloween = ENV["HALLOWEEN"] == "1" || (now.month == 10 && now.day == 31)
     @action_cooldown = 0.0
+    # True from a click that goes back to the game until the player lets
+    # the mouse buttons go (Game#resume).
+    @wait_for_release = false
     @message = ""
     @message_time = 0.0
     @chat = Chat.new

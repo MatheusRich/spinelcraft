@@ -44,8 +44,11 @@ class Game
     end
     handle_keys
     @action_cooldown -= dt
-    left = Gfx.in_button(1)
-    right = Gfx.in_button(3)
+    # The click that went back to the game (resume) acts only after the
+    # player lets the buttons go.
+    @wait_for_release = false unless Gfx.in_button(1) || Gfx.in_button(3)
+    left = Gfx.in_button(1) && !@wait_for_release
+    right = Gfx.in_button(3) && !@wait_for_release
     left_pressed = Gfx.in_button_pressed(1)
     @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3)
     if Gfx.in_button_pressed(2) && @player.hit && !@survival

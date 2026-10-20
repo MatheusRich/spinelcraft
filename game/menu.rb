@@ -99,6 +99,7 @@ class Game
     Gfx.in_capture(1)
     @menu_drag = -1
     @menu_confirm = false
+    @wait_for_release = true
   end
 
   def click_menu(i)

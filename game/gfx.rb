@@ -1332,9 +1332,13 @@ module Gfx
       return clipboard ? clipboard : "";
     }
     void in_text(long on) { if (on) SDL_StartTextInput(win); else SDL_StopTextInput(win); }
-    /* The self-test presses keys through these, in the key state that in_poll fills. */
+    /* The self-test presses keys and mouse buttons through these, in the state that in_poll fills. */
     void in_test_key(long sc, long on) { keys_now[sc] = on != 0; }
-    void in_test_frame(void) { memcpy(keys_prev, keys_now, sizeof keys_now); }
+    void in_test_button(long b, long on) {
+      Uint32 bit = 1u << (b - 1);
+      buttons_now = on ? buttons_now | bit : buttons_now & ~bit;
+    }
+    void in_test_frame(void) { memcpy(keys_prev, keys_now, sizeof keys_now); buttons_prev = buttons_now; }
     /* Cursor position in swapchain pixels. */
     double in_mouse_x(void) { float x, y; SDL_GetMouseState(&x, &y); return x * SDL_GetWindowPixelDensity(win); }
     double in_mouse_y(void) { float x, y; SDL_GetMouseState(&x, &y); return y * SDL_GetWindowPixelDensity(win); }
@@ -1396,6 +1400,7 @@ module Gfx
   ffi_func :in_clipboard, [], :str
   ffi_func :in_text, [:long], :void
   ffi_func :in_test_key, [:long, :long], :void
+  ffi_func :in_test_button, [:long, :long], :void
   ffi_func :in_test_frame, [], :void
   ffi_func :in_mouse_x, [], :double
   ffi_func :in_mouse_y, [], :double
