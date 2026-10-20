@@ -248,6 +248,9 @@ module Block
   HOLD_CACTUS = 4
   # A solid block on the side that it faces away from.
   HOLD_WALL = 5
+  # A block under it that a falling block does not pass (see lets_fall?).
+  # Without one, it falls (see Game#start_fall).
+  HOLD_FALL = 6
   # 1 for a thing that lives in the inventory but is never placed.
   ITEM = []
   # Hunger points that eating the block gives back; 0 for what is not food.
@@ -333,7 +336,7 @@ module Block
   define_block GRASS, "GRASS", Tex::GRASS_SIDE, top: Tex::GRASS_TOP, bottom: Tex::DIRT, hardness: 0.6, drops: DIRT, dig: DIG_SHOVEL
   define_block DIRT, "DIRT", Tex::DIRT, hardness: 0.5, dig: DIG_SHOVEL
   define_block STONE, "STONE", Tex::STONE, hardness: 1.5, drops: COBBLE, needs_pick: 1, dig: DIG_PICK
-  define_block SAND, "SAND", Tex::SAND, hardness: 0.5, dig: DIG_SHOVEL
+  define_block SAND, "SAND", Tex::SAND, hardness: 0.5, dig: DIG_SHOVEL, hold: HOLD_FALL
   define_block WATER, "WATER", Tex::WATER, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, water: 8
   define_block OAK_LOG, "OAK LOG", Tex::OAK_LOG_SIDE, top: Tex::OAK_LOG_TOP, hardness: 2.0, dig: DIG_AXE
   define_leaves OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES
@@ -345,7 +348,7 @@ module Block
   define_block BRICK, "BRICKS", Tex::BRICK, hardness: 2.0, needs_pick: 1, dig: DIG_PICK
   define_block COAL_ORE, "COAL ORE", Tex::COAL_ORE, hardness: 3.0, drops: COAL, needs_pick: 1, dig: DIG_PICK
   define_block IRON, "IRON ORE", Tex::IRON, hardness: 3.0, needs_pick: 2, dig: DIG_PICK
-  define_block GRAVEL, "GRAVEL", Tex::GRAVEL, hardness: 0.6, dig: DIG_SHOVEL
+  define_block GRAVEL, "GRAVEL", Tex::GRAVEL, hardness: 0.6, dig: DIG_SHOVEL, hold: HOLD_FALL
   define_block DIAMOND, "DIAMOND ORE", Tex::DIAMOND, hardness: 3.0, needs_pick: 3, dig: DIG_PICK
   define_block CACTUS, "CACTUS", Tex::CACTUS_SIDE, top: Tex::CACTUS_TOP, shape: 6, opaque: 0, hardness: 0.4,
                hold: HOLD_CACTUS
@@ -486,6 +489,9 @@ module Block
   # A placed block takes the cell of grass, as in Minecraft.
   def self.replaceable?(b) = b == TALL_GRASS || b == DRY_GRASS
   def self.water?(b) = WATER_LEVEL[b] > 0
+  def self.falls?(b) = HOLD[b] == HOLD_FALL
+  # A falling block passes air, water and plants.
+  def self.lets_fall?(b) = b == AIR || water?(b) || plant?(b)
   def self.log?(b) = LOGS.include?(b)
   # Leaves of a tree or leaves that the player placed.
   def self.leaves?(b) = LEAVES.include?(BASE[b])

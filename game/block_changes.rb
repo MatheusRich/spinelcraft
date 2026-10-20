@@ -27,29 +27,44 @@ class Game
     end
     @world.set(x, y, z, b)
     @chunk_meshes.mark_block(x, z)
-    break_unheld(x, y, z)
-    settle_column(x, z)
+    release_unheld(x, y, z)
+    release_if_unheld(x, y, z) if Block.falls?(b)
     wake_water(x, y, z)
   end
 
-  # Breaks each block next to x, y, z that the world can no longer hold
-  # (see World#can_hold?): a plant or a torch on top, a wall torch or a
-  # ladder on a side, or a cactus on any side. Each one drops its item, as
-  # a torch does in Minecraft (minecraft.wiki/w/Torch). The wiki does not
-  # say this for each plant and for a ladder.
-  def break_unheld(x, y, z)
-    break_if_unheld(x, y + 1, z)
-    break_if_unheld(x, y - 1, z)
+  # Releases each block next to x, y, z that the world can no longer hold
+  # (see release_if_unheld): a plant or a torch on top, sand or gravel on
+  # top, a wall torch or a ladder on a side, or a cactus on any side.
+  def release_unheld(x, y, z)
+    release_if_unheld(x, y + 1, z)
+    release_if_unheld(x, y - 1, z)
     dir = 0
     while dir < 4
-      break_if_unheld(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
+      release_if_unheld(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
       dir += 1
     end
   end
 
-  def break_if_unheld(x, y, z)
+  # When the world can no longer hold the block at x, y, z (see
+  # World#can_hold?), sand and gravel fall, and any other block breaks
+  # and drops its item, as a torch does in Minecraft
+  # (minecraft.wiki/w/Torch). The wiki does not say this for each plant
+  # and for a ladder.
+  def release_if_unheld(x, y, z)
     block = @world.get(x, y, z)
-    break_block(x, y, z) unless @world.can_hold?(block, x, y, z)
+    return if @world.can_hold?(block, x, y, z)
+    if Block.falls?(block)
+      start_fall(x, y, z, block)
+    else
+      break_block(x, y, z)
+    end
+  end
+
+  # Sand or gravel at x, y, z leaves its cell and falls as a block in the
+  # air. update_falling moves it.
+  def start_fall(x, y, z, block)
+    @falling << FallingBlock.new(block, x.to_i, y.to_f, z.to_i)
+    set_block(x, y, z, Block::AIR)
   end
 
   # Breaks the block at x, y, z with no tool (see drop_broken).
@@ -215,28 +230,6 @@ class Game
     @chunk_meshes.postpone_since(marked)
   end
 
-  def falls?(b) = b == Block::SAND || b == Block::GRAVEL
-
-  # A falling block passes air, water and plants.
-  def lets_fall?(b) = b == Block::AIR || Block.water?(b) || Block.plant?(b)
-
-  # Sand and gravel with nothing under them leave their cells and fall as
-  # blocks in the air. update_falling moves them.
-  def settle_column(x, z)
-    moved = false
-    (1...WY).each do |y|
-      b = @world.get(x, y, z)
-      if falls?(b) && lets_fall?(@world.get(x, y - 1, z))
-        @world.set(x, y, z, Block::AIR)
-        wake_water(x, y, z)
-        @falling << FallingBlock.new(b, x, y.to_f, z)
-        moved = true
-        break_unheld(x, y, z)
-      end
-    end
-    @chunk_meshes.mark_block(x, z) if moved
-  end
-
   # A falling block lands on the first cell that does not let it fall (see
   # land). A block over a chunk that is not loaded waits. A landing can make
   # more blocks fall, so the list grows in the loop.
@@ -246,7 +239,7 @@ class Game
       f = @falling[i]
       if @world.loaded?(f.x, f.z)
         f.fall(dt)
-        if f.y < 0.0 || !lets_fall?(@world.get(f.x, f.y.floor, f.z))
+        if f.y < 0.0 || !Block.lets_fall?(@world.get(f.x, f.y.floor, f.z))
           @falling.delete_at(i)
           land(f) if f.y >= 0.0
           next
@@ -262,7 +255,7 @@ class Game
   # the wiki does not list the blocks that a falling block replaces.
   def land(f)
     y = f.y.floor + 1
-    y += 1 while y < WY - 1 && !lets_fall?(@world.get(f.x, y, f.z))
+    y += 1 while y < WY - 1 && !Block.lets_fall?(@world.get(f.x, y, f.z))
     cell = @world.get(f.x, y, f.z)
     if Block.plant?(cell) && !Block.replaceable?(cell)
       drop_from_block(f.block, 1, f.x, y, f.z)

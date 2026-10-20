@@ -956,6 +956,19 @@ class Game
     check("sand and gravel fall through the air and land on the ground", midair && landed)
     set_block(x, ground + 2, z, Block::AIR)
     set_block(x, ground + 1, z, Block::AIR)
+    # The generator can leave sand over a cave. It stays until a block
+    # next to it changes, as in Minecraft.
+    @world.set(x, ground + 6, z, Block::SAND)
+    set_block(x, ground + 2, z, Block::STONE)
+    stayed = @world.get(x, ground + 6, z) == Block::SAND && @falling.empty?
+    set_block(x + 1, ground + 6, z, Block::STONE)
+    fell = @world.get(x, ground + 6, z) == Block::AIR && @falling.size == 1
+    fall_for(2.0)
+    landed = @world.get(x, ground + 3, z) == Block::SAND
+    check("sand over a cave falls when a block next to it changes, and not before", stayed && fell && landed)
+    set_block(x + 1, ground + 6, z, Block::AIR)
+    set_block(x, ground + 3, z, Block::AIR)
+    set_block(x, ground + 2, z, Block::AIR)
     torches = @world.chunk_torches[World.slot(x >> 4, z >> 4)]
     lights = torches.size
     set_block(x, ground + 3, z, Block::TORCH)
