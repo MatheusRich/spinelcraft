@@ -231,6 +231,7 @@ class Game
     abort "a face record is wider than 32 bits" if Mesher::FACE_AT + Mesher::FACE_BITS > 32 ||
                                                    Mesher::TINT_AT + Mesher::TINT_BITS > 32 || Lod::BIOME_AT + Lod::BIOME_BITS > 32
     abort "Mesher::Y_BITS is too narrow for WY" if WY > 1 << Mesher::Y_BITS
+    abort "Mesher::SHAPE_BITS is too narrow for Block::SHAPE_BOX" if Block::SHAPE_BOX.size / 6 > Mesher::TORCH_SHAPE
   end
 
   def setup # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength

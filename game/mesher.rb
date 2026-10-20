@@ -45,7 +45,7 @@ class Mesher
   FACING_AT = SCROLL_AT + SCROLL_BITS
   FACING_BITS = 2
   SHAPE_AT = FACING_AT + FACING_BITS
-  SHAPE_BITS = 3
+  SHAPE_BITS = 4
   TINT_AT = SHAPE_AT + SHAPE_BITS
   TINT_BITS = 2
   # The 16 bits of the corner heights of a fluid face: the low ones where
@@ -55,8 +55,9 @@ class Mesher
   HEIGHTS_LOW_BITS = AO_BITS + FLIP_BITS
   HEIGHTS_HIGH_AT = FACING_AT
   HEIGHTS_HIGH_BITS = 16 - HEIGHTS_LOW_BITS
-  # Blocks have shapes from 0 to 5 (Block::SHAPE).
-  TORCH_SHAPE = 7
+  # The last value of the shape field. The shapes of blocks (Block::SHAPE)
+  # come below it.
+  TORCH_SHAPE = (1 << SHAPE_BITS) - 1
   # Records hold columns of a ring as wide as the x field. The shaders wrap
   # at the same width (COLUMNS in gfx.rb).
   COLUMNS = 1 << X_BITS
