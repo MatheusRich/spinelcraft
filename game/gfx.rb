@@ -1152,6 +1152,15 @@ module Gfx
 
     double au_seconds(long id) { return id < 0 || id >= SOUNDS ? 0.0 : sound_len[id] / (double)AU_RATE; }
 
+    /* The time in seconds from the start of sound id to its loudest sample. */
+    double au_peak_seconds(long id) {
+      if (id < 0 || id >= SOUNDS || !sound_data[id]) return 0.0;
+      int at = 0;
+      for (int i = 1; i < sound_len[id]; i++)
+        if (fabsf(sound_data[id][i]) > fabsf(sound_data[id][at])) at = i;
+      return at / (double)AU_RATE;
+    }
+
     /* Plays sound id. Pan goes from -1.0 (left) to 1.0 (right). The near
        ear stays at full volume, and the far ear drops by up to FAR_EAR. */
     #define FAR_EAR 0.7f
@@ -1362,6 +1371,7 @@ module Gfx
   ffi_func :au_init, [], :bool
   ffi_func :au_load_ogg, [:long, :str, :double], :long
   ffi_func :au_seconds, [:long], :double
+  ffi_func :au_peak_seconds, [:long], :double
   ffi_func :au_play, [:long, :double, :double], :void
   ffi_func :au_loop, [:long, :double], :void
   ffi_func :au_music_play, [:str, :double], :long

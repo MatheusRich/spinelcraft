@@ -66,7 +66,7 @@ Each file keeps its license.
 | `doors_door_open.ogg` | CGEffex, changed by BlockMen | CC BY 3.0 | VoxeLibre `mcl_doors` |
 | `doors_door_close.ogg` | bennstir | CC BY 3.0 | VoxeLibre `mcl_doors` |
 | `default_chest_open.ogg` | sofar, from sounds by Sevin7 (CC0), Percy Duke, kingsamas, bulbastre and Yoyodaman234 (CC0) | CC BY 3.0 | Minetest Game |
-| `default_chest_close.ogg` | sofar, from the same sounds as the chest opening | CC BY 3.0 | Minetest Game |
+| `default_chest_close.ogg` | sofar, from the same sounds as the chest opening, changed: it starts at the hit of the lid | CC BY 3.0 | Minetest Game |
 | `cave1.ogg` | Paolo D'Emilio, spliced | CC BY 3.0 | <https://opengameart.org/content/scary-monster> |
 | `cave2.ogg` | Paolo D'Emilio, spliced | CC BY 3.0 | <https://opengameart.org/content/scary-monster> |
 | `cave4.ogg` | rubberduck | CC0 1.0 | <https://opengameart.org/content/100-cc0-sfx> |

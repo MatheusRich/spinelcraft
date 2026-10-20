@@ -684,6 +684,8 @@ class Game
 
   def test_sounds
     check("every sound file loads", Sfx.load_files == Sfx::FILES.size && Gfx.au_seconds(Sfx::RAIN) > 5.0)
+    # The lid of a chest hits at once, not after a creak.
+    check("the closing sound of a chest hits within 0.1 s", Gfx.au_peak_seconds(Sfx::CHEST_CLOSE) < 0.1)
     check("blocks sound like their material",
           MATERIAL_STEP[material(Block::GRASS)] == Sfx::STEP_GRASS && MATERIAL_STEP[material(Block::STONE)] == Sfx::STEP_HARD &&
           MATERIAL_STEP[material(Block::OAK_PLANKS)] == Sfx::STEP_WOOD && MATERIAL_STEP[material(Block::SAND)] == Sfx::STEP_SAND &&
