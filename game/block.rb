@@ -241,8 +241,11 @@ module Block
   HOLD_SOIL = 2
   # Soil or sand under it. minecraft.wiki/w/Short_Dry_Grass
   HOLD_SOIL_OR_SAND = 3
-  # Sand or a cactus under it. minecraft.wiki/w/Cactus
-  HOLD_SAND_OR_CACTUS = 4
+  # Sand or a cactus under it, no solid block or lava beside it, and no
+  # water or lava above it. minecraft.wiki/w/Cactus. The wiki names the
+  # "legacy solid" blocks of Minecraft; the game takes the blocks that
+  # stop the player (SOLID).
+  HOLD_CACTUS = 4
   # A solid block on the side that it faces away from.
   HOLD_WALL = 5
   # 1 for a thing that lives in the inventory but is never placed.
@@ -345,7 +348,7 @@ module Block
   define_block GRAVEL, "GRAVEL", Tex::GRAVEL, hardness: 0.6, dig: DIG_SHOVEL
   define_block DIAMOND, "DIAMOND ORE", Tex::DIAMOND, hardness: 3.0, needs_pick: 3, dig: DIG_PICK
   define_block CACTUS, "CACTUS", Tex::CACTUS_SIDE, top: Tex::CACTUS_TOP, shape: 6, opaque: 0, hardness: 0.4,
-               hold: HOLD_SAND_OR_CACTUS
+               hold: HOLD_CACTUS
   define_block SNOW, "SNOW", Tex::SNOW, hardness: 0.2, dig: DIG_SHOVEL
   define_plant TALL_GRASS, "TALL GRASS", Tex::TALL_GRASS, drops: AIR
   define_plant ROSE, "ROSE", Tex::ROSE

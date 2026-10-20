@@ -320,6 +320,29 @@ class WorldTest < Minitest::Test
     end
   end
 
+  def test_a_cactus_needs_no_solid_block_or_lava_beside_it
+    world = world_with_one_chunk
+    world.set(8, SKY_Y - 1, 8, Block::SAND)
+    4.times do |dir|
+      side_x = 8 + Block::DIR_DX[dir]
+      side_z = 8 + Block::DIR_DZ[dir]
+      [[Block::STONE, false], [Block::CACTUS, false], [Block::LAVA, false], [Block::WATER, true], [Block::TORCH, true]].each do |side, held|
+        world.set(side_x, SKY_Y, side_z, side)
+        assert_equal held, world.can_hold?(Block::CACTUS, 8, SKY_Y, 8), "#{Block::NAMES[side]} on side #{dir}"
+      end
+      world.set(side_x, SKY_Y, side_z, Block::AIR)
+    end
+  end
+
+  def test_a_cactus_needs_no_water_or_lava_above_it
+    world = world_with_one_chunk
+    world.set(8, SKY_Y - 1, 8, Block::SAND)
+    [[Block::WATER, false], [Block::FLOW, false], [Block::LAVA, false], [Block::STONE, true]].each do |above, held|
+      world.set(8, SKY_Y + 1, 8, above)
+      assert_equal held, world.can_hold?(Block::CACTUS, 8, SKY_Y, 8), Block::NAMES[above]
+    end
+  end
+
   # A torch or a ladder that faces one way hangs on the block on the
   # other side, and on no other block.
   def test_a_wall_torch_or_a_ladder_needs_the_solid_block_that_it_faces_away_from

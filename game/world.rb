@@ -334,8 +334,23 @@ class World
     return Block.solid?(ground) if hold == Block::HOLD_FLOOR
     return Block.soil?(ground) if hold == Block::HOLD_SOIL
     return Block.soil?(ground) || ground == Block::SAND if hold == Block::HOLD_SOIL_OR_SAND
+    return false unless ground == Block::SAND || ground == Block::CACTUS
 
-    ground == Block::SAND || ground == Block::CACTUS
+    cactus_room?(ix, iy, iz)
+  end
+
+  # True when no solid block or lava is beside x, y, z, and no water or
+  # lava is above it (see Block::HOLD_CACTUS).
+  def cactus_room?(x, y, z)
+    above = get(x, y + 1, z)
+    return false if Block.water?(above) || Block.lava?(above)
+    dir = 0
+    while dir < 4
+      side = get(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
+      return false if Block.solid?(side) || Block.lava?(side)
+      dir += 1
+    end
+    true
   end
 
   # The y of the other half of the door at x, y, z.

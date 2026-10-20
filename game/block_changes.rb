@@ -34,11 +34,12 @@ class Game
 
   # Breaks each block next to x, y, z that the world can no longer hold
   # (see World#can_hold?): a plant or a torch on top, a wall torch or a
-  # ladder on a side, or a cactus. Each one drops its item, as a torch
-  # does in Minecraft (minecraft.wiki/w/Torch). The wiki does not say this
-  # for each plant and for a ladder.
+  # ladder on a side, or a cactus on any side. Each one drops its item, as
+  # a torch does in Minecraft (minecraft.wiki/w/Torch). The wiki does not
+  # say this for each plant and for a ladder.
   def break_unheld(x, y, z)
     break_if_unheld(x, y + 1, z)
+    break_if_unheld(x, y - 1, z)
     dir = 0
     while dir < 4
       break_if_unheld(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])

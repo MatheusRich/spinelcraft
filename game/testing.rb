@@ -1394,6 +1394,9 @@ class Game
     check("a cactus hurts a mob", pig.hp == Mob::HP[Mob::PIG] - 1.0)
     @mobs.clear
     set_block(px + 1, SKY_Y - 1, pz, Block::AIR)
+    # A cactus that grows stands on sand.
+    set_block(px + 3, SKY_Y - 3, pz, Block::STONE)
+    set_block(px + 3, SKY_Y - 2, pz, Block::SAND)
     set_block(px + 3, SKY_Y - 1, pz, Block::CACTUS)
     grow_plants(8000.0)
     grew = @world.get(px + 3, SKY_Y, pz) == Block::CACTUS
@@ -1406,6 +1409,8 @@ class Game
     set_block(px + 3, SKY_Y + 1, pz, Block::AIR)
     set_block(px + 3, SKY_Y, pz, Block::AIR)
     set_block(px + 3, SKY_Y - 1, pz, Block::AIR)
+    set_block(px + 3, SKY_Y - 2, pz, Block::AIR)
+    set_block(px + 3, SKY_Y - 3, pz, Block::AIR)
     @vitals = Vitals.new
     # The player places a cactus on sand and on a cactus, but not on stone.
     survival = @survival
@@ -1450,6 +1455,34 @@ class Game
     check("a cactus breaks and drops when the block under it goes", removed && dropped && fell)
     @items.clear
     @falling.clear
+    # A solid block or lava beside a cactus breaks it, and so does water or
+    # lava above it. A cactus does not go beside a solid block. The cactus
+    # beside it stands on sand too, so it stays.
+    [px + 4, px + 5].each do |sx|
+      set_block(sx, SKY_Y - 3, pz, Block::STONE)
+      set_block(sx, SKY_Y - 2, pz, Block::SAND)
+    end
+    broken = [[1, 0, Block::STONE], [-1, 0, Block::CACTUS], [0, 1, Block::LAVA], [0, -1, Block::GLASS],
+              [0, 0, Block::WATER], [0, 0, Block::LAVA]].map do |dx, dz, block|
+      @items.clear
+      set_block(px + 5, SKY_Y - 1, pz, Block::CACTUS)
+      # dx = dz = 0 puts the block above the cactus.
+      block_y = dx == 0 && dz == 0 ? SKY_Y : SKY_Y - 1
+      set_block(px + 5 + dx, block_y, pz + dz, block)
+      gone = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR && ground_count(Block::CACTUS) == 1
+      set_block(px + 5 + dx, block_y, pz + dz, Block::AIR)
+      gone
+    end
+    @items.clear
+    set_block(px + 6, SKY_Y - 1, pz, Block::STONE)
+    @player.raycast(@world)
+    place
+    refused = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR
+    set_block(px + 6, SKY_Y - 1, pz, Block::AIR)
+    set_block(px + 4, SKY_Y - 2, pz, Block::AIR)
+    set_block(px + 4, SKY_Y - 3, pz, Block::AIR)
+    check("a solid block or lava beside a cactus, or water or lava above it, breaks it, and a cactus does not go beside a " \
+          "solid block", broken.all? && refused)
     # Dry grass goes on sand, but not on stone, and a placed block takes
     # its cell.
     @hotbar[0] = Block::DRY_GRASS
