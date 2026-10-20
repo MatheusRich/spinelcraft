@@ -3643,15 +3643,23 @@ class Game
       set_block(wx + i, SKY_Y - 4, wz, Block::AIR)
     end
     @flow_queue.clear
+    @items.clear
+    set_block(wx + 2, SKY_Y - 4, wz, Block::TORCH)
+    set_block(wx - 2, SKY_Y - 4, wz, Block::ROSE)
     set_block(wx, SKY_Y - 4, wz, Block::WATER)
     40.times { update_water }
     check("water spreads 7 blocks over a floor", Block::WATER_LEVEL[@world.get(wx + 7, SKY_Y - 4, wz)] == 1 && @world.get(wx + 8, SKY_Y - 4, wz) == Block::AIR && Block::WATER_LEVEL[@world.get(wx - 3, SKY_Y - 4, wz)] == 5)
+    check("water washes away a torch and a rose, and they drop",
+          Block.water?(@world.get(wx + 2, SKY_Y - 4, wz)) && ground_count(Block::TORCH) == 1 && ground_count(Block::ROSE) == 1)
+    @items.clear
     set_block(wx, SKY_Y - 4, wz, Block::AIR)
     40.times { update_water }
     check("water drains when its source is gone", @world.get(wx + 3, SKY_Y - 4, wz) == Block::AIR && @world.get(wx - 6, SKY_Y - 4, wz) == Block::AIR)
+    set_block(wx + 2, SKY_Y - 4, wz, Block::TORCH)
     set_block(wx, SKY_Y - 4, wz, Block::LAVA)
     40.times { update_water }
     check("lava spreads 3 blocks over a floor", Block.lava_level(@world.get(wx + 3, SKY_Y - 4, wz)) == 1 && @world.get(wx + 4, SKY_Y - 4, wz) == Block::AIR && Block.lava_level(@world.get(wx - 1, SKY_Y - 4, wz)) == 3)
+    check("lava burns a torch, and it drops nothing", Block.lava?(@world.get(wx + 2, SKY_Y - 4, wz)) && @items.empty?)
     set_block(wx, SKY_Y - 4, wz, Block::AIR)
     40.times { update_water }
     check("lava drains when its source is gone", @world.get(wx + 2, SKY_Y - 4, wz) == Block::AIR && @world.get(wx - 3, SKY_Y - 4, wz) == Block::AIR)

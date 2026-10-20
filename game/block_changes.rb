@@ -50,11 +50,16 @@ class Game
     end
   end
 
-  # Breaks the block at x, y, z as a hand does: it drops its item and its
-  # extras (see drop_extra).
+  # Breaks the block at x, y, z as a hand does (see drop_broken).
   def break_block(x, y, z)
     b = @world.get(x, y, z)
     set_block(x, y, z, Block::AIR)
+    drop_broken(b, x, y, z)
+  end
+
+  # Drops what block b drops when a hand breaks it at x, y, z: its item and
+  # its extras (see drop_extra).
+  def drop_broken(b, x, y, z)
     drop_from_block(Block::DROPS[b], 1, x, y, z)
     drop_extra(b, x, y, z)
   end
@@ -201,6 +206,9 @@ class Game
       end
       next if want == b
       next if want == Block::AIR && level == 0 && lava == 0
+      # Water washes a plant or a torch away, and it drops. Lava burns it,
+      # and it drops nothing. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
+      drop_broken(b, x, y, z) if Block.plant?(b) && Block.water?(want)
       set_block(x, y, z, want)
     end
     @flow_queue.concat(batch[i, batch.size - i]) if i < batch.size
