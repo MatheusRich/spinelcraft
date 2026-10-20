@@ -192,6 +192,7 @@ class Game
     test_bone_meal
     test_seed_soil
     test_shear_sheep
+    test_mob_hides_block
     test_lambs
     test_breeding
     test_push
@@ -3359,6 +3360,60 @@ class Game
     soil = (0...plants.size - 1).all? { |i| planted[i] == [true, true, true, false, false, false] }
     torch = planted[plants.size - 1].all?
     check("seeds, saplings, flowers and tall grass go only on dirt, grass or snowy grass, and a torch on any solid block", soil && torch)
+  end
+
+  # The view ray stops at a mob, so a right-click on a mob never acts on
+  # the block behind it. A held click with shears on a sheep in front of a
+  # pumpkin takes the wool once and does not carve the pumpkin. A click on
+  # a sheared sheep in front of a chest does not open the chest.
+  def test_mob_hides_block
+    bx = @spawn_x.floor + 50
+    bz = @spawn_z.floor - 100
+    y = SKY_Y - 20
+    fill_box(bx - 4, y + 1, bz - 3, bx + 5, y + 4, bz + 3, Block::AIR)
+    fill_box(bx - 4, y, bz - 3, bx + 5, y, bz + 3, Block::STONE)
+    set_block(bx + 2, y + 1, bz, Block::PUMPKIN)
+    survival = @survival
+    keep_pose
+    @survival = true
+    @inv.clear
+    @inv.add(Block::SHEARS)
+    @slot = 0
+    @items.clear
+    @mobs.clear
+    sheep = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    @mobs << sheep
+    @player.x = bx - 1.5
+    @player.y = y + 1.0
+    @player.z = bz + 0.5
+    @player.flying = true
+    @player.yaw = 1.5708
+    @player.pitch = Math.atan2(0.5 - Player::EYE, 3.5)
+    @action_cooldown = 0.0
+    60.times do
+      @action_cooldown -= 1.0 / 60.0
+      @player.raycast(@world)
+      find_target_boat
+      find_target_mob
+      right_button(1.0 / 60.0, true)
+    end
+    aimed = @target_mob == 0 && @player.hit && @player.hx == bx + 2
+    check("held shears on a sheep in front of a pumpkin take the wool once and do not carve the pumpkin",
+          aimed && sheep.sheared && @world.get(bx + 2, y + 1, bz) == Block::PUMPKIN && @inv.count(0) == Block.uses(Block::SHEARS) - 1)
+    set_block(bx + 2, y + 1, bz, Block.facing_id(Block::CHEST, 1))
+    @action_cooldown = 0.0
+    @player.raycast(@world)
+    find_target_mob
+    right_button(1.0 / 60.0, true)
+    check("a click on a sheared sheep in front of a chest does not open the chest", @target_mob == 0 && @player.hit && @chest_key == -1)
+    set_block(bx + 2, y + 1, bz, Block::AIR)
+    @chest_key = -1
+    @inventory_open = false
+    @mobs.clear
+    @items.clear
+    @inv.clear
+    @survival = survival
+    restore_pose
   end
 
   # Shears take 1 to 3 wool from a sheep without a hit, and a sheared sheep

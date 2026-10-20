@@ -173,7 +173,7 @@ class Game
       end
       return
     end
-    target = @player.hit ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
+    target = block_in_view? ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
     if edible? && !usable?(target)
       if held
         chew(dt)
@@ -195,7 +195,7 @@ class Game
     end
     @draw_time = -1.0
     if held && @action_cooldown <= 0.0
-      if @survival && @player.hit && Block::BASE[target] == Block::CHEST
+      if @survival && block_in_view? && Block::BASE[target] == Block::CHEST
         open_chest(@player.hx, @player.hy, @player.hz)
         return
       elsif @survival && Block::BASE[target] == Block::CRAFTING_TABLE
@@ -214,16 +214,20 @@ class Game
         place_boat
       elsif current_block == Block::SHEARS && target == Block::PUMPKIN
         carve_pumpkin(@player.hx, @player.hy, @player.hz)
-      elsif current_block == Block::BONE_MEAL && @player.hit
+      elsif current_block == Block::BONE_MEAL && block_in_view?
         use_bone_meal
       elsif current_block == Block::EGG && (!@survival || !@inv.empty?(@slot))
         throw_egg
-      elsif @player.hit
+      elsif block_in_view?
         place
       end
       @action_cooldown = 0.22
     end
   end
+
+  # True when the view ray hits a block and no mob stands in front of it.
+  # The ray stops at a mob, so a right-click never acts on the block behind.
+  def block_in_view? = @player.hit && @target_mob < 0
 
   # Shears take the wool of a sheep without a hit: 1 to 3 wool
   # (minecraft.wiki/w/Sheep), for 1 use of the shears (minecraft.wiki/w/Shears).
@@ -287,7 +291,7 @@ class Game
       swap_bucket(fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET)
       play(fluid == Block::WATER ? Sfx::WATER_TAKE : Sfx::LAVA_POUR, 0.5)
     else
-      return unless @player.hit
+      return unless block_in_view?
       x = @player.px
       y = @player.py
       z = @player.pz
