@@ -227,6 +227,24 @@ module Block
   PICK_TIER = []
   # Water level: 8 for a source, 1..7 for flowing water, 0 for anything else.
   WATER_LEVEL = []
+  # What each block needs from the cells around it to stay in its cell
+  # (see World#can_hold?): HOLD_NONE for nothing, or one of the others.
+  HOLD = []
+  HOLD_NONE = 0
+  # A solid block under it.
+  HOLD_FLOOR = 1
+  # Dirt, grass or snowy grass under it. In Minecraft, seeds go only on
+  # farmland (minecraft.wiki/w/Pumpkin_Seeds and /w/Wheat_Seeds). The game
+  # has no farmland, so dirt and grass take its place. Saplings, flowers
+  # and short grass go on dirt and grass (minecraft.wiki/w/Sapling,
+  # /w/Flower and /w/Short_Grass).
+  HOLD_SOIL = 2
+  # Soil or sand under it. minecraft.wiki/w/Short_Dry_Grass
+  HOLD_SOIL_OR_SAND = 3
+  # Sand or a cactus under it. minecraft.wiki/w/Cactus
+  HOLD_SAND_OR_CACTUS = 4
+  # A solid block on the side that it faces away from.
+  HOLD_WALL = 5
   # 1 for a thing that lives in the inventory but is never placed.
   ITEM = []
   # Hunger points that eating the block gives back; 0 for what is not food.
@@ -240,7 +258,7 @@ module Block
   # the arguments say something else.
   def self.define_block(id, name, side, top: side, bottom: top, front: side, facing: -1, base: id, shape: 0, opaque: 1,
                         occludes: opaque, solid: 1, plant: 0, hardness: 0.0, drops: id, needs_pick: 0, dig: 0, pick_tier: 0,
-                        water: 0, item: 0, food: 0, saturation: 0.0)
+                        water: 0, hold: HOLD_NONE, item: 0, food: 0, saturation: 0.0)
     abort "Block.define_block: block #{id} comes out of order" if id != NAMES.size
     NAMES << name
     TOP << top
@@ -260,6 +278,7 @@ module Block
     DIG_KIND << dig
     PICK_TIER << pick_tier
     WATER_LEVEL << water
+    HOLD << hold
     ITEM << item
     FOOD << food
     SATURATION << saturation
@@ -271,7 +290,9 @@ module Block
                  saturation: saturation)
 
   # A plant: two crossed quads that do not stop the player and break at once.
-  def self.define_plant(id, name, tex, drops: id) = define_block(id, name, tex, opaque: 0, solid: 0, plant: 1, drops: drops)
+  # It stands on soil, unless hold says else.
+  def self.define_plant(id, name, tex, drops: id, hold: HOLD_SOIL) =
+    define_block(id, name, tex, opaque: 0, solid: 0, plant: 1, drops: drops, hold: hold)
 
   # The blocks first, first + 1 and so on: block of turned to each direction
   # after its own facing, up to direction 3.
@@ -280,7 +301,8 @@ module Block
       define_block(first + d - FACING[of] - 1, NAMES[of], SIDE[of], top: TOP[of], bottom: BOTTOM[of], front: FRONT[of],
                    facing: d, base: BASE[of], shape: SHAPE[of], opaque: OPAQUE[of], occludes: OCCLUDES[of], solid: SOLID[of],
                    plant: PLANT[of], hardness: HARDNESS[of], drops: DROPS[of], needs_pick: NEEDS_PICK[of], dig: DIG_KIND[of],
-                   pick_tier: PICK_TIER[of], water: WATER_LEVEL[of], item: ITEM[of], food: FOOD[of], saturation: SATURATION[of])
+                   pick_tier: PICK_TIER[of], water: WATER_LEVEL[of], hold: HOLD[of], item: ITEM[of], food: FOOD[of],
+                   saturation: SATURATION[of])
     end
     # A while loop gives an untyped value, so Spinel would box the return.
     nil
@@ -319,12 +341,13 @@ module Block
   define_block IRON, "IRON ORE", Tex::IRON, hardness: 3.0, needs_pick: 2, dig: DIG_PICK
   define_block GRAVEL, "GRAVEL", Tex::GRAVEL, hardness: 0.6, dig: DIG_SHOVEL
   define_block DIAMOND, "DIAMOND ORE", Tex::DIAMOND, hardness: 3.0, needs_pick: 3, dig: DIG_PICK
-  define_block CACTUS, "CACTUS", Tex::CACTUS_SIDE, top: Tex::CACTUS_TOP, shape: 6, opaque: 0, hardness: 0.4
+  define_block CACTUS, "CACTUS", Tex::CACTUS_SIDE, top: Tex::CACTUS_TOP, shape: 6, opaque: 0, hardness: 0.4,
+               hold: HOLD_SAND_OR_CACTUS
   define_block SNOW, "SNOW", Tex::SNOW, hardness: 0.2, dig: DIG_SHOVEL
   define_plant TALL_GRASS, "TALL GRASS", Tex::TALL_GRASS, drops: AIR
   define_plant ROSE, "ROSE", Tex::ROSE
   define_plant DANDELION, "DANDELION", Tex::DANDELION
-  define_plant TORCH, "TORCH", Tex::TORCH
+  define_plant TORCH, "TORCH", Tex::TORCH, hold: HOLD_FLOOR
   define_item PORKCHOP, "PORKCHOP", Tex::PORKCHOP, food: 3, saturation: 1.8 # minecraft.wiki/w/Raw_Porkchop
   define_item WOOD_PICK, "WOODEN PICKAXE", Tex::WOOD_PICK, pick_tier: 1
   define_item STONE_PICK, "STONE PICKAXE", Tex::STONE_PICK, pick_tier: 2
@@ -368,11 +391,13 @@ module Block
   define_item BREAD, "BREAD", Tex::BREAD, food: 5, saturation: 6.0 # minecraft.wiki/w/Bread
   define_block CRAFTING_TABLE, "CRAFTING TABLE", Tex::CRAFT_SIDE, top: Tex::CRAFT_TOP, bottom: Tex::OAK_PLANKS, hardness: 2.5,
                dig: DIG_AXE
-  define_block LADDER, "LADDER", Tex::LADDER, top: Tex::CLEAR, facing: 0, shape: 3, opaque: 0, solid: 0, hardness: 0.4, dig: DIG_AXE
+  define_block LADDER, "LADDER", Tex::LADDER, top: Tex::CLEAR, facing: 0, shape: 3, opaque: 0, solid: 0, hardness: 0.4, dig: DIG_AXE,
+               hold: HOLD_WALL
   define_item BUCKET, "BUCKET", Tex::BUCKET
   define_item WATER_BUCKET, "WATER BUCKET", Tex::WATER_BUCKET
   define_item LAVA_BUCKET, "LAVA BUCKET", Tex::LAVA_BUCKET
-  define_block WALL_TORCH, "TORCH", Tex::TORCH, facing: 0, base: TORCH, opaque: 0, solid: 0, plant: 1, drops: TORCH
+  define_block WALL_TORCH, "TORCH", Tex::TORCH, facing: 0, base: TORCH, opaque: 0, solid: 0, plant: 1, drops: TORCH,
+               hold: HOLD_WALL
   define_turns WALL_TORCH + 1, WALL_TORCH
   define_turns FURNACE_TURNS, FURNACE
   define_door DOOR_BLOCK, Tex::DOOR_LOWER, 1
@@ -418,7 +443,7 @@ module Block
   define_item SHEARS, "SHEARS", Tex::SHEARS
   # Placed pumpkin seeds show the young stem; the icon shows the seeds.
   define_block PUMPKIN_SEEDS, "PUMPKIN SEEDS", Tex::PUMPKIN_SEEDS, top: Tex::PUMPKIN_STEM, bottom: Tex::PUMPKIN_SEEDS, opaque: 0,
-               solid: 0, plant: 1
+               solid: 0, plant: 1, hold: HOLD_SOIL
   define_plant PUMPKIN_STEM, "PUMPKIN STEM", Tex::PUMPKIN_STEM, drops: PUMPKIN_SEEDS
   define_plant PUMPKIN_STEM_RIPE, "PUMPKIN STEM", Tex::PUMPKIN_STEM_RIPE, drops: PUMPKIN_SEEDS
   define_item BONE, "BONE", Tex::BONE
@@ -427,7 +452,7 @@ module Block
   define_block SANDSTONE, "SANDSTONE", Tex::SANDSTONE_SIDE, top: Tex::SANDSTONE_TOP, bottom: Tex::SANDSTONE_BOTTOM, hardness: 0.8,
                needs_pick: 1, dig: DIG_PICK
   # The short dry grass of Minecraft drops nothing by hand. minecraft.wiki/w/Short_Dry_Grass
-  define_plant DRY_GRASS, "DRY GRASS", Tex::DRY_GRASS, drops: AIR
+  define_plant DRY_GRASS, "DRY GRASS", Tex::DRY_GRASS, drops: AIR, hold: HOLD_SOIL_OR_SAND
   define_item BEEF, "RAW BEEF", Tex::BEEF, food: 3, saturation: 1.8 # minecraft.wiki/w/Raw_Beef
   define_item STEAK, "STEAK", Tex::STEAK, food: 8, saturation: 12.8 # minecraft.wiki/w/Steak
   define_item LEATHER, "LEATHER", Tex::LEATHER
@@ -657,12 +682,7 @@ module Block
   def self.jack_o_lantern?(b) = BASE[b] == JACK_O_LANTERN
   # A pumpkin, a carved pumpkin or a jack o'lantern.
   def self.pumpkin?(b) = b >= PUMPKIN && b < SHEARS
-  # The plants that go only on soil: dirt, grass or snowy grass. In
-  # Minecraft, seeds go only on farmland (minecraft.wiki/w/Pumpkin_Seeds and
-  # /w/Wheat_Seeds). The game has no farmland, so dirt and grass take its
-  # place. Saplings, flowers and short grass go on dirt and grass
-  # (minecraft.wiki/w/Sapling, /w/Flower and /w/Short_Grass).
-  SOIL_PLANTS = [PUMPKIN_SEEDS, SEEDS, OAK_SAPLING, SPRUCE_SAPLING, BIRCH_SAPLING, ROSE, DANDELION, TALL_GRASS]
+  # Dirt, grass and snowy grass: the soil of HOLD_SOIL.
   def self.soil?(b) = b == DIRT || b == GRASS || b == SNOW_GRASS
   # Torches, lava sources and jack o'lanterns light their surroundings.
   def self.emits?(b) = torch?(b) || b == LAVA || jack_o_lantern?(b)

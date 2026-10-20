@@ -266,6 +266,69 @@ class WorldTest < Minitest::Test
     assert world.dry_land?(4, 4)
   end
 
+  def test_a_block_with_no_hold_needs_nothing_around_it
+    world = world_with_one_chunk
+    assert world.can_hold?(Block::STONE, 8, SKY_Y, 8)
+  end
+
+  def test_a_torch_on_the_floor_needs_a_solid_block_under_it
+    world = world_with_one_chunk
+    refute world.can_hold?(Block::TORCH, 8, SKY_Y, 8)
+    world.set(8, SKY_Y - 1, 8, Block::STONE)
+    assert world.can_hold?(Block::TORCH, 8, SKY_Y, 8)
+    world.set(8, SKY_Y - 1, 8, Block::GLASS)
+    assert world.can_hold?(Block::TORCH, 8, SKY_Y, 8)
+    world.set(8, SKY_Y - 1, 8, Block::WATER)
+    refute world.can_hold?(Block::TORCH, 8, SKY_Y, 8)
+  end
+
+  def test_a_sapling_needs_dirt_grass_or_snowy_grass_under_it
+    world = world_with_one_chunk
+    [[Block::DIRT, true], [Block::GRASS, true], [Block::SNOW_GRASS, true], [Block::STONE, false], [Block::SAND, false],
+     [Block::AIR, false]].each do |ground, held|
+      world.set(8, SKY_Y - 1, 8, ground)
+      assert_equal held, world.can_hold?(Block::OAK_SAPLING, 8, SKY_Y, 8), Block::NAMES[ground]
+    end
+  end
+
+  def test_dry_grass_needs_soil_or_sand_under_it
+    world = world_with_one_chunk
+    [[Block::GRASS, true], [Block::SAND, true], [Block::STONE, false]].each do |ground, held|
+      world.set(8, SKY_Y - 1, 8, ground)
+      assert_equal held, world.can_hold?(Block::DRY_GRASS, 8, SKY_Y, 8), Block::NAMES[ground]
+    end
+  end
+
+  def test_a_cactus_needs_sand_or_a_cactus_under_it
+    world = world_with_one_chunk
+    [[Block::SAND, true], [Block::CACTUS, true], [Block::GRASS, false], [Block::AIR, false]].each do |ground, held|
+      world.set(8, SKY_Y - 1, 8, ground)
+      assert_equal held, world.can_hold?(Block::CACTUS, 8, SKY_Y, 8), Block::NAMES[ground]
+    end
+  end
+
+  # A torch or a ladder that faces one way hangs on the block on the
+  # other side, and on no other block.
+  def test_a_wall_torch_or_a_ladder_needs_the_solid_block_that_it_faces_away_from
+    world = world_with_one_chunk
+    [Block::TORCH, Block::LADDER].each do |base|
+      4.times do |dir|
+        hung = Block.facing_id(base, dir)
+        wall_x = 8 - Block::DIR_DX[dir]
+        wall_z = 8 - Block::DIR_DZ[dir]
+        refute world.can_hold?(hung, 8, SKY_Y, 8), "#{Block::NAMES[hung]} #{dir} with no wall"
+        world.set(8 + Block::DIR_DX[dir], SKY_Y, 8 + Block::DIR_DZ[dir], Block::STONE)
+        world.set(8, SKY_Y - 1, 8, Block::STONE)
+        refute world.can_hold?(hung, 8, SKY_Y, 8), "#{Block::NAMES[hung]} #{dir} on the wrong side"
+        world.set(wall_x, SKY_Y, wall_z, Block::STONE)
+        assert world.can_hold?(hung, 8, SKY_Y, 8), "#{Block::NAMES[hung]} #{dir}"
+        world.set(wall_x, SKY_Y, wall_z, Block::AIR)
+        world.set(8 + Block::DIR_DX[dir], SKY_Y, 8 + Block::DIR_DZ[dir], Block::AIR)
+        world.set(8, SKY_Y - 1, 8, Block::AIR)
+      end
+    end
+  end
+
   # The spawn search looks for land: a column whose noise surface is more
   # than 4 blocks above the sea.
   def test_land_rises_more_than_four_blocks_above_the_sea

@@ -579,11 +579,10 @@ class Game
     end
     return unless @world.inside?(x, y, z)
     # A torch or a ladder on the side of a block hangs on that block, and
-    # faces away from it. A ladder hangs only on the side of a solid block.
+    # faces away from it.
     side = y == @player.hy && (x != @player.hx || z != @player.hz)
     if (b == Block::TORCH || b == Block::LADDER) && side
       wall = @player.hx > x ? 0 : (@player.hx < x ? 1 : (@player.hz > z ? 2 : 3))
-      return if b == Block::LADDER && !Block.solid?(@world.get(@player.hx, @player.hy, @player.hz))
       b = Block.facing_id(b, wall ^ 1)
     elsif b == Block::LADDER
       return
@@ -600,19 +599,8 @@ class Game
       b = Block::PLACED_LEAVES[Block.wood(b)]
     end
     return if Block.solid?(b) && @player.overlaps?(x, y, z)
-    if Block.plant?(b)
-      held = if Block.wall_torch?(b)
-        @world.get(x - Block::DIR_DX[Block::FACING[b]], y, z - Block::DIR_DZ[Block::FACING[b]])
-      else
-        @world.get(x, y - 1, z)
-      end
-      return if !Block.solid?(held) || Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z))
-      return if Block::SOIL_PLANTS.include?(b) && !Block.soil?(held)
-      # Dry grass also goes on sand. minecraft.wiki/w/Short_Dry_Grass
-      return if b == Block::DRY_GRASS && !Block.soil?(held) && held != Block::SAND
-    end
-    # A cactus stands only on sand or on another cactus. minecraft.wiki/w/Cactus
-    return if b == Block::CACTUS && @world.get(x, y - 1, z) != Block::SAND && @world.get(x, y - 1, z) != Block::CACTUS
+    return unless @world.can_hold?(b, x, y, z)
+    return if Block.plant?(b) && (Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z)))
     return if Block.solid?(b) && mob_in?(x, y, z, Block.door?(b) ? 2 : 1)
     current = @world.get(x, y, z)
     # The view ray can pass a flower, so a block only replaces grass.

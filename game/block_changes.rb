@@ -27,27 +27,28 @@ class Game
     end
     @world.set(x, y, z, b)
     @chunk_meshes.mark_block(x, z)
-    break_unheld_cactus(x, y + 1, z)
-    break_held(x, y, z) if b == Block::AIR
+    break_unheld(x, y, z)
     settle_column(x, z)
     wake_water(x, y, z)
   end
 
-  # Breaks the blocks that the cell x, y, z held: a plant or a torch on
-  # top, and a wall torch or a ladder on each side. Each one drops its
-  # item, as a torch does in Minecraft (minecraft.wiki/w/Torch). The wiki
-  # does not say this for each plant and for a ladder.
-  def break_held(x, y, z)
-    above = @world.get(x, y + 1, z)
-    break_block(x, y + 1, z) if Block.plant?(above) && !Block.wall_torch?(above)
-    d = 0
-    while d < 4
-      tx = x + Block::DIR_DX[d]
-      tz = z + Block::DIR_DZ[d]
-      t = @world.get(tx, y, tz)
-      break_block(tx, y, tz) if t == Block.facing_id(Block::TORCH, d) || t == Block.facing_id(Block::LADDER, d)
-      d += 1
+  # Breaks each block next to x, y, z that the world can no longer hold
+  # (see World#can_hold?): a plant or a torch on top, a wall torch or a
+  # ladder on a side, or a cactus. Each one drops its item, as a torch
+  # does in Minecraft (minecraft.wiki/w/Torch). The wiki does not say this
+  # for each plant and for a ladder.
+  def break_unheld(x, y, z)
+    break_if_unheld(x, y + 1, z)
+    dir = 0
+    while dir < 4
+      break_if_unheld(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
+      dir += 1
     end
+  end
+
+  def break_if_unheld(x, y, z)
+    block = @world.get(x, y, z)
+    break_block(x, y, z) unless @world.can_hold?(block, x, y, z)
   end
 
   # Breaks the block at x, y, z with no tool (see drop_broken).
@@ -83,15 +84,6 @@ class Game
     other = @world.get(px, y, pz)
     paired = Block.chest_left?(old) ? Block.chest_right?(other) : Block.chest_left?(other)
     set_block(px, y, pz, Block.facing_id(Block::CHEST, Block::FACING[old])) if paired && Block::FACING[other] == Block::FACING[old]
-  end
-
-  # A cactus breaks and drops when the block under it is not sand or a
-  # cactus. minecraft.wiki/w/Cactus
-  def break_unheld_cactus(x, y, z)
-    return unless @world.get(x, y, z) == Block::CACTUS
-    below = @world.get(x, y - 1, z)
-    return if below == Block::SAND || below == Block::CACTUS
-    break_block(x, y, z)
   end
 
   # The random ticks of growth and of decay near the player, and the
@@ -238,8 +230,7 @@ class Game
         wake_water(x, y, z)
         @falling << FallingBlock.new(b, x, y.to_f, z)
         moved = true
-        break_held(x, y, z)
-        break_unheld_cactus(x, y + 1, z)
+        break_unheld(x, y, z)
       end
     end
     @chunk_meshes.mark_block(x, z) if moved

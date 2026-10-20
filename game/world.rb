@@ -319,6 +319,25 @@ class World
     Block.solid?(below) && !Block.door?(below) && get(x, y + 1, z) == Block::AIR && !Block.door?(get(x, y + 2, z))
   end
 
+  # True when the cells around x, y, z give block what Block::HOLD says
+  # that it needs to stay at x, y, z. The block in the cell itself does
+  # not count, so a block can ask before it goes there.
+  def can_hold?(block, x, y, z)
+    ix = x.to_i
+    iy = y.to_i
+    iz = z.to_i
+    hold = Block::HOLD[block]
+    return true if hold == Block::HOLD_NONE
+    return Block.solid?(get(ix - Block::DIR_DX[Block::FACING[block]], iy, iz - Block::DIR_DZ[Block::FACING[block]])) if hold == Block::HOLD_WALL
+
+    ground = get(ix, iy - 1, iz)
+    return Block.solid?(ground) if hold == Block::HOLD_FLOOR
+    return Block.soil?(ground) if hold == Block::HOLD_SOIL
+    return Block.soil?(ground) || ground == Block::SAND if hold == Block::HOLD_SOIL_OR_SAND
+
+    ground == Block::SAND || ground == Block::CACTUS
+  end
+
   # The y of the other half of the door at x, y, z.
   def door_partner(x, y, z) = Block.door?(get(x, y + 1, z)) ? y + 1 : y - 1
 

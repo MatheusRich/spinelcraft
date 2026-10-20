@@ -3150,7 +3150,8 @@ class Game
     # Stone under the ground block keeps the sand from falling.
     set_block(bx, y - 1, bz, Block::STONE)
     grounds = [Block::DIRT, Block::GRASS, Block::SNOW_GRASS, Block::STONE, Block::OAK_PLANKS, Block::SAND]
-    plants = Block::SOIL_PLANTS + [Block::TORCH]
+    plants = [Block::PUMPKIN_SEEDS, Block::SEEDS, Block::OAK_SAPLING, Block::SPRUCE_SAPLING, Block::BIRCH_SAPLING, Block::ROSE,
+              Block::DANDELION, Block::TALL_GRASS, Block::TORCH]
     planted = plants.map do |plant|
       grounds.map do |ground|
         set_block(bx, y + 1, bz, Block::AIR)
