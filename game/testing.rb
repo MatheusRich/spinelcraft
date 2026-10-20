@@ -163,6 +163,7 @@ class Game
     test_save(x, z, ground)
     test_crafting_limits
     test_inventory_layout
+    test_menu_layout
     test_seen_recipes
     test_recipe_scroll
     test_split_and_quick_move
@@ -1883,6 +1884,16 @@ class Game
       fits = false if last[0] + last[2] + pad > w || last[1] + last[3] + pad > h - 82.0 * ui_scale(h)
     end
     check("the inventory screen fits the frame above the hotbar", fits)
+  end
+
+  # The pause screen fits the frame above the hotbar, for common frame
+  # heights. Where it fits at the HUD scale, it keeps that scale.
+  def test_menu_layout
+    fits = [720.0, 1080.0, 1440.0, 1800.0, 2160.0].all? do |h|
+      s = menu_scale(h)
+      menu_title_y(h, s) >= 0.0 && menu_help_y(MENU_HELP.size - 1, h, s) + 10.0 * s <= hotbar_y(h, ui_scale(h))
+    end
+    check("the pause screen fits the frame above the hotbar", fits && menu_scale(1440.0) == ui_scale(1440.0))
   end
 
   # The index of the recipe that makes b.

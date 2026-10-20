@@ -36,7 +36,7 @@ class Game
     end
     w = Gfx.gfx_width.to_f
     h = Gfx.gfx_height.to_f
-    s = ui_scale(h)
+    s = menu_scale(h)
     @menu_drag = -1 unless Gfx.in_button(1)
     if Gfx.in_button_pressed(1)
       i = menu_hover(w, h, s)
@@ -239,11 +239,38 @@ class Game
     end
   end
 
+  # The controls, below the buttons of the pause screen.
+  MENU_HELP = ["WASD MOVE  SPACE JUMP, TWICE TO FLY  CTRL SPRINT  SHIFT DOWN",
+               "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
+               "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  T CHAT  F3 DEBUG  F5 SAVE  F11 FULLSCREEN",
+               "SURVIVAL: E TO CRAFT  BY HAND ONLY PLANKS, TORCHES AND A CRAFTING TABLE",
+               "RIGHT-CLICK A CRAFTING TABLE FOR TOOLS  PUT FUEL IN A FURNACE TO SMELT  STONE NEEDS A PICKAXE TO DROP"].freeze
+
+  # The scale of the pause screen: the HUD scale, or less when the title or
+  # the controls do not fit between the top of the frame and the hotbar.
+  def menu_scale(h)
+    hotbar = hotbar_y(h, ui_scale(h))
+    s = ui_scale(h)
+    while s > 1.0
+      break if menu_title_y(h, s) >= 0.0 && menu_help_y(MENU_HELP.size - 1, h, s) + 10.0 * s <= hotbar
+      s -= 1.0
+    end
+    s
+  end
+
+  # The y of the PAUSED title, above the first button.
+  def menu_title_y(h, s) = menu_cell(0, 0.0, h, s)[1] - 46.0 * s
+
+  # The y of line i of the controls, below the last button.
+  def menu_help_y(i, h, s)
+    last = menu_cell(MENU_ITEMS - 1, 0.0, h, s)
+    last[1] + last[3] + (24.0 + i * 18.0) * s
+  end
+
   def draw_pause_screen(w, h, s)
     @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.45)
-    first = menu_cell(0, w, h, s)
     title = "PAUSED"
-    @ui.text((w - @ui.text_width(title, 6.0 * s)) / 2.0, first[1] - 46.0 * s, title, 6.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text((w - @ui.text_width(title, 6.0 * s)) / 2.0, menu_title_y(h, s), title, 6.0 * s, 1.0, 1.0, 1.0, 1.0)
     hover = @menu_drag >= 0 ? @menu_drag : menu_hover(w, h, s)
     MENU_ITEMS.times do |i|
       c = menu_cell(i, w, h, s)
@@ -257,15 +284,9 @@ class Game
       label = menu_label(i)
       @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, 1.0, 1.0, 1.0, 1.0)
     end
-    last = menu_cell(MENU_ITEMS - 1, w, h, s)
-    lines = ["WASD MOVE  SPACE JUMP, TWICE TO FLY  CTRL SPRINT  SHIFT DOWN",
-             "LEFT CLICK BREAK/ATTACK  RIGHT CLICK PLACE  MIDDLE PICK",
-             "1-9 SLOT  E INVENTORY  Q NEXT BLOCK  T CHAT  F3 DEBUG  F5 SAVE  F11 FULLSCREEN",
-             "SURVIVAL: E TO CRAFT  BY HAND ONLY PLANKS, TORCHES AND A CRAFTING TABLE",
-             "RIGHT-CLICK A CRAFTING TABLE FOR TOOLS  PUT FUEL IN A FURNACE TO SMELT  STONE NEEDS A PICKAXE TO DROP"]
-    lines.size.times do |i|
-      line = lines[i]
-      @ui.text((w - @ui.text_width(line, 2.0 * s)) / 2.0, last[1] + last[3] + (24.0 + i * 18.0) * s, line, 2.0 * s, 0.9, 0.9, 0.9, 1.0)
+    MENU_HELP.size.times do |i|
+      line = MENU_HELP[i]
+      @ui.text((w - @ui.text_width(line, 2.0 * s)) / 2.0, menu_help_y(i, h, s), line, 2.0 * s, 0.9, 0.9, 0.9, 1.0)
     end
   end
 end

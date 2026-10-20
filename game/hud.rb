@@ -6,6 +6,9 @@ class Game
     s < 1.0 ? 1.0 : s
   end
 
+  # The top of the hotbar: slots 44 high, 12 above the bottom of the frame.
+  def hotbar_y(h, s) = h - 56.0 * s
+
   def build_ui(w, h)
     @ui.clear
     s = ui_scale(h)
@@ -18,7 +21,7 @@ class Game
     gap = 4.0 * s
     total = size * HOTBAR + gap * (HOTBAR - 1)
     x0 = (w - total) / 2.0
-    y0 = h - size - 12.0 * s
+    y0 = hotbar_y(h, s)
     draw_hotbar(x0, y0, size, gap, s)
     draw_survival_bars(x0, y0, total, s) if @survival
     draw_messages(w, y0, s)
@@ -37,7 +40,7 @@ class Game
     elsif @inventory_open
       draw_block_picker(w, h, s)
     elsif paused?
-      draw_pause_screen(w, h, s)
+      draw_pause_screen(w, h, menu_scale(h))
     end
   end
 
