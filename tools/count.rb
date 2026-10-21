@@ -5,6 +5,7 @@ require_relative "../game/block"
 require_relative "../game/biome"
 require_relative "../game/noise"
 require_relative "../game/world"
+require_relative "../game/trees"
 
 # The 24 x 24 chunks from x = z = 0.
 w = World.new((ENV["SEED"] || "1337").to_i)

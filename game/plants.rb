@@ -1,7 +1,7 @@
 # The rules of the plants that grow, by themselves or with bone meal, and
 # of the leaves that decay. Plants does not change the world. Each method
 # adds its changes to a list, four Integers for each block (x, y, z and
-# the new block), as World#plan_tree does. Game puts them in the world
+# the new block), as Trees#plan_tree does. Game puts them in the world
 # with Game#set_block, which also updates the meshes, the light and the
 # water.
 class Plants
@@ -60,6 +60,7 @@ class Plants
 
   def initialize(world, seed)
     @world = world
+    @trees = Trees.new(world)
     @rng = Rng.new(seed)
     # The search of held_by_log?: cells to visit, and the cells seen in the
     # last search (LEAF_REACH around the leaves), by stamp.
@@ -270,10 +271,10 @@ class Plants
   end
 
   # A tree of wood (Block::OAK_WOOD and so on) from the sapling at x, y, z,
-  # with the shape of the generator's tree (World#plan_tree). The sapling
+  # with the shape of the generator's tree (Trees#plan_tree). The sapling
   # waits when something is in the way of a log.
   def grow_tree(x, y, z, wood, changes)
-    changes.concat(@world.plan_tree(x, y, z, wood))
+    changes.concat(@trees.plan_tree(x, y, z, wood))
     nil
   end
 

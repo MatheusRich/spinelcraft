@@ -2901,12 +2901,15 @@ class Game
     check("a sapling grows into a tree", @world.get(x, y, z) == Block::OAK_LOG && @world.get(x, y + 3, z) == Block::OAK_LOG)
     sx = x - 10
     sy = @world.height_at(sx, z)
-    plan = @world.plan_tree(sx, sy, z, Block::SPRUCE_WOOD)
+    plan = Array.new(0, 0)
+    @plants.grow_tree(sx, sy, z, Block::SPRUCE_WOOD, plan)
     kinds = (0...plan.size / 4).map { |i| plan[i * 4 + 3] }
     spruce = kinds.include?(Block::SPRUCE_LOG) && kinds.include?(Block::SPRUCE_LEAVES) &&
              kinds.all? { |b| b == Block::SPRUCE_LOG || b == Block::SPRUCE_LEAVES || b == Block::DIRT }
     set_block(sx, sy + 2, z, Block::STONE)
-    blocked = @world.plan_tree(sx, sy, z, Block::SPRUCE_WOOD).empty?
+    plan.clear
+    @plants.grow_tree(sx, sy, z, Block::SPRUCE_WOOD, plan)
+    blocked = plan.empty?
     set_block(sx, sy + 2, z, Block::AIR)
     check("a spruce sapling grows a spruce, and a block in the way of its trunk stops it", spruce && blocked)
     check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)

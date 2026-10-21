@@ -13,6 +13,7 @@ require_relative "../game/block"
 require_relative "../game/biome"
 require_relative "../game/noise"
 require_relative "../game/world"
+require_relative "../game/trees"
 
 # Biome colors: plains, forest, taiga, snowy taiga, tundra, desert,
 # savanna, jungle and swamp (the order of Biome::ALL).

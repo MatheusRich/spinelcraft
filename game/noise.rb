@@ -115,4 +115,7 @@ class Noise
     h = ((h ^ (h >> 13)) * 1798096565) & 0xffffffff
     (h ^ (h >> 16)) & 0xffff
   end
+
+  # hash3 as a fraction from 0.0 up to 1.0, without 1.0.
+  def self.fraction(x, y, z, salt) = hash3(x, y, z, salt) / 65536.0
 end

@@ -83,8 +83,8 @@ class Lod
     @h[k] = h
     if (b == Block::GRASS || b == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome]
       # About the height of the biome's trees: the trunk, plus the leaves above it.
-      @h[k] = h + World::TRUNK[Biome::TREE[biome]] + 2
-      leaves = Block::TOP[Block::LEAVES[World::WOOD[Biome::TREE[biome]]]]
+      @h[k] = h + Trees::TRUNK[Biome::TREE[biome]] + 2
+      leaves = Block::TOP[Block::LEAVES[Trees::WOOD[Biome::TREE[biome]]]]
       @top[k] = leaves
       @side[k] = leaves
     end

@@ -8,8 +8,8 @@ class WorldTest < Minitest::Test
      Biome::GRASS, Biome::FLOWERS, Biome::GRASS_COLOR, Biome::FOLIAGE_COLOR].each do |table|
       assert_equal Biome::ALL.size, table.size
     end
-    assert_equal Biome::TREE_KINDS.size, World::TRUNK.size
-    assert_equal Biome::TREE_KINDS.size, World::WOOD.size
+    assert_equal Biome::TREE_KINDS.size, Trees::TRUNK.size
+    assert_equal Biome::TREE_KINDS.size, Trees::WOOD.size
     assert Biome::TREE.all? { |kind| kind < Biome::TREE_KINDS.size }
   end
 

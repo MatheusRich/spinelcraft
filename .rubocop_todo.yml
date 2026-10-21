@@ -50,7 +50,7 @@ Lint/UnusedMethodArgument:
   Exclude:
     - 'game/actions.rb'
 
-# Offense count: 9
+# Offense count: 10
 # Configuration parameters: CountComments, Max, CountAsOne.
 Metrics/ClassLength:
   Exclude:
@@ -61,5 +61,6 @@ Metrics/ClassLength:
     - 'game/mesh3.rb'
     - 'game/mesher.rb'
     - 'game/mobs.rb'
+    - 'game/trees.rb'
     - 'game/world.rb'
     - 'main.rb'
