@@ -209,7 +209,8 @@ class Game
       y = Command.coord(args[2], @player.y.to_f, false)
       z = Command.coord(args[3], @player.z.to_f, true)
     end
-    @mobs << Mob.new(kind, x, y, z, (@rng.rand01 * 100000.0).to_i)
+    seed = (@rng.rand01 * 100000.0).to_i
+    @mobs << (Mob::PASSIVE[kind] == 1 ? Animal.new(kind, x, y, z, seed) : Monster.new(kind, x, y, z, seed))
     @chat.post("SUMMONED NEW #{Mob::NAMES[kind]}")
   end
 

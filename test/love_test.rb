@@ -145,7 +145,7 @@ class LoveTest < Minitest::Test
 
   private
 
-  def new_cow = Mob.new(Mob::COW, 8.5, SKY_Y - 1.0, 8.5, 3)
+  def new_cow = Animal.new(Mob::COW, 8.5, SKY_Y - 1.0, 8.5, 3)
 
   # The hearts that the mob gives off in steps of DT.
   def hearts(mob, steps)

@@ -27,14 +27,14 @@ class NaturalSpawnerTest < Minitest::Test
   end
 
   def test_monsters_spawn_up_to_the_cap_and_animals_do_not_count
-    mobs = Array.new(30) { Mob.new(Mob::PIG, 0.0, 0.0, 0.0, 1) }
+    mobs = Array.new(30) { Animal.new(Mob::PIG, 0.0, 0.0, 0.0, 1) }
     @spawner.spawn_monsters(mobs, @player, 0, 10.0)
     assert_equal 30 + NaturalSpawner::MONSTER_CAP, mobs.size
     assert_equal 30, mobs.count(&:passive?)
   end
 
   def test_no_monster_spawns_when_the_monsters_fill_the_cap
-    mobs = Array.new(NaturalSpawner::MONSTER_CAP) { Mob.new(Mob::ZOMBIE, 0.0, 0.0, 0.0, 1) }
+    mobs = Array.new(NaturalSpawner::MONSTER_CAP) { Monster.new(Mob::ZOMBIE, 0.0, 0.0, 0.0, 1) }
     @spawner.spawn_monsters(mobs, @player, 0, 10.0)
     assert_equal NaturalSpawner::MONSTER_CAP, mobs.size
   end
@@ -54,7 +54,7 @@ class NaturalSpawnerTest < Minitest::Test
 
   def test_the_last_monster_under_the_cap_spawns_alone
     [24, 23, 12].each do |monsters|
-      mobs = Array.new(monsters) { Mob.new(Mob::ZOMBIE, 0.0, 0.0, 0.0, 1) }
+      mobs = Array.new(monsters) { Monster.new(Mob::ZOMBIE, 0.0, 0.0, 0.0, 1) }
       @spawner.spawn_monsters(mobs, @player, 0, 10.0)
       assert_equal NaturalSpawner::MONSTER_CAP, mobs.size
     end
@@ -277,7 +277,7 @@ class NaturalSpawnerTest < Minitest::Test
     world = self.class.grass_world
     spawner = NaturalSpawner.new(world, 5, false)
     player = Player.new(-50.0, SKY_Y.to_f, 8.0)
-    mobs = Array.new(10) { Mob.new(Mob::PIG, 0.0, 0.0, 0.0, 1) } + Array.new(20) { Mob.new(Mob::ZOMBIE, 0.0, 0.0, 0.0, 1) }
+    mobs = Array.new(10) { Animal.new(Mob::PIG, 0.0, 0.0, 0.0, 1) } + Array.new(20) { Monster.new(Mob::ZOMBIE, 0.0, 0.0, 0.0, 1) }
     spawner.refill_animals(mobs, player, 0.0)
     assert_equal 31, mobs.size
     spawner.refill_animals(mobs, player, 1.0)

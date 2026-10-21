@@ -14,13 +14,14 @@ class Game
     set_block(bx - 2, y + 1, bz + 2, Block.bed_id(0, true))
     set_block(bx + 3, y + 1, bz + 2, Block::TORCH)
     [Mob::PIG, Mob::SHEEP, Mob::COW, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
-      m = Mob.new(kind, bx - 4.0 + i * 1.6, y + 1.0, bz + 0.5, 1)
+      x = bx - 4.0 + i * 1.6
+      m = Mob::PASSIVE[kind] == 1 ? Animal.new(kind, x, y + 1.0, bz + 0.5, 1) : Monster.new(kind, x, y + 1.0, bz + 0.5, 1)
       m.yaw = 3.14159
       m.head = kind == Mob::ZOMBIE ? Block::CARVED_PUMPKIN : Block::JACK_O_LANTERN if @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
       @mobs << m
     end
-    @mobs << Mob.new(Mob::CHICKEN, bx - 0.5, y + 1.0, bz + 2.5, 1)
-    chick = Mob.new(Mob::CHICKEN, bx + 1.5, y + 1.0, bz + 2.5, 2)
+    @mobs << Animal.new(Mob::CHICKEN, bx - 0.5, y + 1.0, bz + 2.5, 1)
+    chick = Animal.new(Mob::CHICKEN, bx + 1.5, y + 1.0, bz + 2.5, 2)
     chick.make_baby
     @mobs << chick
     @player.x = bx + 0.5
@@ -1255,7 +1256,7 @@ class Game
     check("a block placed in lava takes its cell", @world.get(x, ground + 1, z) == Block::OAK_PLANKS)
     set_block(x, ground + 1, z, Block::AIR)
     @player.raycast(@world)
-    @mobs << Mob.new(Mob::PIG, x + 0.5, ground + 1.0, z + 0.5, 4)
+    @mobs << Animal.new(Mob::PIG, x + 0.5, ground + 1.0, z + 0.5, 4)
     place
     blocked = @world.get(x, ground + 1, z) == Block::AIR
     @mobs.pop
@@ -1419,7 +1420,7 @@ class Game
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
-    @mobs << Mob.new(Mob::SKELETON, px + 12.5, SKY_Y - 1.0, pz + 0.5, 7)
+    @mobs << Monster.new(Mob::SKELETON, px + 12.5, SKY_Y - 1.0, pz + 0.5, 7)
     frames = 0
     while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
       update_mobs(1.0 / 60.0)
@@ -1427,7 +1428,7 @@ class Game
     end
     check("skeleton arrow hurts the player", @vitals.health < Vitals::MAX_HEALTH)
     @mobs.clear
-    @mobs << Mob.new(Mob::ZOMBIE, px + 1.5, SKY_Y - 1.0, pz + 0.5, 9)
+    @mobs << Monster.new(Mob::ZOMBIE, px + 1.5, SKY_Y - 1.0, pz + 0.5, 9)
     @vitals.health = Vitals::MAX_HEALTH
     @player.vx = 0.0
     @player.vy = 0.0
@@ -1448,7 +1449,7 @@ class Game
       set_block(px + dx, SKY_Y - 2, pz - 1, Block::STONE)
       set_block(px + dx, SKY_Y - 2, pz + 1, Block::STONE)
     end
-    @mobs << Mob.new(Mob::CREEPER, px + 2.5, SKY_Y - 1.0, pz + 0.5, 11)
+    @mobs << Monster.new(Mob::CREEPER, px + 2.5, SKY_Y - 1.0, pz + 0.5, 11)
     # A blast this near kills a player with full health, so the player
     # gets more health for the test.
     @vitals.health = 100.0
@@ -1482,9 +1483,9 @@ class Game
     pz = @spawn_z.floor
     @mobs.clear
     @clock.time_of_day = 0.25
-    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
+    zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
-    capped = Mob.new(Mob::ZOMBIE, px + 11.5, SKY_Y - 1.0, pz + 0.5, 10)
+    capped = Monster.new(Mob::ZOMBIE, px + 11.5, SKY_Y - 1.0, pz + 0.5, 10)
     capped.head = Block::CARVED_PUMPKIN
     @mobs << capped
     @player.x = px + 0.5
@@ -1495,7 +1496,7 @@ class Game
     check("a zombie with a carved pumpkin on its head does not burn in the sun", capped.fire == 0.0 && capped.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
     @clock.set_ticks(23500)
-    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
+    zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie burns in the sun at dawn", zombie.fire > 0.0)
@@ -1528,13 +1529,13 @@ class Game
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     @weather.set(true)
-    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
+    zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie burns in the sun until the rain is strong enough to wet it", zombie.fire > 0.0)
     @mobs.clear
     @weather.set_now(true)
-    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
+    zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
@@ -1586,7 +1587,7 @@ class Game
     check("a cactus hurts the player who stands on it", @vitals.health < Vitals::MAX_HEALTH - 2.0)
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
-    pig = Mob.new(Mob::PIG, px + 1.95 + Mob::HALF[Mob::PIG], SKY_Y - 1.0, pz + 0.5, 3)
+    pig = Animal.new(Mob::PIG, px + 1.95 + Mob::HALF[Mob::PIG], SKY_Y - 1.0, pz + 0.5, 3)
     @mobs << pig
     update_mobs(1.0 / 60.0)
     check("a cactus hurts a mob", pig.hp == Mob::HP[Mob::PIG] - 1.0)
@@ -2118,13 +2119,13 @@ class Game
   # Mobs that die without the player's help drop nothing.
   def test_mob_drops
     @inv.clear
-    far = Mob.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
+    far = Animal.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     far.hp = 0.0
     @mobs.clear
     @mobs << far
     update_mobs(1.0 / 60.0)
     check("a pig that dies on its own drops nothing", @items.empty?)
-    killed = Mob.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
+    killed = Animal.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     killed.hp = 0.0
     killed.by_player = true
     @mobs << killed
@@ -2140,7 +2141,7 @@ class Game
     lx = (@spawn_x + 30.0).floor
     lz = (@spawn_z + 3.0).floor
     set_block(lx, SKY_Y, lz, Block::LAVA)
-    burnt = Mob.new(Mob::PIG, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
+    burnt = Animal.new(Mob::PIG, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
     burnt.hp = 1.0
     burnt.by_player = true
     @mobs << burnt
@@ -2149,7 +2150,7 @@ class Game
     stacks = @items.count { |i| i.block == Block::PORKCHOP }
     check("a mob that dies in lava drops its loot once", burnt.dying? && stacks == 1)
     @items.clear
-    sheep = Mob.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
+    sheep = Animal.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     sheep.hp = 0.0
     sheep.by_player = true
     @mobs << sheep
@@ -2157,7 +2158,7 @@ class Game
     n = ground_count(Block::MUTTON)
     check("a sheep that the player kills drops its wool and 1 to 2 mutton", ground_count(Block::WOOL) == 1 && n >= 1 && n <= 2)
     @items.clear
-    bare = Mob.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 6)
+    bare = Animal.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 6)
     bare.sheared = true
     bare.hp = 0.0
     bare.by_player = true
@@ -2168,7 +2169,7 @@ class Game
     @items.clear
     @mobs.clear
     check("mutton is food, and a furnace cooks it", cooks?(Block::MUTTON, 2, 1.2, Block::COOKED_MUTTON, 6, 9.6))
-    cow = Mob.new(Mob::COW, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
+    cow = Animal.new(Mob::COW, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     cow.hp = 0.0
     cow.by_player = true
     @mobs << cow
@@ -2182,7 +2183,7 @@ class Game
     lx = (@spawn_x + 30.0).floor
     lz = (@spawn_z + 3.0).floor
     set_block(lx, SKY_Y, lz, Block::LAVA)
-    cow = Mob.new(Mob::COW, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
+    cow = Animal.new(Mob::COW, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
     cow.hp = 1.0
     cow.by_player = true
     @mobs << cow
@@ -2199,7 +2200,7 @@ class Game
     test_eggs
     # Each zombie drops 0 to 2, so 10 zombies drop none 1 time in 59049.
     10.times do |i|
-      zombie = Mob.new(Mob::ZOMBIE, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
+      zombie = Monster.new(Mob::ZOMBIE, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
       zombie.hp = 0.0
       zombie.by_player = true
       @mobs << zombie
@@ -2219,7 +2220,7 @@ class Game
   def test_chickens
     x = @spawn_x + 30.0
     z = @spawn_z
-    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 5)
+    hen = Animal.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 5)
     hen.hp = 0.0
     hen.by_player = true
     @mobs << hen
@@ -2231,7 +2232,7 @@ class Game
     lx = x.floor
     lz = (z + 3.0).floor
     set_block(lx, SKY_Y, lz, Block::LAVA)
-    burnt = Mob.new(Mob::CHICKEN, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
+    burnt = Animal.new(Mob::CHICKEN, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
     burnt.by_player = true
     @mobs << burnt
     10.times { update_mobs(1.0 / 60.0) }
@@ -2241,7 +2242,7 @@ class Game
     @items.clear
     @mobs.clear
     check("chicken is food, and a furnace cooks it", cooks?(Block::RAW_CHICKEN, 2, 1.2, Block::COOKED_CHICKEN, 6, 7.2))
-    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 11)
+    hen = Animal.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 11)
     due = hen.egg_time >= Mob::EGG_MIN && hen.egg_time <= Mob::EGG_MIN + Mob::EGG_MORE
     hen.egg_time = 0.001
     @mobs << hen
@@ -2259,7 +2260,7 @@ class Game
     @mobs.clear
     x = @spawn_x + 30.0
     z = @spawn_z
-    chick = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 5)
+    chick = Animal.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 5)
     chick.make_baby
     small = chick.baby? && chick.half == Mob::HALF[Mob::CHICKEN] / 2.0 && chick.tall == Mob::TALL[Mob::CHICKEN] / 2.0
     chick.egg_time = 0.001
@@ -2271,7 +2272,7 @@ class Game
     update_mobs(1.0 / 60.0)
     check("a chick is half as large, lays no eggs, and drops nothing", small && laid == 0 && @items.empty?)
     @mobs.clear
-    hen = Mob.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 6)
+    hen = Animal.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 6)
     check("a chick peeps, and a grown chicken clucks",
           voice(chick, MOB_SOUND) == Sfx::CHICK && voice(hen, MOB_SOUND) == Sfx::CLUCK && voice(hen, MOB_HURT) == Sfx::CHICKEN_HURT)
   end
@@ -2299,7 +2300,7 @@ class Game
     landed = @eggs.empty?
     set_block(x, y, z, Block::AIR)
     @mobs.clear
-    pig = Mob.new(Mob::PIG, x + 0.5, y.to_f, z + 0.5, 3)
+    pig = Animal.new(Mob::PIG, x + 0.5, y.to_f, z + 0.5, 3)
     @mobs << pig
     @eggs << Egg.new(x + 0.5, y + 0.5, z - 2.0, 0.0, 0.0, Egg::SPEED)
     10.times { update_eggs(1.0 / 60.0) }
@@ -2342,7 +2343,7 @@ class Game
   # A dead mob lies on the ground for DEATH_TIME and takes no hits. Then it
   # goes up in smoke.
   def test_mob_death
-    pig = Mob.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
+    pig = Animal.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     @mobs.clear
     @mobs << pig
     pig.hit(100.0, pig.x - 1.0, pig.z)
@@ -2360,7 +2361,7 @@ class Game
     bx = @spawn_x.floor + 30
     bz = @spawn_z.floor + 20
     (-10..10).each { |i| (-10..10).each { |j| set_block(bx + i, SKY_Y - 2, bz + j, Block::STONE) } }
-    pig = Mob.new(Mob::PIG, bx + 0.5, SKY_Y - 1.0, bz + 0.5, 5)
+    pig = Animal.new(Mob::PIG, bx + 0.5, SKY_Y - 1.0, bz + 0.5, 5)
     @mobs.clear
     @mobs << pig
     pig.hit(1.0, pig.x - 1.0, pig.z)
@@ -2651,7 +2652,7 @@ class Game
     @player.pitch = -0.12
     @inv.clear
     @inv.add(Block::ARROW)
-    pig = Mob.new(Mob::PIG, bx + 8.5, SKY_Y - 1.0, bz + 0.5, 3)
+    pig = Animal.new(Mob::PIG, bx + 8.5, SKY_Y - 1.0, bz + 0.5, 3)
     @mobs << pig
     shoot_bow(1.0)
     frames = 0
@@ -2668,8 +2669,8 @@ class Game
     @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
     @slot = 0
     update_hand(0.0)
-    full = Mob.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 3)
-    quick = Mob.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 4)
+    full = Monster.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 3)
+    quick = Monster.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 4)
     @mobs << full
     @mobs << quick
     @attack_time = 1.0
@@ -2678,7 +2679,7 @@ class Game
     @target_mob = 1
     left_button(0.0, true, true)
     check("a hit right after an attack does less damage", full.hp == 16.0 && quick.hp > 19.0 && quick.hp < 19.2)
-    falling = Mob.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 5)
+    falling = Monster.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 5)
     @mobs << falling
     @attack_time = 1.0
     @player.on_ground = false
@@ -2750,7 +2751,7 @@ class Game
     check("a bed works earlier in the evening in rain", dusk && @clock.time_of_day == Clock::MORNING)
     awake = [[3.0, 0.0], [0.0, 6.0], [9.0, 0.0]].map do |(across, up)|
       @mobs.clear
-      @mobs << Mob.new(Mob::ZOMBIE, bx + 6.5 + across, SKY_Y - 1.0 + up, bz + 0.5, 9)
+      @mobs << Monster.new(Mob::ZOMBIE, bx + 6.5 + across, SKY_Y - 1.0 + up, bz + 0.5, 9)
       @clock.time_of_day = 0.75
       use_bed(bx + 6, SKY_Y - 1, bz)
       @clock.time_of_day == 0.75
@@ -2807,7 +2808,7 @@ class Game
     stacked = @world.door_fits?(x, y + 2, z)
     toggle_door(x, y, z)
     @mobs.clear
-    @mobs << Mob.new(Mob::ZOMBIE, x + 0.5, y.to_f, z + 0.5, 3)
+    @mobs << Monster.new(Mob::ZOMBIE, x + 0.5, y.to_f, z + 0.5, 3)
     toggle_door(x, y, z)
     open = Block.door_open?(@world.get(x, y, z))
     @mobs.clear
@@ -3236,7 +3237,7 @@ class Game
           @inv.count(3) == 1 && @inv.block(3) == Block::BED && !last_chat_error?)
     @survival = was
     @mobs.clear
-    @mobs << Mob.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
+    @mobs << Animal.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
     @player.yaw = 0.0
     @player.pitch = -0.2
     @player.raycast(@world)
@@ -3274,7 +3275,7 @@ class Game
     @items.clear
     @mobs.clear
     10.times do |i|
-      skeleton = Mob.new(Mob::SKELETON, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
+      skeleton = Monster.new(Mob::SKELETON, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
       skeleton.hp = 0.0
       skeleton.by_player = true
       @mobs << skeleton
@@ -3607,7 +3608,7 @@ class Game
     @slot = 0
     @items.clear
     @mobs.clear
-    sheep = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    sheep = Animal.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
     @mobs << sheep
     @player.x = bx - 1.5
     @player.y = y + 1.0
@@ -3656,7 +3657,7 @@ class Game
     @slot = 0
     @items.clear
     @mobs.clear
-    sheep = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    sheep = Animal.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
     @mobs << sheep
     @target_boat = -1
     @target_mob = 0
@@ -3748,7 +3749,7 @@ class Game
     fill_box(bx - 2, y + 1, bz - 2, bx + 2, y + 3, bz + 2, Block::AIR)
     fill_box(bx - 2, y, bz - 2, bx + 2, y, bz + 2, Block::GRASS)
     @mobs.clear
-    sheep = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    sheep = Animal.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
     @mobs << sheep
     grazes = 0
     60_000.times do
@@ -3775,7 +3776,7 @@ class Game
     @slot = 0
     @items.clear
     @mobs.clear
-    lamb = Mob.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
+    lamb = Animal.new(Mob::SHEEP, bx + 0.5, y + 1.0, bz + 0.5, 7)
     lamb.make_baby
     @mobs << lamb
     right_click_mob(lamb)
@@ -3837,7 +3838,7 @@ class Game
     @slot = 0
     @mobs.clear
     @items.clear
-    cow = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)
+    cow = Animal.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)
     @mobs << cow
     hearts = @particles.count(Particle::HEART)
     right_click_mob(cow)
@@ -3853,7 +3854,7 @@ class Game
     @slot = 1
     right_click_mob(cow)
     seeds_on_cow = @target_mob == 0 && !cow.love.on? && @inv.count(1) == 10
-    hen = Mob.new(Mob::CHICKEN, bx + 0.5, fy, bz - 4.5, 3)
+    hen = Animal.new(Mob::CHICKEN, bx + 0.5, fy, bz - 4.5, 3)
     @mobs << hen
     @slot = 0
     right_click_mob(hen)
@@ -3876,8 +3877,8 @@ class Game
           cold == 0 && warm == 2 && hen.love.on?)
     @mobs.clear
     @slot = 0
-    a = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)
-    b = Mob.new(Mob::COW, bx + 5.5, fy, bz + 0.5, 4)
+    a = Animal.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)
+    b = Animal.new(Mob::COW, bx + 5.5, fy, bz + 0.5, 4)
     @mobs << a
     @mobs << b
     right_click_mob(a)
@@ -3916,7 +3917,7 @@ class Game
     late = (calf.grow_left - 8.0).abs < 0.001 && @inv.count(0) == left - 2
     check("a baby eats wheat but does not enter love mode, and each wheat takes 10% off its growth time",
           faster && late && calf.baby? && !calf.love.on?)
-    calf2 = Mob.new(Mob::COW, bx + 2.5, fy, bz + 0.5, 5)
+    calf2 = Animal.new(Mob::COW, bx + 2.5, fy, bz + 0.5, 5)
     calf2.make_baby
     @mobs << calf2
     right_click_mob(calf2)
@@ -3927,7 +3928,7 @@ class Game
     held = @hotbar[@slot]
     @hotbar[@slot] = Block::WHEAT
     @inv.clear
-    cow = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 6)
+    cow = Animal.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 6)
     @mobs << cow
     right_click_mob(cow)
     check("in creative, wheat puts a cow in love mode and stays in the hand",
@@ -3959,8 +3960,8 @@ class Game
     @player.y = fy
     @player.z = bz + 40.5
     @mobs.clear
-    a = Mob.new(Mob::CREEPER, bx + 0.5, fy, bz + 0.5, 3)
-    b = Mob.new(Mob::CREEPER, bx + 0.5, fy, bz + 0.5, 4)
+    a = Monster.new(Mob::CREEPER, bx + 0.5, fy, bz + 0.5, 3)
+    b = Monster.new(Mob::CREEPER, bx + 0.5, fy, bz + 0.5, 4)
     @mobs << a
     @mobs << b
     60.times { update_mobs(1.0 / 60.0) }
@@ -3969,8 +3970,8 @@ class Game
     @mobs.clear
     # The wall of stone is at x bx + 5. The creeper by the wall gets a push
     # to it.
-    wall = Mob.new(Mob::CREEPER, bx + 4.69, fy, bz + 0.5, 5)
-    other = Mob.new(Mob::CREEPER, bx + 4.5, fy, bz + 0.5, 6)
+    wall = Monster.new(Mob::CREEPER, bx + 4.69, fy, bz + 0.5, 5)
+    other = Monster.new(Mob::CREEPER, bx + 4.5, fy, bz + 0.5, 6)
     @mobs << wall
     @mobs << other
     60.times { update_mobs(1.0 / 60.0) }
@@ -3984,7 +3985,7 @@ class Game
     @player.z = bz + 0.5
     cows = []
     4.times do |i|
-      cow = Mob.new(Mob::COW, bx + 0.5, fy, bz - 3.5, 10 + i)
+      cow = Animal.new(Mob::COW, bx + 0.5, fy, bz - 3.5, 10 + i)
       @mobs << cow
       cows << cow
     end
@@ -4018,7 +4019,7 @@ class Game
     @inv.set(1, Block::SEEDS, 10)
     @slot = 0
     @mobs.clear
-    cow = Mob.new(Mob::COW, bx + 0.5, fy, bz - 4.5, 7)
+    cow = Animal.new(Mob::COW, bx + 0.5, fy, bz - 4.5, 7)
     @mobs << cow
     @player.x = bx + 0.5
     @player.y = fy
@@ -4142,7 +4143,7 @@ class Game
     p = Player.new(x + 2.5, g + 1.5, z + 0.5)
     60.times { p.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false) }
     chest = (p.y - (g + 0.875)).abs < 0.001
-    m = Mob.new(Mob::PIG, x + 0.5, g + 1.5, z + 0.5, 1)
+    m = Animal.new(Mob::PIG, x + 0.5, g + 1.5, z + 0.5, 1)
     m.move(@world, 0.0, -1.0, 0.0)
     pig = (m.y - (g + 0.5625)).abs < 0.001
     set_block(x, g, z, Block::AIR)
@@ -4313,7 +4314,7 @@ class Game
     old_seed = @seed
     @inv.add(Block::DIAMOND)
     @hotbar[0] = Block::GLASS
-    @mobs << Mob.new(Mob::ZOMBIE, @player.x, @player.y, @player.z, 1)
+    @mobs << Monster.new(Mob::ZOMBIE, @player.x, @player.y, @player.z, 1)
     new_world
     h = @world.height_at(@player.x.floor, @player.z.floor)
     # A new world can start on sand with no grass in reach, which Java

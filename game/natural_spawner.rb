@@ -90,7 +90,7 @@ class NaturalSpawner
         x += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         z += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         if monster_fits?(player, x, y, z, sky)
-          monster = Mob.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
+          monster = Monster.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
           monster.head = halloween_head(kind)
           mobs << monster
           Log.debug(Log::MOBS) { "#{Mob::NAMES[kind]} spawns at #{x} #{y} #{z}, #{mobs.size} mobs" }
@@ -183,7 +183,7 @@ class NaturalSpawner
       next unless ground == Block::GRASS || ground == Block::SNOW_GRASS
       next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
 
-      mobs << Mob.new(kind, x + 0.5, h + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
+      mobs << Animal.new(kind, x + 0.5, h + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
       Log.debug(Log::MOBS) { "#{Mob::NAMES[kind]} spawns at #{x} #{h} #{z}, #{mobs.size} mobs" }
       return nil
     end

@@ -342,7 +342,7 @@ class Game
   def breed(a, b)
     a.love.bred
     b.love.bred
-    baby = Mob.new(a.kind, a.x, a.y, a.z, (@rng.rand01 * 100000.0).to_i)
+    baby = Animal.new(a.kind, a.x, a.y, a.z, (@rng.rand01 * 100000.0).to_i)
     baby.make_baby
     @mobs << baby
     # to_f: Spinel cannot type the mobs, and the particles need Floats.
@@ -515,7 +515,7 @@ class Game
 
       @particles.splat(e.x, e.y, e.z, Block::EGG)
       chicks(@rng.rand01, @rng.rand01).times do
-        chick = Mob.new(Mob::CHICKEN, e.x, e.y, e.z, (@rng.rand01 * 100000.0).to_i)
+        chick = Animal.new(Mob::CHICKEN, e.x, e.y, e.z, (@rng.rand01 * 100000.0).to_i)
         chick.make_baby
         @mobs << chick
       end
