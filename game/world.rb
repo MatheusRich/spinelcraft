@@ -864,9 +864,9 @@ class World
   end
 
   # Height bands. top is the y of the column's top block.
-  def beach?(top) = top <= BEACH_TOP
+  def self.beach?(top) = top <= BEACH_TOP
   # High peaks are bare stone at the top and below it.
-  def bare_rock?(top) = top > ROCK_LINE
+  def self.bare_rock?(top) = top > ROCK_LINE
 
   # The block at the top of a column before caves and plants. Swamps hold
   # pools at sea level.
@@ -876,22 +876,22 @@ class World
     if biome == Biome::SWAMP
       b = Block::WATER if top == SEA && @noise3.noise2(x / 9.0, z / 9.0 + 40.0) > -0.05
       b = Block::DIRT if top < SEA
-    elsif beach?(top)
+    elsif World.beach?(top)
       b = Block::SAND
     end
     b = Block::GRAVEL if top < GRAVEL_LINE && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
-    b = Block::STONE if bare_rock?(top)
+    b = Block::STONE if World.bare_rock?(top)
     b = Block::SNOW if top > SNOW_LINE
     b
   end
 
   # Caves: two noise fields near zero at once trace long tunnels.
-  def cave?(a, c, width) = a * a + c * c < width
+  def self.cave?(a, c, width) = a * a + c * c < width
   # False when the first field alone rules out a cave, so the second needs no sample.
-  def cave_possible?(a, width) = a * a < width
+  def self.cave_possible?(a, width) = a * a < width
 
   # The tunnel width at depth blocks below the top block of a column.
-  def cave_width(depth)
+  def self.cave_width(depth)
     return 0.0 if depth <= CAVE_ROOF
     return CAVE_WIDTH if depth >= CAVE_ROOF + CAVE_FADE
     CAVE_WIDTH * (depth - CAVE_ROOF) / CAVE_FADE
@@ -924,7 +924,7 @@ class World
     tx = (x - gx * 4) / 4.0
     ty = (y - gy * 4) / 4.0
     tz = (z - gz * 4) / 4.0
-    cave?(trilinear(@corner_a, 0, 2, 2, tx, ty, tz), trilinear(@corner_b, 0, 2, 2, tx, ty, tz), CAVE_WIDTH)
+    World.cave?(trilinear(@corner_a, 0, 2, 2, tx, ty, tz), trilinear(@corner_b, 0, 2, 2, tx, ty, tz), CAVE_WIDTH)
   end
 
   # The top ground block of the tree that grows at column x, z, or -1. It
@@ -937,7 +937,7 @@ class World
     return -1 if r >= Biome::TREES[biome]
     ground = top_block(x, z, h, biome)
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS
-    return -1 if !beach?(h - 1) && entrance?(x, z) && carved?(x, h - 1, z)
+    return -1 if !World.beach?(h - 1) && entrance?(x, z) && carved?(x, h - 1, z)
     h - 1
   end
 
@@ -1033,28 +1033,28 @@ class World
             b = surface
           elsif y > top - SOIL_DEPTH
             b = surface == Block::SAND ? Block::SAND : Block::DIRT
-            b = Block::STONE if bare_rock?(top)
+            b = Block::STONE if World.bare_rock?(top)
           elsif y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
             b = Block::SANDSTONE
           end
-          if y > 1 && (y < top - 2 || (!beach?(top) && y <= top))
+          if y > 1 && (y < top - 2 || (!World.beach?(top) && y <= top))
             fy = y / 4.0
             iy = fy.to_i
             n = (ix * GY + iy) * GX + iz
             if @cave_cell[n] == 1
-              width = entrance ? CAVE_WIDTH : cave_width(top - y)
+              width = entrance ? CAVE_WIDTH : World.cave_width(top - y)
               if iy != a_layer
                 a_layer = iy
-                x_edges(@cave_a, n, GY, GX, fx - ix, @edges_a)
+                World.x_edges(@cave_a, n, GY, GX, fx - ix, @edges_a)
               end
-              a = yz_lerp(@edges_a, fy - iy, fz - iz)
-              if cave_possible?(a, width)
+              a = World.yz_lerp(@edges_a, fy - iy, fz - iz)
+              if World.cave_possible?(a, width)
                 if iy != c_layer
                   c_layer = iy
-                  x_edges(@cave_b, n, GY, GX, fx - ix, @edges_c)
+                  World.x_edges(@cave_b, n, GY, GX, fx - ix, @edges_c)
                 end
-                c = yz_lerp(@edges_c, fy - iy, fz - iz)
-                b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if cave?(a, c, width)
+                c = World.yz_lerp(@edges_c, fy - iy, fz - iz)
+                b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if World.cave?(a, c, width)
               end
             end
           end
@@ -1109,17 +1109,17 @@ class World
         end
       end
     end
-    cave_possible?(low, CAVE_WIDTH) || cave_possible?(high, CAVE_WIDTH) || (low < 0.0 && high > 0.0) ? 1 : 0
+    World.cave_possible?(low, CAVE_WIDTH) || World.cave_possible?(high, CAVE_WIDTH) || (low < 0.0 && high > 0.0) ? 1 : 0
   end
 
   def trilinear(g, n, gy, gz, tx, ty, tz)
-    x_edges(g, n, gy, gz, tx, @edges_a)
-    yz_lerp(@edges_a, ty, tz)
+    World.x_edges(g, n, gy, gz, tx, @edges_a)
+    World.yz_lerp(@edges_a, ty, tz)
   end
 
   # The first step of trilinear: the 4 edges along x of the cell of grid g
   # from point n, at tx, into e (y, z: 0 0, 1 0, 0 1, 1 1).
-  def x_edges(g, n, gy, gz, tx, e)
+  def self.x_edges(g, n, gy, gz, tx, e)
     sx = gy * gz
     e[0] = g[n] + (g[n + sx] - g[n]) * tx
     e[1] = g[n + gz] + (g[n + sx + gz] - g[n + gz]) * tx
@@ -1128,7 +1128,7 @@ class World
   end
 
   # The rest of trilinear: the edges e lerped along y at ty, then along z at tz.
-  def yz_lerp(e, ty, tz)
+  def self.yz_lerp(e, ty, tz)
     c0 = e[0] + (e[1] - e[0]) * ty
     c1 = e[2] + (e[3] - e[2]) * ty
     c0 + (c1 - c0) * tz
@@ -1178,7 +1178,7 @@ class World
           elsif p >= 65536 - Biome::FLOWERS[biome] && meadow > -0.05
             put(x, top + 1, z, (x + z) % 3 == 0 ? Block::ROSE : Block::DANDELION, x0, z0)
           end
-        elsif ground == Block::SAND && biome == Biome::DESERT && !beach?(top)
+        elsif ground == Block::SAND && biome == Biome::DESERT && !World.beach?(top)
           r = Noise.hash3(x, 0, z, 21)
           if r < 350
             tall = 1 + Noise.hash3(x, 1, z, 22) % 3
@@ -1212,7 +1212,7 @@ class World
     (-WELL_REACH..WELL_REACH).each do |dx|
       (-WELL_REACH..WELL_REACH).each do |dz|
         ch = surface_height(x + dx, z + dz)
-        return -1 if ch < h || ch > h + 1 || beach?(ch - 1)
+        return -1 if ch < h || ch > h + 1 || World.beach?(ch - 1)
         biome = biome(x + dx, z + dz, ch)
         return -1 if biome != Biome::DESERT || top_block(x + dx, z + dz, ch, biome) != Block::SAND
         return -1 if entrance?(x + dx, z + dz) && carved?(x + dx, ch - 1, z + dz)
