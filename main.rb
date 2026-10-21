@@ -7,6 +7,7 @@ require_relative "game/block"
 require_relative "game/biome"
 require_relative "game/noise"
 require_relative "game/world"
+require_relative "game/terrain"
 require_relative "game/trees"
 require_relative "game/light"
 require_relative "game/mesher"
@@ -315,20 +316,21 @@ class Game
     ox = 0
     oz = 0
     r = 0
-    while !@world.land?(ox, oz) && r < 4096
+    terrain = @world.terrain
+    while !terrain.land?(ox, oz) && r < 4096
       r += 64
       k = -r
-      while k <= r && !@world.land?(ox, oz)
-        if @world.land?(k, -r)
+      while k <= r && !terrain.land?(ox, oz)
+        if terrain.land?(k, -r)
           ox = k
           oz = -r
-        elsif @world.land?(k, r)
+        elsif terrain.land?(k, r)
           ox = k
           oz = r
-        elsif @world.land?(-r, k)
+        elsif terrain.land?(-r, k)
           ox = -r
           oz = k
-        elsif @world.land?(r, k)
+        elsif terrain.land?(r, k)
           ox = r
           oz = k
         end

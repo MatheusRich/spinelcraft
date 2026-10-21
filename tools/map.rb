@@ -13,7 +13,7 @@ require_relative "../game/block"
 require_relative "../game/biome"
 require_relative "../game/noise"
 require_relative "../game/world"
-require_relative "../game/trees"
+require_relative "../game/terrain"
 
 # Biome colors: plains, forest, taiga, snowy taiga, tundra, desert,
 # savanna, jungle and swamp (the order of Biome::ALL).
@@ -29,7 +29,7 @@ def write_png(path, w, h, rgb)
 end
 
 out = ARGV[0] || "map"
-world = World.new((ENV["SEED"] || "1337").to_i)
+terrain = Terrain.new((ENV["SEED"] || "1337").to_i)
 step = (ENV["STEP"] || "8").to_i
 n = (ENV["SIZE"] || "8000").to_i / step
 lift = (ENV["LIFT"] || "6").to_f
@@ -43,7 +43,7 @@ n.times do |j|
   n.times do |i|
     x = x0 + i * step
     z = x0 + j * step
-    h = world.surface_height(x, z)
+    h = terrain.surface_height(x, z)
     k = j * n + i
     rgb = if h - 1 < SEA
             t = [(SEA - h + 1) / 18.0, 1.0].min
@@ -52,8 +52,8 @@ n.times do |j|
           else
             top[k] = h - 1
             land[k] = true
-            b = world.biome(x, z, h)
-            ground = world.top_block(x, z, h, b)
+            b = terrain.biome(x, z, h)
+            ground = terrain.top_block(x, z, h, b)
             if ground == Block::SNOW then [250, 250, 255]
             elsif ground == Block::STONE then [150, 150, 150]
             elsif ground == Block::SAND && b != Biome::DESERT then [225, 210, 160]

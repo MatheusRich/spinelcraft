@@ -11,7 +11,7 @@ class FarTerrainTest < Minitest::Test
   end
 
   def test_a_level_builds_rings_out_to_its_reach_or_to_the_view_and_one_more
-    far = FarTerrain.new(World.new(1337), 0)
+    far = FarTerrain.new(Terrain.new(1337), 0)
     # Level 0 has tiles of 64 blocks and reaches 640 blocks.
     assert_equal 64, far.lod(0).tile
     assert_equal 11, far.tile_rings(0, 5000.0)
@@ -24,7 +24,7 @@ class FarTerrainTest < Minitest::Test
   end
 
   def test_no_tile_is_built_before_the_first_build
-    far = FarTerrain.new(World.new(1337), 0)
+    far = FarTerrain.new(Terrain.new(1337), 0)
     assert_equal 0, far.take_builds
     assert_equal 0, far.take_builds
     refute far.lod(0).ready?(0, 0)

@@ -17,8 +17,8 @@ class Tint
   # True when the map changed after the last upload.
   attr_accessor :changed
 
-  def initialize(world)
-    @world = world
+  def initialize(terrain)
+    @terrain = terrain
     @pixels = Array.new(SIZE * SIZE * 2, 0)
     @changed = false
     # The map pixel of each biome: the grass ratio, then the foliage ratio.
@@ -51,7 +51,7 @@ class Tint
         gz = cz * n + j
         x = gx * GROUP + GROUP / 2
         z = gz * GROUP + GROUP / 2
-        b = @world.biome(x, z, @world.surface_height(x, z))
+        b = @terrain.biome(x, z, @terrain.surface_height(x, z))
         k = (gz & (SIZE - 1)) * SIZE + (gx & (SIZE - 1))
         @pixels[k] = @ratio[b * 2]
         @pixels[SIZE * SIZE + k] = @ratio[b * 2 + 1]

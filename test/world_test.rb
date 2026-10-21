@@ -13,11 +13,6 @@ class WorldTest < Minitest::Test
     assert Biome::TREE.all? { |kind| kind < Biome::TREE_KINDS.size }
   end
 
-  def test_the_continent_spline_has_rising_points_and_one_height_for_each
-    assert World::CONTINENT.each_cons(2).all? { |a, b| b > a }
-    assert_equal World::CONTINENT.size, World::BASE.size
-  end
-
   # A desert well has the blocks of minecraft.wiki/w/Desert_Well/Structure:
   # 89 sandstone and 12 slabs, which are sandstone here, 4 sand and 2
   # suspicious sand, which are sand here, and 5 water.
@@ -393,16 +388,6 @@ class WorldTest < Minitest::Test
         world.set(8 + Block::DIR_DX[dir], SKY_Y, 8 + Block::DIR_DZ[dir], Block::AIR)
         world.set(8, SKY_Y - 1, 8, Block::AIR)
       end
-    end
-  end
-
-  # The spawn search looks for land: a column whose noise surface is more
-  # than 4 blocks above the sea.
-  def test_land_rises_more_than_four_blocks_above_the_sea
-    world = World.new(1337)
-    [[SEA + 5, true], [SEA + 4, false], [SEA - 10, false]].each do |surface, land|
-      world.define_singleton_method(:surface_height) { |_x, _z| surface }
-      assert_equal land, world.land?(3, 4), "surface #{surface}"
     end
   end
 end

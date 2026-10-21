@@ -2533,7 +2533,7 @@ class Game
     # to_i keeps the world generator typed (see ChunkMeshes#stream).
     x = ((cx >> 2) * 4 + 2).to_i
     z = ((cz >> 2) * 4 + 2).to_i
-    b = @world.biome(x, z, @world.surface_height(x, z))
+    b = @world.terrain.biome(x, z, @world.terrain.surface_height(x, z))
     plains = Tint.ratio(Biome::GRASS_COLOR[Biome::PLAINS], Biome::GRASS_COLOR[Biome::PLAINS])
     check("the tint map holds the ratio of the biome color to the plains color",
           plains == 0xff404040 && @tint.pixels[k] == Tint.ratio(Biome::GRASS_COLOR[b], Biome::GRASS_COLOR[Biome::PLAINS]))
@@ -4163,7 +4163,7 @@ class Game
           tiles[LOD_SLOT0 + Lod.slot(tx, tz - 3)] == (4 | 1 | 2 | 16) && !tiles.key?(LOD_SLOT0 + Lod.slot(tx, tz + 3)) &&
           !tiles.key?(LOD_SLOT0 + Lod.slot(tx, tz)))
     # test_streaming counts the tiles that a new far terrain builds.
-    @far = FarTerrain.new(@world, LOD_SLOT0)
+    @far = FarTerrain.new(@world.terrain, LOD_SLOT0)
   end
 
   # The square of the distance along x and z from the eye to the chunk of

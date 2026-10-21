@@ -220,7 +220,7 @@ class Trees
     4.times do |a|
       cx = x + a % 2
       cz = z + a / 2
-      ground = a == 0 ? y : [y, @world.surface_height(cx, cz)].min
+      ground = a == 0 ? y : [y, @world.terrain.surface_height(cx, cz)].min
       logs(cx, ground, cz, y + tall - ground)
     end
     jungle_crown(x, y + tall, z, 3, 3, true)

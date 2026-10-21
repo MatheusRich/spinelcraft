@@ -17,11 +17,11 @@ class FarTerrain
   # face directions for each tile.
   attr_reader :visible
 
-  # The far terrain of world. Its tiles go to the GPU slots from slot0 on,
+  # The far land of terrain (a Terrain). Its tiles go to the GPU slots from slot0 on,
   # TILE_SLOTS for each level.
-  def initialize(world, slot0)
+  def initialize(terrain, slot0)
     @slot0 = slot0
-    @lods = Array.new(LEVELS) { |l| Lod.new(world, l) }
+    @lods = Array.new(LEVELS) { |l| Lod.new(terrain, l) }
     # Tile offsets in rings, nearest first. Level L reaches REACH << L
     # blocks with tiles of (4 << L) * CELLS blocks, so every level needs
     # the same number of rings.

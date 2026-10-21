@@ -1,6 +1,6 @@
 # Far terrain: a coarse mesh past the full-detail chunks, in levels. Level L
 # has cells of 4 << L blocks, and a tile holds CELLS x CELLS cells. Each cell
-# has one height and one top block, read from the world generator's noise, so
+# has one height and one top block, read from the noise of Terrain, so
 # far terrain needs no block storage. Edits do not show here.
 class Lod
   CELLS = 16
@@ -24,8 +24,8 @@ class Lod
 
   attr_reader :tile_x, :tile_z, :built, :faces, :tile, :tile_shift
 
-  def initialize(world, level)
-    @world = world
+  def initialize(terrain, level)
+    @terrain = terrain
     @shift = 2 + level
     @cell = 1 << @shift
     @tile = @cell * CELLS
@@ -65,19 +65,18 @@ class Lod
 
   # Samples cell (cx, cz) (in cell units) into grid entry k.
   def sample(cx, cz, k)
-    w = @world
     x = (cx << @shift) + @cell / 2
     z = (cz << @shift) + @cell / 2
-    h = w.surface_height(x, z)
+    h = @terrain.surface_height(x, z)
     if h - 1 < SEA
       @h[k] = SEA + 1
       @top[k] = Tex::WATER
       @side[k] = Tex::WATER
       return
     end
-    biome = w.biome(x, z, h)
+    biome = @terrain.biome(x, z, h)
     @biome[k] = biome
-    b = w.top_block(x, z, h, biome)
+    b = @terrain.top_block(x, z, h, biome)
     @top[k] = Block::TOP[b]
     @side[k] = Block::SIDE[b]
     @h[k] = h

@@ -1,6 +1,6 @@
 # Biomes: the kind of land at a column. The temperature and the humidity
 # pick the biome, and the biome picks the ground block, the trees and the
-# plants. The height adds beaches, bare rock and snow on top (World#top_block).
+# plants. The height adds beaches, bare rock and snow on top (Terrain#top_block).
 module Biome
   # Each table below has one entry for each biome, in this order.
   ALL = [PLAINS = 0, FOREST = 1, TAIGA = 2, SNOWY_TAIGA = 3, TUNDRA = 4, DESERT = 5, SAVANNA = 6,

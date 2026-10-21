@@ -111,9 +111,9 @@ class Game
   def reset_world
     Log.debug(Log::WORLD) { "an empty world for seed #{@seed}" }
     @world = World.new(@seed)
-    @tint = Tint.new(@world)
+    @tint = Tint.new(@world.terrain)
     @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
-    @far = FarTerrain.new(@world, LOD_SLOT0)
+    @far = FarTerrain.new(@world.terrain, LOD_SLOT0)
     @chunk_meshes = ChunkMeshes.new(@world, @tint)
     @light = Light.new(@world)
     @spawner = NaturalSpawner.new(@world, @seed * 11 + 5, @halloween)
