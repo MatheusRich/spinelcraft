@@ -63,6 +63,7 @@ class Camera
   def project(x, y, z, w, h)
     cw = @vp[12] * x + @vp[13] * y + @vp[14] * z + @vp[15]
     return false if cw <= 0.01
+
     cx = (@vp[0] * x + @vp[1] * y + @vp[2] * z + @vp[3]) / cw
     cy = (@vp[4] * x + @vp[5] * y + @vp[6] * z + @vp[7]) / cw
     @sx = (cx + 1.0) * 0.5 * w

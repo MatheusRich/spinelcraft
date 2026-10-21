@@ -55,6 +55,7 @@ class Ores
   # the layer above that y in Minecraft.
   def self.mc_y(y)
     return y - SEA + MC_SEA if y >= SEA
+
     MC_BOTTOM + (y - 1) * 2
   end
 
@@ -62,6 +63,7 @@ class Ores
   def self.ore_at(ore, y)
     m = Ores.mc_y(y)
     return Ores.mc_ore(ore, m) if y >= SEA
+
     Ores.mc_ore(ore, m) + Ores.mc_ore(ore, m + 1)
   end
 
@@ -83,6 +85,7 @@ class Ores
     # also skips the extra gold of the badlands, a biome that it does not
     # have.
     return VEIN_9 * (4 * Ores.peaked(m, -64, 32) + 0.5 * Ores.even(m, -64, -48)) if ore == Block::SPINEL_ORE
+
     # 7 veins of size 4, 4 of size 8 and 1/9 of size 12 in a triangle
     # that ends at y 16, and 2 of size 8 spread evenly from y -64 to -4.
     # minecraft.wiki/w/Diamond_Ore gives the range of the triangle as
@@ -102,6 +105,7 @@ class Ores
   # from y low to high.
   def self.even(m, low, high)
     return 0.0 if m < low || m > high
+
     1.0 / (high - low + 1)
   end
 
@@ -113,6 +117,7 @@ class Ores
   # 1 at peak, 0 at low and high and beyond, and a straight line between.
   def self.triangle(y, low, peak, high)
     return 0.0 if y <= low || y >= high
+
     y < peak ? (y - low) / (peak - low) : (high - y) / (high - peak)
   end
 
@@ -123,10 +128,12 @@ class Ores
   # from layer to layer.
   def clump(y, coal_r, r)
     return Block::COAL_ORE if coal_r < @coal_odds[y]
+
     iron = @iron_odds[y]
     return Block::IRON if r < iron
     return Block::DIAMOND if r < iron + @diamond_odds[y]
     return Block::SPINEL_ORE if r >= 65536 - @spinel_odds[y]
+
     Block::STONE
   end
 
@@ -136,6 +143,7 @@ class Ores
     return Noise.hash3(x, y, z, 12) < COAL_FILL if ore == Block::COAL_ORE
     return Noise.hash3(x, y, z, 14) < IRON_FILL if ore == Block::IRON
     return Noise.hash3(x, y, z, 16) < DIAMOND_FILL if ore == Block::DIAMOND
+
     Noise.hash3(x, y, z, 18) < SPINEL_FILL
   end
 end

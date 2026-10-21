@@ -36,8 +36,10 @@ class Music
   # surface no track starts at night, as in VoxeLibre (mcl_music).
   def next_track(dt, playing, underground, night)
     return -1 if playing
+
     @wait -= dt
     return -1 if @wait > 0.0 || (night && !underground)
+
     bag = underground ? @mining_bag : @surface_bag
     if bag.empty?
       underground ? fill(bag, MINING, FILES.size) : fill(bag, 0, MINING)

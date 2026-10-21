@@ -95,10 +95,12 @@ class ChunkMeshes
         end
       end
       break if @load_at >= load_count
+
       cx = pcx + @ring_dx[@load_at]
       cz = pcz + @ring_dz[@load_at]
       @load_at += 1
       next if @world.chunk_loaded?(cx, cz)
+
       @meshed[World.slot(cx, cz)] = 0
       @world.load_chunk(cx, cz)
       @tint.paint(cx, cz)
@@ -168,6 +170,7 @@ class ChunkMeshes
 
   def remesh(cx, cz)
     return unless meshable?(cx, cz)
+
     @mesher.build(cx, cz)
     s = World.slot(cx, cz)
     upload_mesh(s * 2, @mesher.opaque, @mesher.offsets)
@@ -199,8 +202,10 @@ class ChunkMeshes
   # A chunk without a mesh gets one from stream, so only meshed ones queue.
   def mark_chunk(cx, cz)
     return unless @world.chunk_loaded?(cx, cz)
+
     i = World.slot(cx.to_i, cz.to_i)
     return if @meshed[i] == 0 || @dirty[i]
+
     @dirty[i] = true
     @dirty_list << i
     nil
@@ -210,6 +215,7 @@ class ChunkMeshes
   # later frames.
   def mark_later(cx, cz)
     return unless @world.chunk_loaded?(cx, cz)
+
     i = World.slot(cx.to_i, cz.to_i)
     later_slot(i)
     nil
@@ -232,6 +238,7 @@ class ChunkMeshes
 
   def later_slot(i)
     return if @meshed[i] == 0 || @dirty[i] || @later[i]
+
     @later[i] = true
     @later_list << i
     nil
@@ -240,6 +247,7 @@ class ChunkMeshes
   # True when the chunk cx, cz waits for a remesh.
   def queued?(cx, cz)
     return false unless @world.chunk_loaded?(cx, cz)
+
     i = World.slot(cx, cz)
     @dirty[i] == true || @later[i] == true
   end
@@ -249,6 +257,7 @@ class ChunkMeshes
   # marked chunk keeps the time of the last flush.
   def flush
     return if @dirty_list.empty? && @later_list.empty?
+
     t0 = Gfx.gfx_ns
     @dirty_list.each do |i|
       @dirty[i] = false
@@ -259,6 +268,7 @@ class ChunkMeshes
     while !@later_list.empty? && Gfx.gfx_ns - t0 < MESH_BUDGET_NS
       i = @later_list.shift
       next unless @later[i]
+
       @later[i] = false
       remesh(@world.slot_cx[i], @world.slot_cz[i]) if @meshed[i] == 1
     end

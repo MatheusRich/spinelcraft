@@ -57,6 +57,7 @@ class Item
     @wait -= dt
     at = world.get(@x.floor, @y.floor, @z.floor)
     return false if Block.lava?(at)
+
     # A block placed on the item pushes it up.
     if Block.solid?(at)
       @y = @y.floor + 1.0

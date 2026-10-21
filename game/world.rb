@@ -159,10 +159,12 @@ class World
   def cactus_room?(x, y, z)
     above = get(x, y + 1, z)
     return false if Block.water?(above) || Block.lava?(above)
+
     dir = 0
     while dir < 4
       side = get(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
       return false if Block.solid?(side) || Block.lava?(side)
+
       dir += 1
     end
     true
@@ -193,6 +195,7 @@ class World
     iy = y.to_i
     iz = z.to_i
     return Block::AIR unless inside?(ix, iy, iz)
+
     block(World.index(ix, iy, iz))
   end
 
@@ -220,6 +223,7 @@ class World
   # cell bx, by, bz overlaps the box of solid_in_box?.
   def block_in_box?(block, bx, by, bz, x, y, z, half, tall)
     return false unless Block.solid?(block)
+
     y0 = by + Block.box_dy(block)
     (bx + 0.5 + Block.box_dx(block) - x).abs < Block.box_hx(block) + half && (bz + 0.5 + Block.box_dz(block) - z).abs < Block.box_hz(block) + half &&
       y0 < y + tall && y0 + Block.box_top(block) > y
@@ -292,6 +296,7 @@ class World
     iz = z.to_i
     v = b.to_i
     return unless inside?(ix, iy, iz)
+
     i = World.index(ix, iy, iz)
     remove_torch(ix, iy, iz) if Block.emits?(block(i))
     write(i, ix & LMASK, iz & LMASK, v)
@@ -305,6 +310,7 @@ class World
   def write(i, lx, lz, block)
     put_block(i, block)
     return if lx != 0 && lx != LMASK && lz != 0 && lz != LMASK
+
     ex = lx == 0 ? WX * PZ * PY : (lx == LMASK ? -WX * PZ * PY : 0)
     ez = lz == 0 ? WZ * PY : (lz == LMASK ? -WZ * PY : 0)
     put_block(i + ex, block) if ex != 0
@@ -317,6 +323,7 @@ class World
     lx0 = (cx & RING_MASK) * CHUNK
     lz0 = (cz & RING_MASK) * CHUNK
     return if lx0 != 0 && lx0 + CHUNK != WX && lz0 != 0 && lz0 + CHUNK != WZ
+
     lx = lx0
     while lx < lx0 + CHUNK
       (lz0...lz0 + CHUNK).each do |lz|
@@ -357,6 +364,7 @@ class World
 
   def unload(s)
     return if @slot_cx[s] == NONE
+
     @store[World.chunk_key(@slot_cx[s], @slot_cz[s])] = chunk_bytes(@slot_cx[s], @slot_cz[s]) if @edited[s] == 1
     @slot_cx[s] = NONE
     @slot_cz[s] = NONE
@@ -511,12 +519,14 @@ class World
   # Writes a generated block when it is inside chunk x0, z0.
   def put(x, y, z, block, x0, z0)
     return if x < x0 || z < z0 || x >= x0 + CHUNK || z >= z0 + CHUNK || y < 0 || y >= WY
+
     put_block(World.index(x, y, z), block)
   end
 
   # True when the generated block at x, y, z is air and inside chunk x0, z0.
   def air_in?(x, y, z, x0, z0)
     return false if x < x0 || z < z0 || x >= x0 + CHUNK || z >= z0 + CHUNK || y < 0 || y >= WY
+
     block(World.index(x, y, z)) == Block::AIR
   end
 end

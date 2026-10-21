@@ -29,6 +29,7 @@ class Game
   # Adds the held model to @dyn, in the frame of the eye at ex, ey, ez.
   def draw_hand(ex, ey, ez) # rubocop:todo Metrics/MethodLength
     return if !@captured || @vitals.dead?
+
     block = @hand_block
     p = @player
     fx = p.fx
@@ -174,6 +175,7 @@ class Game
   # the arm goes left, up and forward.
   def swing_hand
     return if @swing <= 0.0
+
     t = 1.0 - @swing / SWING
     fast = Math.sin(Math.sqrt(t) * Math::PI)
     slow = Math.sin(t * t * Math::PI)

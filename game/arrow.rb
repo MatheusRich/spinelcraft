@@ -30,6 +30,7 @@ class Arrow
   def fly(world, dt)
     @life -= dt
     return false if @stuck
+
     @vy -= 18.0 * dt
     nx = @x + @vx * dt
     ny = @y + @vy * dt

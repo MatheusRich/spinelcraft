@@ -408,6 +408,7 @@ class Game
     dz = z - @player.z
     dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
     return 0.0 if dist < 0.001
+
     (dx * Math.cos(@player.yaw) + dz * Math.sin(@player.yaw)) / dist
   end
 
@@ -416,6 +417,7 @@ class Game
   # track stops.
   def update_music(dt)
     return unless @sound
+
     volume = @options.volume * @options.music
     if volume <= 0.0
       Gfx.au_music_stop
@@ -556,6 +558,7 @@ class Game
 
   def update_survival(dt)
     return unless @survival && !@vitals.dead?
+
     @alive_time += dt
     p = @player
     feet = @world.get(p.x.floor, (p.y + 0.2).floor, p.z.floor)
@@ -582,16 +585,19 @@ class Game
   def update_cave_sound(dt)
     @cave_timer -= dt
     return if @cave_timer > 0.0
+
     @cave_timer = 3.0
     x = @player.x.floor
     y = @player.eye_y.floor
     z = @player.z.floor
     return if y >= SEA || !@world.inside?(x, y, z)
+
     sky = Light.sky(@clock.ticks, raining: @weather.raining?)
     light = @light.level(x, y, z, sky, @light.lamp_near?(x, y, z), sky)
     light = 15 if light < 0
     @cave_fear += 3.0 * (15 - light) / 15.0
     return if @cave_fear < 300.0
+
     @cave_fear = 0.0
     play(Sfx::CAVE + (@rng.rand01 * Sfx::CAVES).to_i, 0.6)
   end
@@ -613,6 +619,7 @@ class Game
       z = sz + (@rng.rand01 * span).to_i
       k = block_sound(x, y, z)
       next if k < 0 || @ambient_wait[k] > 0.0 || @rng.rand01 >= AMBIENT_RATE[k] * blocks / AMBIENT_SAMPLES
+
       @ambient_wait[k] = Gfx.au_seconds(AMBIENT[k])
       play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k], SOUND_RANGE)
     end
@@ -624,6 +631,7 @@ class Game
     return 0 if Block.lava?(block) && @world.get(x, y + 1, z) == Block::AIR
     return 1 if Block.water?(block) && block != Block::WATER
     return 2 if Block.furnace_lit?(block)
+
     -1
   end
 
@@ -634,6 +642,7 @@ class Game
   # that it never changes the save or the options of the player.
   def file_prefix
     return "" unless ENV["SELFTEST"]
+
     dir = ENV["TMPDIR"] || "/tmp"
     dir += "/" unless dir.end_with?("/")
     "#{dir}spinelcraft-selftest-"

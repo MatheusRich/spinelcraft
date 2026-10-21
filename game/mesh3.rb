@@ -390,6 +390,7 @@ class Mesh3
     len = Math.sqrt(sx * sx + sy * sy + sz * sz)
     # An edge that points at the eye shows as a point.
     return if len < 1.0e-9
+
     # A depth under the near plane would make the strip too thin to see.
     wa = k * ((ax - ex) * fx + (ay - ey) * fy + (az - ez) * fz).clamp(0.08, 1000.0) / len
     wb = k * ((bx - ex) * fx + (by - ey) * fy + (bz - ez) * fz).clamp(0.08, 1000.0) / len

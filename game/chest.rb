@@ -20,12 +20,14 @@ class Chest
   # The cells: 27, or 54 for a large chest.
   def cells
     return SLOTS * 2 if large?
+
     SLOTS
   end
 
   # The slots that hold a cell. The cell is slot cell % SLOTS of them.
   def slots_for(cell)
     return @top if cell < SLOTS
+
     @bottom
   end
 

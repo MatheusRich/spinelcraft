@@ -11,10 +11,13 @@ class Game
   # Uses up n uses of the selected tool. A tool with no uses left breaks.
   def wear_tool(n)
     return unless @survival && n > 0
+
     block = @inv.block(@slot)
     return unless Block.tool?(block) && @inv.count(@slot) > 0
+
     @inv.take(@slot, n < @inv.count(@slot) ? n : @inv.count(@slot))
     return unless @inv.empty?(@slot)
+
     play(Sfx::TOOL_BREAK, 0.8)
     @particles.shatter(@player, block)
     say("#{Block::NAMES[block]} BROKE")
@@ -67,6 +70,7 @@ class Game
     n = want if want < n
     n = @inv.total(block) if @inv.total(block) < n
     return if n == 0
+
     @inv.remove(block, n)
     slots.set(Furnace::INPUT, block, slots.count(Furnace::INPUT) + n)
     play(Sfx::PLACE, 0.4)
@@ -86,6 +90,7 @@ class Game
     held = @held.block(0)
     if i == Furnace::OUTPUT && !@held.empty?(0)
       return if held != slots.block(i) || slots.empty?(i)
+
       moved = [Block.stack(held) - @held.count(0), slots.count(i)].min
       @held.set(0, held, @held.count(0) + moved)
       slots.take(i, moved)
@@ -110,6 +115,7 @@ class Game
   def drop_furnace(x, y, z)
     furnace = @furnaces.remove_at(World.key(x, y, z))
     return if furnace.nil? || !@survival
+
     (0...3).each { |i| drop_from_block(furnace.slots.block(i), furnace.slots.count(i), x, y, z) }
   end
 
@@ -118,8 +124,10 @@ class Game
   # screen.
   def active_station
     return Recipe::BY_HAND if @station == Recipe::BY_HAND
+
     block = @station == Recipe::AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
     return Recipe::BY_HAND if Block::BASE[@world.get(@station_x, @station_y, @station_z)] != block
+
     @station
   end
 
@@ -172,6 +180,7 @@ class Game
       first = pack_cell(HOTBAR, w, h, s)
       last = recipe_cell(RecipeBook::ROWS * 2 - 1, w, h, s)
       break if first[0] >= 18.0 * s && last[0] + last[2] + 18.0 * s <= w && last[1] + last[3] + 18.0 * s <= bars
+
       s -= 1.0
     end
     s
@@ -265,6 +274,7 @@ class Game
   # the hotbar and the backpack.
   def quick_move_slot(i)
     return if @inv.empty?(i) || !@held.empty?(0)
+
     furnace = station_makes?(Recipe::AT_FURNACE)
     if @chests.open?
       @chests.current.store(@inv, i)
@@ -283,6 +293,7 @@ class Game
   def quick_move_chest(k)
     part = @chests.current.slots_for(k)
     return if part.empty?(k % Chest::SLOTS) || !@held.empty?(0)
+
     part.move_stack(k % Chest::SLOTS, @inv, 0...INV)
   end
 
@@ -322,6 +333,7 @@ class Game
     end
     chest = @chests.remove_at(key)
     return if chest.nil? || !@survival
+
     (0...Chest::SLOTS).each { |k| drop_from_block(chest.block(k), chest.count(k), x, y, z) }
   end
 

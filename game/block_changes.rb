@@ -54,6 +54,7 @@ class Game
   def release_if_unheld(x, y, z)
     block = @world.get(x, y, z)
     return if @world.can_hold?(block, x, y, z)
+
     if Block.falls?(block)
       start_fall(x, y, z, block)
     else

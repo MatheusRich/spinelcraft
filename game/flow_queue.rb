@@ -48,9 +48,11 @@ class FlowQueue
   def start?(dt)
     @timer -= dt
     return false if @timer > 0.0
+
     @timer += @step
     @timer = @step if @timer <= 0.0
     return false if @cells.empty?
+
     @batch = @cells
     @cells = Array.new(0, 0)
     @next = 0

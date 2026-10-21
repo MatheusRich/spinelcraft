@@ -206,6 +206,7 @@ module Tex
   # color: the dirt of GRASS_SIDE.
   def self.tint(layer)
     return 2 if layer == OAK_LEAVES
+
     layer == GRASS_TOP || layer == GRASS_SIDE || layer == TALL_GRASS ? 1 : 0
   end
 
@@ -371,6 +372,7 @@ module Tex
       end
     end
     return if n == 0
+
     256.times { |i| px[layer * 256 + i] = rgba(r / n, g / n, b / n, 0) if (px[layer * 256 + i] >> 24) & 255 == 0 }
   end
 

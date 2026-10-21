@@ -75,8 +75,10 @@ class NaturalSpawner
     x0 = ((player.x.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
     z0 = ((player.z.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
     return 0 unless @world.loaded?(x0, z0)
+
     y = (@rng.rand01 * (@world.height_at(x0, z0) + 1)).to_i
     return 0 if Block::OPAQUE[@world.get(x0, y, z0)] == 1
+
     room = PACK_SIZE if room > PACK_SIZE
     spawned = 0
     pack = 0
@@ -106,14 +108,17 @@ class NaturalSpawner
   # Mob::DESPAWN_FAR blocks from player.
   def monster_fits?(player, x, y, z, sky)
     return false if y < 1 || !@world.loaded?(x, z)
+
     dx = x + 0.5 - player.x
     dy = y - player.y
     dz = z + 0.5 - player.z
     distance2 = dx * dx + dy * dy + dz * dz
     return false if distance2 < SPAWN_NEAR * SPAWN_NEAR || distance2 > Mob::DESPAWN_FAR * Mob::DESPAWN_FAR
+
     ground = @world.get(x, y - 1, z)
     return false unless Block.solid?(ground) && !Block.leaves?(ground)
     return false if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
+
     dark?(x, y, z, sky)
   end
 
@@ -133,9 +138,11 @@ class NaturalSpawner
   # What a new monster of kind wears on its head, or 0 for nothing.
   def halloween_head(kind)
     return 0 unless @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
+
     roll = @rng.rand01
     return Block::JACK_O_LANTERN if roll < HALLOWEEN_JACK
     return Block::CARVED_PUMPKIN if roll < HALLOWEEN_JACK + HALLOWEEN_CARVED
+
     0
   end
 
@@ -150,6 +157,7 @@ class NaturalSpawner
   def refill_animals(mobs, player, dt)
     @refill -= dt
     return nil if @refill > 0.0
+
     @refill = REFILL_TIME
     animals = 0
     mobs.size.times { |i| animals += 1 if mobs[i].passive? }
@@ -169,10 +177,12 @@ class NaturalSpawner
       x = (player.x + Math.cos(angle) * distance).floor
       z = (player.z + Math.sin(angle) * distance).floor
       next unless @world.loaded?(x, z)
+
       h = @world.height_at(x, z)
       ground = @world.get(x, h - 1, z)
       next unless ground == Block::GRASS || ground == Block::SNOW_GRASS
       next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
+
       mobs << Mob.new(kind, x + 0.5, h + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
       Log.debug(Log::MOBS) { "#{Mob::NAMES[kind]} spawns at #{x} #{h} #{z}, #{mobs.size} mobs" }
       return nil
@@ -187,6 +197,7 @@ class NaturalSpawner
     while i < kinds.size - 1
       roll -= weights[i]
       return kinds[i] if roll < 0.0
+
       i += 1
     end
     kinds[i]

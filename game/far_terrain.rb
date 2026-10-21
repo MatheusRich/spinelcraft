@@ -64,9 +64,11 @@ class FarTerrain
       count = (r * 2 + 1) * (r * 2 + 1)
       while @built_at[l] < count
         return if Gfx.gfx_ns - t0 >= budget_ns
+
         at = @built_at[l]
         @built_at[l] = at + 1
         next if lod.ready?(tx + @ring_dx[at], tz + @ring_dz[at])
+
         slot = lod.build(tx + @ring_dx[at], tz + @ring_dz[at])
         @builds += 1
         upload_tile(@slot0 + l * TILE_SLOTS + slot, lod.faces, lod.offsets)
@@ -131,6 +133,7 @@ class FarTerrain
   # moves to a new tile.
   def center_level(l, tx, tz)
     return if tx == @center_x[l] && tz == @center_z[l]
+
     Log.debug(Log::STREAM) { "center far tile #{tx} #{tz}. Since the last center: #{take_builds} far tiles built" } if l == 0
     @center_x[l] = tx
     @center_z[l] = tz

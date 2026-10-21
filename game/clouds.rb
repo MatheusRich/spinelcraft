@@ -92,6 +92,7 @@ class Clouds
     ci = Clouds.cell(px - drift)
     cj = Clouds.cell(pz)
     return false if @built && ci == @built_i && cj == @built_j
+
     @built = true
     @built_i = ci
     @built_j = cj

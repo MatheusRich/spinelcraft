@@ -155,6 +155,7 @@ class Game
     dx = x - ex
     dz = z - ez
     return false if dx * dx + dz * dz > reach * reach
+
     @camera.box_visible?(x - 2.0, y - 1.0, z - 2.0, x + 2.0, y + top, z + 2.0)
   end
 

@@ -69,6 +69,7 @@ n.times do |j|
   n.times do |i|
     k = j * n + i
     next unless land[k]
+
     dx = top[j * n + [i + 1, n - 1].min] - top[j * n + [i - 1, 0].max]
     dz = top[[j + 1, n - 1].min * n + i] - top[[j - 1, 0].max * n + i]
     shade = (1.0 - (dx + dz) * 0.06).clamp(0.6, 1.3)
@@ -92,6 +93,7 @@ covered = Array.new(n, height)
     k = j * n + i
     y_top = (j * slant + (WY - top[k]) * rise).round
     next if y_top >= covered[i]
+
     rgb = color[k * 3, 3]
     # The front row shows the cut through the ground, in the color of earth.
     side = j == n - 1 ? [120, 100, 80] : rgb.map { |v| (v * 0.7).round }

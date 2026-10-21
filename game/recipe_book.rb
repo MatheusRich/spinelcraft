@@ -89,6 +89,7 @@ class RecipeBook
   # make them, or "" when block unlocks nothing new.
   def see(block)
     return "" if @seen[block] == 1
+
     @seen[block] = 1
     found = 0
     last = 0
@@ -103,6 +104,7 @@ class RecipeBook
       end
     end
     return "" if found == 0
+
     places = Array.new(0, "")
     places << "PRESS E" if stations[Recipe::BY_HAND] == 1
     places << "AT A CRAFTING TABLE" if stations[Recipe::AT_TABLE] == 1

@@ -57,6 +57,7 @@ class Game
   def run_chat(line)
     line = line.to_s.strip
     return if line.empty?
+
     @chat.remember(line)
     if line.start_with?("/")
       run_command(Command.words(line))
@@ -75,6 +76,7 @@ class Game
 
   def run_command(words)
     return @chat.post_error("TYPE /HELP FOR THE COMMANDS") if words.empty?
+
     args = command_args(words)
     case words[0]
     when "TIME" then command_time(args)
@@ -98,8 +100,10 @@ class Game
       return @chat.post("THE TIME IS #{@clock.ticks}, DAY #{@clock.day + 1}")
     end
     return @chat.post_error("USE /TIME SET <TIME> OR /TIME ADD <TIME>") if args.size != 2 || (args[0] != "SET" && args[0] != "ADD")
+
     t = Command.ticks(args[1])
     return @chat.post_error("BAD TIME: #{args[1]}") if t < 0
+
     if args[0] == "SET"
       @clock.set_ticks(t)
       @chat.post("SET THE TIME TO #{t}")
@@ -111,6 +115,7 @@ class Game
 
   def command_weather(args)
     return @chat.post_error("USE /WEATHER CLEAR OR /WEATHER RAIN") if args.size != 1
+
     if args[0] == "CLEAR"
       @weather.set(false)
       @chat.post("CHANGING TO CLEAR WEATHER")
@@ -125,12 +130,14 @@ class Game
   def command_gamemode(args)
     mode = args.size == 1 ? Command.find(GAME_MODES, args[0]) : -1
     return @chat.post_error("USE /GAMEMODE SURVIVAL OR /GAMEMODE CREATIVE") if mode < 0
+
     set_mode(mode % 2 == 0)
     @chat.post("SET OWN GAME MODE TO #{@survival ? "SURVIVAL" : "CREATIVE"} MODE")
   end
 
   def command_tp(args)
     return @chat.post_error("USE /TP X Y Z") if args.size != 3 || !args.all? { |a| Command.coord?(a) }
+
     teleport(Command.coord(args[0], @player.x.to_f, true), Command.coord(args[1], @player.y.to_f, false),
              Command.coord(args[2], @player.z.to_f, true))
   end
@@ -155,10 +162,13 @@ class Game
   # item goes to the selected slot of the hotbar.
   def command_give(args)
     return @chat.post_error("USE /GIVE ITEM [COUNT]") if args.size < 1 || args.size > 2
+
     block = Command.item_id(args[0])
     return @chat.post_error("UNKNOWN ITEM: #{args[0]}") if block < 0
+
     n = args.size == 2 ? Command.whole(args[1]) : 1
     return @chat.post_error("BAD COUNT: #{args[1]}") if n < 1 || n > INV * Slots::STACK
+
     if @survival
       give(block, n)
     else
@@ -185,13 +195,16 @@ class Game
   # front of the player.
   def command_summon(args)
     return @chat.post_error("USE /SUMMON MOB [X Y Z]") if args.size != 1 && args.size != 4
+
     kind = Command.mob(args[0])
     return @chat.post_error("UNKNOWN MOB: #{args[0]}") if kind < 0
+
     x = @player.x.to_f + Math.sin(@player.yaw) * 3.0
     y = @player.y.to_f
     z = @player.z.to_f - Math.cos(@player.yaw) * 3.0
     if args.size == 4
       return @chat.post_error("USE /SUMMON MOB [X Y Z]") unless args[1, 3].all? { |a| Command.coord?(a) }
+
       x = Command.coord(args[1], @player.x.to_f, true)
       y = Command.coord(args[2], @player.y.to_f, false)
       z = Command.coord(args[3], @player.z.to_f, true)

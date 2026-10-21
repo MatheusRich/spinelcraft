@@ -222,8 +222,10 @@ class Mob
   # dt more seconds of growing up. A grown mob takes its full size.
   def grow_up(dt)
     return unless baby?
+
     @grow_left -= dt
     return if baby?
+
     @grow_left = 0.0
     @half = HALF[@kind]
     @tall = TALL[@kind]
@@ -239,6 +241,7 @@ class Mob
   # seeds. minecraft.wiki/w/Chicken
   def food?(block)
     return block == Block::SEEDS || block == Block::PUMPKIN_SEEDS if @kind == CHICKEN
+
     block == Block::WHEAT && (@kind == COW || @kind == SHEEP || @kind == PIG)
   end
 
@@ -255,6 +258,7 @@ class Mob
       return true
     end
     return false if in_love? || @breed_wait > 0.0
+
     @love = LOVE_TIME
     @heart_wait = HEART_EVERY
     true
@@ -318,8 +322,10 @@ class Mob
   # is due. A chick lays no eggs. minecraft.wiki/w/Chicken
   def lay_eggs(dt)
     return if @kind != CHICKEN || baby? || dying?
+
     @egg_time -= dt
     return if @egg_time > 0.0
+
     @egg_time = EGG_MIN + @rng.rand01 * EGG_MORE
     @lay = true
     # A nil return, as on the other paths, keeps Spinel from boxing it.
@@ -360,6 +366,7 @@ class Mob
     y = (@y + 0.01).floor
     z = @z.floor
     return 1 if world.get(x, y, z) == Block::TALL_GRASS
+
     world.get(x, y - 1, z) == Block::GRASS ? 2 : 0
   end
 
@@ -372,6 +379,7 @@ class Mob
   def gone_reason(world)
     return "dies" unless @alive
     return "is out of the loaded chunks" unless world.loaded?(@x.floor, @z.floor)
+
     "despawns"
   end
 
@@ -382,8 +390,10 @@ class Mob
     dy = @y - player.y
     dz = @z - player.z
     return dx * dx + dz * dz > ANIMAL_DESPAWN * ANIMAL_DESPAWN if passive?
+
     distance2 = dx * dx + dy * dy + dz * dz
     return true if distance2 > DESPAWN_FAR * DESPAWN_FAR
+
     @idle = distance2 > DESPAWN_NEAR * DESPAWN_NEAR ? @idle + dt : 0.0
     @idle > IDLE_DESPAWN && @rng.rand01 < dt * DESPAWN_CHANCE
   end
@@ -555,6 +565,7 @@ class Mob
     @tempted = false if @panic > 0.0
     return walk_to_mate(dt) if @courting && @panic <= 0.0
     return follow(player) if @panic <= 0.0 && tempted_by?(player, held)
+
     if @think <= 0.0
       if @panic > 0.0
         @think = 0.7 + @rng.rand01 * 0.8
@@ -567,6 +578,7 @@ class Mob
     end
     # A grazing sheep stands still.
     return 0.0 if @graze > 0.0
+
     @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
   end
 
@@ -604,6 +616,7 @@ class Mob
   # A skeleton keeps a bow's distance and shoots when the player is in sight.
   def act_skeleton(world, player, dx, dz, dist)
     return 0.0 unless dist < 26.0
+
     face(dx, dz)
     if @attack_wait <= 0.0 && dist < 18.0 && sees?(world, player)
       # About one shot each 3 seconds. minecraft.wiki/w/Skeleton
@@ -635,6 +648,7 @@ class Mob
   # A zombie walks up to the player.
   def act_zombie(dx, dz, dist)
     return 0.0 unless dist < 28.0 && dist > 0.6
+
     face(dx, dz)
     2.4
   end
@@ -642,6 +656,7 @@ class Mob
   # The damage of a zombie's bite when the player is in reach, else 0.
   def bite(player, dist)
     return 0 unless dist < 1.4 && (player.y - @y).abs < 1.8 && @attack_wait <= 0.0
+
     @attack_wait = 1.0
     # minecraft.wiki/w/Zombie
     3
@@ -668,8 +683,10 @@ class Mob
   # immune. Returns false when nothing is left to take, or the mob is dying.
   def wound(damage)
     return false if dying?
+
     if @immune > 0.0
       return false if damage <= @last_damage
+
       @hp -= damage - @last_damage
     else
       @hp -= damage
@@ -687,6 +704,7 @@ class Mob
 
   def hit(damage, from_x, from_z)
     return unless wound(damage)
+
     dx = @x - from_x
     dz = @z - from_z
     len = Math.sqrt(dx * dx + dz * dz)
@@ -695,6 +713,7 @@ class Mob
     @vz = dz / len * 7.0
     @vy = 5.5
     return unless passive?
+
     face(dx, dz)
     @walking = true
     @think = 1.0
@@ -772,6 +791,7 @@ class Mob
     part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
     legs(mesh, l, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, 1.0, red)
     return if @sheared
+
     fur = Tex::SKINS + Tex::SKIN_FUR
     part(mesh, fur, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
     part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, 1.0, red, red)

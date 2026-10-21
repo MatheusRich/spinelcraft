@@ -46,6 +46,7 @@ class Sky
   def draw_stars(w, h, s)
     night = @clock.starlight * (1.0 - @weather.rain)
     return if night <= 0.0
+
     a = @clock.sun_angle
     ca = Math.cos(a)
     sa = Math.sin(a)
@@ -76,12 +77,14 @@ class Sky
     dy = Math.sin(a) * side
     return if dy < -0.15
     return unless @camera.project_direction(dx, dy, 0.25, w, h)
+
     half = size * s / 2.0
     sx = @camera.sx
     sy = @camera.sy
     # Rain hides the sun and the moon.
     clear = 1.0 - @weather.rain
     return if clear <= 0.0
+
     @mesh.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18 * clear * lit)
     @mesh.quad(sx - half, sy - half, half * 2.0, half * 2.0, layer, 1.0, 1.0, r, g, b, clear)
     nil

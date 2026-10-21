@@ -63,12 +63,15 @@ class Game
   # gives the reason.
   def load
     return false unless File.exist?(@save_path)
+
     data = File.binread(@save_path)
     nl = data.index("\n")
     return load_failed("it has no first line") if nl.nil?
+
     f = data[0, nl].split(" ")
     return load_failed("its first line has #{f.size} fields, and a save has more than #{F_CHESTS}") if f.size <= F_CHESTS
     return load_failed("its format is #{f[0]}, not #{SAVE_VERSION}") unless f[0] == SAVE_VERSION
+
     at = F_CHESTS
     at += 1 + f[at].to_i * (1 + Chest::SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
@@ -78,6 +81,7 @@ class Game
     n = f[at].to_i
     chunk_bytes = data.bytesize - nl - 1
     return load_failed("it has #{chunk_bytes} bytes of chunks, not #{n} * #{CHUNK_BYTES}") if chunk_bytes != n * CHUNK_BYTES
+
     @seed = f[F_SEED].to_i
     reset_world
     store = @world.store
@@ -98,6 +102,7 @@ class Game
   # next save writes the new world over it.
   def keep_bad_save
     return unless File.exist?(@save_path)
+
     File.rename(@save_path, @bad_save_path)
     puts "#{@save_path} did not load (#{@load_error}), so the game moved it to #{@bad_save_path}"
   end

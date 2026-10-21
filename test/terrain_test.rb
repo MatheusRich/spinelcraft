@@ -76,6 +76,7 @@ class TerrainTest < Minitest::Test
     CHUNK.times do |x|
       CHUNK.times do |z|
         next unless terrain.entrance?(x, z)
+
         (2...terrain.surface_height(x, z)).each do |y|
           cave = [Block::AIR, Block::LAVA].include?(world.get(x, y, z))
           assert_equal cave, terrain.carved?(x, y, z), "block #{x} #{y} #{z}"

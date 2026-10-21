@@ -590,12 +590,14 @@ module Block
   def self.box_dx(block)
     return -DIR_DX[FACING[block]] * wall_lean(0.3) if wall_torch?(block)
     return 0.0 if SHAPE[block] == 0 || FACING[block] < 0
+
     d = FACING[block]
     d < 2 ? DIR_DX[d] * shape_mid(block, 0) : -DIR_DZ[d] * shape_mid(block, 2)
   end
   def self.box_dz(block)
     return -DIR_DZ[FACING[block]] * wall_lean(0.3) if wall_torch?(block)
     return 0.0 if SHAPE[block] == 0 || FACING[block] < 0
+
     d = FACING[block]
     d < 2 ? DIR_DX[d] * shape_mid(block, 2) : DIR_DZ[d] * shape_mid(block, 0)
   end
@@ -614,8 +616,10 @@ module Block
   # /w/Pickaxe, /w/Shovel and /w/Melee_attack
   def self.damage(block)
     return SWORD_DAMAGE[block - WOOD_SWORD] if sword?(block)
+
     kind = tool_kind(block)
     return 1.0 if kind == 0
+
     tier = tool_tier(block)
     kind == 1 ? tier + 1.0 : (kind == 2 ? AXE_DAMAGE[tier - 1] : tier + 1.5)
   end
@@ -626,8 +630,10 @@ module Block
   # /w/Melee_attack
   def self.attack_speed(block)
     return 1.6 if sword?(block)
+
     kind = tool_kind(block)
     return 4.0 if kind == 0
+
     kind == 1 ? 1.2 : (kind == 2 ? AXE_SPEED[tool_tier(block) - 1] : 1.0)
   end
   AXE_SPEED = [0.8, 0.8, 0.9, 1.0]
@@ -638,6 +644,7 @@ module Block
     return attack ? 1 : 2 if sword?(block)
     return attack ? 0 : 1 if block == SHEARS
     return attack ? 2 : 1 if tool_kind(block) > 0
+
     0
   end
   # How fast shears dig block: 15 times on leaves and 5 times on wool. The wiki
@@ -664,6 +671,7 @@ module Block
   def self.dig_speed(tool, block)
     return shear_speed(block) if tool == SHEARS
     return sword_speed(block) if sword?(tool)
+
     tier = dig_tier(tool, block)
     return 1.0 if tier == 0
     return MATTOCK_SPEED if tool == SPINEL_MATTOCK
@@ -690,6 +698,7 @@ module Block
   def self.uses(block)
     return TOOL_USES[tool_tier(block) - 1] if tool_tier(block) > 0
     return TOOL_USES[block - WOOD_SWORD] if sword?(block)
+
     # minecraft.wiki/w/Item_durability
     block == BOW ? 384 : (block == SHEARS ? 238 : 0)
   end
@@ -707,6 +716,7 @@ module Block
     return PICK_TIER[block] if PICK_TIER[block] > 0
     return 3 if block == SPINEL_MATTOCK
     return block - WOOD_AXE + 1 if block >= WOOD_AXE && block <= DIAMOND_AXE
+
     block >= WOOD_SHOVEL && block <= DIAMOND_SHOVEL ? block - WOOD_SHOVEL + 1 : 0
   end
   def self.tool?(block) = uses(block) > 0

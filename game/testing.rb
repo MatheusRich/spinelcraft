@@ -110,6 +110,7 @@ class Game
   def demo(frame)
     @player.pitch = -1.3
     return unless @player.hit
+
     if frame % 20 == 0 && frame < 50
       block = @world.get(@player.hx, @player.hy, @player.hz)
       @particles.burst(@player.hx, @player.hy, @player.hz, block)
@@ -1154,6 +1155,7 @@ class Game
     lost = []
     Block::COUNT.times do |block|
       next unless Block.plant?(block) && !Block.wall_torch?(block)
+
       @items.clear
       set_block(x, ground, z, Block::DIRT)
       set_block(x, ground + 1, z, block)
@@ -3991,6 +3993,7 @@ class Game
     cows.each_with_index do |c, i|
       cows.each_with_index do |o, j|
         next unless j > i
+
         g = Math.sqrt(((c.x - o.x) ** 2 + (c.z - o.z) ** 2).to_f)
         gap = g if g < gap
       end

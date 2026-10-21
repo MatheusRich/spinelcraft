@@ -82,6 +82,7 @@ class Vitals
 
   def hurt(amount)
     return if dead?
+
     @health -= amount.to_f
     @health = 0.0 if @health < 0.0
     exhaust(HURT_COST)
@@ -201,6 +202,7 @@ class Vitals
     end
     @regen += dt
     return if @regen < wait
+
     @regen = 0.0
     if saturated
       used = [@saturation, HEAL_SATURATION].min

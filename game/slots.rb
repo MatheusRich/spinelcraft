@@ -62,6 +62,7 @@ class Slots
   def put(block, n)
     i = @counts.index(0)
     return false if i.nil?
+
     set(i.to_i, block, n)
     true
   end
@@ -70,6 +71,7 @@ class Slots
   def add(block)
     return true if block == Block::AIR
     return put(block, Block.uses(block)) if Block.tool?(block)
+
     (0...@size).each do |i|
       if @blocks[i] == block && @counts[i] > 0 && @counts[i] < Block.stack(block)
         @counts[i] += 1
@@ -109,6 +111,7 @@ class Slots
     held_count = hand.count(0)
     if held_count == 0
       return if count == 0
+
       hand.set(0, kind, count)
       set(index, kind, 0)
     elsif count == 0
@@ -133,6 +136,7 @@ class Slots
     held_kind = hand.block(0)
     if hand.empty?(0)
       return if count == 0
+
       taken = Block.tool?(kind) ? count : (count + 1) / 2
       hand.set(0, kind, taken)
       take(index, taken)
@@ -165,10 +169,13 @@ class Slots
   # and gives the rest. A tool never stacks.
   def stack_onto_existing(block, count, range)
     return count if Block.tool?(block)
+
     range.each do |index|
       next if @blocks[index] != block
+
       moved = [Block.stack(block) - @counts[index], count].min
       next if moved <= 0
+
       @counts[index] += moved
       count -= moved
     end
@@ -180,6 +187,7 @@ class Slots
   def move_to_empty(block, count, range)
     range.each do |index|
       next unless empty?(index)
+
       set(index, block, count)
       return 0
     end

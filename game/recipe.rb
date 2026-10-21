@@ -55,6 +55,7 @@ class Recipe
   def craftable(slots)
     times = Recipe.supply(@ingredient, slots) / @count
     return times if @second == 0
+
     second_times = Recipe.supply(@second, slots) / @second_count
     second_times < times ? second_times : times
   end
@@ -63,6 +64,7 @@ class Recipe
   def need
     text = "#{@count} #{Block.ingredient_name(@ingredient)}"
     return text if @second == 0
+
     "#{text} + #{@second_count} #{Block.ingredient_name(@second)}"
   end
 
@@ -76,9 +78,11 @@ class Recipe
       trial = slots.copy
       use_up(times, trial)
       break if trial.room_for(@result) >= @result_count * times
+
       times -= 1
     end
     return 0 if times == 0
+
     use_up(times, slots)
     made = @result_count * times
     made.times { slots.add(@result) }

@@ -11,6 +11,7 @@ class Game
   # Drops n of block at x, y, z (the bottom of the item) with a velocity.
   def drop_item(block, n, x, y, z, vx, vy, vz, wait)
     return if block == Block::AIR || n <= 0
+
     @items.shift if @items.size >= MAX_ITEMS
     @items << Item.new(block, n, x, y, z, vx, vy, vz, wait, 0.0)
   end
@@ -24,6 +25,7 @@ class Game
   def throw_selected
     block = @inv.block(@slot)
     return if @inv.empty?(@slot)
+
     # A tool goes with the uses that it has left.
     n = Block.tool?(block) ? @inv.count(@slot) : 1
     @inv.take(@slot, n)
@@ -58,6 +60,7 @@ class Game
       # An item in a chunk that is not loaded waits there: it would fall
       # through the missing blocks.
       next unless @world.loaded?(item.x.floor, item.z.floor)
+
       if !item.update(@world, dt)
         burn_item(item)
       elsif @world.cactus_in_box?(item.x, item.y, item.z, Item::HALF, Item::TALL)
@@ -77,6 +80,7 @@ class Game
     n = item.count
     if Block.tool?(block)
       return unless @inv.put(block, n)
+
       item.count = 0
       play(Sfx::POP, 0.5)
       say("+1 #{Block::NAMES[block]}")
@@ -85,6 +89,7 @@ class Game
     room = @inv.room_for(block)
     n = room if room < n
     return if n <= 0
+
     n.times { @inv.add(block) }
     item.count -= n
     play(Sfx::POP, 0.5)
@@ -102,6 +107,7 @@ class Game
   def merge_items
     @items.each_with_index do |a, i|
       next if a.count <= 0 || Block.tool?(a.block)
+
       ((i + 1)...@items.size).each do |j|
         b = @items[j]
         a.absorb(b) if b.block == a.block && b.count > 0 && a.count + b.count <= Block.stack(a.block) && a.touches?(b)

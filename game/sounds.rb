@@ -110,6 +110,7 @@ module Sfx
 
   def self.init
     return false unless Gfx.au_init
+
     load_files
     true
   end

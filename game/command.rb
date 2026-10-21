@@ -18,6 +18,7 @@ module Command
     out = [""]
     out.clear
     return out unless line.start_with?("/")
+
     at = last_word_at(line)
     word = line[at, line.size - at].to_s.upcase
     choices(words(line[0, at].to_s), at == 1).each do |name|
@@ -39,6 +40,7 @@ module Command
   # the word is the first (first).
   def self.choices(before, first)
     return NAMES if first
+
     k = before.size - 1
     k -= 1 if before.size > 1 && before[1].start_with?("@")
     cmd = before.size > 0 ? before[0] : ""
@@ -107,6 +109,7 @@ module Command
   # after it.
   def self.coord?(s)
     return number?(s) unless s.start_with?("~")
+
     s.size == 1 || number?(s[1, s.size - 1])
   end
 
@@ -115,6 +118,7 @@ module Command
   # minecraft.wiki/w/Coordinates
   def self.coord(s, base, center)
     return base + (s.size == 1 ? 0.0 : s[1, s.size - 1].to_f) if s.start_with?("~")
+
     v = s.to_f
     center && !s.include?(".") ? v + 0.5 : v
   end
@@ -125,6 +129,7 @@ module Command
   def self.ticks(s)
     named = find(TIME_NAMES, s)
     return TIME_TICKS[named] if named >= 0
+
     unit = 1
     n = s
     last = s.size > 0 ? s[s.size - 1] : ""
@@ -133,6 +138,7 @@ module Command
       n = s[0, s.size - 1]
     end
     return -1 unless number?(n) && !n.start_with?("-")
+
     t = n.to_f * unit
     t > MAX_TICKS ? -1 : t.to_i
   end
@@ -169,6 +175,7 @@ module Command
   # The whole number in s, or -1 when s is not one.
   def self.whole(s)
     return -1 unless number?(s) && !s.include?(".") && !s.start_with?("-")
+
     s.to_i
   end
 end

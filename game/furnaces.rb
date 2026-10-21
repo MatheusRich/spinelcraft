@@ -36,8 +36,10 @@ class Furnaces
     ticks = (@clock * Furnace::TICKS_PER_SECOND).to_i
     @clock -= ticks.to_f / Furnace::TICKS_PER_SECOND
     return if ticks == 0
+
     @furnaces.each do |_key, furnace|
       next unless world.loaded?(furnace.x, furnace.z)
+
       recipe = recipe_book.smelt_recipe(furnace.slots.block(Furnace::INPUT))
       out = recipe.nil? ? 0 : recipe.result
       out_n = recipe.nil? ? 0 : recipe.result_count
@@ -57,6 +59,7 @@ class Furnaces
     fields = [0]
     @furnaces.each do |_key, furnace|
       next if furnace.idle?
+
       fields.concat([furnace.x, furnace.y, furnace.z, furnace.burn, furnace.burn_total, furnace.progress] + furnace.slots.to_a)
       fields[0] += 1
     end

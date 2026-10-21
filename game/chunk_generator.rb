@@ -102,11 +102,13 @@ class ChunkGenerator
   def self.ground_block(y, top, surface)
     return Block::BEDROCK if y == 0
     return surface if y == top
+
     soil = y > top - SOIL_DEPTH
     return Block::STONE if soil && Terrain.bare_rock?(top)
     return Block::SAND if soil && surface == Block::SAND
     return Block::DIRT if soil
     return Block::SANDSTONE if y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
+
     Block::STONE
   end
 
@@ -200,6 +202,7 @@ class ChunkGenerator
     end
     a = Terrain.yz_lerp(@edges_a, fy - iy, tz)
     return false unless Terrain.cave_possible?(a, width)
+
     if iy != @c_layer
       @c_layer = iy
       Terrain.x_edges(@cave_b, n, GY, GX, tx, @edges_c)
@@ -356,6 +359,7 @@ class ChunkGenerator
       (-WELL_REACH..WELL_REACH).each do |dz|
         ch = @terrain.surface_height(x + dx, z + dz)
         return -1 if ch < h || ch > h + 1 || Terrain.beach?(ch - 1)
+
         biome = @terrain.biome(x + dx, z + dz, ch)
         return -1 if biome != Biome::DESERT || @terrain.top_block(x + dx, z + dz, ch, biome) != Block::SAND
         return -1 if @terrain.entrance?(x + dx, z + dz) && @terrain.carved?(x + dx, ch - 1, z + dz)
@@ -387,9 +391,11 @@ class ChunkGenerator
       return dx == 0 && dz == 0 ? Block::SAND : Block::SANDSTONE if dy == -2
       return Block::SANDSTONE unless cross
       return Block::SAND if dy == -1
+
       return dy == 0 ? Block::WATER : Block::AIR
     end
     return dx.abs <= 1 && dz.abs <= 1 ? Block::SANDSTONE : Block::AIR if dy == 4
+
     dx.abs == 1 && dz.abs == 1 ? Block::SANDSTONE : Block::AIR
   end
 

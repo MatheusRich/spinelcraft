@@ -280,6 +280,7 @@ class Player
     end
     @on_ground = false
     return if dy == 0.0
+
     @y += dy
     if blocked?(world)
       if dy < 0.0

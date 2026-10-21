@@ -264,6 +264,7 @@ class Game
   # AgeableMob.ageUp). The eating sound is not on the wiki either.
   def feed_animal(m)
     return unless m.feed
+
     @inv.take(@slot, 1) if @survival
     @swing = SWING
     play_from(m, Sfx::EAT, 0.6)
@@ -303,12 +304,14 @@ class Game
       play_from(@mobs[@target_mob], Sfx::MILK, 1.0)
     elsif block == Block::BUCKET
       return unless fluid_in_view
+
       fluid = @world.get(@fluid_x, @fluid_y, @fluid_z)
       set_block(@fluid_x, @fluid_y, @fluid_z, Block::AIR)
       swap_bucket(fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET)
       play(fluid == Block::WATER ? Sfx::WATER_TAKE : Sfx::LAVA_POUR, 0.5)
     else
       return unless block_in_view?
+
       x = @player.px
       y = @player.py
       z = @player.pz
@@ -318,8 +321,10 @@ class Game
         z = @player.hz
       end
       return unless @world.inside?(x, y, z)
+
       current = @world.get(x, y, z)
       return if Block.solid?(current) || Block.door?(current)
+
       # The wiki does not say what a bucket does to a plant; pour uses the
       # rule of flowing water and lava.
       pour(x, y, z, block == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
@@ -345,6 +350,7 @@ class Game
         return true
       end
       return false if Block.solid?(block)
+
       t += 0.05
     end
     false
@@ -373,6 +379,7 @@ class Game
   def mine(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @mine_delay -= dt
     return if @mine_delay > 0.0
+
     x = @player.hx
     y = @player.hy
     z = @player.hz
@@ -387,6 +394,7 @@ class Game
     block = @world.get(x, y, z)
     hardness = Block::HARDNESS[block]
     return if hardness < 0.0
+
     @dig_wait -= dt
     if @dig_wait <= 0.0 && hardness > 0.0
       play(MATERIAL_DIG[material(block)], 0.55)
@@ -430,6 +438,7 @@ class Game
     return M_LEAVES if Block.leaves?(block) || Block.plant?(block)
     return M_STONE if Block::NEEDS_PICK[block] > 0 || block == Block::BEDROCK || block == Block::FURNACE
     return M_WOOD if Block.log?(block) || Block.planks?(block) || block == Block::CHEST || block == Block::BED || block == Block::DOOR || block == Block::CRAFTING_TABLE || block == Block::LADDER
+
     M_DIRT
   end
 
@@ -493,6 +502,7 @@ class Game
   def bed_fits?(x, y, z, hx, hz)
     return false unless Block.replaceable?(@world.get(hx, y, hz))
     return false unless Block.solid?(@world.get(x, y - 1, z)) && Block.solid?(@world.get(hx, y - 1, hz))
+
     !@player.overlaps?(hx, y, hz) && !mob_in?(hx, y, hz, 1)
   end
 
@@ -506,6 +516,7 @@ class Game
     grows = @plants.fertilize(x, y, z, @changes)
     apply_changes
     return unless grows
+
     @inv.take(@slot, 1) if @survival
     @particles.growth(x, y, z, grass)
   end
@@ -514,6 +525,7 @@ class Game
   # Milk needs no hunger. minecraft.wiki/w/Milk_Bucket
   def edible?
     return false if !@survival || @inv.empty?(@slot)
+
     block = current_block.to_i
     block == Block::MILK_BUCKET || (@vitals.hungry? && Block.food(block) > 0)
   end
@@ -544,6 +556,7 @@ class Game
   def eat
     block = current_block.to_i
     return drink_milk if block == Block::MILK_BUCKET
+
     @vitals.eat(Block.food(block), Block.saturation(block))
     @vitals.give_hunger_effect if @rng.rand01 < Block.hunger_chance(block)
     @inv.take(@slot, 1)
@@ -564,6 +577,7 @@ class Game
     block = current_block.to_i
     return if block == Block::AIR || Block.item?(block)
     return if @survival && @inv.empty?(@slot)
+
     x = @player.px
     y = @player.py
     z = @player.pz
@@ -574,6 +588,7 @@ class Game
       z = @player.hz
     end
     return unless @world.inside?(x, y, z)
+
     # A torch or a ladder on the side of a block hangs on that block, and
     # faces away from it.
     side = y == @player.hy && (x != @player.hx || z != @player.hz)
@@ -598,18 +613,22 @@ class Game
     return unless @world.can_hold?(block, x, y, z)
     return if Block.plant?(block) && (Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z)))
     return if Block.solid?(block) && mob_in?(x, y, z, Block.door?(block) ? 2 : 1)
+
     current = @world.get(x, y, z)
     # The view ray can pass a flower, so a block only replaces grass.
     # It passes water and lava, and a block replaces them, as in Minecraft.
     return unless Block.replaceable?(current)
+
     if Block.door?(block)
       return unless @world.door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)
+
       set_block(x, y + 1, z, Block.door_id(Block::FACING[block], true, false))
     end
     if Block.bed?(block)
       d = Block::FACING[block] ^ 1
       return unless bed_fits?(x, y, z, x + Block::DIR_DX[d], z + Block::DIR_DZ[d])
+
       set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block.bed_id(d, true))
     end
     block = join_chest(x, y, z, block) if Block::BASE[block] == Block::CHEST

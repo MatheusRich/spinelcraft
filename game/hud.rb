@@ -193,6 +193,7 @@ class Game
   def draw_chat_matches(h, s, ts)
     names = @chat.matches
     return if names.empty?
+
     shown = names.size < Chat::MATCHES ? names.size : Chat::MATCHES
     current = @chat.current_match
     first = current >= shown ? current - shown + 1 : 0
@@ -285,6 +286,7 @@ class Game
     shade = hover ? 0.55 : 0.32
     @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
     return if slots.empty?(i)
+
     @ui.item(c[0] + margin, c[1] + margin, c[2] - margin * 2.0, slots.block(i), 1.0)
     draw_count(slots.block(i), slots.count(i), c[0], c[1], c[2], ts, s)
   end
@@ -296,6 +298,7 @@ class Game
     if Block.tool?(block)
       left = n.to_f / Block.uses(block)
       return if left >= 1.0
+
       @ui.rect(x + 4.0 * s, y + size - 6.0 * s, size - 8.0 * s, 3.0 * s, 0.0, 0.0, 0.0, 1.0)
       @ui.rect(x + 4.0 * s, y + size - 6.0 * s, (size - 8.0 * s) * left, 3.0 * s, 1.0 - left, left, 0.1, 1.0)
       return

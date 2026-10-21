@@ -47,6 +47,7 @@ class Trees
   # block to the plan instead.
   def put(x, y, z, block)
     return plan(x, y, z, block) if @planning
+
     @world.put(x, y, z, block, @x0, @z0)
   end
 
@@ -54,6 +55,7 @@ class Trees
   # the loaded world and at the plan.
   def air_in?(x, y, z)
     return !@plan_cells.key?(World.key(x, y, z)) && @world.get(x, y, z) == Block::AIR if @planning
+
     @world.air_in?(x, y, z, @x0, @z0)
   end
 
@@ -158,6 +160,7 @@ class Trees
   # Small jungle trees have this shape too.
   def oak(x, y, z, tall)
     return if y + tall + 2 >= WY
+
     logs(x, y, z, tall)
     top = y + tall
     (top - 2..top + 1).each do |ly|
@@ -196,6 +199,7 @@ class Trees
   # copies the bush in the game code.
   def jungle_bush(x, y, z)
     return if y + 3 >= WY
+
     logs(x, y, z, 1)
     3.times do |ly|
       radius = 3 - ly
@@ -216,6 +220,7 @@ class Trees
     r = Noise.hash3(x, y, z, 23)
     tall = 10 + r % 3 + r / 3 % 20
     return if y + tall >= WY
+
     # Each log of the 2 x 2 trunk goes down to the ground of its own column.
     4.times do |a|
       cx = x + a % 2
@@ -276,6 +281,7 @@ class Trees
     above = r / 4 % 3
     reach = r / 12 % 2
     return if y + tall + above >= WY
+
     logs(x, y, z, tall)
     top = y + tall
     low = top - [4, tall - bare].max
@@ -303,6 +309,7 @@ class Trees
     tall = 6 + r % 5
     layers = 4 + r / 5 % 2
     return if y + tall + 1 >= WY
+
     logs(x, y, z, tall)
     top = y + tall
     layers.times { |i| leaf_row(x, top + 1 - i, z, i == 0 || i == layers - 1 ? 0 : 1) }
@@ -336,6 +343,7 @@ class Trees
   def large_oak(x, y, z)
     tall = 5 + Noise.hash3(x, y, z, 23) % 12
     return if y + tall >= WY
+
     trunk = (tall * 0.618).floor
     limb(x, y, z, x, y + trunk, z)
     limb(x, y + trunk, z, x, y + tall - 5, z)
@@ -366,9 +374,11 @@ class Trees
   # are longest at half the height, so the crown is round.
   def large_oak_spread(tall, n)
     return -1.0 if n < tall * 0.3
+
     half = tall / 2.0
     d = half - n
     return 0.0 if d.abs >= half
+
     Math.sqrt(half * half - d * d) * 0.5
   end
 
@@ -409,6 +419,7 @@ class Trees
     r = Noise.hash3(x, y, z, 23)
     tall = TRUNK[Biome::ACACIA] + r % 3 + r / 3 % 3
     return if y + tall + 2 >= WY
+
     r /= 9
     dir = r % 4
     bend = tall - 1 - r / 4 % 4

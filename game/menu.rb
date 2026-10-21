@@ -58,9 +58,11 @@ class Game
   # game.
   def handle_title
     return unless Gfx.in_button_pressed(1)
+
     h = Gfx.gfx_height.to_f
     i = title_hover(Gfx.gfx_width.to_f, h, ui_scale(h))
     return if i < 0
+
     play(Sfx::CLICK, 0.4)
     click_title(i)
   end
@@ -196,6 +198,7 @@ class Game
     return "PLAY" if i == T_PLAY
     return "QUIT" if i == T_QUIT
     return "LOSE THIS WORLD? CLICK AGAIN" if @menu_confirm
+
     "NEW WORLD"
   end
 
@@ -253,6 +256,7 @@ class Game
     s = ui_scale(h)
     while s > 1.0
       break if menu_title_y(h, s) >= 0.0 && menu_help_y(MENU_HELP.size - 1, h, s) + 10.0 * s <= hotbar
+
       s -= 1.0
     end
     s

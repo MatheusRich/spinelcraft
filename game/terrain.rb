@@ -132,6 +132,7 @@ class Terrain
   # column is kept, as biome follows surface_height on the same column.
   def warp(nx, nz)
     return if nx == @warp_nx && nz == @warp_nz
+
     @warp_nx = nx
     @warp_nz = nz
     @wx = warp_x(nx, nz)
@@ -213,6 +214,7 @@ class Terrain
   # The y of v on the line through the points xs, ys (xs in rising order).
   def self.spline(xs, ys, v)
     return ys[0] if v <= xs[0]
+
     (1...xs.size).each do |i|
       return ys[i - 1] + (ys[i] - ys[i - 1]) * (v - xs[i - 1]) / (xs[i] - xs[i - 1]) if v < xs[i]
     end
@@ -264,6 +266,7 @@ class Terrain
   def self.cave_width(depth)
     return 0.0 if depth <= CAVE_ROOF
     return CAVE_WIDTH if depth >= CAVE_ROOF + CAVE_FADE
+
     CAVE_WIDTH * (depth - CAVE_ROOF) / CAVE_FADE
   end
 
@@ -306,12 +309,15 @@ class Terrain
   def tree_top(x, z)
     r = Noise.hash3(x, 0, z, 21)
     return -1 if r >= Biome::MAX_TREES
+
     h = surface_height(x, z)
     biome = biome(x, z, h)
     return -1 if r >= Biome::TREES[biome]
+
     ground = top_block(x, z, h, biome)
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS
     return -1 if !Terrain.beach?(h - 1) && entrance?(x, z) && carved?(x, h - 1, z)
+
     h - 1
   end
 

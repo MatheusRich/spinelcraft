@@ -36,6 +36,7 @@ module Log
   # Writes the line from the block when the topic is on.
   def self.debug(topic)
     return unless @on[topic]
+
     seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @start
     $stderr.puts "#{format("%9.3f", seconds)} #{NAMES[topic]}: #{yield}"
   end

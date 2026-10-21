@@ -23,6 +23,7 @@ class Game
     m.grass_bite = false
     eaten = m.grass_under(@world)
     return if eaten == 0
+
     x = m.x.floor
     y = (m.y + 0.01).floor
     z = m.z.floor
@@ -35,6 +36,7 @@ class Game
   # fall, as in Minecraft.
   def hurt(amount, sound)
     return if !@survival || @vitals.dead? || amount <= 0
+
     @vitals.hurt(amount)
     felt_hurt(sound)
   end
@@ -45,6 +47,7 @@ class Game
     play(sound, 0.8)
     @damage_flash = 0.35
     return unless @vitals.dead?
+
     toggle_inventory if @inventory_open
     drop_inventory
     @captured = false
@@ -182,6 +185,7 @@ class Game
   # and /w/Chicken
   def drop_loot(m)
     return if m.baby?
+
     if m.kind == Mob::ZOMBIE
       loot(m, Block::ROTTEN_FLESH, (@rng.rand01 * 3.0).to_i)
     elsif m.kind == Mob::SKELETON
@@ -232,6 +236,7 @@ class Game
   def push_mobs(dt) # rubocop:todo Metrics/MethodLength
     n = @mobs.size
     return if n < 2
+
     xs = Array.new(n, 0.0)
     ys = Array.new(n, 0.0)
     zs = Array.new(n, 0.0)
@@ -291,6 +296,7 @@ class Game
       j = m.in_love? ? nearest_mate(i) : -1
       i += 1
       next unless m.in_love?
+
       if j < 0
         m.alone
         next
@@ -351,6 +357,7 @@ class Game
   def shoot_bow(held)
     pull = held > 1.0 ? 1.0 : held
     return if pull < 0.1
+
     if @survival
       if @inv.total(Block::ARROW) == 0
         say("NO ARROWS")
@@ -421,6 +428,7 @@ class Game
     end
     @mobs.each do |m|
       next unless m.alive
+
       mdx = m.x - cx
       mdz = m.z - cz
       d = Math.sqrt(mdx * mdx + mdz * mdz)
@@ -437,6 +445,7 @@ class Game
     dz = @player.z - sz
     dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
     return if dist < 0.5
+
     speed = 22.0
     t = dist / speed
     @arrows << Arrow.new(sx, sy, sz, dx / t, dy / t + 9.0 * t, dz / t, 4.0, 0)
@@ -503,6 +512,7 @@ class Game
         k += 1
       end
       next unless e.broken?
+
       @particles.splat(e.x, e.y, e.z, Block::EGG)
       chicks(@rng.rand01, @rng.rand01).times do
         chick = Mob.new(Mob::CHICKEN, e.x, e.y, e.z, (@rng.rand01 * 100000.0).to_i)
@@ -521,6 +531,7 @@ class Game
   def find_target_mob
     @target_mob = -1
     return if @mobs.empty?
+
     best = @player.hit ? @player.hit_t : Player::MOB_REACH
     best = Player::MOB_REACH if best > Player::MOB_REACH
     # A boat in front of the mobs hides them.

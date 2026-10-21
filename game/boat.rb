@@ -132,6 +132,7 @@ class Boat
     end
     @on_ground = false
     return if @afloat
+
     ny = @y + @vy * dt
     if world.solid_in_box?(@x, ny, @z, HALF, TALL)
       if @vy < 0.0

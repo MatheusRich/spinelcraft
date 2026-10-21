@@ -63,6 +63,7 @@ class Options
   # file keeps its value.
   def read_file
     return unless File.exist?(@path)
+
     File.binread(@path).split("\n").each do |line|
       parts = line.split(":")
       read_option(parts[0], parts[1]) if parts.size == 2

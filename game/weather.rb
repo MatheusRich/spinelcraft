@@ -80,6 +80,7 @@ class Weather
   # Under a roof it is quieter, and 10 blocks under the ground it stops.
   def sound(world, player)
     return 0.0 if @rain <= 0.0
+
     cover = world.height_at(player.x.floor, player.z.floor) - player.eye_y
     (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain
   end
@@ -89,10 +90,12 @@ class Weather
   def build_quads(world, player, dt) # rubocop:todo Metrics/MethodLength
     @age += dt
     return false if @rain <= 0.0
+
     cx = player.x.floor
     cy = player.y.floor
     cz = player.z.floor
     return false if cx == @x && cy == @y && cz == @z && @age < 1.0
+
     @x = cx
     @y = cy
     @z = cz
@@ -102,11 +105,13 @@ class Weather
     (-R..R).each do |dx|
       (-R..R).each do |dz|
         next if dx * dx + dz * dz > R * R
+
         x = cx + dx
         z = cz + dz
         ground = world.height_at(x, z)
         bottom = (ground > cy - 10 ? ground : cy - 10).to_f
         next if bottom >= top
+
         # Each column starts its streaks at another place, so the columns do
         # not fall in step. The texture repeats twice across a quad and every
         # 4 blocks down.

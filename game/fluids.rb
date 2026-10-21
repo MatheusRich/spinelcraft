@@ -44,6 +44,7 @@ class Fluids
     while @water.next?
       block = water_wanted(@water.x, @water.y, @water.z)
       next if block < 0
+
       changes << @water.x << @water.y << @water.z << block
       return true
     end
@@ -56,6 +57,7 @@ class Fluids
     while @lava.next?
       block = lava_wanted(@lava.x, @lava.y, @lava.z)
       next if block < 0
+
       changes << @lava.x << @lava.y << @lava.z << block
       return true
     end
@@ -68,14 +70,18 @@ class Fluids
   # feed it drains. A source stays, and water does not flow into lava.
   def water_wanted(x, y, z)
     return -1 unless @world.inside?(x, y, z)
+
     block = @world.get(x, y, z)
     return Block::COBBLE if Block.lava?(block) && @world.touches_water?(x, y, z)
+
     level = Block::WATER_LEVEL[block]
     return -1 unless block == Block::AIR || Block.plant?(block) || (level > 0 && level < 8)
+
     water = flow_target(x, y, z, Block::WATER_LEVEL, 8)
     want = water > 0 ? Block::FLOW + water - 1 : Block::AIR
     return -1 if want == block
     return -1 if want == Block::AIR && level == 0
+
     want
   end
 
@@ -84,14 +90,17 @@ class Fluids
   # and flowing lava with no lava to feed it drains. A source stays.
   def lava_wanted(x, y, z)
     return -1 unless @world.inside?(x, y, z)
+
     block = @world.get(x, y, z)
     level = Block::LAVA_LEVEL[block]
     water = Block::WATER_LEVEL[block]
     return -1 unless block == Block::AIR || Block.plant?(block) || (level > 0 && level < 4) || (water > 0 && water < 8)
+
     lava = flow_target(x, y, z, Block::LAVA_LEVEL, 4)
     want = lava > 0 ? Block::LAVA_FLOW + lava - 1 : Block::AIR
     return -1 if want == block
     return -1 if want == Block::AIR && level == 0
+
     want
   end
 
@@ -103,6 +112,7 @@ class Fluids
   # spreads 7 blocks and lava 3.
   def flow_target(x, y, z, levels, source)
     return source - 1 if levels[@world.get(x, y + 1, z)] > 0
+
     best = 0
     dir = 0
     while dir < 4

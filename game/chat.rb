@@ -91,6 +91,7 @@ class Chat
     if @tab_matches.empty?
       @tab_matches = Command.complete(@text)
       return if @tab_matches.empty?
+
       @tab_base = @text[0, Command.last_word_at(@text)].to_s
       @tab_at = 0
     end
@@ -104,6 +105,7 @@ class Chat
   # name that completes the word is on the line already.
   def matches
     return @tab_matches unless @tab_matches.empty?
+
     names = Command.complete(@text)
     names.clear if names.size == 1 && @text.end_with?(names[0])
     names
@@ -113,6 +115,7 @@ class Chat
   # or -1 before the first Tab.
   def current_match
     return -1 if @tab_matches.empty?
+
     (@tab_at + @tab_matches.size - 1) % @tab_matches.size
   end
 
@@ -146,6 +149,7 @@ class Chat
   # line fades out in the last second of SHOW seconds.
   def opacity(i)
     return 1.0 if @open
+
     (SHOW - @ages[i]).clamp(0.0, 1.0)
   end
 

@@ -137,6 +137,7 @@ class Ui
         5.times do |row|
           3.times do |col|
             next if rows[row][col] != "#"
+
             quad(cx + col * cell, y + d + row * cell, cell, cell, layer, 1.0, 1.0, light, light, light, 1.0)
           end
         end

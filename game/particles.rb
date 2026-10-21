@@ -188,6 +188,7 @@ class Particles
   # pixels of the texture layer.
   def chip(x, y, z, vx, vy, vz, layer)
     return if @all.size >= MAX
+
     c = Particle.new(Particle::CHIP, x, y, z, vx, vy, vz, 0.3 + @rng.rand01 * 0.7, layer)
     c.piece((@rng.rand01 * 13.0).floor / 16.0, (@rng.rand01 * 13.0).floor / 16.0, 0.05 + @rng.rand01 * 0.05)
     @all << c

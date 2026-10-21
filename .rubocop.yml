@@ -59,6 +59,11 @@ Lint/FloatComparison:
     - "test/**/*"
     - "game/testing.rb"
 
+# A blank line after the last guard clause sets the guards apart from the
+# work of the method. Guards in a row stay together.
+Layout/EmptyLineAfterGuardClause:
+  Enabled: true
+
 # A method of 25 lines fits on one screen with its comment. A table literal
 # counts as one line.
 Metrics/MethodLength:

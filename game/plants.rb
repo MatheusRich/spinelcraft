@@ -83,6 +83,7 @@ class Plants
     x = @column_x
     z = @column_z
     return nil unless @world.loaded?(x, z)
+
     y = @world.height_at(x, z)
     block = @world.get(x, y, z)
     if (Block.sapling?(block) || Block.growing?(block)) && @rng.rand01 < GROW_CHANCE
@@ -108,6 +109,7 @@ class Plants
     x = @column_x
     z = @column_z
     return nil unless @world.loaded?(x, z)
+
     y = @world.height_at(x, z) - 1
     while y > 0
       block = @world.get(x, y, z)
@@ -237,6 +239,7 @@ class Plants
     i = 0
     while i < changes.size
       return true if changes[i] == x && changes[i + 1] == y && changes[i + 2] == z
+
       i += 4
     end
     false
@@ -249,6 +252,7 @@ class Plants
     d = 0
     while d < 4
       return nil if @world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]) == Block::PUMPKIN
+
       d += 1
     end
     d = (@rng.rand01 * 4).to_i
@@ -256,6 +260,7 @@ class Plants
     pz = z + Block::DIR_DZ[d]
     ground = @world.get(px, y - 1, pz)
     return nil unless @world.get(px, y, pz) == Block::AIR && Block.soil?(ground)
+
     changes << px << y << pz << Block::PUMPKIN
     nil
   end
@@ -264,6 +269,7 @@ class Plants
   # than CACTUS_HEIGHT tall and air is above it.
   def grow_cactus(x, y, z, changes)
     return nil unless y + 1 < WY && @world.get(x, y + 1, z) == Block::AIR
+
     tall = 1
     tall += 1 while tall < CACTUS_HEIGHT && @world.get(x, y - tall, z) == Block::CACTUS
     changes << x << y + 1 << z << Block::CACTUS if tall < CACTUS_HEIGHT
@@ -300,6 +306,7 @@ class Plants
         nz = qz + LEAF_DZ[i]
         block = @world.get(nx, ny, nz)
         return true if Block.log?(block)
+
         if d + 1 < LEAF_REACH && Block.leaves?(block)
           k = ((nx - x + LEAF_REACH) * LEAF_SPAN + ny - y + LEAF_REACH) * LEAF_SPAN + nz - z + LEAF_REACH
           if @leaf_seen[k] != @leaf_stamp

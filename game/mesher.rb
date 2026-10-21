@@ -206,6 +206,7 @@ class Mesher
   def fluid_height(k, block, over)
     if Mesher.fluid(block) == k
       return 1.0 if Mesher.fluid(over) == k
+
       return k == 1 ? Block::WATER_LEVEL[block] / 9.0 : Block::LAVA_LEVEL[block] * 2 / 9.0
     end
     Block.solid?(block) ? -1.0 : 0.0
@@ -225,8 +226,10 @@ class Mesher
   # fluid. A cell beside under the same fluid lifts the corner to the top.
   def corner_height(h, ha, hb, hd)
     return 1.0 if ha >= 1.0 || hb >= 1.0
+
     hd = -1.0 unless ha > 0.0 || hb > 0.0
     return 1.0 if hd >= 1.0
+
     sum = h * fluid_weight(h) + ha * fluid_weight(ha) + hb * fluid_weight(hb) + hd * fluid_weight(hd)
     sum / (fluid_weight(h) + fluid_weight(ha) + fluid_weight(hb) + fluid_weight(hd))
   end
@@ -238,6 +241,7 @@ class Mesher
   def fluid_corners(i, k)
     h = cell_fluid_height(k, i)
     return 0xFFFF if h >= 1.0
+
     q = 0
     2.times do |cz|
       2.times do |cx|
@@ -476,6 +480,7 @@ class Mesher
       head += 1
       l = @light[n] - 1
       next if l <= 0
+
       qy = n % WY
       qz = (n / WY) % LW
       qx = n / WY / LW
@@ -499,11 +504,13 @@ class Mesher
     lx = x - @flood_x
     lz = z - @flood_z
     return 0 if lx < 0 || lz < 0 || lx >= LW || lz >= LW || y < 0 || y >= WY
+
     @light[(lx * LW + lz) * WY + y]
   end
 
   def ao_value(side1, side2, corner)
     return 0 if side1 + side2 == 2
+
     3 - side1 - side2 - corner
   end
 end

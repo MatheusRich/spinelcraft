@@ -73,6 +73,7 @@ class Light
   def level(x, y, z, sky, lamp, sky_reach) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     reach = lamp ? REACH : sky_reach - 1
     return 0 if reach < 0
+
     @stamp += 1
     stamp = @stamp
     queue = @queue
@@ -97,6 +98,7 @@ class Light
       end
       return -1 if lamp && steps < TORCH && Block.torch?(@world.get(cx, cy, cz))
       next if steps >= reach
+
       side = 0
       while side < 6
         nx = cx + (side == 0 ? 1 : (side == 1 ? -1 : 0))
@@ -107,6 +109,7 @@ class Light
           @seen[next_cell] = stamp
           block = @world.get(nx, ny, nz)
           return -1 if lamp && (block == Block::LAVA || Block.jack_o_lantern?(block)) && steps + 1 < LAVA
+
           queue << next_cell << steps + 1 if Block::OPAQUE[block] == 0
         end
         side += 1

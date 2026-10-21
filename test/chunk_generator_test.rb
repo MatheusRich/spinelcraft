@@ -38,6 +38,7 @@ class ChunkGeneratorTest < Minitest::Test
             b = world.get(x, y, z)
             stone[y] += 1 if b == Block::STONE || cells.key?(b)
             next unless cells.key?(b)
+
             cell = b == Block::COAL_ORE ? [x >> 2, y >> 1, z >> 2] : [x >> 1, y >> 1, z >> 1]
             cells[b][cell] += 1
           end
