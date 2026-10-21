@@ -52,11 +52,13 @@ Metrics/MethodLength:
     - "game/testing.rb"
 
 # The limit is high on purpose. A class can grow before it splits, so that
-# the split follows a real abstraction. RuboCop measures each `class Game`
-# block on its own, so this cop never sees all of Game.
+# the split follows a real abstraction. Some classes hold one job that is
+# long, such as the tree shapes of Trees, so the limit is 350, not 300.
+# RuboCop measures each `class Game` block on its own, so this cop never
+# sees all of Game.
 Metrics/ClassLength:
   Enabled: true
-  Max: 300
+  Max: 350
   Exclude: *checks
 
 Metrics/CyclomaticComplexity:
