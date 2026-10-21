@@ -1510,6 +1510,15 @@ class Game
     pz = @spawn_z.floor
     @mobs.clear
     @clock.time_of_day = 0.25
+    @player.x = px + 0.5
+    @player.y = SKY_Y - 1.0
+    @player.z = pz + 0.5
+    @weather.set(true)
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
+    @mobs << zombie
+    60.times { update_mobs(1.0 / 60.0) }
+    check("a zombie burns in the sun until the rain is strong enough to wet it", zombie.fire > 0.0)
+    @mobs.clear
     @weather.set_now(true)
     zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie

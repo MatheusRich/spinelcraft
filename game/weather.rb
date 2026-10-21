@@ -10,6 +10,9 @@ class Weather
   # 100 ticks. The wiki does not give this value: minecraft.wiki/w/Rain and
   # minecraft.wiki/w/Commands/weather do not describe the change.
   FADE = 5.0
+  # The strength at which the rain wets: it puts out fires, and the sun
+  # does not burn undead mobs. The wiki does not give it.
+  WET = 0.5
 
   # The strength of the rain, from 0 (none) to 1.
   attr_reader :rain
@@ -33,6 +36,9 @@ class Weather
   end
 
   def raining? = @raining
+
+  # True when the rain is strong enough to wet.
+  def wet? = @rain > WET
 
   # Starts or stops the rain, and sets how long the new weather lasts. The
   # strength of the rain follows over FADE seconds.

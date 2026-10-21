@@ -562,7 +562,7 @@ class Game
     in_lava = Block.lava?(feet) || Block.lava?(eyes)
     under_water = Block.water?(eyes)
     # Water and rain put the fire out.
-    if !in_lava && @vitals.burning? && (under_water || Block.water?(feet) || (@weather.rain > 0.5 && @world.under_sky?(p.x, p.eye_y, p.z)))
+    if !in_lava && @vitals.burning? && (under_water || Block.water?(feet) || (@weather.wet? && @world.under_sky?(p.x, p.eye_y, p.z)))
       @vitals.douse
       play(Sfx::FIZZ, 0.6)
     end

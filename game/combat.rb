@@ -55,7 +55,7 @@ class Game
     # In clear weather, undead mobs burn from the end of the night to the
     # start of the next night. minecraft.wiki/w/Daylight_cycle
     # The wiki does not confirm that rain stops the burning.
-    sun = !@weather.raining? && !@clock.night?
+    sun = !@weather.wet? && !@clock.night?
     @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.ticks, raining: @weather.raining?), dt)
     court_mates
     push_mobs(dt)
@@ -86,7 +86,7 @@ class Game
         m.alive = false
         explode(m.x, m.y + 0.8, m.z)
       end
-      m.douse if m.fire > 0.0 && @weather.rain > 0.5 && @world.under_sky?(m.x, m.y + m.tall, m.z)
+      m.douse if m.fire > 0.0 && @weather.wet? && @world.under_sky?(m.x, m.y + m.tall, m.z)
       m.start_graze if m.can_graze?(@world) && @rng.rand01 < dt * (m.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
       @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
       steps = dt > 0.025 ? 2 : 1
