@@ -29,6 +29,8 @@ module Ray
       near = t0 < t1 ? (t0 > near ? t0 : near) : (t1 > near ? t1 : near)
       far = t0 < t1 ? (t1 < far ? t1 : far) : (t0 < far ? t0 : far)
     end
-    near <= far ? near : -1.0
+    return -1.0 if near > far
+    # The to_f lets Spinel type the distance when the box is untyped.
+    near.to_f
   end
 end
