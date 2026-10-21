@@ -25,7 +25,11 @@ class RecipeBook
                 Recipe.new(Block::DIAMOND, 3, Block::DIAMOND_AXE, 1, Recipe::AT_TABLE), Recipe.new(Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, Recipe::AT_TABLE),
                 # Minecraft has no mattock: 3 spinel is a choice for balance.
                 Recipe.new(Block::SPINEL, 3, Block::SPINEL_MATTOCK, 1, Recipe::AT_TABLE),
-                Recipe.new(Block::COAL, 1, Block::TORCH, 4, Recipe::BY_HAND), Recipe.new(Block::GRAVEL, 1, Block::ARROW, 4, Recipe::AT_TABLE),
+                Recipe.new(Block::COAL, 1, Block::TORCH, 4, Recipe::BY_HAND),
+                # Minecraft makes 4 arrows of a flint, a stick and a feather
+                # (minecraft.wiki/w/Arrow). The game has no flint and no
+                # sticks, so a plank takes the place of both.
+                Recipe.new(Block::FEATHER, 1, Block::ARROW, 4, Recipe::AT_TABLE, Block::ANY_PLANKS, 1),
                 Recipe.new(Block::STONE, 2, Block::BRICK, 1, Recipe::AT_TABLE), Recipe.new(Block::WOOL, 3, Block::BED, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::ANY_PLANKS, 5, Block::BOW, 1, Recipe::AT_TABLE), Recipe.new(Block::ANY_PLANKS, 8, Block::CHEST, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::ANY_PLANKS, 6, Block::DOOR, 3, Recipe::AT_TABLE), Recipe.new(Block::ANY_PLANKS, 3, Block::LADDER, 4, Recipe::AT_TABLE),

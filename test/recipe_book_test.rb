@@ -136,6 +136,19 @@ class RecipeBookTest < Minitest::Test
     assert_equal 0, book.top
   end
 
+  def test_a_feather_and_a_plank_make_four_arrows_at_a_crafting_table
+    book = RecipeBook.new
+    assert_equal "", book.see(Block::GRAVEL)
+    assert_equal "NEW RECIPE: ARROW - AT A CRAFTING TABLE", book.see(Block::FEATHER)
+    arrow = book.recipe(recipe_for(Block::ARROW))
+    slots = Slots.new(36)
+    2.times { slots.add(Block::FEATHER) }
+    slots.add(Block::BIRCH_PLANKS)
+    assert_equal "1 FEATHER + 1 PLANKS", arrow.need
+    assert_equal 4, arrow.craft(2, slots)
+    assert_equal [4, 1, 0], [slots.total(Block::ARROW), slots.total(Block::FEATHER), slots.total(Block::BIRCH_PLANKS)]
+  end
+
   def test_a_furnace_smelts_the_ingredient_of_its_recipes
     book = RecipeBook.new
     assert_same book.recipe(recipe_for(Block::IRON_INGOT)), book.smelt_recipe(Block::IRON)
