@@ -480,14 +480,15 @@ class Mob
   # and returns the speed that it walks at. dx, dz is the step to the
   # player, and dist is its length.
 
-  # A passive mob wanders, and after a hit it panics. When it does not
-  # panic, a lover walks to its mate, and else it follows a player who
-  # holds its food (held), as the order of the goals in the game code.
+  # A passive mob wanders, and after a hit it panics. A lover walks to its
+  # mate, and else a mob that does not panic follows a player who holds
+  # its food (held), as the order of the goals in the game code. A
+  # panicking mob has no mate: the hit ended its love mode (Love#reset).
   def act_passive(dt, player, held)
     @think -= dt
     @panic -= dt
     @tempted = false if @panic > 0.0
-    return walk_to_mate(dt) if @love.courting? && @panic <= 0.0
+    return walk_to_mate(dt) if @love.courting?
     return follow(player) if @panic <= 0.0 && tempted_by?(player, held)
 
     if @think <= 0.0
