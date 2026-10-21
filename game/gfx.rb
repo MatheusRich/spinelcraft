@@ -313,7 +313,7 @@ module Gfx
       "  o.pos = u.vp * float4(p, 1.0);\n"
       "  o.wp = p;\n"
       "  // The light of a box top from above, of a box bottom from below.\n"
-      "  o.shade = SHADE[u.cam.y > u.cloud.y ? 2 : 3] * (0.2 + 0.8 * u.misc.x);\n"
+      "  o.shade = SHADE[u.cam.y > u.cloud.y ? 2 : 3] * bright(0.2 + 0.8 * u.misc.x, u);\n"
       "  return o;\n"
       "}\n"
       "fragment float4 fcloud(VOutC in [[stage_in]], constant U &u [[buffer(0)]],\n"
