@@ -41,6 +41,7 @@ require_relative "game/slots"
 require_relative "game/chest"
 require_relative "game/chests"
 require_relative "game/furnace"
+require_relative "game/furnaces"
 require_relative "game/recipe"
 require_relative "game/recipe_book"
 require_relative "game/inventory"
@@ -83,9 +84,7 @@ class Game
     @hotbar = HOTBAR_START.dup
     @inv = Slots.new(INV)
     @recipe_book = RecipeBook.new
-    # The furnaces, by World.key, and the time not yet ticked.
-    @furnaces = {}
-    @furnace_clock = 0.0
+    @furnaces = Furnaces.new
     # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE of Recipe),
     # and its cell.
     @station = Recipe::BY_HAND
@@ -294,7 +293,7 @@ class Game
     @hotbar = HOTBAR_START.dup
     @chests.clear
     @recipe_book = RecipeBook.new
-    @furnaces = {}
+    @furnaces.clear
     @mobs.clear
     @arrows.clear
     @eggs.clear

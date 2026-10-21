@@ -1764,15 +1764,14 @@ class Game
     @weather.timer = 77.5
     @recipe_book = RecipeBook.new
     @recipe_book.learn(Block::DIAMOND)
-    @furnaces = {}
-    hot = Furnace.new(3, 70, 4)
+    @furnaces.clear
+    hot = @furnaces.furnace_at(3, 70, 4)
     hot.burn = 500
     hot.burn_total = 1600
     hot.progress = 37
     hot.slots.set(Furnace::INPUT, Block::SAND, 2)
     hot.slots.set(Furnace::FUEL, Block::OAK_LOG, 3)
-    @furnaces[World.key(3, 70, 4)] = hot
-    @furnaces[World.key(5, 70, 4)] = Furnace.new(5, 70, 4)
+    @furnaces.furnace_at(5, 70, 4)
     @clock.day = 37
     @alive_time = 1500.0
     @boats.clear
@@ -1787,7 +1786,7 @@ class Game
     @items.clear
     @weather.set_now(false)
     @recipe_book = RecipeBook.new
-    @furnaces = {}
+    @furnaces.clear
     @clock.day = 0
     @alive_time = 0.0
     ok = load
@@ -1803,11 +1802,12 @@ class Game
           @boats.size == 1 && boat.item == Block::SPRUCE_BOAT && boat.x == x + 0.5 && boat.y == ground + 1.25 && boat.z == z + 0.5 && boat.yaw == 1.5 && @riding == 0)
     @boats.clear
     @riding = -1
-    loaded = @furnaces[World.key(3, 70, 4)]
+    furnaces = @furnaces.size
+    loaded = @furnaces.furnace_at(3, 70, 4)
     check("the save keeps the seen items, and the slots and the fire of furnaces",
-          @recipe_book.seen?(Block::DIAMOND) && @furnaces.size == 1 && !loaded.nil? && loaded.x == 3 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&
+          @recipe_book.seen?(Block::DIAMOND) && furnaces == 1 && loaded.burn == 500 && loaded.burn_total == 1600 && loaded.progress == 37 &&
           loaded.slots.block(Furnace::INPUT) == Block::SAND && loaded.slots.count(Furnace::INPUT) == 2 && loaded.slots.block(Furnace::FUEL) == Block::OAK_LOG && loaded.slots.count(Furnace::FUEL) == 3)
-    @furnaces = {}
+    @furnaces.clear
     @items.clear
     @weather.set_now(false)
     # The sky shows the moon of the loaded day: day 37 has the phase
@@ -2893,9 +2893,9 @@ class Game
     check("smelting needs a furnace", far)
     set_block(x + 2, y, z + 3, Block::FURNACE)
     open_station(x + 2, y, z + 3, Recipe::AT_FURNACE)
+    @furnaces.clear
     f = open_furnace
     slots = f.slots
-    @furnace_clock = 0.0
     # A Shift-click sends the iron ore to the input and the planks to the
     # fuel. An item takes 10 seconds.
     quick_move_slot(0)
@@ -2957,8 +2957,9 @@ class Game
     survival = @survival
     @survival = true
     @items.clear
+    furnaces = @furnaces.size
     set_block(x + 2, y, z + 3, Block::AIR)
-    dropped = ground_count(Block::IRON) == 4 && ground_count(Block::OAK_PLANKS) == 2 && @furnaces[World.key(x + 2, y, z + 3)].nil?
+    dropped = ground_count(Block::IRON) == 4 && ground_count(Block::OAK_PLANKS) == 2 && @furnaces.size == furnaces - 1
     @items.clear
     @survival = survival
     toggle_inventory
@@ -2966,8 +2967,8 @@ class Game
     # A log smelts into coal, and coal burns for 1600 ticks.
     set_block(x + 2, y, z + 3, Block::FURNACE)
     open_station(x + 2, y, z + 3, Recipe::AT_FURNACE)
+    @furnaces.clear
     f = open_furnace
-    @furnace_clock = 0.0
     f.slots.set(Furnace::INPUT, Block::OAK_LOG, 1)
     f.slots.set(Furnace::FUEL, Block::COAL, 1)
     update_furnaces(10.0)

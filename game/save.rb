@@ -16,12 +16,11 @@ class Game
   F_WEATHER = F_HUNGER + 3 # raining (1 or 0), seconds to the next change
   # The chest count, then the key and the contents of each chest. Then the
   # item count and ITEM_FIELDS for each item on the ground. Then the count
-  # of seen blocks, and their ids. Then the count of furnaces that are not
-  # idle, and FURNACE_FIELDS for each. Then the boat count, BOAT_FIELDS for
-  # each boat, and the index of the boat that the player rides (or -1).
+  # of seen blocks, and their ids. Then the furnaces (Furnaces#to_a). Then
+  # the boat count, BOAT_FIELDS for each boat, and the index of the boat
+  # that the player rides (or -1).
   F_CHESTS = F_WEATHER + 2
   ITEM_FIELDS = 6 # block, count, x, y, z, age
-  FURNACE_FIELDS = 12 # x, y, z, burn, burn total, progress, then the slots (Slots#to_a)
   BOAT_FIELDS = 5 # item, x, y, z, yaw
 
   def save # rubocop:todo Metrics/MethodLength
@@ -33,11 +32,7 @@ class Game
     chest_fields = @chests.to_a
     seen = []
     Block::COUNT.times { |block| seen << block if @recipe_book.seen?(block) }
-    furnace_fields = []
-    @furnaces.each do |key, f|
-      furnace_fields.concat([f.x, f.y, f.z, f.burn, f.burn_total, f.progress] + f.slots.to_a) unless f.idle?
-    end
-    furnace_fields = [furnace_fields.size / FURNACE_FIELDS] + furnace_fields
+    furnace_fields = @furnaces.to_a
     boat_fields = [@boats.size]
     @boats.each { |boat| boat_fields.concat([boat.item, boat.x, boat.y, boat.z, boat.yaw]) }
     boat_fields << @riding
@@ -78,7 +73,7 @@ class Game
     at += 1 + f[at].to_i * (1 + Chest::SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
     at += 1 + f[at].to_i
-    at += 1 + f[at].to_i * FURNACE_FIELDS
+    at += 1 + f[at].to_i * Furnaces::FIELDS
     at += 1 + f[at].to_i * BOAT_FIELDS + 1
     n = f[at].to_i
     chunk_bytes = data.bytesize - nl - 1
@@ -158,21 +153,7 @@ class Game
     seen = f[at].to_i
     seen.times { |c| @recipe_book.learn(f[at + 1 + c].to_i) }
     at += 1 + seen
-    @furnaces = {}
-    furnaces = f[at].to_i
-    at += 1
-    furnaces.times do
-      x = f[at].to_i
-      y = f[at + 1].to_i
-      z = f[at + 2].to_i
-      furnace = Furnace.new(x, y, z)
-      furnace.burn = f[at + 3].to_i
-      furnace.burn_total = f[at + 4].to_i
-      furnace.progress = f[at + 5].to_i
-      furnace.slots.load(f, at + 6)
-      @furnaces[World.key(x, y, z)] = furnace
-      at += FURNACE_FIELDS
-    end
+    at = @furnaces.load(f, at)
     @boats.clear
     boats = f[at].to_i
     at += 1

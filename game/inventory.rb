@@ -53,9 +53,7 @@ class Game
   CRAFT_ALL = Slots::STACK * INV
 
   # The furnace whose screen is open.
-  def open_furnace
-    @furnaces[World.key(@station_x, @station_y, @station_z)] ||= Furnace.new(@station_x, @station_y, @station_z)
-  end
+  def open_furnace = @furnaces.furnace_at(@station_x, @station_y, @station_z)
 
   # Moves up to want of block from the inventory into the input slot of the
   # open furnace.
@@ -74,24 +72,10 @@ class Game
     play(Sfx::PLACE, 0.4)
   end
 
-  # Furnaces work while their chunk is loaded, as in Minecraft. A furnace
-  # is lit while it burns.
+  # Ticks the furnaces, and lights or puts out the furnace blocks.
   def update_furnaces(dt)
-    @furnace_clock += dt
-    ticks = (@furnace_clock * Furnace::TICKS_PER_SECOND).to_i
-    @furnace_clock -= ticks.to_f / Furnace::TICKS_PER_SECOND
-    return if ticks == 0
-    @furnaces.each do |key, f|
-      if @world.loaded?(f.x, f.z)
-        recipe = @recipe_book.smelt_recipe(f.slots.block(Furnace::INPUT))
-        out = recipe.nil? ? 0 : recipe.result
-        out_n = recipe.nil? ? 0 : recipe.result_count
-        ticks.times { f.tick(out, out_n, Furnace.fuel_ticks(f.slots.block(Furnace::FUEL))) }
-        block = @world.get(f.x, f.y, f.z)
-        lit = Block.furnace_id(Block::FACING[block], f.lit?)
-        set_block(f.x, f.y, f.z, lit) if Block::BASE[block] == Block::FURNACE && lit != block
-      end
-    end
+    @furnaces.smelt(dt, @world, @recipe_book, @changes)
+    apply_changes
   end
 
   # A click on slot i of the open furnace. The input slot takes only what
@@ -124,7 +108,7 @@ class Game
 
   # A broken furnace drops what it holds (in survival).
   def drop_furnace(x, y, z)
-    furnace = @furnaces.delete(World.key(x, y, z))
+    furnace = @furnaces.remove_at(World.key(x, y, z))
     return if furnace.nil? || !@survival
     (0...3).each { |i| drop_from_block(furnace.slots.block(i), furnace.slots.count(i), x, y, z) }
   end

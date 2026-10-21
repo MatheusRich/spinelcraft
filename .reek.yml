@@ -465,7 +465,6 @@ detectors:
     - "/\\AGame\\#update_boats\\z/"
     - "/\\AGame\\#update_eggs\\z/"
     - "/\\AGame\\#update_falling\\z/"
-    - "/\\AGame\\#update_furnaces\\z/"
     - "/\\AGame\\#update_hand\\z/"
     - "/\\AGame\\#update_mobs\\z/"
     - "/\\AGame\\#update_survival\\z/"
