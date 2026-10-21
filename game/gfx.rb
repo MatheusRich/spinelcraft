@@ -99,6 +99,8 @@ module Gfx
     static float mouse_dx, mouse_dy, wheel;
     static Uint32 buttons_now, buttons_prev;
     static int quit_requested, focus_lost;
+    /* 1 when the window entered fullscreen in this poll, 0 when it left it, else -1. */
+    static int fullscreen_change = -1;
     /* The keys typed since the last poll, for the chat line: printable
        ASCII from text input, and the codes of TYPED_* for the edit keys,
        with key repeat. */
@@ -1286,6 +1288,7 @@ module Gfx
       buttons_prev = buttons_now;
       mouse_dx = mouse_dy = wheel = 0;
       focus_lost = 0;
+      fullscreen_change = -1;
       ntyped = 0;
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
@@ -1294,6 +1297,8 @@ module Gfx
           case SDL_EVENT_MOUSE_MOTION: mouse_dx += e.motion.xrel; mouse_dy += e.motion.yrel; break;
           case SDL_EVENT_MOUSE_WHEEL: wheel += e.wheel.y; break;
           case SDL_EVENT_WINDOW_FOCUS_LOST: focus_lost = 1; break;
+          case SDL_EVENT_WINDOW_ENTER_FULLSCREEN: fullscreen_change = 1; break;
+          case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN: fullscreen_change = 0; break;
           case SDL_EVENT_TEXT_INPUT:
             for (const char *p = e.text.text; *p && ntyped < TYPED_CAP; p++)
               if (*p >= 32 && *p < 127) typed[ntyped++] = *p;
@@ -1323,6 +1328,7 @@ module Gfx
     double in_mouse_dy(void) { return mouse_dy; }
     double in_wheel(void) { return wheel; }
     bool in_focus_lost(void) { return focus_lost; }
+    long in_fullscreen_change(void) { return fullscreen_change; }
     long in_typed_count(void) { return ntyped; }
     long in_typed(long i) { return typed[i]; }
     /* The text on the clipboard. The next call frees it. */
@@ -1338,6 +1344,7 @@ module Gfx
       Uint32 bit = 1u << (b - 1);
       buttons_now = on ? buttons_now | bit : buttons_now & ~bit;
     }
+    void in_test_fullscreen(long change) { fullscreen_change = (int)change; }
     void in_test_frame(void) { memcpy(keys_prev, keys_now, sizeof keys_now); buttons_prev = buttons_now; }
     /* Cursor position in swapchain pixels. */
     double in_mouse_x(void) { float x, y; SDL_GetMouseState(&x, &y); return x * SDL_GetWindowPixelDensity(win); }
@@ -1395,12 +1402,14 @@ module Gfx
   ffi_func :in_mouse_dy, [], :double
   ffi_func :in_wheel, [], :double
   ffi_func :in_focus_lost, [], :bool
+  ffi_func :in_fullscreen_change, [], :long
   ffi_func :in_typed_count, [], :long
   ffi_func :in_typed, [:long], :long
   ffi_func :in_clipboard, [], :str
   ffi_func :in_text, [:long], :void
   ffi_func :in_test_key, [:long, :long], :void
   ffi_func :in_test_button, [:long, :long], :void
+  ffi_func :in_test_fullscreen, [:long], :void
   ffi_func :in_test_frame, [], :void
   ffi_func :in_mouse_x, [], :double
   ffi_func :in_mouse_y, [], :double

@@ -212,6 +212,7 @@ class Game
     test_hand_sway
     test_pause
     test_menu
+    test_fullscreen_follows_window
     test_commands
     test_tab_completion
     test_fly_keys
@@ -612,6 +613,22 @@ class Game
     click_title(T_NEW_WORLD)
     Gfx.in_capture(0)
     check("a second click on NEW WORLD on the title screen starts a new world", !@title_open && @captured && @seed != seed)
+  end
+
+  # The window can leave or enter fullscreen without the menu or F11, as
+  # through the green button of macOS. The FULLSCREEN option follows it.
+  def test_fullscreen_follows_window
+    fullscreen = @options.fullscreen
+    @options.fullscreen = true
+    Gfx.in_test_fullscreen(0)
+    handle_input(0.05)
+    left = !@options.fullscreen && menu_label(M_FULLSCREEN) == "FULLSCREEN: OFF"
+    Gfx.in_test_fullscreen(1)
+    handle_input(0.05)
+    entered = @options.fullscreen && menu_label(M_FULLSCREEN) == "FULLSCREEN: ON"
+    Gfx.in_test_fullscreen(-1)
+    @options.fullscreen = fullscreen
+    check("the FULLSCREEN option follows the window when it leaves or enters fullscreen", left && entered)
   end
 
   # The sliders of the pause menu set the options.

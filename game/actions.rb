@@ -1,6 +1,7 @@
 # Player input: keys, the mouse, mining, placing, beds, and food.
 class Game
   def handle_input(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+    follow_fullscreen
     if @title_open
       handle_title
       return
@@ -91,6 +92,13 @@ class Game
     @survival = survival
     @player.flying = false if @survival
     nil
+  end
+
+  # The window can leave or enter fullscreen without the menu or F11, as
+  # through the green button of macOS. The FULLSCREEN option follows it.
+  def follow_fullscreen
+    change = Gfx.in_fullscreen_change
+    @options.fullscreen = change == 1 if change >= 0
   end
 
   def toggle_fullscreen
