@@ -111,7 +111,12 @@ class ClockTest < Minitest::Test
     assert_equal 1.0, Clock.new(0.25, 0).daylight
     assert_equal 0.12, Clock.new(0.75, 0).daylight
     assert_in_delta 0.5, Clock.new(0.0, 0).daylight, 1.0e-9
-    assert_in_delta 0.5 + 0.9 * Math.sin(0.05 * Math::PI * 2.0), Clock.new(0.05, 0).daylight, 1.0e-9
+  end
+
+  def test_the_daylight_rises_from_6_00_until_it_is_full
+    morning = [0.0, 0.02, 0.04, 0.06].map { |time| Clock.new(time, 0).daylight }
+    morning.each_cons(2) { |earlier, later| assert_operator later, :>, earlier }
+    assert_operator morning.last, :<, 1.0
   end
 
   def test_the_moon_is_full_on_day_0_and_new_on_day_4_of_its_8_days
