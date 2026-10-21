@@ -427,7 +427,7 @@ class Game
         next
       end
       if a.damage > 0
-        m = @mobs.find { |mob| !mob.dying? && a.in_box?(mob.x, mob.y, mob.z, mob.half, mob.tall) }
+        m = @mobs.find { |mob| !mob.dying? && mob.contains?(a.x, a.y, a.z) }
         if m
           m.hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
           m.by_player = true
@@ -467,7 +467,7 @@ class Game
       k = 0
       while k < steps && !e.broken?
         e.fly(@world, dt / steps)
-        m = @mobs.find { |mob| !mob.dying? && e.x > mob.x - mob.half && e.x < mob.x + mob.half && e.y > mob.y && e.y < mob.y + mob.tall && e.z > mob.z - mob.half && e.z < mob.z + mob.half }
+        m = @mobs.find { |mob| !mob.dying? && mob.contains?(e.x, e.y, e.z) }
         if m
           m.hit(0.0, e.x - e.vx, e.z - e.vz)
           e.break_open

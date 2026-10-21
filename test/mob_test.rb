@@ -225,6 +225,35 @@ class MobTest < Minitest::Test
     assert_equal 2, sheep.grass_under(@world)
   end
 
+  def test_a_point_is_in_a_mob_only_inside_the_faces_of_its_box
+    zombie = Mob.new(Mob::ZOMBIE, 8.5, 70.0, 8.5, 3)
+    middle = [8.5, 70.0 + zombie.tall / 2.0, 8.5]
+    assert zombie.contains?(*middle)
+    faces = [[0, 8.5 - zombie.half], [0, 8.5 + zombie.half], [1, 70.0], [1, 70.0 + zombie.tall],
+             [2, 8.5 - zombie.half], [2, 8.5 + zombie.half]]
+    faces.each do |axis, at|
+      point = middle.dup
+      point[axis] = at
+      refute zombie.contains?(*point), "a point on the face at #{at} of axis #{axis}"
+    end
+  end
+
+  # The cells from 8, 70, 8 to 9, 72, 9, and a zombie that touches each face
+  # of them from outside, then moves 0.01 into them.
+  def test_a_column_of_cells_overlaps_a_mob_only_past_the_faces_of_its_box
+    half = Mob::HALF[Mob::ZOMBIE]
+    tall = Mob::TALL[Mob::ZOMBIE]
+    touches = [[[8.0 - half, 71.0, 8.5], 0, 0.01], [[9.0 + half, 71.0, 8.5], 0, -0.01],
+               [[8.5, 70.0 - tall, 8.5], 1, 0.01], [[8.5, 72.0, 8.5], 1, -0.01],
+               [[8.5, 71.0, 8.0 - half], 2, 0.01], [[8.5, 71.0, 9.0 + half], 2, -0.01]]
+    touches.each do |at, axis, step|
+      refute Mob.new(Mob::ZOMBIE, *at, 3).overlaps?(8, 70, 8, 2), "a zombie that touches the cells at #{at}"
+      at = at.dup
+      at[axis] += step
+      assert Mob.new(Mob::ZOMBIE, *at, 3).overlaps?(8, 70, 8, 2), "a zombie in the cells at #{at}"
+    end
+  end
+
   private
 
   # A stone floor under SKY_Y - 1 over the whole chunk, in open air.

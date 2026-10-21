@@ -472,14 +472,8 @@ class Game
     @swing = SWING
   end
 
-  # True when a mob overlaps the column of tall cells from x, y, z up.
-  def mob_in?(x, y, z, tall)
-    @mobs.each do |m|
-      next if m.dying?
-      return true if x + 1 > m.x - m.half && x < m.x + m.half && y + tall > m.y && y < m.y + m.tall && z + 1 > m.z - m.half && z < m.z + m.half
-    end
-    false
-  end
+  # True when a mob overlaps the column of height cells from x, y, z up.
+  def mob_in?(x, y, z, height) = @mobs.any? { |mob| !mob.dying? && mob.overlaps?(x, y, z, height) }
 
   # The direction on the ground that the player looks in most (see
   # Block::DIR_DX). A new bed points its head this way, and a new furnace

@@ -700,6 +700,17 @@ class Mob
     Ray.box_distance(ox, oy, oz, dx, dy, dz, @x - @half, @y, @z - @half, @x + @half, @y + @tall, @z + @half)
   end
 
+  # True when the point x, y, z is in this mob's box.
+  def contains?(x, y, z)
+    x > @x - @half && x < @x + @half && y > @y && y < @y + @tall && z > @z - @half && z < @z + @half
+  end
+
+  # True when the column of height block cells from x, y, z up overlaps this
+  # mob's box.
+  def overlaps?(x, y, z, height)
+    x + 1 > @x - @half && x < @x + @half && y + height > @y && y < @y + @tall && z + 1 > @z - @half && z < @z + @half
+  end
+
   # The mob as the boxes of its Minecraft model, with its skin (Tex::SKINS).
   # A hurt mob is red, and a creeper flashes white as its fuse burns down.
   def draw(mesh)

@@ -434,7 +434,6 @@ detectors:
     - "/\\AGame\\#menu_label\\z/"
     - "/\\AGame\\#menu_scale\\z/"
     - "/\\AGame\\#merge_items\\z/"
-    - "/\\AGame\\#mob_in\\?\\z/"
     - "/\\AGame\\#near_volume\\z/"
     - "/\\AGame\\#nearest_mate\\z/"
     - "/\\AGame\\#note_seen\\z/"
