@@ -268,8 +268,9 @@ class World
     end
     nil
   end
-  # A unique Integer for a block anywhere in the world (chest keys).
-  def self.key(x, y, z) = ((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y
+  # A unique Integer for a block anywhere in the world (chest keys). The
+  # to_i lets Spinel type the key when the position is untyped, as in index.
+  def self.key(x, y, z) = (((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y).to_i
   def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)
 
   def chunk_loaded?(cx, cz)

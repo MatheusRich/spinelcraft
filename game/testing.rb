@@ -166,9 +166,9 @@ class Game
     test_menu_layout
     test_seen_recipes
     test_recipe_scroll
-    test_split_and_quick_move
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
+    test_split_and_quick_move(cx, cz)
     test_chests(cx, cz)
     test_mob_drops
     test_mob_death
@@ -1783,7 +1783,7 @@ class Game
   # A right-click takes half a stack or puts down one item. A Shift-click
   # moves a stack between the hotbar and the backpack, or between the
   # inventory and an open chest.
-  def test_split_and_quick_move
+  def test_split_and_quick_move(cx, cz)
     @inv.clear
     @held.clear
     @inv.set(5, Block::DIRT, 7)
@@ -1800,14 +1800,15 @@ class Game
     @inv.set(HOTBAR, Block::DIRT, 60)
     quick_move_slot(0)
     pack = @inv.count(0) == 0 && @inv.count(HOTBAR) == 64 && @inv.block(HOTBAR + 1) == Block::DIRT && @inv.count(HOTBAR + 1) == 6
-    @chest_key = 0
-    @chest.clear
+    set_block(cx, SKY_Y, cz, Block::CHEST)
+    @chests.open_at(@world, cx, SKY_Y, cz)
+    chest = @chests.current.slots_for(0)
     quick_move_slot(HOTBAR + 1)
-    into_chest = @inv.count(HOTBAR + 1) == 0 && @chest.block(0) == Block::DIRT && @chest.count(0) == 6
+    into_chest = @inv.count(HOTBAR + 1) == 0 && chest.block(0) == Block::DIRT && chest.count(0) == 6
     quick_move_chest(0)
-    out_of_chest = @chest.count(0) == 0 && @inv.total(Block::DIRT) == 70
-    @chest_key = -1
-    @chest.clear
+    out_of_chest = chest.count(0) == 0 && @inv.total(Block::DIRT) == 70
+    @chests.close
+    set_block(cx, SKY_Y, cz, Block::AIR)
     check("a Shift-click moves a stack to the other side", pack && into_chest && out_of_chest)
     @inv.clear
   end
@@ -1994,18 +1995,20 @@ class Game
     set_block(cx, SKY_Y, cz, Block::CHEST)
     @inv.clear
     open_chest(cx, SKY_Y, cz)
-    @chest.set(5, Block::DIAMOND, 7)
+    @chests.current.slots_for(0).set(5, Block::DIAMOND, 7)
     toggle_inventory
     save
-    @chests = {}
+    @chests.clear
     ok = load
     apply_loaded if ok
-    stored = @chests[World.key(cx, SKY_Y, cz)]
-    check("chest contents survive a save", ok && !stored.nil? && stored.block(5) == Block::DIAMOND && stored.count(5) == 7)
+    @chests.open_at(@world, cx, SKY_Y, cz)
+    stored = @chests.current.slots_for(0)
+    @chests.close
+    check("chest contents survive a save", ok && @chests.size == 1 && stored.block(5) == Block::DIAMOND && stored.count(5) == 7)
     set_block(cx, SKY_Y, cz, Block::AIR)
     dropped = ground_count(Block::DIAMOND) == 7 && @inv.total(Block::DIAMOND) == 0
     collect_items
-    check("a broken chest drops its contents", dropped && @inv.total(Block::DIAMOND) == 7 && @chests.empty?)
+    check("a broken chest drops its contents", dropped && @inv.total(Block::DIAMOND) == 7 && @chests.size == 0)
     # The stack in the hand goes back when the screen closes. With the
     # inventory full, it goes onto a stack of its kind in the chest first,
     # and then into an empty slot of the chest.
@@ -2014,20 +2017,21 @@ class Game
     set_block(cx, SKY_Y, cz, Block::CHEST)
     open_chest(cx, SKY_Y, cz)
     (0...INV).each { |slot| @inv.set(slot, Block::STONE, 64) }
-    @chest.set(5, Block::DIRT, 60)
+    chest = @chests.current.slots_for(0)
+    chest.set(5, Block::DIRT, 60)
     @held.set(0, Block::DIRT, 10)
     toggle_inventory
     check("the stack in the hand fills a stack of its kind in the open chest before an empty slot",
-          @chest.count(5) == 64 && @chest.block(0) == Block::DIRT && @chest.count(0) == 6 && @held.empty?(0) && ground_count(Block::DIRT) == 0)
+          chest.count(5) == 64 && chest.block(0) == Block::DIRT && chest.count(0) == 6 && @held.empty?(0) && ground_count(Block::DIRT) == 0)
     set_block(cx, SKY_Y, cz, Block::AIR)
     # An open chest destroyed by a blast never duplicates its contents.
     @inv.clear
     @items.clear
     set_block(cx, SKY_Y, cz, Block::CHEST)
     open_chest(cx, SKY_Y, cz)
-    @chest.set(0, Block::DIAMOND, 7)
+    @chests.current.slots_for(0).set(0, Block::DIAMOND, 7)
     set_block(cx, SKY_Y, cz, Block::AIR)
-    check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.empty?)
+    check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.size == 0)
     @items.clear
     test_chest_screen
   end
@@ -2037,7 +2041,7 @@ class Game
   def test_chest_screen
     fits = [[1280.0, 720.0], [1920.0, 1080.0], [2560.0, 1440.0], [3840.0, 2160.0]].all? do |w, h|
       s = inventory_scale(w, h)
-      last = chest_cell(CHEST_SLOTS * 2 - 1, w, h, s)
+      last = chest_cell(Chest::SLOTS * 2 - 1, w, h, s)
       chest_cell(0, w, h, s)[2] == pack_cell(0, w, h, s)[2] && last[0] + last[2] <= w && last[1] + last[2] <= h
     end
     check("the chest cells are as big as the inventory cells and fit on the screen", fits)
@@ -3034,13 +3038,13 @@ class Game
     open_chest(x, g, z + 1)
     INV.times { |i| @inv.set(i, Block::DIRT, 64) }
     INV.times { |i| quick_move_slot(i) }
-    check("a large chest takes more than 27 stacks", @inventory_open && chest_cells == CHEST_SLOTS * 2 && @inv.total(Block::DIRT) == 0)
+    check("a large chest takes more than 27 stacks", @inventory_open && @chests.current.cells == Chest::SLOTS * 2 && @inv.total(Block::DIRT) == 0)
     toggle_inventory
     set_block(x, g, z + 1, Block::AIR)
-    kept = @chests[World.key(x, g, z)]
+    kept = @chests.remove_at(World.key(x, g, z))
     check("a broken half of a large chest drops its half, and the other half is a chest",
           ground_count(Block::DIRT) == 9 * 64 && @world.get(x, g, z) == Block.facing_id(Block::CHEST, 1) &&
-          !kept.nil? && kept.total(Block::DIRT) == CHEST_SLOTS * 64)
+          !kept.nil? && kept.total(Block::DIRT) == Chest::SLOTS * 64)
     @items.clear
     @inv.clear
     # A large chest that loses a half while it is open closes.
@@ -3050,7 +3054,7 @@ class Game
     place
     open_chest(x, g, z)
     set_block(x, g, z + 1, Block::AIR)
-    check("a large chest closes when a half breaks while it is open", !@inventory_open && @chest_key < 0)
+    check("a large chest closes when a half breaks while it is open", !@inventory_open && !@chests.open?)
     set_block(x, g, z, Block::AIR)
     @items.clear
     @inv.clear
@@ -3541,9 +3545,9 @@ class Game
     @player.raycast(@world)
     find_target_mob
     right_button(1.0 / 60.0, true)
-    check("a click on a sheared sheep in front of a chest does not open the chest", @target_mob == 0 && @player.hit && @chest_key == -1)
+    check("a click on a sheared sheep in front of a chest does not open the chest", @target_mob == 0 && @player.hit && !@chests.open?)
     set_block(bx + 2, y + 1, bz, Block::AIR)
-    @chest_key = -1
+    @chests.close
     @inventory_open = false
     @mobs.clear
     @items.clear

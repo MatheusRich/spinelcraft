@@ -28,13 +28,9 @@ class Game
     header = [@seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
               @clock.time_of_day, @clock.day, @survival ? 1 : 0, @vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
-    close_chest
+    @chests.close
     land_falling
-    chest_fields = [@chests.size]
-    @chests.each do |key, chest|
-      chest_fields << key
-      chest_fields.concat(chest.to_a)
-    end
+    chest_fields = @chests.to_a
     seen = []
     Block::COUNT.times { |b| seen << b if @recipe_book.seen?(b) }
     furnace_fields = []
@@ -79,7 +75,7 @@ class Game
     return load_failed("its first line has #{f.size} fields, and a save has more than #{F_CHESTS}") if f.size <= F_CHESTS
     return load_failed("its format is #{f[0]}, not #{SAVE_VERSION}") unless f[0] == SAVE_VERSION
     at = F_CHESTS
-    at += 1 + f[at].to_i * (1 + CHEST_SLOTS * 2)
+    at += 1 + f[at].to_i * (1 + Chest::SLOTS * 2)
     at += 1 + f[at].to_i * ITEM_FIELDS
     at += 1 + f[at].to_i
     at += 1 + f[at].to_i * FURNACE_FIELDS
@@ -148,16 +144,7 @@ class Game
     @vitals.exhaustion = f[F_HUNGER + 2].to_f
     @weather.set_now(f[F_WEATHER] == "1")
     @weather.timer = f[F_WEATHER + 1].to_f
-    @chests = {}
-    at = F_CHESTS
-    chests = f[at].to_i
-    at += 1
-    chests.times do
-      chest = Slots.new(CHEST_SLOTS)
-      chest.load(f, at + 1)
-      @chests[f[at].to_i] = chest
-      at += 1 + CHEST_SLOTS * 2
-    end
+    at = @chests.load(f, F_CHESTS)
     @items.clear
     items = f[at].to_i
     at += 1

@@ -37,6 +37,8 @@ require_relative "game/constants"
 require_relative "game/save"
 require_relative "game/block_changes"
 require_relative "game/slots"
+require_relative "game/chest"
+require_relative "game/chests"
 require_relative "game/furnace"
 require_relative "game/recipe"
 require_relative "game/recipe_book"
@@ -95,14 +97,7 @@ class Game
     @fluid_z = 0
     # The stack in the hand while the inventory is open.
     @held = Slots.new(1)
-    @chests = {}
-    # The open chest, and its World.key; -1 when no chest is open. In a
-    # large chest, @chest is the left half, and @chest_pair the right half
-    # with the key @pair_key; -1 for a chest of one block.
-    @chest = Slots.new(CHEST_SLOTS)
-    @chest_key = -1
-    @chest_pair = Slots.new(CHEST_SLOTS)
-    @pair_key = -1
+    @chests = Chests.new
     # The block changes of Plants: x, y, z and the block, for each one.
     @changes = Array.new(0, 0)
     @alive_time = 0.0
@@ -294,7 +289,7 @@ class Game
     reset_world
     @inv.clear
     @hotbar = HOTBAR_START.dup
-    @chests = {}
+    @chests.clear
     @recipe_book = RecipeBook.new
     @furnaces = {}
     @mobs.clear

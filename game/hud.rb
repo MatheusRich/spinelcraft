@@ -249,12 +249,12 @@ class Game
       end
       draw_slot(c, i == hover, @inv, i, 6.0 * s, 2.0 * s, s)
     end
-    if @chest_key >= 0
+    if @chests.open?
       draw_chest_panel(w, h, s, pad)
     else
       draw_recipe_panel(w, h, s, pad)
     end
-    tip = @chest_key >= 0 ? "SHIFT-CLICK MOVES A STACK ACROSS  RIGHT-CLICK TAKES HALF" : "SHIFT-CLICK MOVES A STACK OR CRAFTS ALL  RIGHT-CLICK TAKES HALF"
+    tip = @chests.open? ? "SHIFT-CLICK MOVES A STACK ACROSS  RIGHT-CLICK TAKES HALF" : "SHIFT-CLICK MOVES A STACK OR CRAFTS ALL  RIGHT-CLICK TAKES HALF"
     label = hover >= 0 && !@inv.empty?(hover) ? Block::NAMES[@inv.block(hover)] : tip
     mid = (top[0] + bottom[0] + bottom[2]) / 2.0
     @ui.text(mid - @ui.text_width(label, 2.0 * s) / 2.0, bottom[1] + bottom[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
@@ -267,14 +267,15 @@ class Game
   end
 
   def draw_chest_panel(w, h, s, pad)
+    chest = @chests.current
     first = recipe_cell(0, w, h, s)
-    last_c = chest_cell(chest_cells - 1, w, h, s)
+    last_c = chest_cell(chest.cells - 1, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, last_c[0] + last_c[2] - first[0] + pad * 2.0, last_c[1] + last_c[2] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(first[0], first[1] - 36.0 * s, @pair_key >= 0 ? "LARGE CHEST" : "CHEST", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(first[0], first[1] - 36.0 * s, chest.large? ? "LARGE CHEST" : "CHEST", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
     chover = chest_hover(w, h, s)
-    chest_cells.times do |k|
+    chest.cells.times do |k|
       c = chest_cell(k, w, h, s)
-      draw_slot(c, k == chover, chest_part(k), k % CHEST_SLOTS, 6.0 * s, 2.0 * s, s)
+      draw_slot(c, k == chover, chest.slots_for(k), k % Chest::SLOTS, 6.0 * s, 2.0 * s, s)
     end
   end
 

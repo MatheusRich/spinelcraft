@@ -85,7 +85,6 @@ class Game
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36
   HOTBAR = 9
-  CHEST_SLOTS = 27
 
   # Loads that must finish before play goes on (start, respawn) stop at SYNC_R;
   # the rest stream in.

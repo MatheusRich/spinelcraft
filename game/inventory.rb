@@ -282,8 +282,8 @@ class Game
   def quick_move_slot(i)
     return if @inv.empty?(i) || !@held.empty?(0)
     furnace = station_makes?(Recipe::AT_FURNACE)
-    if @chest_key >= 0
-      into_chest(@inv, i)
+    if @chests.open?
+      @chests.current.store(@inv, i)
     elsif furnace && @recipe_book.smelts?(@inv.block(i))
       @inv.move_stack(i, open_furnace.slots, Furnace::INPUT, Furnace::INPUT + 1)
     elsif furnace && Furnace.fuel?(@inv.block(i))
@@ -297,23 +297,10 @@ class Game
 
   # A Shift-click on chest cell k moves the stack into the inventory.
   def quick_move_chest(k)
-    part = chest_part(k)
-    return if part.empty?(k % CHEST_SLOTS) || !@held.empty?(0)
-    part.move_stack(k % CHEST_SLOTS, @inv, 0, INV)
+    part = @chests.current.slots_for(k)
+    return if part.empty?(k % Chest::SLOTS) || !@held.empty?(0)
+    part.move_stack(k % Chest::SLOTS, @inv, 0, INV)
   end
-
-  # Moves the stack in slot i of from into the open chest: into the top
-  # half of a large chest first.
-  def into_chest(from, i)
-    from.move_stack(i, @chest, 0, CHEST_SLOTS)
-    from.move_stack(i, @chest_pair, 0, CHEST_SLOTS) if @pair_key >= 0
-  end
-
-  # The cells of the open chest: 27, or 54 for a large chest.
-  def chest_cells = @pair_key >= 0 ? CHEST_SLOTS * 2 : CHEST_SLOTS
-
-  # The slots that hold chest cell k. Cell k is slot k % CHEST_SLOTS of them.
-  def chest_part(k) = k < CHEST_SLOTS ? @chest : @chest_pair
 
   # Chest cell k, in the place of the recipe list: x, y, size. The cells
   # are as big as those of the inventory.
@@ -325,63 +312,45 @@ class Game
   end
 
   def chest_hover(w, h, s)
-    chest_cells.times do |k|
+    @chests.current.cells.times do |k|
       c = chest_cell(k, w, h, s)
       return k if mouse_in?(c[0], c[1], c[2], c[2])
     end
     -1
   end
 
-  # Opens the chest at x, y, z. A large chest shows its left half on top
-  # and its right half below, as in Minecraft.
+  # Opens the chest at x, y, z (see Chests#open_at).
   def open_chest(x, y, z)
-    if Block.chest_right?(@world.get(x, y, z))
-      d = Block.chest_partner_dir(@world.get(x, y, z))
-      x += Block::DIR_DX[d]
-      z += Block::DIR_DZ[d]
-    end
-    @chest_key = World.key(x, y, z)
-    @chest = @chests[@chest_key] ||= Slots.new(CHEST_SLOTS)
-    b = @world.get(x, y, z)
-    if Block.chest_left?(b)
-      d = Block.chest_partner_dir(b)
-      @pair_key = World.key(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d])
-      @chest_pair = @chests[@pair_key] ||= Slots.new(CHEST_SLOTS)
-    end
+    @chests.open_at(@world, x, y, z)
     play(Sfx::CHEST_OPEN, 0.5)
     toggle_inventory
-  end
-
-  def close_chest
-    @chest_key = -1
-    @pair_key = -1
   end
 
   # A broken chest drops what it held (in survival).
   def drop_chest(x, y, z)
     key = World.key(x, y, z)
-    if key == @chest_key || key == @pair_key
+    if @chests.open? && @chests.current.shows?(key)
       return_held
-      close_chest
+      @chests.close
       @inventory_open = false
       @captured = true
       Gfx.in_capture(1)
     end
-    chest = @chests.delete(key)
+    chest = @chests.remove_at(key)
     return if chest.nil? || !@survival
-    (0...CHEST_SLOTS).each { |k| drop_from_block(chest.block(k), chest.count(k), x, y, z) }
+    (0...Chest::SLOTS).each { |k| drop_from_block(chest.block(k), chest.count(k), x, y, z) }
   end
 
   # The stack in the hand goes back into the inventory, onto stacks of its
   # kind first, and then into the open chest.
   def return_held
     @held.move_stack(0, @inv, 0, INV)
-    into_chest(@held, 0) if @chest_key >= 0
+    @chests.current.store(@held, 0) if @chests.open?
   end
 
   def toggle_inventory
     # The player saw the NEW tags in the recipe list.
-    @recipe_book.close_list(active_station) if @inventory_open && @chest_key < 0
+    @recipe_book.close_list(active_station) if @inventory_open && !@chests.open?
     if @inventory_open
       return_held
       # What does not fit falls to the ground.
@@ -390,9 +359,9 @@ class Game
         @held.clear
       end
     end
-    if @inventory_open && @chest_key >= 0
+    if @inventory_open && @chests.open?
       play(Sfx::CHEST_CLOSE, 0.5)
-      close_chest
+      @chests.close
     end
     @station = Recipe::BY_HAND if @inventory_open
     @inventory_open = !@inventory_open
@@ -409,7 +378,7 @@ class Game
     w = Gfx.gfx_width.to_f
     h = Gfx.gfx_height.to_f
     s = inventory_scale(w, h)
-    if @survival && @chest_key < 0 && Gfx.in_wheel != 0.0 && over_recipes?(w, h, s)
+    if @survival && !@chests.open? && Gfx.in_wheel != 0.0 && over_recipes?(w, h, s)
       @recipe_book.turn_wheel(Gfx.in_wheel, active_station)
     else
       select_slot
@@ -427,15 +396,15 @@ class Game
           @inv.click_half(hover, @held)
         end
       end
-      if @chest_key >= 0
+      if @chests.open?
         cell = chest_hover(w, h, s)
         if cell >= 0
           if shift
             quick_move_chest(cell)
           elsif left
-            chest_part(cell).click(cell % CHEST_SLOTS, @held)
+            @chests.current.slots_for(cell).click(cell % Chest::SLOTS, @held)
           else
-            chest_part(cell).click_half(cell % CHEST_SLOTS, @held)
+            @chests.current.slots_for(cell).click_half(cell % Chest::SLOTS, @held)
           end
         end
       elsif station_makes?(Recipe::AT_FURNACE) && furnace_hover(w, h, s) >= 0
