@@ -20,7 +20,7 @@ class NaturalSpawner
   PACKS = 3
   PACK_SIZE = 4
   # Monsters spawn at least SPAWN_NEAR blocks from the player, and no
-  # farther than where they despawn (Mob::DESPAWN_FAR).
+  # farther than where they despawn (Monster::DESPAWN_FAR).
   SPAWN_NEAR = 24.0
   # The monster kinds and their spawn weights. minecraft.wiki/w/Plains
   MONSTER_KINDS = [Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER]
@@ -105,7 +105,7 @@ class NaturalSpawner
 
   # True when a monster can spawn in the cell x, y, z: a loaded dark cell
   # with a solid floor and room for its body, between SPAWN_NEAR and
-  # Mob::DESPAWN_FAR blocks from player.
+  # Monster::DESPAWN_FAR blocks from player.
   def monster_fits?(player, x, y, z, sky)
     return false if y < 1 || !@world.loaded?(x, z)
 
@@ -113,7 +113,7 @@ class NaturalSpawner
     dy = y - player.y
     dz = z + 0.5 - player.z
     distance2 = dx * dx + dy * dy + dz * dz
-    return false if distance2 < SPAWN_NEAR * SPAWN_NEAR || distance2 > Mob::DESPAWN_FAR * Mob::DESPAWN_FAR
+    return false if distance2 < SPAWN_NEAR * SPAWN_NEAR || distance2 > Monster::DESPAWN_FAR * Monster::DESPAWN_FAR
 
     ground = @world.get(x, y - 1, z)
     return false unless Block.solid?(ground) && !Block.leaves?(ground)

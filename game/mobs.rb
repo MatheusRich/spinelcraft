@@ -1,5 +1,6 @@
-# Pigs, sheep, cows, chickens, zombies, skeletons and creepers: behavior,
-# physics and box models.
+# The body of a mob: its box, its moves, its damage, fire and death, and
+# the parts of its box model. Animal (game/animal.rb) and Monster
+# (game/monster.rb) give it its behavior.
 class Mob
   PIG = 0
   ZOMBIE = 1
@@ -8,13 +9,6 @@ class Mob
   CREEPER = 4
   COW = 5
   CHICKEN = 6
-  # Seconds of a creeper's fuse. minecraft.wiki/w/Creeper
-  FUSE = 1.5
-  # A creeper lights its fuse when the player is this near, and the fuse
-  # burns until the player is this far, as in Minecraft.
-  # minecraft.wiki/w/Creeper
-  LIGHT_REACH = 3.0
-  FUSE_REACH = 7.0
   # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper, cow,
   # chicken. MOB_SOUND in game/combat.rb has the sounds.
   # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep, /w/Creeper,
@@ -36,42 +30,24 @@ class Mob
   # After a hit, the mob takes for this many seconds only the part of a new
   # hit that is above the last one, as in Minecraft. minecraft.wiki/w/Damage
   IMMUNE = 0.5
-  # Seconds of fire from the sun, and from lava. minecraft.wiki/w/Fire and
-  # /w/Lava
-  SUN_FIRE = 8.0
+  # Seconds of fire from lava. minecraft.wiki/w/Lava
   LAVA_FIRE = 15.0
   # A dead mob falls on its left side for 20 ticks, then its body goes up
   # in smoke. minecraft.wiki/w/Death
   DEATH_TIME = 1.0
-  # A monster farther than DESPAWN_FAR blocks from the player despawns at
-  # once. A monster that has been farther than DESPAWN_NEAR for
-  # IDLE_DESPAWN seconds despawns with a chance of 1 in 800 each tick.
-  # minecraft.wiki/w/Mob_spawning
-  DESPAWN_FAR = 128.0
-  DESPAWN_NEAR = 32.0
-  IDLE_DESPAWN = 30.0
-  DESPAWN_CHANCE = 20.0 / 800.0
 
-  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :shoot, :explode, :by_player
-  # True for one step after a creeper lights its fuse.
-  attr_accessor :hiss
+  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :by_player
   # True after a hit, until Game#update_mobs plays the hurt sound.
   attr_accessor :ouch
   # True after a step on the ground, until Game#update_mobs plays it.
   attr_accessor :step
-  attr_reader :fuse
   # Seconds that the mob still burns.
   attr_reader :fire
   attr_reader :kind, :half, :tall, :hurt
-  # Seconds that a monster has been far from the player (despawn?).
-  attr_accessor :idle
   # Seconds since the mob died; 0.0 while it lives.
   attr_reader :death
   # How far the legs swing, from 0 at rest to 1 at a walk or faster.
   attr_reader :leg_swing
-  # The block that the mob wears on its head (a carved pumpkin on
-  # Halloween), or 0.
-  attr_accessor :head
 
   def initialize(kind, x, y, z, seed) # rubocop:todo Metrics/MethodLength
     @kind = kind
@@ -83,36 +59,27 @@ class Mob
     @vz = 0.0
     @yaw = (seed % 628) / 100.0
     @hp = HP[kind]
-    @shoot = false
-    @explode = false
-    @hiss = false
     @ouch = false
     @step = false
     @step_dist = 0.0
     @by_player = false
-    @fuse = 0.0
     @hurt = 0.0
     @alive = true
     @phase = 0.0
     @half = HALF[kind]
     @tall = TALL[kind]
     @rng = Rng.new(seed)
-    @attack_wait = 0.0
     @on_ground = false
     @burn = 0.0
     @fire = 0.0
     @immune = 0.0
     @last_damage = 0.0
-    @idle = 0.0
     @death = 0.0
     @leg_swing = 0.0
     # Seconds that a wall has stopped the mob.
     @stuck = 0.0
-    @head = 0
     # The scale of the next parts of the model (see part).
     @size = 1.0
-    # The damage that the mob deals to the player in this step.
-    @bite = 0
   end
 
   # Only an Animal can be a baby, eat food from the hand or have wool to
@@ -130,8 +97,9 @@ class Mob
   def dying? = @hp <= 0
 
   # True when Game#update_mobs takes the mob out: it is dead, it is out of
-  # the loaded chunks, or it despawns. despawn? comes last, so only a live
-  # mob in a loaded chunk moves its idle time on. Ask once each frame.
+  # the loaded chunks, or it despawns (Animal#despawn?, Monster#despawn?).
+  # despawn? comes last, so only a live monster in a loaded chunk moves its
+  # idle time on. Ask once each frame.
   def gone?(world, player, dt) = !@alive || !world.loaded?(@x.floor, @z.floor) || despawn?(player, dt)
 
   # Why Game#update_mobs takes the mob out, for Log::MOBS.
@@ -140,19 +108,6 @@ class Mob
     return "is out of the loaded chunks" unless world.loaded?(@x.floor, @z.floor)
 
     "despawns"
-  end
-
-  # True when the monster despawns after dt seconds more, with player
-  # where it is now. Animal#despawn? is the rule for an animal.
-  def despawn?(player, dt)
-    dx = @x - player.x
-    dy = @y - player.y
-    dz = @z - player.z
-    distance2 = dx * dx + dy * dy + dz * dz
-    return true if distance2 > DESPAWN_FAR * DESPAWN_FAR
-
-    @idle = distance2 > DESPAWN_NEAR * DESPAWN_NEAR ? @idle + dt : 0.0
-    @idle > IDLE_DESPAWN && @rng.rand01 < dt * DESPAWN_CHANCE
   end
 
   # Rain or water puts out the fire.
@@ -203,16 +158,15 @@ class Mob
     nil
   end
 
-  # Returns damage dealt to the player this step. held is the item in the
-  # player's hand.
+  # Returns the damage that the mob deals to the player in this step:
+  # none, but Monster#update_mob returns the bite of a zombie. held is the
+  # item in the player's hand.
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
   def update_mob(world, dt, player, held) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @hurt -= dt
     @immune -= dt
-    @attack_wait -= dt
-    @bite = 0
     speed = 0.0
     if dying?
       @death += dt
@@ -275,110 +229,14 @@ class Mob
     # clock now. So Game#update_mobs sees it die once, and drops its loot once.
     @death = dt if dying? && @death == 0.0
     @alive = false if @death >= DEATH_TIME || @y < -10.0
-    @bite
+    0
   end
 
-  # What a monster does after the move of a step. Animal#after_move turns
-  # a stuck animal and beats the wings of a chicken.
+  # What the mob does after the move of a step: nothing, but
+  # Animal#after_move turns a stuck animal and beats the wings of a
+  # chicken. Each kind also has an act method (Animal#act, Monster#act):
+  # its AI, which can turn the mob and returns the speed that it walks at.
   def after_move(_dt) = nil
-
-  # The act methods are the AI of each kind: Animal#act, and this one for
-  # a monster. Each one can turn the mob, and returns the speed that it
-  # walks at. A monster that bites sets @bite.
-  def act(world, dt, player, _held)
-    # to_f: Spinel cannot type the positions, and the act_ methods need Floats.
-    dx = (player.x - @x).to_f
-    dz = (player.z - @z).to_f
-    dist = Math.sqrt(dx * dx + dz * dz)
-    if @kind == SKELETON
-      speed = act_skeleton(world, player, dx, dz, dist)
-    elsif @kind == CREEPER
-      speed = act_creeper(dt, player, dx, dz, dist)
-    else
-      speed = act_zombie(dx, dz, dist)
-      @bite = bite(player, dist)
-    end
-    speed
-  end
-
-  # In the sun, a monster under the open sky catches fire, but a creeper
-  # does not. Something on the head stops the sun. The wiki names head
-  # armor (minecraft.wiki/w/Zombie). That a carved pumpkin also counts
-  # comes from the game code, which checks for any head item; the wiki
-  # does not confirm it.
-  def burn_in_sun(world)
-    return if @kind == CREEPER || @head > 0 || dying? || @fire >= SUN_FIRE
-
-    @fire = SUN_FIRE if world.under_sky?(@x, @y + @tall, @z)
-  end
-
-  # dx, dz is the step to the player, and dist is its length.
-
-  # A skeleton keeps a bow's distance and shoots when the player is in sight.
-  def act_skeleton(world, player, dx, dz, dist)
-    return 0.0 unless dist < 26.0
-
-    face(dx, dz)
-    if @attack_wait <= 0.0 && dist < 18.0 && sees?(world, player)
-      # About one shot each 3 seconds. minecraft.wiki/w/Skeleton
-      @attack_wait = 3.0
-      @shoot = true
-    end
-    dist > 12.0 ? 2.0 : (dist < 7.0 ? -1.6 : 0.0)
-  end
-
-  # A creeper walks up to the player, then stands still while the fuse burns.
-  def act_creeper(dt, player, dx, dz, dist)
-    speed = 0.0
-    if dist < 24.0
-      face(dx, dz)
-      speed = dist > 2.2 && @fuse == 0.0 ? 2.2 : 0.0
-    end
-    lit = @fuse > 0.0 ? dist < FUSE_REACH : dist < LIGHT_REACH && (player.y - @y).abs < 2.5
-    if lit
-      @hiss = true if @fuse == 0.0
-      @fuse += dt
-      @explode = true if @fuse >= FUSE
-    else
-      @fuse -= dt
-      @fuse = 0.0 if @fuse < 0.0
-    end
-    speed
-  end
-
-  # A zombie walks up to the player.
-  def act_zombie(dx, dz, dist)
-    return 0.0 unless dist < 28.0 && dist > 0.6
-
-    face(dx, dz)
-    2.4
-  end
-
-  # The damage of a zombie's bite when the player is in reach, else 0.
-  def bite(player, dist)
-    return 0 unless dist < 1.4 && (player.y - @y).abs < 1.8 && @attack_wait <= 0.0
-
-    @attack_wait = 1.0
-    # minecraft.wiki/w/Zombie
-    3
-  end
-
-  # True when no solid block lies between this mob's eyes and the player's.
-  def sees?(world, player)
-    ox = @x
-    oy = @y + 1.6
-    oz = @z
-    dx = player.x - ox
-    dy = player.eye_y - oy
-    dz = player.z - oz
-    len = Math.sqrt(dx * dx + dy * dy + dz * dz)
-    steps = (len * 2.0).to_i
-    (1...steps).each do |i|
-      t = i / (len * 2.0)
-      return false if Block.solid?(world.get((ox + dx * t).floor, (oy + dy * t).floor, (oz + dz * t).floor))
-    end
-    true
-  end
 
   # Takes damage, or the part of it above the last hit while the mob is
   # immune. Returns false when nothing is left to take, or the mob is dying.
@@ -439,52 +297,12 @@ class Mob
     fall = Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5
     mesh.roll(fall)
     @size = baby? ? 0.5 : 1.0
+    # The model of each kind: Animal#draw_model and Monster#draw_model.
+    # swing is the angle of the legs, red is the green and blue of a hurt
+    # mob, and fall the angle of a dying mob.
     draw_model(mesh, swing, red, fall)
     mesh.roll(0.0)
     @size = 1.0
-  end
-
-  # The draw_ methods are the model of each kind: Animal#draw_model, and
-  # this one for a monster. swing is the angle of the legs, red is the
-  # green and blue of a hurt mob, and fall the angle of a dying mob.
-  def draw_model(mesh, swing, red, _fall)
-    return draw_creeper(mesh, swing, red) if @kind == CREEPER
-
-    draw_humanoid(mesh, swing, red)
-  end
-
-  def draw_creeper(mesh, swing, red)
-    l = Tex::SKINS + @kind
-    flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.6 : 0.0
-    c = 1.0 + flash
-    grow = @fuse * 0.4
-    part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, grow, false, c, c * red, c * red)
-    part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, grow, false, c, c * red, c * red)
-    legs(mesh, l, 2.0, 18.0, 4.0, -4.0, 6.0, 0.0, swing, c, c * red)
-  end
-
-  # A zombie or a skeleton: a person with the arms out to the front. A
-  # skeleton has thin arms and legs, and holds a bow.
-  def draw_humanoid(mesh, swing, red)
-    l = Tex::SKINS + @kind
-    thin = @kind == SKELETON
-    t = thin ? 2.0 : 4.0
-    part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 32.0, 0.0, 0.5, false, 1.0, red, red)
-    part(mesh, l, 0.0, 0.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
-    arm = thin ? -1.45 : -1.5 + swing * 0.2
-    part(mesh, l, -5.0, 2.0, 0.0, arm, thin ? -1.0 : -3.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, false, 1.0, red, red)
-    arm = thin ? -1.45 : -1.5 - swing * 0.2
-    part(mesh, l, 5.0, 2.0, 0.0, arm, -1.0, -2.0, -t / 2.0, t, 12.0, t, 40.0, 16.0, 0.0, true, 1.0, red, red)
-    leg = thin ? 2.0 : 1.9
-    part(mesh, l, -leg, 12.0, 0.0, swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, leg, 12.0, 0.0, -swing, -t / 2.0, 0.0, -t / 2.0, t, 12.0, t, 0.0, 16.0, 0.0, true, 1.0, red, red)
-    mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0) if thin
-    # A block on the head is 1 pixel larger on each side than the head.
-    if @head > 0
-      mesh.block_box(@x, @y, @z, @yaw, -0.3125, 1.4375, -0.3125, 0.3125, 2.0625, 0.3125,
-                     Block::TOP[@head], Block::SIDE[@head], Block::BOTTOM[@head], Block::FRONT[@head], 1.0, red, red, 1.0)
-    end
   end
 
   # One box of the Minecraft model: w x h x d pixels at bx, by, bz from the

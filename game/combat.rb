@@ -101,22 +101,31 @@ class Game
       ground = MATERIAL_STEP[material(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))]
       play_at(ground, mob.x, mob.y, mob.z, 0.35, SOUND_RANGE)
     end
-    if mob.hiss
-      mob.hiss = false
-      play_from(mob, Sfx::FUSE, 1.0)
-    end
-    if mob.shoot
-      mob.shoot = false
-      shoot_arrow(mob)
-    end
-    if mob.explode
-      mob.explode = false
-      mob.alive = false
-      explode(mob.x, mob.y + 0.8, mob.z)
+    if mob.passive?
+      graze(mob, dt)
+    else
+      attack(mob)
     end
     mob.douse if mob.fire > 0.0 && @weather.wet? && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
-    graze(mob, dt) if mob.passive?
     @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.fire > 0.0
+  end
+
+  # The hiss of a creeper, the arrow of a skeleton, and the blast of a
+  # creeper whose fuse burned down.
+  def attack(monster)
+    if monster.hiss
+      monster.hiss = false
+      play_from(monster, Sfx::FUSE, 1.0)
+    end
+    if monster.shoot
+      monster.shoot = false
+      shoot_arrow(monster)
+    end
+    return unless monster.explode
+
+    monster.explode = false
+    monster.alive = false
+    explode(monster.x, monster.y + 0.8, monster.z)
   end
 
   # A sheep starts to eat grass now and then.

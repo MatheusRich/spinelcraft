@@ -79,7 +79,7 @@ class MobTest < Minitest::Test
     zombie.update_mob(@world, DT, player, Block::AIR)
     @world.set(4, SKY_Y - 1, 15, Block::AIR)
     zombie.burn_in_sun(@world)
-    assert_operator zombie.fire, :>, Mob::SUN_FIRE
+    assert_operator zombie.fire, :>, Monster::SUN_FIRE
   end
 
   def test_a_chicken_falls_slowly
@@ -199,7 +199,7 @@ class MobTest < Minitest::Test
   # gone? asks despawn? last, so a dead mob or a mob out of the loaded
   # chunks keeps its idle time.
   def test_a_mob_goes_when_it_dies_leaves_the_loaded_chunks_or_despawns
-    player = Player.new(8.5, SKY_Y - 1.0, 8.5 + Mob::DESPAWN_NEAR + 1.0)
+    player = Player.new(8.5, SKY_Y - 1.0, 8.5 + Monster::DESPAWN_NEAR + 1.0)
     zombie = Monster.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 8.5, 1)
     refute zombie.gone?(@world, player, 1.0)
     assert_equal 1.0, zombie.idle
