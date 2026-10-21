@@ -25,44 +25,14 @@ class Mob
   TALL = [0.95, 1.9, 1.9, 1.2, 1.7, 1.4, 0.7]
   # Passive mobs wander, never attack, and do not count as monsters.
   PASSIVE = [1, 0, 0, 1, 0, 1, 1]
-  # A chicken lays an egg each 5 to 10 minutes. minecraft.wiki/w/Chicken
-  EGG_MIN = 300.0
-  EGG_MORE = 300.0
   # A chicken in the air falls no faster than this, in blocks each second.
   # The wiki says only that chickens fall slowly (minecraft.wiki/w/Chicken).
   # This is the speed where Minecraft's gravity and the chicken's slowdown
   # of 0.6 for each tick meet, which the wiki does not confirm.
   CHICKEN_FALL = -2.3
-  # A baby animal is half as wide and half as tall, and grows up after 20
-  # minutes. minecraft.wiki/w/Breeding and /w/Chicken
-  GROW_TIME = 1200.0
-  # Each feeding takes 10% off the time that a baby has left to grow up,
-  # and does nothing when less than 9 seconds are left.
-  # minecraft.wiki/w/Breeding
-  FEED_GROWTH = 0.1
-  FEED_MIN = 9.0
-  # An animal starts to follow a player who holds its food within 6
-  # blocks (minecraft.wiki/w/Cow, /w/Pig and /w/Sheep; /w/Chicken says a
-  # 6x4x6 area). It stops when the player is 10 blocks away
-  # (minecraft.wiki/w/Cow and /w/Chicken, Java Edition).
-  TEMPT_REACH = 6.0
-  TEMPT_KEEP = 10.0
-  # A tempted animal stops 2.5 blocks from the player, and walks at this
-  # part of WALK_SPEED, by kind as in Mob::NAMES. The wiki does not give
-  # these values; they are those of the game code (TemptGoal, and the
-  # registerGoals of Pig, Sheep, Cow and Chicken).
-  TEMPT_NEAR = 2.5
-  TEMPT_PACE = [1.2, 0.0, 0.0, 1.1, 0.0, 1.25, 1.0]
-  # A passive mob walks at WALK_SPEED. After damage it panics for PANIC
-  # seconds: it runs at PANIC_SPEED, first away from a hit and then to a
-  # new side about each second. The wiki says only that a pig "flees for a
-  # short time when harmed" (minecraft.wiki/w/Pig), so it does not confirm
-  # these values.
+  # An animal walks at WALK_SPEED, and the legs of a mob swing at their
+  # widest from this speed up. The wiki does not give this value.
   WALK_SPEED = 1.3
-  PANIC = 5.0
-  PANIC_SPEED = 2.6
-  # A passive mob that a wall stops for this many seconds turns to a new side.
-  STUCK = 0.5
   # After a hit, the mob takes for this many seconds only the part of a new
   # hit that is above the last one, as in Minecraft. minecraft.wiki/w/Damage
   IMMUNE = 0.5
@@ -81,9 +51,6 @@ class Mob
   DESPAWN_NEAR = 32.0
   IDLE_DESPAWN = 30.0
   DESPAWN_CHANCE = 20.0 / 800.0
-  # An animal despawns farther than this many blocks along x and z from
-  # the player. minecraft.wiki does not give this value.
-  ANIMAL_DESPAWN = 160.0
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :shoot, :explode, :by_player
   # True for one step after a creeper lights its fuse.
@@ -100,29 +67,11 @@ class Mob
   attr_accessor :idle
   # Seconds since the mob died; 0.0 while it lives.
   attr_reader :death
-  # Seconds that a passive mob still panics.
-  attr_reader :panic
   # How far the legs swing, from 0 at rest to 1 at a walk or faster.
   attr_reader :leg_swing
   # The block that the mob wears on its head (a carved pumpkin on
   # Halloween), or 0.
   attr_accessor :head
-  # True for a sheep that shears took the wool of, until it eats grass.
-  attr_accessor :sheared
-  # Seconds that a sheep still eats grass, with its head down.
-  attr_reader :graze
-  # True for one step when a grazing sheep takes its bite (Game#bite_grass).
-  attr_accessor :grass_bite
-  # Seconds until a chicken lays its next egg.
-  attr_accessor :egg_time
-  # True after a chicken lays an egg, until Game#update_mobs drops it.
-  attr_accessor :lay
-  # Seconds until a baby grows up; 0.0 for a grown mob.
-  attr_reader :grow_left
-  # The love mode of the animal.
-  attr_reader :love
-  # True while the animal follows a player who holds its food.
-  attr_reader :tempted
 
   def initialize(kind, x, y, z, seed) # rubocop:todo Metrics/MethodLength
     @kind = kind
@@ -147,8 +96,6 @@ class Mob
     @phase = 0.0
     @half = HALF[kind]
     @tall = TALL[kind]
-    @think = 0.0
-    @walking = false
     @rng = Rng.new(seed)
     @attack_wait = 0.0
     @on_ground = false
@@ -158,141 +105,29 @@ class Mob
     @last_damage = 0.0
     @idle = 0.0
     @death = 0.0
-    @panic = 0.0
     @leg_swing = 0.0
+    # Seconds that a wall has stopped the mob.
     @stuck = 0.0
     @head = 0
-    @sheared = false
-    @graze = 0.0
-    @grass_bite = false
-    @egg_time = EGG_MIN + @rng.rand01 * EGG_MORE
-    @lay = false
-    # The angle of a chicken's wings (Minecraft's flap), and how far they
-    # open: 1 in the air, and down to 0 on the ground (flapSpeed).
-    @flap = 0.0
-    @flap_open = 0.0
-    @grow_left = 0.0
     # The scale of the next parts of the model (see part).
     @size = 1.0
-    @love = Love.new
-    @tempted = false
+    # The damage that the mob deals to the player in this step.
+    @bite = 0
   end
 
-  def baby? = @grow_left > 0.0
-
-  # Makes this mob a baby that grows up after GROW_TIME.
-  def make_baby
-    @grow_left = GROW_TIME
-    @half = HALF[@kind] / 2.0
-    @tall = TALL[@kind] / 2.0
-  end
-
-  # dt more seconds of growing up. A grown mob takes its full size.
-  def grow_up(dt)
-    return unless baby?
-
-    @grow_left -= dt
-    return if baby?
-
-    @grow_left = 0.0
-    @half = HALF[@kind]
-    @tall = TALL[@kind]
-  end
+  # Only an Animal can be a baby, eat food from the hand or have wool to
+  # shear.
+  def baby? = false
+  def food?(_block) = false
+  def shearable? = false
 
   def passive? = PASSIVE[@kind] == 1
 
-  # True when block is the breeding food of this animal: wheat for a cow, a
-  # sheep and a pig, and seeds for a chicken. minecraft.wiki/w/Breeding
-  # Minecraft breeds pigs with carrots since 1.4.2. From Beta 1.9
-  # Prerelease 2 until then, wheat bred them (minecraft.wiki/w/Pig). The
-  # game has no carrots, so pigs take wheat. A chicken also takes pumpkin
-  # seeds. minecraft.wiki/w/Chicken
-  def food?(block)
-    return block == Block::SEEDS || block == Block::PUMPKIN_SEEDS if @kind == CHICKEN
-
-    block == Block::WHEAT && (@kind == COW || @kind == SHEEP || @kind == PIG)
-  end
-
-  # The animal eats its food from the player's hand, and returns true when
-  # it takes the item. An adult enters love mode (Love#feed), and a baby
-  # grows up faster. The rules come from the game code
-  # (Animal.mobInteract); the wiki does not give them all.
-  def feed
-    return @love.feed unless baby?
-
-    grow_up(@grow_left * FEED_GROWTH) if @grow_left >= FEED_MIN
-    true
-  end
-
   def burning? = @fire > 0.0
-
-  # A sheep eats for 40 ticks, and it takes its bite 4 ticks before the end:
-  # then the grass goes and the wool grows back. A panic stops the eating
-  # before the bite. The wiki does not give these times or the panic rule;
-  # they are those of the game code (EatBlockGoal, and PanicGoal, which
-  # runs first).
-  GRAZE_TIME = 2.0
-  BITE_LEFT = 0.2
-  # How far a grazing sheep turns its head down, in radians.
-  GRAZE_NOD = 0.9
-
-  # A baby sheep has wool, but shears do not take it. The wiki shows a
-  # sheared baby sheep as one that only commands make
-  # (minecraft.wiki/w/Sheep); the game code checks for a baby
-  # (Sheep.readyForShearing).
-  def shearable? = @kind == SHEEP && !@sheared && !dying? && !baby?
-
-  # dt more seconds of laying for a grown chicken: it sets lay when an egg
-  # is due. A chick lays no eggs. minecraft.wiki/w/Chicken
-  def lay_eggs(dt)
-    return if @kind != CHICKEN || baby? || dying?
-
-    @egg_time -= dt
-    return if @egg_time > 0.0
-
-    @egg_time = EGG_MIN + @rng.rand01 * EGG_MORE
-    @lay = true
-    # A nil return, as on the other paths, keeps Spinel from boxing it.
-    nil
-  end
-
-  # A chicken opens its wings in the air and beats them, and folds them
-  # on the ground, as Minecraft's Chicken.aiStep: flapSpeed goes up 1.2
-  # each tick in the air and down 0.3 on the ground, and flap goes up about
-  # 1.8 each tick in the air. The wiki does not give these values.
-  def flap_wings(dt)
-    @flap_open = (@flap_open + (@on_ground ? -6.0 : 24.0) * dt).clamp(0.0, 1.0)
-    @flap += 36.0 * dt unless @on_ground
-  end
-
-  # The sheep starts to eat grass: it stands still with its head down.
-  def start_graze
-    @graze = GRAZE_TIME
-  end
-
-  # The wool of a sheared sheep grows back after its bite of grass.
-  # minecraft.wiki/w/Sheep
-  def regrow
-    @sheared = false
-  end
 
   # A dying mob lies on the ground until DEATH_TIME. It does not move on its
   # own, attack or take hits.
   def dying? = @hp <= 0
-
-  # A sheep starts to eat when it has grass to eat and does not panic.
-  def can_graze?(world) = @kind == SHEEP && !dying? && @graze <= 0.0 && @panic <= 0.0 && grass_under(world) > 0
-
-  # What the sheep can eat: 1 for the tall grass in its cell, 2 for the
-  # grass block under it, or 0. minecraft.wiki/w/Sheep
-  def grass_under(world)
-    x = @x.floor
-    y = (@y + 0.01).floor
-    z = @z.floor
-    return 1 if world.get(x, y, z) == Block::TALL_GRASS
-
-    world.get(x, y - 1, z) == Block::GRASS ? 2 : 0
-  end
 
   # True when Game#update_mobs takes the mob out: it is dead, it is out of
   # the loaded chunks, or it despawns. despawn? comes last, so only a live
@@ -307,14 +142,12 @@ class Mob
     "despawns"
   end
 
-  # True when the mob despawns after dt seconds more, with player where it
-  # is now.
+  # True when the monster despawns after dt seconds more, with player
+  # where it is now. Animal#despawn? is the rule for an animal.
   def despawn?(player, dt)
     dx = @x - player.x
     dy = @y - player.y
     dz = @z - player.z
-    return dx * dx + dz * dz > ANIMAL_DESPAWN * ANIMAL_DESPAWN if passive?
-
     distance2 = dx * dx + dy * dy + dz * dz
     return true if distance2 > DESPAWN_FAR * DESPAWN_FAR
 
@@ -371,47 +204,20 @@ class Mob
   end
 
   # Returns damage dealt to the player this step. held is the item in the
-  # player's hand, and sun is true when the sun burns undead mobs.
+  # player's hand.
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_mob(world, dt, player, held, sun:) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def update_mob(world, dt, player, held) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @hurt -= dt
-    if @graze > 0.0
-      @graze = 0.0 if @panic > 0.0 || dying?
-      @grass_bite = true if @graze > BITE_LEFT && @graze - dt <= BITE_LEFT
-      @graze -= dt
-    end
     @immune -= dt
     @attack_wait -= dt
-    grow_up(dt)
-    lay_eggs(dt)
-    @love.clock(dt)
+    @bite = 0
     speed = 0.0
-    damage = 0
     if dying?
       @death += dt
-    elsif passive?
-      speed = act_passive(dt, player, held)
     else
-      # to_f: Spinel cannot type the positions, and the act_ methods need Floats.
-      dx = (player.x - @x).to_f
-      dz = (player.z - @z).to_f
-      dist = Math.sqrt(dx * dx + dz * dz)
-      if @kind == SKELETON
-        speed = act_skeleton(world, player, dx, dz, dist)
-      elsif @kind == CREEPER
-        speed = act_creeper(dt, player, dx, dz, dist)
-      else
-        speed = act_zombie(dx, dz, dist)
-        damage = bite(player, dist)
-      end
-      exposed = world.under_sky?(@x, @y + @tall, @z)
-      # Something on the head stops the sun. The wiki names head armor
-      # (minecraft.wiki/w/Zombie). That a carved pumpkin also counts comes
-      # from the game code, which checks for any head item; the wiki does
-      # not confirm it.
-      @fire = SUN_FIRE if sun && exposed && @kind != CREEPER && @head == 0 && @fire < SUN_FIRE
+      speed = act(world, dt, player, held)
     end
     fx = -Math.sin(@yaw)
     fz = Math.cos(@yaw)
@@ -452,16 +258,12 @@ class Mob
     bumped = move(world, @vx * dt, @vy * dt, @vz * dt)
     @vy = 8.2 if bumped && @on_ground && !dying?
     @stuck = bumped ? @stuck + dt : 0.0
-    if passive? && @stuck > STUCK
-      @think = 0.0
-      @stuck = 0.0
-    end
+    after_move(dt)
     moving = Math.sqrt(@vx * @vx + @vz * @vz)
     @phase += moving * dt * 3.5
     # The legs swing as far as the mob goes fast, and come to rest when it
     # stops, as in Minecraft.
     @leg_swing += ((moving / WALK_SPEED).clamp(0.0, 1.0) - @leg_swing) * (8.0 * dt).clamp(0.0, 1.0)
-    flap_wings(dt) if @kind == CHICKEN
     if @on_ground && !dying?
       @step_dist += moving * dt
       if @step_dist > Player::STEP
@@ -473,70 +275,44 @@ class Mob
     # clock now. So Game#update_mobs sees it die once, and drops its loot once.
     @death = dt if dying? && @death == 0.0
     @alive = false if @death >= DEATH_TIME || @y < -10.0
-    damage
+    @bite
   end
 
-  # The act_ methods are the AI of each kind. Each one can turn the mob,
-  # and returns the speed that it walks at. dx, dz is the step to the
-  # player, and dist is its length.
+  # What a monster does after the move of a step. Animal#after_move turns
+  # a stuck animal and beats the wings of a chicken.
+  def after_move(_dt) = nil
 
-  # A passive mob wanders, and after a hit it panics. A lover walks to its
-  # mate, and else a mob that does not panic follows a player who holds
-  # its food (held), as the order of the goals in the game code. A
-  # panicking mob has no mate: the hit ended its love mode (Love#reset).
-  def act_passive(dt, player, held)
-    @think -= dt
-    @panic -= dt
-    @tempted = false if @panic > 0.0
-    return walk_to_mate(dt) if @love.courting?
-    return follow(player) if @panic <= 0.0 && tempted_by?(player, held)
-
-    if @think <= 0.0
-      if @panic > 0.0
-        @think = 0.7 + @rng.rand01 * 0.8
-        @walking = true
-      else
-        @think = 2.0 + @rng.rand01 * 4.0
-        @walking = @rng.rand01 < 0.6
-      end
-      @yaw = @rng.rand01 * 6.283
+  # The act methods are the AI of each kind: Animal#act, and this one for
+  # a monster. Each one can turn the mob, and returns the speed that it
+  # walks at. A monster that bites sets @bite.
+  def act(world, dt, player, _held)
+    # to_f: Spinel cannot type the positions, and the act_ methods need Floats.
+    dx = (player.x - @x).to_f
+    dz = (player.z - @z).to_f
+    dist = Math.sqrt(dx * dx + dz * dz)
+    if @kind == SKELETON
+      speed = act_skeleton(world, player, dx, dz, dist)
+    elsif @kind == CREEPER
+      speed = act_creeper(dt, player, dx, dz, dist)
+    else
+      speed = act_zombie(dx, dz, dist)
+      @bite = bite(player, dist)
     end
-    # A grazing sheep stands still.
-    return 0.0 if @graze > 0.0
-
-    @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
+    speed
   end
 
-  # The lover walks to its mate at the walk speed, as in the game code
-  # (BreedGoal, speed 1.0), until the two touch. The wiki does not say.
-  def walk_to_mate(dt)
-    @love.walk(dt)
-    @graze = 0.0
-    dx = @love.mate_x - @x.to_f
-    dz = @love.mate_z - @z.to_f
-    face(dx, dz)
-    dx * dx + dz * dz > 4.0 * @half * @half ? WALK_SPEED : 0.0
+  # In the sun, a monster under the open sky catches fire, but a creeper
+  # does not. Something on the head stops the sun. The wiki names head
+  # armor (minecraft.wiki/w/Zombie). That a carved pumpkin also counts
+  # comes from the game code, which checks for any head item; the wiki
+  # does not confirm it.
+  def burn_in_sun(world)
+    return if @kind == CREEPER || @head > 0 || dying? || @fire >= SUN_FIRE
+
+    @fire = SUN_FIRE if world.under_sky?(@x, @y + @tall, @z)
   end
 
-  # True when the player holds the food of this animal (held) in reach.
-  # It keeps @tempted.
-  def tempted_by?(player, held)
-    # to_f: Spinel cannot type the positions.
-    dx = (player.x - @x).to_f
-    dy = (player.y - @y).to_f
-    dz = (player.z - @z).to_f
-    reach = @tempted ? TEMPT_KEEP : TEMPT_REACH
-    @tempted = food?(held) && dx * dx + dy * dy + dz * dz < reach * reach
-  end
-
-  # The tempted animal turns to the player and walks up to TEMPT_NEAR.
-  def follow(player)
-    @graze = 0.0
-    dx = (player.x - @x).to_f
-    dz = (player.z - @z).to_f
-    face(dx, dz)
-    dx * dx + dz * dz > TEMPT_NEAR * TEMPT_NEAR ? WALK_SPEED * TEMPT_PACE[@kind] : 0.0
-  end
+  # dx, dz is the step to the player, and dist is its length.
 
   # A skeleton keeps a bow's distance and shoots when the player is in sight.
   def act_skeleton(world, player, dx, dz, dist)
@@ -619,14 +395,13 @@ class Mob
     end
     @last_damage = damage
     @hurt = 0.35
-    @panic = PANIC if passive?
-    @love.reset
     @ouch = true
     true
   end
 
+  # The hit throws the mob back. Returns false when the hit takes nothing.
   def hit(damage, from_x, from_z)
-    return unless wound(damage)
+    return false unless wound(damage)
 
     dx = @x - from_x
     dz = @z - from_z
@@ -635,11 +410,7 @@ class Mob
     @vx = dx / len * 7.0
     @vz = dz / len * 7.0
     @vy = 5.5
-    return unless passive?
-
-    face(dx, dz)
-    @walking = true
-    @think = 1.0
+    true
   end
 
   # Distance along the ray to this mob's box, or -1.0 when the ray misses it.
@@ -668,25 +439,20 @@ class Mob
     fall = Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5
     mesh.roll(fall)
     @size = baby? ? 0.5 : 1.0
-    if @kind == CREEPER
-      draw_creeper(mesh, swing, red)
-    elsif @kind == PIG
-      draw_pig(mesh, swing, red)
-    elsif @kind == SHEEP
-      draw_sheep(mesh, swing, red)
-    elsif @kind == COW
-      draw_cow(mesh, swing, red)
-    elsif @kind == CHICKEN
-      draw_chicken(mesh, swing, red, fall)
-    else
-      draw_humanoid(mesh, swing, red)
-    end
+    draw_model(mesh, swing, red, fall)
     mesh.roll(0.0)
     @size = 1.0
   end
 
-  # The draw_ methods are the model of each kind. swing is the angle of the
-  # legs, and red is the green and blue of a hurt mob.
+  # The draw_ methods are the model of each kind: Animal#draw_model, and
+  # this one for a monster. swing is the angle of the legs, red is the
+  # green and blue of a hurt mob, and fall the angle of a dying mob.
+  def draw_model(mesh, swing, red, _fall)
+    return draw_creeper(mesh, swing, red) if @kind == CREEPER
+
+    draw_humanoid(mesh, swing, red)
+  end
+
   def draw_creeper(mesh, swing, red)
     l = Tex::SKINS + @kind
     flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.6 : 0.0
@@ -695,86 +461,6 @@ class Mob
     part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, grow, false, c, c * red, c * red)
     part(mesh, l, 0.0, 6.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, grow, false, c, c * red, c * red)
     legs(mesh, l, 2.0, 18.0, 4.0, -4.0, 6.0, 0.0, swing, c, c * red)
-  end
-
-  def draw_pig(mesh, swing, red)
-    l = Tex::SKINS + @kind
-    part(mesh, l, 0.0, 12.0, -6.0, 0.0, -4.0, -4.0, -8.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 12.0, -6.0, 0.0, -2.0, 0.0, -9.0, 4.0, 3.0, 1.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 11.0, 2.0, Math::PI / 2.0, -5.0, -10.0, -7.0, 10.0, 16.0, 8.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
-    legs(mesh, l, 3.0, 18.0, 7.0, -5.0, 6.0, 0.0, swing, 1.0, red)
-  end
-
-  # A grazing sheep bows its head to the ground, and a sheared sheep has no
-  # fur.
-  def draw_sheep(mesh, swing, red)
-    l = Tex::SKINS + @kind
-    nod = @graze > 0.0 ? GRAZE_NOD : 0.0
-    part(mesh, l, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
-    legs(mesh, l, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, 1.0, red)
-    return if @sheared
-
-    fur = Tex::SKINS + Tex::SKIN_FUR
-    part(mesh, fur, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
-    part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, 1.0, red, red)
-    legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, 1.0, red)
-  end
-
-  # The head with its horns, the body with the udder under it, and legs 12
-  # pixels long.
-  def draw_cow(mesh, swing, red)
-    l = Tex::SKINS + @kind
-    part(mesh, l, 0.0, 4.0, -8.0, 0.0, -4.0, -4.0, -6.0, 8.0, 8.0, 6.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 4.0, -8.0, 0.0, -5.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 4.0, -8.0, 0.0, 4.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -6.0, -10.0, -7.0, 12.0, 18.0, 10.0, 18.0, 4.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, 5.0, 2.0, Math::PI / 2.0, -2.0, 2.0, -8.0, 4.0, 6.0, 1.0, 52.0, 0.0, 0.0, false, 1.0, red, red)
-    legs(mesh, l, 4.0, 12.0, 7.0, -6.0, 12.0, 0.0, swing, 1.0, red)
-  end
-
-  # The ChickenModel of Minecraft. The wings turn around the axis from the
-  # back to the front through their top edge: out and up as they beat.
-  # fall is the angle of a dying mob (Mesh3#roll). A chick has the head of
-  # a grown chicken, 5 pixels lower and 2 farther back, on a body half as
-  # large (AgeableListModel).
-  def draw_chicken(mesh, swing, red, fall)
-    l = Tex::SKINS + @kind
-    part(mesh, l, 0.0, 16.0, 0.0, Math::PI / 2.0, -3.0, -4.0, -3.0, 6.0, 8.0, 6.0, 0.0, 9.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, -2.0, 19.0, 1.0, swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 1.0, 19.0, 1.0, -swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, 1.0, red, red)
-    beat = (Math.sin(@flap) + 1.0) * @flap_open
-    wing(mesh, l, -4.0, fall, beat, red)
-    wing(mesh, l, 4.0, fall, -beat, red)
-    mesh.roll(fall)
-    chick = baby?
-    @size = 1.0
-    py = chick ? 20.0 : 15.0
-    pz = chick ? -2.0 : -4.0
-    part(mesh, l, 0.0, py, pz, 0.0, -2.0, -6.0, -2.0, 4.0, 6.0, 3.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, py, pz, 0.0, -2.0, -4.0, -4.0, 4.0, 2.0, 2.0, 14.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, l, 0.0, py, pz, 0.0, -1.0, -2.0, -3.0, 2.0, 2.0, 2.0, 14.0, 4.0, 0.0, false, 1.0, red, red)
-  end
-
-  # A wing of a chicken: 1 x 4 x 6 pixels that hang from the pivot px, 13,
-  # 0 (px -4 is the right wing, 4 the left), turned by beat around the axis
-  # from the back to the front through the pivot. Mesh3#roll turns the
-  # whole body by fall around the axis through its feet, so the turn by
-  # fall + beat goes around that axis, and the box moves by the difference
-  # to turn around the pivot instead.
-  def wing(mesh, l, px, fall, beat, red)
-    k = @size / 16.0
-    cx = px * k
-    cy = 11.0 * k
-    t = fall + beat
-    mx = cx * Math.cos(fall) + cy * Math.sin(fall) - (cx * Math.cos(t) + cy * Math.sin(t))
-    my = cy * Math.cos(fall) - cx * Math.sin(fall) - (cy * Math.cos(t) - cx * Math.sin(t))
-    mesh.roll(t)
-    x0 = px < 0.0 ? px : px - 1.0
-    # to_f: Spinel cannot type the position of a mob.
-    mesh.skin_box(@x.to_f + mx * Math.cos(@yaw), @y.to_f + my, @z.to_f + mx * Math.sin(@yaw), @yaw, 0.0, 0.0, 0.0,
-                  x0 * k, 7.0 * k, -3.0 * k, (x0 + 1.0) * k, 11.0 * k, 3.0 * k,
-                  l, 24.0, 13.0, 1.0, 4.0, 6.0, false, 1.0, red, red, 1.0)
   end
 
   # A zombie or a skeleton: a person with the arms out to the front. A

@@ -67,7 +67,8 @@ class Game
     @mobs.each do |mob|
       before_step(mob, dt)
       lived = mob.death == 0.0
-      step_mob(mob, dt, held, sun: sun)
+      mob.burn_in_sun(@world) if sun && !mob.passive?
+      step_mob(mob, dt, held)
       after_step(mob)
       # A mob drops its loot when it dies, and its body goes up in smoke
       # when it is gone. minecraft.wiki/w/Death
@@ -114,18 +115,23 @@ class Game
       explode(mob.x, mob.y + 0.8, mob.z)
     end
     mob.douse if mob.fire > 0.0 && @weather.wet? && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
-    mob.start_graze if mob.can_graze?(@world) && @rng.rand01 < dt * (mob.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
+    graze(mob, dt) if mob.passive?
     @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.fire > 0.0
+  end
+
+  # A sheep starts to eat grass now and then.
+  def graze(animal, dt)
+    animal.start_graze if animal.can_graze?(@world) && @rng.rand01 < dt * (animal.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
   end
 
   # Moves the mob, in two steps when the frame takes more than 0.025
   # seconds. A hit on the player hurts and, in survival, throws the
   # player back.
-  def step_mob(mob, dt, held, sun:)
+  def step_mob(mob, dt, held)
     steps = dt > 0.025 ? 2 : 1
     sdt = dt / steps
     steps.times do
-      damage = mob.update_mob(@world, sdt, @player, held, sun: sun)
+      damage = mob.update_mob(@world, sdt, @player, held)
       next if damage <= 0
 
       hurt(damage, Sfx::HURT)
@@ -134,8 +140,10 @@ class Game
     end
   end
 
-  # What the step of the mob left: a bite of grass, an egg, or a heart.
+  # What the step of an animal left: a bite of grass, an egg, or a heart.
   def after_step(mob)
+    return unless mob.passive?
+
     bite_grass(mob) if mob.grass_bite
     lay_egg(mob) if mob.lay
     show_heart(mob) if mob.love.heart
@@ -293,9 +301,10 @@ class Game
     i = 0
     while i < n
       m = @mobs[i]
-      j = m.love.on? ? nearest_mate(i) : -1
+      lover = m.passive? && m.love.on?
+      j = lover ? nearest_mate(i) : -1
       i += 1
-      next unless m.love.on?
+      next unless lover
 
       if j < 0
         m.love.alone

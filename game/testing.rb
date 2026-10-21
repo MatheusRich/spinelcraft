@@ -2243,12 +2243,12 @@ class Game
     @mobs.clear
     check("chicken is food, and a furnace cooks it", cooks?(Block::RAW_CHICKEN, 2, 1.2, Block::COOKED_CHICKEN, 6, 7.2))
     hen = Animal.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 11)
-    due = hen.egg_time >= Mob::EGG_MIN && hen.egg_time <= Mob::EGG_MIN + Mob::EGG_MORE
+    due = hen.egg_time >= Animal::EGG_MIN && hen.egg_time <= Animal::EGG_MIN + Animal::EGG_MORE
     hen.egg_time = 0.001
     @mobs << hen
     update_mobs(1.0 / 60.0)
     check("a chicken lays an egg each 5 to 10 minutes",
-          due && ground_count(Block::EGG) == 1 && hen.egg_time >= Mob::EGG_MIN - 0.1)
+          due && ground_count(Block::EGG) == 1 && hen.egg_time >= Animal::EGG_MIN - 0.1)
     @items.clear
     @mobs.clear
   end
@@ -3676,7 +3676,7 @@ class Game
     sheep.start_graze
     40.times { update_mobs(1.0 / 60.0) }
     early = sheep.sheared && @world.get(bx, y, bz) == Block::GRASS && sheep.graze > 0.0
-    (Mob::GRAZE_TIME * 60.0).to_i.times { update_mobs(1.0 / 60.0) }
+    (Animal::GRAZE_TIME * 60.0).to_i.times { update_mobs(1.0 / 60.0) }
     on_grass = !sheep.sheared && @world.get(bx, y, bz) == Block::DIRT
     # The tall grass in its cell goes before the grass block.
     sheep.sheared = true
@@ -3911,7 +3911,7 @@ class Game
     grow = calf.grow_left
     left = @inv.count(0)
     right_click_mob(calf)
-    faster = (calf.grow_left - grow * (1.0 - Mob::FEED_GROWTH)).abs < 0.001 && @inv.count(0) == left - 1
+    faster = (calf.grow_left - grow * (1.0 - Animal::FEED_GROWTH)).abs < 0.001 && @inv.count(0) == left - 1
     calf.grow_up(calf.grow_left - 8.0)
     right_click_mob(calf)
     late = (calf.grow_left - 8.0).abs < 0.001 && @inv.count(0) == left - 2

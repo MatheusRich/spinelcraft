@@ -13,7 +13,7 @@ class MobTest < Minitest::Test
     creeper = Monster.new(Mob::CREEPER, player.x + 1.5, player.y, player.z, 11)
     hisses = 0
     20.times do
-      creeper.update_mob(@world, DT, player, Block::AIR, sun: false)
+      creeper.update_mob(@world, DT, player, Block::AIR)
       hisses += 1 if creeper.hiss
       creeper.hiss = false
     end
@@ -33,7 +33,7 @@ class MobTest < Minitest::Test
     zombie = Monster.new(Mob::ZOMBIE, 10.5, SKY_Y - 1.0, 8.5, 3)
     steps = 0
     120.times do
-      zombie.update_mob(@world, DT, player, Block::AIR, sun: false)
+      zombie.update_mob(@world, DT, player, Block::AIR)
       steps += 1 if zombie.step
       zombie.step = false
     end
@@ -44,33 +44,28 @@ class MobTest < Minitest::Test
     lay_floor
     player = Player.new(8.5, SKY_Y - 1.0, 0.5)
     zombie = Monster.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 15.5, 3)
-    30.times { zombie.update_mob(@world, DT, player, Block::AIR, sun: false) }
+    30.times { zombie.update_mob(@world, DT, player, Block::AIR) }
     assert_operator zombie.leg_swing, :>, 0.5
     player.z = 300.0
-    60.times { zombie.update_mob(@world, DT, player, Block::AIR, sun: false) }
+    60.times { zombie.update_mob(@world, DT, player, Block::AIR) }
     assert_operator zombie.leg_swing, :<, 0.05
   end
 
-  def test_a_zombie_under_the_open_sky_burns_only_in_the_sun
+  def test_a_zombie_under_the_open_sky_catches_fire_in_the_sun
     lay_floor
-    player = Player.new(8.5, SKY_Y - 1.0, 0.5)
-    lit = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
-    dark = Monster.new(Mob::ZOMBIE, 12.5, SKY_Y - 1.0, 15.5, 3)
-    lit.update_mob(@world, DT, player, Block::AIR, sun: true)
-    dark.update_mob(@world, DT, player, Block::AIR, sun: false)
-    assert lit.burning?
-    refute dark.burning?
+    zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    zombie.burn_in_sun(@world)
+    assert zombie.burning?
   end
 
   def test_a_roof_a_carved_pumpkin_and_a_creeper_do_not_burn_in_the_sun
     lay_floor
-    player = Player.new(8.5, SKY_Y - 1.0, 0.5)
     roofed = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
     @world.set(4, SKY_Y + 3, 15, Block::STONE)
     capped = Monster.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 15.5, 3)
     capped.head = Block::CARVED_PUMPKIN
     creeper = Monster.new(Mob::CREEPER, 12.5, SKY_Y - 1.0, 15.5, 3)
-    [roofed, capped, creeper].each { |mob| mob.update_mob(@world, DT, player, Block::AIR, sun: true) }
+    [roofed, capped, creeper].each { |mob| mob.burn_in_sun(@world) }
     refute roofed.burning?
     refute capped.burning?
     refute creeper.burning?
@@ -81,9 +76,9 @@ class MobTest < Minitest::Test
     player = Player.new(8.5, SKY_Y - 1.0, 0.5)
     zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
     @world.set(4, SKY_Y - 1, 15, Block::LAVA)
-    zombie.update_mob(@world, DT, player, Block::AIR, sun: true)
+    zombie.update_mob(@world, DT, player, Block::AIR)
     @world.set(4, SKY_Y - 1, 15, Block::AIR)
-    zombie.update_mob(@world, DT, player, Block::AIR, sun: true)
+    zombie.burn_in_sun(@world)
     assert_operator zombie.fire, :>, Mob::SUN_FIRE
   end
 
@@ -92,8 +87,8 @@ class MobTest < Minitest::Test
     hen = Animal.new(Mob::CHICKEN, 4.5, SKY_Y.to_f, 4.5, 13)
     pig = Animal.new(Mob::PIG, 7.5, SKY_Y.to_f, 4.5, 13)
     60.times do
-      hen.update_mob(@world, DT, player, Block::AIR, sun: false)
-      pig.update_mob(@world, DT, player, Block::AIR, sun: false)
+      hen.update_mob(@world, DT, player, Block::AIR)
+      pig.update_mob(@world, DT, player, Block::AIR)
     end
     assert_operator hen.vy, :>=, Mob::CHICKEN_FALL
     assert_operator pig.vy, :<, Mob::CHICKEN_FALL * 4.0
@@ -102,7 +97,7 @@ class MobTest < Minitest::Test
   def test_a_chick_grows_up_after_20_minutes
     chick = Animal.new(Mob::CHICKEN, 8.5, SKY_Y.to_f, 8.5, 6)
     chick.make_baby
-    chick.grow_up(Mob::GROW_TIME - 1.0)
+    chick.grow_up(Animal::GROW_TIME - 1.0)
     assert chick.baby?
     chick.grow_up(1.0)
     refute chick.baby?
@@ -215,7 +210,7 @@ class MobTest < Minitest::Test
     assert zombie.gone?(@world, player, 1.0)
     assert_equal 1.0, zombie.idle
     pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
-    assert pig.gone?(@world, Player.new(8.5 + Mob::ANIMAL_DESPAWN + 1.0, SKY_Y - 1.0, 8.5), 0.0)
+    assert pig.gone?(@world, Player.new(8.5 + Animal::DESPAWN + 1.0, SKY_Y - 1.0, 8.5), 0.0)
   end
 
   def test_the_log_says_why_a_mob_goes

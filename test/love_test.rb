@@ -28,15 +28,15 @@ class LoveTest < Minitest::Test
     calf.make_baby
     assert calf.feed
     refute calf.love.on?
-    assert_in_delta Mob::GROW_TIME * (1.0 - Mob::FEED_GROWTH), calf.grow_left, 0.001
+    assert_in_delta Animal::GROW_TIME * (1.0 - Animal::FEED_GROWTH), calf.grow_left, 0.001
   end
 
   def test_food_speeds_up_a_baby_only_while_it_has_9_seconds_or_more_left
     calf = new_cow
     calf.make_baby
-    calf.grow_up(Mob::GROW_TIME - Mob::FEED_MIN)
+    calf.grow_up(Animal::GROW_TIME - Animal::FEED_MIN)
     calf.feed
-    assert_in_delta Mob::FEED_MIN * (1.0 - Mob::FEED_GROWTH), calf.grow_left, 0.001
+    assert_in_delta Animal::FEED_MIN * (1.0 - Animal::FEED_GROWTH), calf.grow_left, 0.001
     left = calf.grow_left
     calf.feed
     assert_equal left, calf.grow_left
@@ -46,7 +46,7 @@ class LoveTest < Minitest::Test
     lay_floor
     cow = new_cow
     cow.feed
-    31.times { cow.update_mob(@world, DT, @player, Block::AIR, sun: false) }
+    31.times { cow.update_mob(@world, DT, @player, Block::AIR) }
     assert cow.love.heart
   end
 
@@ -111,8 +111,8 @@ class LoveTest < Minitest::Test
     east.love.court(12.5, 4.5)
     north.love.court(4.5, 12.5)
     60.times do
-      east.update_mob(@world, DT, @player, Block::AIR, sun: false)
-      north.update_mob(@world, DT, @player, Block::AIR, sun: false)
+      east.update_mob(@world, DT, @player, Block::AIR)
+      north.update_mob(@world, DT, @player, Block::AIR)
     end
     assert_operator east.x, :>, 8.5
     assert_operator east.z, :<, 8.5
@@ -126,7 +126,7 @@ class LoveTest < Minitest::Test
     cow = new_cow
     cow.feed
     cow.love.court(12.5, 8.5)
-    30.times { cow.update_mob(@world, DT, @player, Block::AIR, sun: false) }
+    30.times { cow.update_mob(@world, DT, @player, Block::AIR) }
     cow.love.alone
     assert_equal 0.0, cow.love.court_time
   end
@@ -138,7 +138,7 @@ class LoveTest < Minitest::Test
     cow.love.court(12.5, 8.5)
     cow.love.clock(Love::TIME)
     x = cow.x
-    60.times { cow.update_mob(@world, DT, @player, Block::AIR, sun: false) }
+    60.times { cow.update_mob(@world, DT, @player, Block::AIR) }
     assert_equal 0.0, cow.love.court_time
     assert_operator cow.x, :<, x + 1.0
   end
