@@ -482,7 +482,7 @@ class Game
       fell = @player.update(@world, step, fwd, strafe, jump, down, sprint)
       hurt((fell - 3.0).ceil, Sfx::FALL) if fell > 3.5
       if @survival
-        moved = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * step
+        moved = @player.speed * step
         @vitals.move(moved, sprint && @player.on_ground, @player.in_water, @player.jumped)
       end
       remaining -= step
@@ -496,7 +496,7 @@ class Game
     # enters it or moves in it. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
     swimming = @player.in_water && !@player.in_lava
     if (@player.on_ground || swimming) && !@player.in_lava && !@player.flying
-      @step_dist += Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz) * dt
+      @step_dist += @player.speed * dt
       if @step_dist > Player::STEP
         @step_dist = 0.0
         ground = MATERIAL_STEP[material(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))]
@@ -521,7 +521,7 @@ class Game
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
-    speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
+    speed = @player.speed
     @bob += speed * dt * 2.6
     target_fov = @options.half_fov * (speed > 5.0 ? 1.1 : 1.0)
     @fov += (target_fov - @fov) * (6.0 * dt).clamp(0.0, 1.0)

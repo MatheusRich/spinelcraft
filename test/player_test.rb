@@ -14,6 +14,14 @@ class PlayerTest < Minitest::Test
     assert_equal Player::FLY_BOOST, player.fly_boost(world)
   end
 
+  def test_the_speed_is_along_the_ground_only
+    player = Player.new(0.5, SKY_Y.to_f, 0.5)
+    player.vx = 3.0
+    player.vy = -20.0
+    player.vz = -4.0
+    assert_equal 5.0, player.speed
+  end
+
   def test_the_player_fits_dry_on_a_solid_block_with_room_and_no_water
     world = world_with_one_chunk
     world.set(8, SKY_Y - 1, 8, Block::STONE)

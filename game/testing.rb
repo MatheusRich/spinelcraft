@@ -874,7 +874,7 @@ class Game
       @player.move_to(x + 0.5, y + 1.0, z + 0.5)
       @player.slowed = slowed
       40.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, true) }
-      Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
+      @player.speed
     end
     (0..30).each { |d| set_block(x, y, z - d, Block::AIR) }
     @player.slowed = false

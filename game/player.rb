@@ -69,6 +69,9 @@ class Player
 
   def eye_y = @y + @eye
 
+  # The speed along the ground: x and z, without the speed up or down.
+  def speed = Math.sqrt(@vx * @vx + @vz * @vz)
+
   # True when an attack now is a critical hit, if the attack cooldown is
   # full enough: the player falls, and is not on a ladder, in water, flying
   # or sprinting. minecraft.wiki/w/Damage

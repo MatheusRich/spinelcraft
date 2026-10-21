@@ -7,7 +7,7 @@ class Game
     ey = @player.eye_y.to_f
     ez = @player.z.to_f
     walking = @player.on_ground && !@player.flying
-    speed = Math.sqrt(@player.vx * @player.vx + @player.vz * @player.vz)
+    speed = @player.speed
     ey += Math.sin(@bob) * 0.05 * (speed / 4.3).clamp(0.0, 1.0) if walking
     @camera.update_camera(ex, ey, ez, @player.yaw, @player.pitch, w / h, @options.view + 40.0, @fov)
     @camera.write_column_major(@uniforms)
