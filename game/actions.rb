@@ -107,9 +107,9 @@ class Game
   end
 
   # How full the attack cooldown is, from 0 to 1. A hit does 0.2 + 0.8 *
-  # charge * charge of its damage. An attack, a broken block and a new item
-  # in the hand start the cooldown again. The 0.025 seconds are half a
-  # tick. minecraft.wiki/w/Melee_attack
+  # charge * charge of its damage. An attack, a miss, a broken block and a
+  # new item in the hand start the cooldown again. The 0.025 seconds are
+  # half a tick. minecraft.wiki/w/Melee_attack
   def attack_charge = ((@attack_time + 0.025) * Block.attack_speed(current_block.to_i)).clamp(0.0, 1.0)
 
   # The left button hits the mob in the crosshair, or else breaks the block:
@@ -150,6 +150,12 @@ class Game
         @swing = 0.25
       end
     else
+      # A click at the air swings the arm and starts the cooldown again. The
+      # wiki does not say so; the game code does (Minecraft.startAttack).
+      if pressed
+        @attack_time = 0.0
+        @swing = SWING
+      end
       @mining = false
     end
   end

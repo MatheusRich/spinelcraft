@@ -211,6 +211,7 @@ class Game
     test_inventory_clicks
     test_swim_out
     test_hand_sway
+    test_swing_at_air
     test_pause
     test_menu
     test_fullscreen_follows_window
@@ -1015,6 +1016,44 @@ class Game
     end
     p.vx = 0.0
     check("the held item sways smoothly while the player walks and stops", most < 0.006)
+  end
+
+  # A left click with nothing in reach swings the held sword, and the next
+  # hit has a low charge.
+  def test_swing_at_air
+    survival = @survival
+    captured = @captured
+    @survival = true
+    @captured = true
+    @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
+    @slot = 0
+    update_hand(0.0)
+    @equip = 0.0
+    @player.pitch = 1.5
+    @player.raycast(@world)
+    @target_mob = -1
+    @target_boat = -1
+    @swing = 0.0
+    @attack_time = 1.0
+    rest = hand_corner
+    left_button(1.0 / 60.0, true, true)
+    # Halfway through the swing, as Game#update counts it down.
+    @swing -= SWING / 2.0
+    moved = (hand_corner - rest).abs > 0.05
+    check("a click at the air swings the held sword and starts the cooldown again", !@player.hit && moved && attack_charge < 0.2)
+    @swing = 0.0
+    @dyn.clear
+    @inv.clear
+    @captured = captured
+    @player.pitch = 0.0
+    @survival = survival
+  end
+
+  # The sum of the coordinates of the first vertex of the held model.
+  def hand_corner
+    @dyn.clear
+    draw_hand(@player.x, @player.eye_y, @player.z)
+    @dyn.v[0] + @dyn.v[1] + @dyn.v[2]
   end
 
   # Runs the falling blocks for the given seconds.
