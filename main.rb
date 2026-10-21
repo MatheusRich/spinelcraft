@@ -147,7 +147,7 @@ class Game
     @bad_save_path = prefix + BAD_SAVE_PATH
     @options = Options.new(prefix + OPTIONS_PATH)
     @options.read_file if @save_on_quit
-    @options.view = ENV["VIEW"].to_f if ENV["VIEW"]
+    @options.read_option("view", ENV["VIEW"]) if ENV["VIEW"]
     @sound = false
     @demo = !ENV["DEMO"].nil?
     @clouds = Clouds.new(@seed)
