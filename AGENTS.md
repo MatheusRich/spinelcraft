@@ -7,7 +7,7 @@ Spinelcraft is pre-alpha. No player, save or tool depends on old behavior yet.
 - When the save format changes, change `SAVE_VERSION` in `game/constants.rb`. Then an old save does not load, and the game moves it to `world-bad.sav` and starts a new world. That is all the old save gets.
 - Remove code that nothing calls.
 - Write idiomatic Ruby where it costs no speed. When the speed is not known, measure it.
-- Run `mise exec -- rubocop` before each commit, and fix each offense. Do not add a `# rubocop:todo` or `# rubocop:disable` comment to new code. When a change makes an old method short enough, remove its `# rubocop:todo` comment.
+- Run `mise exec -- rubocop` and `mise exec -- reek main.rb game tools` before each commit, and fix each offense. Do not add a `# rubocop:todo`, `# rubocop:disable` or `:reek:` comment to new code. When a change makes an old method short enough, remove its `# rubocop:todo` comment. When a fix removes the last Reek offense of a method, run `mise exec -- ruby tools/reek_todo.rb`.
 - Balance values (damage, durability, mining time, hunger, mob health, drops) copy Minecraft Java Edition on Normal difficulty. Take each value from minecraft.wiki, and cite its page in a comment beside the value, for example `# minecraft.wiki/w/Hunger`. When the wiki does not confirm a value, the comment says so.
 
 ## Tests
