@@ -32,8 +32,8 @@ class Chest
   # Moves the stack in a slot of from into the chest: into the top half
   # of a large chest first.
   def store(from, slot)
-    from.move_stack(slot, @top, 0, SLOTS)
-    from.move_stack(slot, @bottom, 0, SLOTS) if large?
+    from.move_stack(slot, @top, 0...SLOTS)
+    from.move_stack(slot, @bottom, 0...SLOTS) if large?
     nil
   end
 

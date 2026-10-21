@@ -2845,8 +2845,8 @@ class Game
     check("the progress goes back while a furnace is out, and new fuel continues it", cooled && resumed)
     # The burning plank burns to its end, but no new fuel burns without
     # something to smelt or room for the result.
-    slots.move_stack(Furnace::OUTPUT, @inv, 0, INV)
-    slots.move_stack(Furnace::INPUT, @inv, 0, INV)
+    slots.move_stack(Furnace::OUTPUT, @inv, 0...INV)
+    slots.move_stack(Furnace::INPUT, @inv, 0...INV)
     slots.set(Furnace::FUEL, Block::OAK_PLANKS, 2)
     update_furnaces(10.0)
     no_input = slots.count(Furnace::FUEL) == 2 && !f.lit? && @inv.total(Block::IRON_INGOT) == 5 && @inv.total(Block::IRON) == 4

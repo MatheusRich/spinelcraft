@@ -285,13 +285,13 @@ class Game
     if @chests.open?
       @chests.current.store(@inv, i)
     elsif furnace && @recipe_book.smelts?(@inv.block(i))
-      @inv.move_stack(i, open_furnace.slots, Furnace::INPUT, Furnace::INPUT + 1)
+      @inv.move_stack(i, open_furnace.slots, Furnace::INPUT..Furnace::INPUT)
     elsif furnace && Furnace.fuel?(@inv.block(i))
-      @inv.move_stack(i, open_furnace.slots, Furnace::FUEL, Furnace::FUEL + 1)
+      @inv.move_stack(i, open_furnace.slots, Furnace::FUEL..Furnace::FUEL)
     elsif i < HOTBAR
-      @inv.move_stack(i, @inv, HOTBAR, INV)
+      @inv.move_stack(i, @inv, HOTBAR...INV)
     else
-      @inv.move_stack(i, @inv, 0, HOTBAR)
+      @inv.move_stack(i, @inv, 0...HOTBAR)
     end
   end
 
@@ -299,7 +299,7 @@ class Game
   def quick_move_chest(k)
     part = @chests.current.slots_for(k)
     return if part.empty?(k % Chest::SLOTS) || !@held.empty?(0)
-    part.move_stack(k % Chest::SLOTS, @inv, 0, INV)
+    part.move_stack(k % Chest::SLOTS, @inv, 0...INV)
   end
 
   # Chest cell k, in the place of the recipe list: x, y, size. The cells
@@ -344,7 +344,7 @@ class Game
   # The stack in the hand goes back into the inventory, onto stacks of its
   # kind first, and then into the open chest.
   def return_held
-    @held.move_stack(0, @inv, 0, INV)
+    @held.move_stack(0, @inv, 0...INV)
     @chests.current.store(@held, 0) if @chests.open?
   end
 
@@ -410,7 +410,7 @@ class Game
       elsif station_makes?(Recipe::AT_FURNACE) && furnace_hover(w, h, s) >= 0
         cell = furnace_hover(w, h, s)
         if shift
-          open_furnace.slots.move_stack(cell, @inv, 0, INV)
+          open_furnace.slots.move_stack(cell, @inv, 0...INV)
         else
           click_furnace(cell, left)
         end

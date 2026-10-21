@@ -116,7 +116,7 @@ class SlotsTest < Minitest::Test
     to.set(1, Block::DIRT, 60)
     to.set(3, Block::DIRT, 62)
     from.set(0, Block::DIRT, 10)
-    from.move_stack(0, to, 0, 4)
+    from.move_stack(0, to, 0...4)
     assert_equal [4, 64, 0, 64], (0...4).map { |index| to.count(index) }
     assert_equal Block::DIRT, to.block(0)
     assert from.empty?(0)
@@ -127,12 +127,31 @@ class SlotsTest < Minitest::Test
     to = Slots.new(3)
     to.set(0, Block::SAND, 1)
     from.set(0, Block::DIRT, 10)
-    from.move_stack(0, to, 0, 1)
+    from.move_stack(0, to, 0...1)
     assert_equal 10, from.count(0)
     to.set(1, Block::DIRT, 60)
-    from.move_stack(0, to, 0, 2)
+    from.move_stack(0, to, 0...2)
     assert_equal [64, 6], [to.count(1), from.count(0)]
     assert to.empty?(2)
+  end
+
+  def test_add_stack_gives_the_count_that_does_not_fit
+    slots = Slots.new(2)
+    slots.set(0, Block::DIRT, 60)
+    slots.set(1, Block::SAND, 1)
+    assert_equal 6, slots.add_stack(Block::DIRT, 10, 0...2)
+    assert_equal 64, slots.count(0)
+    assert_equal 10, slots.add_stack(Block::DIRT, 10, 0...2)
+    slots.set(1, Block::AIR, 0)
+    assert_equal 0, slots.add_stack(Block::DIRT, 10, 0...2)
+    assert_equal [Block::DIRT, 10], [slots.block(1), slots.count(1)]
+  end
+
+  def test_add_stack_adds_nothing_onto_a_stack_past_its_limit
+    slots = Slots.new(1)
+    slots.set(0, Block::DIRT, 70)
+    assert_equal 5, slots.add_stack(Block::DIRT, 5, 0...1)
+    assert_equal 70, slots.count(0)
   end
 
   def test_a_moved_tool_goes_only_into_an_empty_slot
@@ -140,7 +159,7 @@ class SlotsTest < Minitest::Test
     to = Slots.new(2)
     to.set(0, PICK, 3)
     from.set(0, PICK, 9)
-    from.move_stack(0, to, 0, 2)
+    from.move_stack(0, to, 0...2)
     assert_equal [3, 9], [to.count(0), to.count(1)]
     assert from.empty?(0)
   end
@@ -280,11 +299,11 @@ class SlotsTest < Minitest::Test
     to = Slots.new(2)
     to.set(1, Block::DIRT, 60)
     from.set(0, Block::DIRT, 1)
-    from.move_stack(0, to, 0, 2)
+    from.move_stack(0, to, 0...2)
     assert_equal [0, 61], [to.count(0), to.count(1)]
     to.set(1, Block::DIRT, 1)
     from.set(0, Block::DIRT, 3)
-    from.move_stack(0, to, 0, 2)
+    from.move_stack(0, to, 0...2)
     assert_equal [0, 4], [to.count(0), to.count(1)]
   end
 
@@ -292,7 +311,7 @@ class SlotsTest < Minitest::Test
     from = Slots.new(1)
     to = Slots.new(1)
     from.set(0, Block::DIRT, 1)
-    from.move_stack(0, to, 0, 1)
+    from.move_stack(0, to, 0...1)
     assert_equal 1, to.count(0)
     assert from.empty?(0)
   end
@@ -302,7 +321,7 @@ class SlotsTest < Minitest::Test
     to = Slots.new(2)
     to.set(1, Block::DIRT, 3)
     from.set(0, Block::DIRT, 5)
-    from.move_stack(0, to, 0, 1)
+    from.move_stack(0, to, 0...1)
     assert_equal [5, 3], [to.count(0), to.count(1)]
   end
 

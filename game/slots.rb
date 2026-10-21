@@ -115,9 +115,7 @@ class Slots
       set(index, held_kind, held_count)
       hand.set(0, held_kind, 0)
     elsif kind == held_kind && !Block.tool?(kind)
-      moved = [Block.stack(kind) - count, held_count].min
-      set(index, kind, count + moved)
-      hand.take(0, moved)
+      hand.set(0, held_kind, add_stack(held_kind, held_count, index..index))
     else
       set(index, held_kind, held_count)
       hand.set(0, kind, count)
@@ -147,32 +145,44 @@ class Slots
     nil
   end
 
-  # Moves the stack in slot i into the slots lo...hi of to: onto stacks of
-  # the same kind first, then into empty slots. What does not fit stays in
-  # slot i.
-  def move_stack(i, to, lo, hi)
-    b = @blocks[i]
-    # A tool never stacks, so it only goes into an empty slot.
-    unless Block.tool?(b)
-      k = lo
-      while k < hi && @counts[i] > 0
-        n = to.count(k)
-        if to.block(k) == b && n > 0 && n < Block.stack(b)
-          moved = [Block.stack(b) - n, @counts[i]].min
-          to.set(k, b, n + moved)
-          take(i, moved)
-        end
-        k += 1
-      end
-    end
-    k = lo
-    while k < hi && @counts[i] > 0
-      if to.empty?(k)
-        to.set(k, b, @counts[i])
-        set(i, b, 0)
-      end
-      k += 1
-    end
+  # Moves the stack in slot into the slots of range in to. What does not
+  # fit stays in slot.
+  def move_stack(slot, to, range)
+    rest = to.add_stack(@blocks[slot], @counts[slot], range)
+    set(slot, @blocks[slot], rest)
     nil
+  end
+
+  # Adds count of block to the slots of range: onto the stacks of its kind
+  # first, so that it splits into as few stacks as it can, then the rest
+  # into the first empty slot. Gives the count that does not fit.
+  def add_stack(block, count, range)
+    rest = stack_onto_existing(block, count, range)
+    move_to_empty(block, rest, range)
+  end
+
+  # Adds what fits of count of block onto the stacks of its kind in range,
+  # and gives the rest. A tool never stacks.
+  def stack_onto_existing(block, count, range)
+    return count if Block.tool?(block)
+    range.each do |index|
+      next if @blocks[index] != block
+      moved = [Block.stack(block) - @counts[index], count].min
+      next if moved <= 0
+      @counts[index] += moved
+      count -= moved
+    end
+    count
+  end
+
+  # Puts count of block into the first empty slot of range, and gives what
+  # does not fit: 0, or all of it when no slot is empty.
+  def move_to_empty(block, count, range)
+    range.each do |index|
+      next unless empty?(index)
+      set(index, block, count)
+      return 0
+    end
+    count
   end
 end
