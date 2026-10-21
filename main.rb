@@ -193,6 +193,8 @@ class Game
     @sky = Sky.new(@clock, @weather, @camera)
     @target_mob = -1
     @swing = 0.0
+    # The axes and the move of the held model (see turn_hand).
+    @hand_frame = Array.new(12, 0.0)
     # Seconds since the last attack, broken block or new item in the hand
     # (see attack_charge).
     @attack_time = 0.0

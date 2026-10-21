@@ -33,7 +33,7 @@ class Game
   def throw_stack(b, n)
     p = @player
     drop_item(b, n, p.x + p.fx * 0.3, p.eye_y - 0.3, p.z + p.fz * 0.3, p.fx * 6.0 + p.vx, p.fy * 6.0 + 2.0, p.fz * 6.0 + p.vz, THROW_WAIT)
-    @swing = 0.25
+    @swing = SWING
   end
 
   # At death the player drops each stack of the inventory, and the stack in

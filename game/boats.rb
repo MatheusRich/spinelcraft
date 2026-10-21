@@ -23,7 +23,7 @@ class Game
     @boats << Boat.new(b, x, y, z, @player.yaw)
     @inv.take(@slot, 1) if @survival
     play_at(Sfx::SPLASH, x, y, z, 0.4, SOUND_RANGE)
-    @swing = 0.25
+    @swing = SWING
   end
 
   def board_boat(i)
@@ -149,7 +149,7 @@ class Game
     charge = attack_charge
     damage = Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge)
     @attack_time = 0.0
-    @swing = 0.25
+    @swing = SWING
     if @survival && !boat.hit(damage)
       play_at(Sfx::DIG_WOOD, x, y, z, 0.6, SOUND_RANGE)
       return

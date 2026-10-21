@@ -2,8 +2,9 @@
 # It swings when the player uses it, drops and rises when the selection
 # changes, and sways while the player walks. An empty hand shows the arm.
 class Game
-  # Seconds that one swing takes (see @swing).
-  SWING = 0.25
+  # Seconds that one swing takes (see @swing): 6 ticks, as in the game code
+  # (LivingEntity.getCurrentSwingDuration). The wiki does not say.
+  SWING = 0.3
 
   def update_hand(dt)
     b = current_block.to_i
@@ -40,6 +41,10 @@ class Game
     uy = rz * fx - rx * fz
     uz = rx * fy
     flat = b != Block::AIR && Block.flat?(b)
+    # The move of the model from the arm, which turns with the swing.
+    dx = 0.0
+    dy = 0.0
+    dz = 0.0
     # The place (right, up, back) and the turn of the model in view space.
     # Items and blocks copy Minecraft: ItemInHandRenderer puts the arm at
     # (0.56, -0.52, -0.72), and the firstperson_righthand display of the
@@ -57,9 +62,12 @@ class Game
       # (0, -90, 25) and scale 0.68. The texture of the sprite goes along -x,
       # not +x as in Minecraft, so the roll has the other sign. The item is
       # 0.08 higher than in Minecraft, so the guard of a sword shows.
-      ox = 0.56 + 1.13 / 16.0
-      oy = -0.52 + 3.2 / 16.0 + 0.08
-      oz = -0.72 + 1.13 / 16.0
+      ox = 0.56
+      oy = -0.52
+      oz = -0.72
+      dx = 1.13 / 16.0
+      dy = 3.2 / 16.0 + 0.08
+      dz = 1.13 / 16.0
       yaw = -Math::PI / 2.0
       pitch = 0.0
       roll = -25.0 * Math::PI / 180.0
@@ -73,14 +81,6 @@ class Game
       pitch = 0.0
       roll = 0.0
       size = 0.4
-    end
-    if @swing > 0.0
-      t = 1.0 - @swing / SWING
-      s1 = Math.sin(Math.sqrt(t) * Math::PI)
-      ox -= s1 * 0.25
-      oy += Math.sin(Math.sqrt(t) * Math::PI * 2.0) * 0.1
-      oz -= Math.sin(t * Math::PI) * 0.12
-      pitch -= s1 * 0.6
     end
     if @draw_time >= 0.0
       pull = @draw_time > 1.0 ? 1.0 : @draw_time
@@ -103,48 +103,46 @@ class Game
     ox += @hand_dx
     oy += @hand_dy
     # The turn: roll around back, then yaw around up, then pitch around right.
-    cy = Math.cos(yaw)
-    sy = Math.sin(yaw)
-    cp = Math.cos(pitch)
-    sp = Math.sin(pitch)
-    cr = Math.cos(roll)
-    sr = Math.sin(roll)
-    m00 = cy * cr
-    m01 = -cy * sr
-    m02 = sy
-    m10 = cp * sr + sp * sy * cr
-    m11 = cp * cr - sp * sy * sr
-    m12 = -sp * cy
-    m20 = sp * sr - cp * sy * cr
-    m21 = sp * cr + cp * sy * sr
-    m22 = cp * cy
+    frame = @hand_frame
+    12.times { |i| frame[i] = i % 4 == 0 ? 1.0 : 0.0 }
+    turn_hand(2, roll)
+    turn_hand(1, yaw)
+    turn_hand(0, pitch)
     # The view sees the back of the sprite, so a blade or a bow string above
     # the handle faces the player. A tool mirrors across its handle, so that
     # part faces forward.
     # The arm of the skin is long in y, with the hand at -y and the front at
     # +z. Its y goes back along the view, and its front faces down.
     if b == Block::AIR
-      t0 = m01
-      t1 = m11
-      t2 = m21
-      m01 = m02
-      m11 = m12
-      m21 = m22
-      m02 = -t0
-      m12 = -t1
-      m22 = -t2
+      3.times do |i|
+        t = frame[3 + i]
+        frame[3 + i] = frame[6 + i]
+        frame[6 + i] = -t
+      end
     end
     if Block.tool?(b)
-      t0 = m00
-      t1 = m10
-      t2 = m20
-      m00 = -m01
-      m10 = -m11
-      m20 = -m21
-      m01 = -t0
-      m11 = -t1
-      m21 = -t2
+      3.times do |i|
+        t = frame[i]
+        frame[i] = -frame[3 + i]
+        frame[3 + i] = -t
+      end
     end
+    frame[9] = dx
+    frame[10] = dy
+    frame[11] = dz
+    swing_hand
+    ox += frame[9]
+    oy += frame[10]
+    oz += frame[11]
+    m00 = frame[0]
+    m10 = frame[1]
+    m20 = frame[2]
+    m01 = frame[3]
+    m11 = frame[4]
+    m21 = frame[5]
+    m02 = frame[6]
+    m12 = frame[7]
+    m22 = frame[8]
     # Minecraft draws the hand with a fixed view of 70 degrees, so the model
     # keeps its size when the view gets wider in a sprint. The world view has
     # the half angle @fov, so the model scales across the view by
@@ -167,5 +165,63 @@ class Game
     else
       @dyn.item_model(b)
     end
+  end
+
+  # Swings @hand_frame. The swing copies the game code
+  # (ItemInHandRenderer.renderArmWithItem and renderPlayerArm), not the wiki.
+  # The model turns around the arm, in a frame that is 45 degrees to the
+  # left: an item tips forward, and the empty hand turns to the left. Then
+  # the arm goes left, up and forward.
+  def swing_hand
+    return if @swing <= 0.0
+    t = 1.0 - @swing / SWING
+    fast = Math.sin(Math.sqrt(t) * Math::PI)
+    slow = Math.sin(t * t * Math::PI)
+    bob = Math.sin(Math.sqrt(t) * Math::PI * 2.0)
+    push = Math.sin(t * Math::PI)
+    quarter = Math::PI / 4.0
+    degree = Math::PI / 180.0
+    frame = @hand_frame
+    turn_hand(1, -quarter)
+    if @hand_block == Block::AIR
+      turn_hand(2, slow * -20.0 * degree)
+      turn_hand(1, quarter + fast * 70.0 * degree)
+      frame[9] -= fast * 0.3
+      frame[10] += bob * 0.4
+      frame[11] -= push * 0.4
+    else
+      turn_hand(0, fast * -80.0 * degree)
+      turn_hand(2, fast * -20.0 * degree)
+      turn_hand(1, quarter + slow * -20.0 * degree)
+      frame[9] -= fast * 0.4
+      frame[10] += bob * 0.2
+      frame[11] -= push * 0.2
+    end
+    nil
+  end
+
+  # Turns @hand_frame (the 3 axes of the held model, then its move from the
+  # arm) by angle around the x (0), y (1) or z (2) axis of the view.
+  def turn_hand(axis, angle)
+    c = Math.cos(angle)
+    s = Math.sin(angle)
+    frame = @hand_frame
+    4.times do |i|
+      x = frame[i * 3]
+      y = frame[i * 3 + 1]
+      z = frame[i * 3 + 2]
+      case axis
+      when 0
+        frame[i * 3 + 1] = c * y - s * z
+        frame[i * 3 + 2] = s * y + c * z
+      when 1
+        frame[i * 3] = c * x + s * z
+        frame[i * 3 + 2] = c * z - s * x
+      else
+        frame[i * 3] = c * x - s * y
+        frame[i * 3 + 1] = s * x + c * y
+      end
+    end
+    nil
   end
 end

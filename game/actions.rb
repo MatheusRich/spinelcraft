@@ -131,7 +131,7 @@ class Game
         @vitals.exhaust(Vitals::ATTACK_COST) if @survival
         mob.by_player = true
         play(Sfx::HIT, 0.8)
-        @swing = 0.25
+        @swing = SWING
       end
       @mining = false
     elsif held && @target_boat >= 0
@@ -147,7 +147,7 @@ class Game
         set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
         @attack_time = 0.0
         @action_cooldown = 0.22
-        @swing = 0.25
+        @swing = SWING
       end
     else
       # A click at the air swings the arm and starts the cooldown again. The
@@ -253,7 +253,7 @@ class Game
     m.sheared = true
     loot(m, Block::WOOL, 1 + (@rng.rand01 * 3.0).to_i)
     play_from(m, Sfx::CLOTH, 1.0)
-    @swing = 0.25
+    @swing = SWING
     wear_tool(1)
   end
 
@@ -265,7 +265,7 @@ class Game
   def feed_animal(m)
     return unless m.feed
     @inv.take(@slot, 1) if @survival
-    @swing = 0.25
+    @swing = SWING
     play_from(m, Sfx::EAT, 0.6)
     # to_i and to_f: Spinel cannot type the mob. The sparkles fill the
     # block cell of the baby.
@@ -290,7 +290,7 @@ class Game
     set_block(x, y, z, Block.facing_id(Block::CARVED_PUMPKIN, d))
     drop_from_block(Block::PUMPKIN_SEEDS, 4, x, y, z)
     play(MATERIAL_DIG[M_WOOD], 0.7)
-    @swing = 0.25
+    @swing = SWING
     wear_tool(1)
   end
 
@@ -616,7 +616,7 @@ class Game
     b = join_chest(x, y, z, b) if Block::BASE[b] == Block::CHEST
     set_block(x, y, z, b)
     play(MATERIAL_PLACE[material(b)], 0.7)
-    @swing = 0.25
+    @swing = SWING
     @inv.take(@slot, 1) if @survival
   end
 

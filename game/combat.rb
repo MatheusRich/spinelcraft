@@ -333,7 +333,7 @@ class Game
     damage += (@rng.rand01 * 6.0).to_i if pull >= 1.0
     @arrows << Arrow.new(@player.x, @player.eye_y - 0.1, @player.z,
                          @player.fx * speed, @player.fy * speed, @player.fz * speed, 5.0, damage)
-    @swing = 0.25
+    @swing = SWING
     play(Sfx::SHOOT, 0.8)
     wear_tool(1)
   end
@@ -452,7 +452,7 @@ class Game
     @inv.take(@slot, 1) if @survival
     p = @player
     @eggs << Egg.new(p.x, p.eye_y.to_f - 0.1, p.z, p.fx * Egg::SPEED, p.fy * Egg::SPEED, p.fz * Egg::SPEED)
-    @swing = 0.25
+    @swing = SWING
     play(Sfx::SHOOT, 0.5)
   end
 
