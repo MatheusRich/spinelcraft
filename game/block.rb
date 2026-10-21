@@ -642,6 +642,14 @@ module Block
   # gives 2 for some other blocks, but not which ones, so the others take
   # 1. minecraft.wiki/w/Shears
   def self.shear_speed(b) = leaves?(b) ? 15.0 : (b == WOOL ? 5.0 : 1.0)
+  # How fast a sword digs b: 1.5 times on leaves, pumpkins and jack
+  # o'lanterns, and 1 on the other blocks. minecraft.wiki/w/Sword
+  def self.sword_speed(b)
+    return 1.5 if leaves?(b) || jack_o_lantern?(b)
+    return 1.5 if BASE[b] == PUMPKIN || BASE[b] == CARVED_PUMPKIN
+
+    1.0
+  end
   # The speed of a wooden, stone, iron and diamond tool on the blocks that
   # it digs fast, as in Minecraft. minecraft.wiki/w/Breaking
   TOOL_SPEED = [2.0, 4.0, 6.0, 8.0]
@@ -653,6 +661,7 @@ module Block
   # block that it does not dig fast. minecraft.wiki/w/Breaking
   def self.dig_speed(tool, b)
     return shear_speed(b) if tool == SHEARS
+    return sword_speed(b) if sword?(tool)
     tier = dig_tier(tool, b)
     return 1.0 if tier == 0
     return MATTOCK_SPEED if tool == SPINEL_MATTOCK

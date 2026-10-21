@@ -36,6 +36,20 @@ class BlockTest < Minitest::Test
     assert_equal 1.0, Block.dig_speed(Block::SHEARS, Block::STONE)
   end
 
+  def test_a_sword_digs_leaves_and_pumpkins_fast
+    (Block::WOOD_SWORD..Block::DIAMOND_SWORD).each do |sword|
+      [Block::OAK_LEAVES, Block::PLACED_BIRCH_LEAVES, Block::PUMPKIN, Block::CARVED_PUMPKIN + 1, Block::JACK_O_LANTERN].each do |b|
+        assert_equal 1.5, Block.dig_speed(sword, b), Block::NAMES[b]
+      end
+    end
+  end
+
+  def test_a_sword_digs_other_blocks_at_the_speed_of_a_hand
+    [Block::STONE, Block::OAK_LOG, Block::DIRT].each do |b|
+      assert_equal 1.0, Block.dig_speed(Block::DIAMOND_SWORD, b), Block::NAMES[b]
+    end
+  end
+
   def test_only_a_tool_of_the_right_kind_has_a_dig_tier
     assert_equal 3, Block.dig_tier(Block::IRON_PICK, Block::STONE)
     assert_equal 0, Block.dig_tier(Block::IRON_AXE, Block::STONE)
