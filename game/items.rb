@@ -88,7 +88,7 @@ class Game
     n.times { @inv.add(b) }
     item.count -= n
     play(Sfx::POP, 0.5)
-    say("+#{n} #{Block::NAMES[b]}#{Block.food(b) > 0 ? ": RIGHT CLICK TO EAT" : ""}") if Block.item?(b)
+    say("+#{n} #{Block::NAMES[b]}") if Block.item?(b)
   end
 
   # Lava destroys an item with a puff of smoke.
