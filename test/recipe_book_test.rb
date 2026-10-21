@@ -149,6 +149,18 @@ class RecipeBookTest < Minitest::Test
     assert_equal [4, 1, 0], [slots.total(Block::ARROW), slots.total(Block::FEATHER), slots.total(Block::BIRCH_PLANKS)]
   end
 
+  def test_a_bed_takes_three_wool_and_three_planks_of_any_wood
+    bed = RecipeBook.new.recipe(recipe_for(Block::BED))
+    slots = Slots.new(36)
+    3.times { slots.add(Block::WOOL) }
+    assert_equal 0, bed.craftable(slots)
+    2.times { slots.add(Block::OAK_PLANKS) }
+    slots.add(Block::SPRUCE_PLANKS)
+    assert_equal "3 WOOL + 3 PLANKS", bed.need
+    assert_equal 1, bed.craft(1, slots)
+    assert_equal [1, 0, 0, 0], [slots.total(Block::BED), slots.total(Block::WOOL), slots.total(Block::OAK_PLANKS), slots.total(Block::SPRUCE_PLANKS)]
+  end
+
   def test_a_furnace_smelts_the_ingredient_of_its_recipes
     book = RecipeBook.new
     assert_same book.recipe(recipe_for(Block::IRON_INGOT)), book.smelt_recipe(Block::IRON)

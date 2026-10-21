@@ -30,7 +30,10 @@ class RecipeBook
                 # (minecraft.wiki/w/Arrow). The game has no flint and no
                 # sticks, so a plank takes the place of both.
                 Recipe.new(Block::FEATHER, 1, Block::ARROW, 4, Recipe::AT_TABLE, Block::ANY_PLANKS, 1),
-                Recipe.new(Block::STONE, 2, Block::BRICK, 1, Recipe::AT_TABLE), Recipe.new(Block::WOOL, 3, Block::BED, 1, Recipe::AT_TABLE),
+                Recipe.new(Block::STONE, 2, Block::BRICK, 1, Recipe::AT_TABLE),
+                # minecraft.wiki/w/Bed shows 3 wool over 3 planks of any wood
+                # in the grid. Its text does not give the counts.
+                Recipe.new(Block::WOOL, 3, Block::BED, 1, Recipe::AT_TABLE, Block::ANY_PLANKS, 3),
                 Recipe.new(Block::ANY_PLANKS, 5, Block::BOW, 1, Recipe::AT_TABLE), Recipe.new(Block::ANY_PLANKS, 8, Block::CHEST, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::ANY_PLANKS, 6, Block::DOOR, 3, Recipe::AT_TABLE), Recipe.new(Block::ANY_PLANKS, 3, Block::LADDER, 4, Recipe::AT_TABLE),
                 Recipe.new(Block::WHEAT, 3, Block::BREAD, 1, Recipe::AT_TABLE), Recipe.new(Block::IRON_INGOT, 3, Block::BUCKET, 1, Recipe::AT_TABLE),
