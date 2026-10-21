@@ -1480,6 +1480,12 @@ class Game
     check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @particles.count(Particle::FLAME) > 0)
     check("a zombie with a carved pumpkin on its head does not burn in the sun", capped.fire == 0.0 && capped.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
+    @clock.set_ticks(23500)
+    zombie = Mob.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
+    @mobs << zombie
+    60.times { update_mobs(1.0 / 60.0) }
+    check("a zombie burns in the sun at dawn", zombie.fire > 0.0)
+    @mobs.clear
     @survival = true
     @vitals.health = Vitals::MAX_HEALTH
     @world.set(px + 1, SKY_Y - 1, pz, Block::LAVA)

@@ -432,11 +432,11 @@ class Mob
   end
 
   # Returns damage dealt to the player this step. held is the item in the
-  # player's hand.
+  # player's hand, and sun is true when the sun burns undead mobs.
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_mob(world, dt, player, day, held) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def update_mob(world, dt, player, held, sun:) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @hurt -= dt
     if @graze > 0.0
       @graze = 0.0 if @panic > 0.0 || dying?
@@ -472,7 +472,7 @@ class Mob
       # (minecraft.wiki/w/Zombie). That a carved pumpkin also counts comes
       # from the game code, which checks for any head item; the wiki does
       # not confirm it.
-      @fire = SUN_FIRE if day > 0.65 && exposed && @kind != CREEPER && @head == 0 && @fire < SUN_FIRE
+      @fire = SUN_FIRE if sun && exposed && @kind != CREEPER && @head == 0 && @fire < SUN_FIRE
     end
     fx = -Math.sin(@yaw)
     fz = Math.cos(@yaw)

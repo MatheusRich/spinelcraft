@@ -52,8 +52,10 @@ class Game
   end
 
   def update_mobs(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
-    # Rain dims the day, so monsters do not burn in it.
-    day = @clock.daylight * (1.0 - 0.5 * @weather.rain)
+    # In clear weather, undead mobs burn from the end of the night to the
+    # start of the next night. minecraft.wiki/w/Daylight_cycle
+    # The wiki does not confirm that rain stops the burning.
+    sun = !@weather.raining? && !@clock.night?
     @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.time_of_day, @weather.raining?), dt)
     court_mates
     push_mobs(dt)
@@ -91,7 +93,7 @@ class Game
       sdt = dt / steps
       lived = m.death == 0.0
       steps.times do
-        damage = m.update_mob(@world, sdt, @player, day, held)
+        damage = m.update_mob(@world, sdt, @player, held, sun: sun)
         if damage > 0
           hurt(damage, Sfx::HURT)
           if @survival

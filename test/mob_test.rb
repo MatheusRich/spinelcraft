@@ -13,7 +13,7 @@ class MobTest < Minitest::Test
     creeper = Mob.new(Mob::CREEPER, player.x + 1.5, player.y, player.z, 11)
     hisses = 0
     20.times do
-      creeper.update_mob(@world, DT, player, 0.3, Block::AIR)
+      creeper.update_mob(@world, DT, player, Block::AIR, sun: false)
       hisses += 1 if creeper.hiss
       creeper.hiss = false
     end
@@ -33,7 +33,7 @@ class MobTest < Minitest::Test
     zombie = Mob.new(Mob::ZOMBIE, 10.5, SKY_Y - 1.0, 8.5, 3)
     steps = 0
     120.times do
-      zombie.update_mob(@world, DT, player, 0.0, Block::AIR)
+      zombie.update_mob(@world, DT, player, Block::AIR, sun: false)
       steps += 1 if zombie.step
       zombie.step = false
     end
@@ -44,11 +44,47 @@ class MobTest < Minitest::Test
     lay_floor
     player = Player.new(8.5, SKY_Y - 1.0, 0.5)
     zombie = Mob.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 15.5, 3)
-    30.times { zombie.update_mob(@world, DT, player, 0.0, Block::AIR) }
+    30.times { zombie.update_mob(@world, DT, player, Block::AIR, sun: false) }
     assert_operator zombie.leg_swing, :>, 0.5
     player.z = 300.0
-    60.times { zombie.update_mob(@world, DT, player, 0.0, Block::AIR) }
+    60.times { zombie.update_mob(@world, DT, player, Block::AIR, sun: false) }
     assert_operator zombie.leg_swing, :<, 0.05
+  end
+
+  def test_a_zombie_under_the_open_sky_burns_only_in_the_sun
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 0.5)
+    lit = Mob.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    dark = Mob.new(Mob::ZOMBIE, 12.5, SKY_Y - 1.0, 15.5, 3)
+    lit.update_mob(@world, DT, player, Block::AIR, sun: true)
+    dark.update_mob(@world, DT, player, Block::AIR, sun: false)
+    assert lit.burning?
+    refute dark.burning?
+  end
+
+  def test_a_roof_a_carved_pumpkin_and_a_creeper_do_not_burn_in_the_sun
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 0.5)
+    roofed = Mob.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    @world.set(4, SKY_Y + 3, 15, Block::STONE)
+    capped = Mob.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 15.5, 3)
+    capped.head = Block::CARVED_PUMPKIN
+    creeper = Mob.new(Mob::CREEPER, 12.5, SKY_Y - 1.0, 15.5, 3)
+    [roofed, capped, creeper].each { |mob| mob.update_mob(@world, DT, player, Block::AIR, sun: true) }
+    refute roofed.burning?
+    refute capped.burning?
+    refute creeper.burning?
+  end
+
+  def test_the_sun_does_not_shorten_the_fire_of_lava
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 0.5)
+    zombie = Mob.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    @world.set(4, SKY_Y - 1, 15, Block::LAVA)
+    zombie.update_mob(@world, DT, player, Block::AIR, sun: true)
+    @world.set(4, SKY_Y - 1, 15, Block::AIR)
+    zombie.update_mob(@world, DT, player, Block::AIR, sun: true)
+    assert_operator zombie.fire, :>, Mob::SUN_FIRE
   end
 
   def test_a_chicken_falls_slowly
@@ -56,8 +92,8 @@ class MobTest < Minitest::Test
     hen = Mob.new(Mob::CHICKEN, 4.5, SKY_Y.to_f, 4.5, 13)
     pig = Mob.new(Mob::PIG, 7.5, SKY_Y.to_f, 4.5, 13)
     60.times do
-      hen.update_mob(@world, DT, player, 0.5, Block::AIR)
-      pig.update_mob(@world, DT, player, 0.5, Block::AIR)
+      hen.update_mob(@world, DT, player, Block::AIR, sun: false)
+      pig.update_mob(@world, DT, player, Block::AIR, sun: false)
     end
     assert_operator hen.vy, :>=, Mob::CHICKEN_FALL
     assert_operator pig.vy, :<, Mob::CHICKEN_FALL * 4.0
