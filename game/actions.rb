@@ -437,7 +437,8 @@ class Game
   def use_bed(x, y, z)
     @spawn_x = x + 0.5
     @spawn_z = z + 0.5
-    if @clock.daylight > 0.35
+    night = @weather.raining? ? @clock.rainy_night? : @clock.night?
+    unless night
       say("SPAWN SET: YOU CAN ONLY SLEEP AT NIGHT")
       return
     end

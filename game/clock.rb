@@ -15,6 +15,13 @@ class Clock
   MOON_LIT = [1.0, 0.75, 0.5, 0.25, 0.0, 0.25, 0.5, 0.75]
   # The time of day after a night in a bed.
   MORNING = 0.02
+  # The night is the time when a bed works, as a range of the time of day:
+  # in clear weather from tick 12542 to tick 23459, and in rain from tick
+  # 12010 to tick 23991. minecraft.wiki/w/Daylight_cycle
+  # The ranges are not of ticks, because ticks after set_ticks can be one
+  # less than the tick that it set.
+  NIGHT = (12542 / DAY_TICKS.to_f)...(23460 / DAY_TICKS.to_f)
+  RAIN_NIGHT = (12010 / DAY_TICKS.to_f)...(23992 / DAY_TICKS.to_f)
 
   attr_accessor :time_of_day, :day
 
@@ -59,6 +66,12 @@ class Clock
     @day += 1
     nil
   end
+
+  # True at night in clear weather.
+  def night? = NIGHT.cover?(@time_of_day)
+
+  # True at night in rain.
+  def rainy_night? = RAIN_NIGHT.cover?(@time_of_day)
 
   # The hour on a 24-hour clock, from 0 to 23.
   def hour = ((@time_of_day * 24.0 + 6.0) % 24.0).floor

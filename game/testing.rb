@@ -2710,7 +2710,15 @@ class Game
     @clock.time_of_day = 0.75
     day = @clock.day
     use_bed(bx + 6, SKY_Y - 1, bz)
-    check("sleeping in a bed skips the night and sets spawn", @clock.daylight > 0.35 && @spawn_x == bx + 6.5 && @clock.day == day + 1)
+    check("sleeping in a bed skips the night and sets spawn", @clock.time_of_day == Clock::MORNING && @spawn_x == bx + 6.5 && @clock.day == day + 1)
+    @clock.set_ticks(12200)
+    evening = @clock.time_of_day
+    use_bed(bx + 6, SKY_Y - 1, bz)
+    dusk = @clock.time_of_day == evening
+    @weather.set_now(true)
+    use_bed(bx + 6, SKY_Y - 1, bz)
+    @weather.set_now(false)
+    check("a bed works earlier in the evening in rain", dusk && @clock.time_of_day == Clock::MORNING)
     set_block(bx + 6, SKY_Y - 1, bz, Block::AIR)
     @clock.time_of_day = 0.3
     check("sneaking stops at an edge", @player.y > SKY_Y - 1.1 && @player.z < bz + 1.4)

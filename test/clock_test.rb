@@ -54,6 +54,30 @@ class ClockTest < Minitest::Test
     assert_operator clock.daylight, :>, 0.5
   end
 
+  def test_a_bed_works_from_tick_12542_to_23459_in_clear_weather
+    clock = Clock.new(0.0, 0)
+    clock.set_ticks(12541)
+    refute clock.night?
+    clock.set_ticks(12542)
+    assert clock.night?
+    clock.set_ticks(23459)
+    assert clock.night?
+    clock.set_ticks(23460)
+    refute clock.night?
+  end
+
+  def test_a_bed_works_from_tick_12010_to_23991_in_rain
+    clock = Clock.new(0.0, 0)
+    clock.set_ticks(12009)
+    refute clock.rainy_night?
+    clock.set_ticks(12010)
+    assert clock.rainy_night?
+    clock.set_ticks(23991)
+    assert clock.rainy_night?
+    clock.set_ticks(23992)
+    refute clock.rainy_night?
+  end
+
   def test_the_hour_starts_at_6_00
     assert_equal 6, Clock.new(0.0, 0).hour
     assert_equal 12, Clock.new(0.25, 0).hour
