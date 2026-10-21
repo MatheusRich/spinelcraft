@@ -36,29 +36,11 @@ class Mob
   # A baby animal is half as wide and half as tall, and grows up after 20
   # minutes. minecraft.wiki/w/Breeding and /w/Chicken
   GROW_TIME = 1200.0
-  # An animal that eats its food stays in love mode for 30 seconds, and
-  # finds a mate in love mode up to 8 blocks away. After the baby comes,
-  # the parents wait 5 minutes before they can breed again.
-  # minecraft.wiki/w/Breeding
-  LOVE_TIME = 30.0
-  MATE_REACH = 8.0
-  BREED_WAIT = 300.0
-  # Two mates make the baby when they are nearer than 3 blocks and have
-  # walked to each other for 3 seconds. The wiki does not give these
-  # values; they are those of the game code (BreedGoal: distanceToSqr < 9
-  # and loveTime >= 60 ticks).
-  MATE_NEAR = 3.0
-  COURT_TIME = 3.0
   # Each feeding takes 10% off the time that a baby has left to grow up,
   # and does nothing when less than 9 seconds are left.
   # minecraft.wiki/w/Breeding
   FEED_GROWTH = 0.1
   FEED_MIN = 9.0
-  # An animal in love mode gives off one heart each 10 ticks. This is the
-  # game code (Animal.aiStep), and not on the wiki. The wiki says that
-  # Java Edition stopped to show these hearts in 15w33c, and that Bedrock
-  # Edition shows them all the time. minecraft.wiki/w/Breeding
-  HEART_EVERY = 0.5
   # An animal starts to follow a player who holds its food within 6
   # blocks (minecraft.wiki/w/Cow, /w/Pig and /w/Sheep; /w/Chicken says a
   # 6x4x6 area). It stops when the player is 10 blocks away
@@ -137,16 +119,10 @@ class Mob
   attr_accessor :lay
   # Seconds until a baby grows up; 0.0 for a grown mob.
   attr_reader :grow_left
-  # Seconds that the animal still stays in love mode.
+  # The love mode of the animal.
   attr_reader :love
-  # Seconds before a parent can enter love mode again.
-  attr_reader :breed_wait
-  # Seconds that the animal has walked to its mate.
-  attr_reader :court_time
   # True while the animal follows a player who holds its food.
   attr_reader :tempted
-  # True when a lover gives off a heart, until Game#update_mobs shows it.
-  attr_accessor :love_heart
 
   def initialize(kind, x, y, z, seed) # rubocop:todo Metrics/MethodLength
     @kind = kind
@@ -198,16 +174,8 @@ class Mob
     @grow_left = 0.0
     # The scale of the next parts of the model (see part).
     @size = 1.0
-    @love = 0.0
-    @breed_wait = 0.0
-    # The place of the mate that a lover walks to (see court).
-    @courting = false
-    @mate_x = 0.0
-    @mate_z = 0.0
-    @court_time = 0.0
+    @love = Love.new
     @tempted = false
-    @love_heart = false
-    @heart_wait = 0.0
   end
 
   def baby? = @grow_left > 0.0
@@ -245,59 +213,15 @@ class Mob
     block == Block::WHEAT && (@kind == COW || @kind == SHEEP || @kind == PIG)
   end
 
-  def in_love? = @love > 0.0
-
   # The animal eats its food from the player's hand, and returns true when
-  # it takes the item. An adult enters love mode, but not while it is in
-  # love mode or waits after breeding. A baby grows up faster. The rules
-  # come from the game code (Animal.mobInteract); the wiki does not give
-  # them all.
+  # it takes the item. An adult enters love mode (Love#feed), and a baby
+  # grows up faster. The rules come from the game code
+  # (Animal.mobInteract); the wiki does not give them all.
   def feed
-    if baby?
-      grow_up(@grow_left * FEED_GROWTH) if @grow_left >= FEED_MIN
-      return true
-    end
-    return false if in_love? || @breed_wait > 0.0
+    return @love.feed unless baby?
 
-    @love = LOVE_TIME
-    @heart_wait = HEART_EVERY
+    grow_up(@grow_left * FEED_GROWTH) if @grow_left >= FEED_MIN
     true
-  end
-
-  # dt more seconds of love mode and of the wait after breeding.
-  def love_clock(dt)
-    if in_love?
-      @love -= dt
-      @heart_wait -= dt
-      if @heart_wait <= 0.0
-        @heart_wait += HEART_EVERY
-        @love_heart = true
-      end
-    end
-    # A heart shows only while the animal is still in love mode.
-    @love_heart = false unless in_love?
-    alone unless in_love?
-    @breed_wait -= dt if @breed_wait > 0.0
-  end
-
-  # This lover walks to its mate at x, z.
-  def court(x, z)
-    @courting = true
-    @mate_x = x
-    @mate_z = z
-  end
-
-  # This lover has no mate in reach.
-  def alone
-    @courting = false
-    @court_time = 0.0
-  end
-
-  # The baby came: the parent leaves love mode and waits BREED_WAIT.
-  def bred
-    alone
-    @love = 0.0
-    @breed_wait = BREED_WAIT
   end
 
   def burning? = @fire > 0.0
@@ -462,7 +386,7 @@ class Mob
     @attack_wait -= dt
     grow_up(dt)
     lay_eggs(dt)
-    love_clock(dt)
+    @love.clock(dt)
     speed = 0.0
     damage = 0
     if dying?
@@ -563,7 +487,7 @@ class Mob
     @think -= dt
     @panic -= dt
     @tempted = false if @panic > 0.0
-    return walk_to_mate(dt) if @courting && @panic <= 0.0
+    return walk_to_mate(dt) if @love.courting? && @panic <= 0.0
     return follow(player) if @panic <= 0.0 && tempted_by?(player, held)
 
     if @think <= 0.0
@@ -585,10 +509,10 @@ class Mob
   # The lover walks to its mate at the walk speed, as in the game code
   # (BreedGoal, speed 1.0), until the two touch. The wiki does not say.
   def walk_to_mate(dt)
-    @court_time += dt
+    @love.walk(dt)
     @graze = 0.0
-    dx = @mate_x - @x.to_f
-    dz = @mate_z - @z.to_f
+    dx = @love.mate_x - @x.to_f
+    dz = @love.mate_z - @z.to_f
     face(dx, dz)
     dx * dx + dz * dz > 4.0 * @half * @half ? WALK_SPEED : 0.0
   end
@@ -695,9 +619,7 @@ class Mob
     @last_damage = damage
     @hurt = 0.35
     @panic = PANIC if passive?
-    # A hit ends love mode. The wiki does not say; this is the game code
-    # (Animal.hurt calls resetLove).
-    @love = 0.0
+    @love.reset
     @ouch = true
     true
   end

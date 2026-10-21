@@ -138,13 +138,13 @@ class Game
   def after_step(mob)
     bite_grass(mob) if mob.grass_bite
     lay_egg(mob) if mob.lay
-    show_heart(mob) if mob.love_heart
+    show_heart(mob) if mob.love.heart
     nil
   end
 
-  # A heart over a mob in love mode, now and then (see Mob#love_clock).
+  # A heart over a mob in love mode, now and then (see Love#clock).
   def show_heart(mob)
-    mob.love_heart = false
+    mob.love.heart = false
     # to_f: Spinel cannot type the mob, and the particles need Floats.
     @particles.heart(mob.x.to_f, mob.y.to_f, mob.z.to_f, mob.half.to_f, mob.tall.to_f)
     nil
@@ -286,41 +286,41 @@ class Game
   end
 
   # Each adult in love mode walks to the nearest adult of its kind in love
-  # mode within Mob::MATE_REACH. Two mates near each other make a baby.
+  # mode within Love::MATE_REACH. Two mates near each other make a baby.
   # minecraft.wiki/w/Breeding
   def court_mates
     n = @mobs.size
     i = 0
     while i < n
       m = @mobs[i]
-      j = m.in_love? ? nearest_mate(i) : -1
+      j = m.love.on? ? nearest_mate(i) : -1
       i += 1
-      next unless m.in_love?
+      next unless m.love.on?
 
       if j < 0
-        m.alone
+        m.love.alone
         next
       end
       mate = @mobs[j]
-      m.court(mate.x.to_f, mate.z.to_f)
+      m.love.court(mate.x.to_f, mate.z.to_f)
       dx = (mate.x - m.x).to_f
       dz = (mate.z - m.z).to_f
-      breed(m, mate) if m.court_time >= Mob::COURT_TIME && dx * dx + dz * dz < Mob::MATE_NEAR * Mob::MATE_NEAR
+      breed(m, mate) if m.love.court_time >= Love::COURT_TIME && dx * dx + dz * dz < Love::MATE_NEAR * Love::MATE_NEAR
     end
     # A nil return keeps Spinel from boxing the loop.
     nil
   end
 
   # The index of the nearest other adult of the kind of mob i in love mode,
-  # within Mob::MATE_REACH, or -1.
+  # within Love::MATE_REACH, or -1.
   def nearest_mate(i)
     m = @mobs[i]
     best = -1
-    best_d2 = Mob::MATE_REACH * Mob::MATE_REACH
+    best_d2 = Love::MATE_REACH * Love::MATE_REACH
     j = 0
     while j < @mobs.size
       o = @mobs[j]
-      if j != i && o.kind == m.kind && o.in_love? && !o.dying?
+      if j != i && o.kind == m.kind && o.love.on? && !o.dying?
         # to_f: Spinel cannot type the positions of the mobs.
         dx = (o.x - m.x).to_f
         dy = (o.y - m.y).to_f
@@ -340,8 +340,8 @@ class Game
   # show a burst of hearts, as in Minecraft since 1.15.
   # minecraft.wiki/w/Breeding
   def breed(a, b)
-    a.bred
-    b.bred
+    a.love.bred
+    b.love.bred
     baby = Mob.new(a.kind, a.x, a.y, a.z, (@rng.rand01 * 100000.0).to_i)
     baby.make_baby
     @mobs << baby

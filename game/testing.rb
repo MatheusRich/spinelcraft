@@ -3841,27 +3841,27 @@ class Game
     @mobs << cow
     hearts = @particles.count(Particle::HEART)
     right_click_mob(cow)
-    loved = cow.in_love? && cow.love == Mob::LOVE_TIME && @inv.count(0) == 9 &&
+    loved = cow.love.on? && cow.love.left == Love::TIME && @inv.count(0) == 9 &&
             @particles.count(Particle::HEART) == hearts + 7
     right_click_mob(cow)
     again = @inv.count(0) == 9
-    cow.love_clock(Mob::LOVE_TIME - 1.0)
-    still = cow.in_love?
-    cow.love_clock(1.0)
+    cow.love.clock(Love::TIME - 1.0)
+    still = cow.love.on?
+    cow.love.clock(1.0)
     check("wheat from the hand puts a cow in love mode for 30 seconds and uses 1 wheat, once",
-          loved && again && still && !cow.in_love?)
+          loved && again && still && !cow.love.on?)
     @slot = 1
     right_click_mob(cow)
-    seeds_on_cow = @target_mob == 0 && !cow.in_love? && @inv.count(1) == 10
+    seeds_on_cow = @target_mob == 0 && !cow.love.on? && @inv.count(1) == 10
     hen = Mob.new(Mob::CHICKEN, bx + 0.5, fy, bz - 4.5, 3)
     @mobs << hen
     @slot = 0
     right_click_mob(hen)
-    wheat_on_hen = @target_mob == 1 && !hen.in_love? && @inv.count(0) == 9
+    wheat_on_hen = @target_mob == 1 && !hen.love.on? && @inv.count(0) == 9
     @slot = 1
     right_click_mob(hen)
     check("a cow takes no seeds and a chicken no wheat, but a chicken takes seeds",
-          seeds_on_cow && wheat_on_hen && hen.in_love? && @inv.count(1) == 9)
+          seeds_on_cow && wheat_on_hen && hen.love.on? && @inv.count(1) == 9)
     # The hen is in love mode, and the cow is not. Old particles go first.
     # In 70 frames, the hen gives off its hearts at 0.5 and 1 second.
     @mobs.clear
@@ -3873,7 +3873,7 @@ class Game
     70.times { update_mobs(1.0 / 60.0) }
     warm = @particles.count(Particle::HEART)
     check("an animal in love mode gives off a heart each half second, and one out of love mode gives off none",
-          cold == 0 && warm == 2 && hen.in_love?)
+          cold == 0 && warm == 2 && hen.love.on?)
     @mobs.clear
     @slot = 0
     a = Mob.new(Mob::COW, bx + 0.5, fy, bz + 0.5, 3)
@@ -3888,22 +3888,22 @@ class Game
       frames += 1
     end
     babies = @mobs.select(&:baby?)
-    near = (a.x - b.x).abs < Mob::MATE_NEAR
+    near = (a.x - b.x).abs < Love::MATE_NEAR
     check("two cows in love mode walk to each other and make one baby cow",
-          babies.size == 1 && babies[0].kind == Mob::COW && near && frames >= (Mob::COURT_TIME * 60.0).to_i &&
-          !a.in_love? && !b.in_love? && a.breed_wait > Mob::BREED_WAIT - 0.1 && b.breed_wait > Mob::BREED_WAIT - 0.1)
+          babies.size == 1 && babies[0].kind == Mob::COW && near && frames >= (Love::COURT_TIME * 60.0).to_i &&
+          !a.love.on? && !b.love.on? && a.love.wait > Love::BREED_WAIT - 0.1 && b.love.wait > Love::BREED_WAIT - 0.1)
     calf = babies[0]
     put_mob(a, bx + 0.5, fy, bz + 0.5)
     left = @inv.count(0)
     right_click_mob(a)
-    waits = !a.in_love? && @inv.count(0) == left
-    a.love_clock(Mob::BREED_WAIT - 1.0)
+    waits = !a.love.on? && @inv.count(0) == left
+    a.love.clock(Love::BREED_WAIT - 1.0)
     right_click_mob(a)
-    waits &&= !a.in_love?
-    a.love_clock(1.0)
+    waits &&= !a.love.on?
+    a.love.clock(1.0)
     right_click_mob(a)
     check("a parent takes no food for 5 minutes, then enters love mode again",
-          waits && a.in_love? && @inv.count(0) == left - 1)
+          waits && a.love.on? && @inv.count(0) == left - 1)
     @mobs.clear
     @mobs << calf
     put_mob(calf, bx + 0.5, fy, bz + 0.5)
@@ -3915,7 +3915,7 @@ class Game
     right_click_mob(calf)
     late = (calf.grow_left - 8.0).abs < 0.001 && @inv.count(0) == left - 2
     check("a baby eats wheat but does not enter love mode, and each wheat takes 10% off its growth time",
-          faster && late && calf.baby? && !calf.in_love?)
+          faster && late && calf.baby? && !calf.love.on?)
     calf2 = Mob.new(Mob::COW, bx + 2.5, fy, bz + 0.5, 5)
     calf2.make_baby
     @mobs << calf2
@@ -3931,7 +3931,7 @@ class Game
     @mobs << cow
     right_click_mob(cow)
     check("in creative, wheat puts a cow in love mode and stays in the hand",
-          cow.in_love? && @hotbar[@slot] == Block::WHEAT && @inv.empty?(0))
+          cow.love.on? && @hotbar[@slot] == Block::WHEAT && @inv.empty?(0))
     @hotbar[@slot] = held
     test_tempt(bx, bz, fy)
     @mobs.clear
