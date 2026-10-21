@@ -9,3 +9,6 @@
 *.ppm
 
 .DS_Store
+
+# Worktrees of Claude Code sessions
+/.claude/worktrees/
