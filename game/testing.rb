@@ -262,7 +262,7 @@ class Game
   end
 
   # Near spawn, each ore holds its share of the stone at each layer
-  # (ChunkGenerator.ore_at), and no ore lies at a layer where that share is 0.
+  # (Ores.ore_at), and no ore lies at a layer where that share is 0.
   def test_ores
     ores = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE]
     stone = Array.new(WY, 0)
@@ -291,7 +291,7 @@ class Game
       want = 0.0
       got = 0
       (1...WY).each do |y|
-        share = ChunkGenerator.ore_at(ore, y)
+        share = Ores.ore_at(ore, y)
         want += stone[y] * share / 256
         got += found[k * WY + y]
         outside += found[k * WY + y] if share == 0.0
