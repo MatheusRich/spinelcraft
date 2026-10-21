@@ -35,13 +35,13 @@ class Furnace
     @progress = 0
   end
 
-  # The ticks of burn time of one b, or 0 when b is not a fuel.
-  def self.fuel_ticks(b)
-    FUEL_BLOCKS.size.times { |i| return FUEL_TICKS[i] if FUEL_BLOCKS[i] == b }
+  # The ticks of burn time of one block, or 0 when block is not a fuel.
+  def self.fuel_ticks(block)
+    FUEL_BLOCKS.size.times { |i| return FUEL_TICKS[i] if FUEL_BLOCKS[i] == block }
     0
   end
 
-  def self.fuel?(b) = fuel_ticks(b) > 0
+  def self.fuel?(block) = fuel_ticks(block) > 0
 
   def lit? = @burn > 0
 
@@ -79,8 +79,8 @@ class Furnace
     end
   end
 
-  # True when n of b fit in the output slot.
-  def fits?(b, n)
-    @slots.empty?(OUTPUT) || (@slots.block(OUTPUT) == b && @slots.count(OUTPUT) + n <= Block.stack(b))
+  # True when n of block fit in the output slot.
+  def fits?(block, n)
+    @slots.empty?(OUTPUT) || (@slots.block(OUTPUT) == block && @slots.count(OUTPUT) + n <= Block.stack(block))
   end
 end

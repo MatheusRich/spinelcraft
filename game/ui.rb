@@ -34,22 +34,22 @@ class Ui
     quad(x, y, size, size, layer, 1.0, 1.0, shade, shade, shade, 1.0)
   end
 
-  # Item b in the square at x, y with the side size, as in the inventory of
+  # The item or block in the square at x, y with the side size, as in the inventory of
   # Minecraft: a flat item is its picture, and a block is a small cube.
-  def item(x, y, size, b, shade)
-    if Block.flat?(b)
-      icon(x, y, size, Block::FRONT[b], shade)
+  def item(x, y, size, block, shade)
+    if Block.flat?(block)
+      icon(x, y, size, Block::FRONT[block], shade)
     else
-      cube(x + size / 2.0, y + size / 2.0, size * 0.625, b, shade)
+      cube(x + size / 2.0, y + size / 2.0, size * 0.625, block, shade)
     end
   end
 
-  # Block b as a cube with the edge e around cx, cy. The view comes from
+  # Block as a cube with the edge e around cx, cy. The view comes from
   # above at 30 degrees and from the corner between the -x and +z faces, as
   # the gui display of block/block in Minecraft: rotation (30, 225, 0) and
   # scale 0.625. The top shows TOP, the left face FRONT and the right face
   # SIDE. A block with a shape (a chest) is the box of its shape.
-  def cube(cx, cy, e, b, shade) # rubocop:todo Metrics/MethodLength
+  def cube(cx, cy, e, block, shade) # rubocop:todo Metrics/MethodLength
     @ix = cx
     @iy = cy
     @ie = e
@@ -59,8 +59,8 @@ class Ui
     x1 = 1.0
     y1 = 1.0
     z1 = 1.0
-    if Block::SHAPE[b] > 0
-      s = Block::SHAPE[b] * 6
+    if Block::SHAPE[block] > 0
+      s = Block::SHAPE[block] * 6
       x0 = Block::SHAPE_BOX[s] / 16.0
       y0 = Block::SHAPE_BOX[s + 1] / 16.0
       z0 = Block::SHAPE_BOX[s + 2] / 16.0
@@ -70,13 +70,13 @@ class Ui
     end
     face(iso_x(x0, z0), iso_y(x0, y1, z0), iso_x(x1, z0), iso_y(x1, y1, z0),
          iso_x(x1, z1), iso_y(x1, y1, z1), iso_x(x0, z1), iso_y(x0, y1, z1),
-         x0, z0, x1, z1, Block::TOP[b], shade)
+         x0, z0, x1, z1, Block::TOP[block], shade)
     face(iso_x(x0, z0), iso_y(x0, y1, z0), iso_x(x0, z1), iso_y(x0, y1, z1),
          iso_x(x0, z1), iso_y(x0, y0, z1), iso_x(x0, z0), iso_y(x0, y0, z0),
-         z0, 1.0 - y1, z1, 1.0 - y0, Block::FRONT[b], shade * 0.8)
+         z0, 1.0 - y1, z1, 1.0 - y0, Block::FRONT[block], shade * 0.8)
     face(iso_x(x0, z1), iso_y(x0, y1, z1), iso_x(x1, z1), iso_y(x1, y1, z1),
          iso_x(x1, z1), iso_y(x1, y0, z1), iso_x(x0, z1), iso_y(x0, y0, z1),
-         x0, 1.0 - y1, x1, 1.0 - y0, Block::SIDE[b], shade * 0.6)
+         x0, 1.0 - y1, x1, 1.0 - y0, Block::SIDE[block], shade * 0.6)
   end
 
   # The screen place of the point x, y, z of the cube of cube, from 0 to 1

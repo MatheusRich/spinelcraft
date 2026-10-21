@@ -68,8 +68,8 @@ class Game
     fill_box(bx - 4, y, bz - 3, bx + 4, y, bz + 3, Block::STONE)
     shown = [Block::GRASS, Block::CHEST, Block::DOOR, Block::FURNACE, Block::OAK_SAPLING, Block::APPLE,
              Block::BREAD, Block::WHEAT, Block::IRON_SWORD, Block::IRON_AXE, Block::STONE_SHOVEL, Block::ARROW]
-    shown.each_with_index do |b, i|
-      drop_item(b, i == 11 ? 3 : 1, bx - 3.6 + i * 0.65, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
+    shown.each_with_index do |block, i|
+      drop_item(block, i == 11 ? 3 : 1, bx - 3.6 + i * 0.65, y + 1.0, bz + 0.5, 0.0, 0.0, 0.0, 1.0e9)
     end
     # A closed door and an open door that face the player.
     set_block(bx - 2, y + 1, bz - 2, Block.door_id(2, false, false))
@@ -89,8 +89,8 @@ class Game
     # A bed in front of the table, with its head to the right.
     set_block(bx + 3, y + 1, bz - 1, Block.bed_id(1, false))
     set_block(bx + 4, y + 1, bz - 1, Block.bed_id(0, true))
-    [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |b, i|
-      set_block(bx - 4 + i, y + 1, bz - 1, b)
+    [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |block, i|
+      set_block(bx - 4 + i, y + 1, bz - 1, block)
     end
     @survival = true
     hand = (ENV["HAND"] || Block::OAK_LOG.to_s).to_i
@@ -111,8 +111,8 @@ class Game
     @player.pitch = -1.3
     return unless @player.hit
     if frame % 20 == 0 && frame < 50
-      b = @world.get(@player.hx, @player.hy, @player.hz)
-      @particles.burst(@player.hx, @player.hy, @player.hz, b)
+      block = @world.get(@player.hx, @player.hy, @player.hz)
+      @particles.burst(@player.hx, @player.hy, @player.hz, block)
       play(Sfx::BREAK, 0.7)
       set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
     elsif frame % 20 == 0 && frame >= 60 && frame < 120
@@ -234,8 +234,8 @@ class Game
     x = @spawn_x.floor
     z = @spawn_z.floor
     h = @world.height_at(x, z)
-    b = @world.get(x, h - 1, z)
-    check("the player spawns on dry land", h > SEA + 2 && Block.solid?(b) && !Block.leaves?(b) && !Block.water?(b))
+    block = @world.get(x, h - 1, z)
+    check("the player spawns on dry land", h > SEA + 2 && Block.solid?(block) && !Block.leaves?(block) && !Block.water?(block))
   end
 
   # Each sand column near spawn has SOIL_DEPTH of sand on SANDSTONE_DEPTH
@@ -274,9 +274,9 @@ class Game
         if @world.loaded?(x, z)
           y = 1
           while y < WY
-            b = @world.get(x, y, z)
-            k = ores.index(b) || -1
-            stone[y] += 1 if b == Block::STONE || k >= 0
+            block = @world.get(x, y, z)
+            k = ores.index(block) || -1
+            stone[y] += 1 if block == Block::STONE || k >= 0
             found[k * WY + y] += 1 if k >= 0
             y += 1
           end
@@ -399,9 +399,9 @@ class Game
     apply_changes
   end
 
-  # Sets each block from x0, y0, z0 to x1, y1, z1 to b, in the order x, y, z.
-  def fill_box(x0, y0, z0, x1, y1, z1, b)
-    (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, b) } } }
+  # Sets each block from x0, y0, z0 to x1, y1, z1 to block, in the order x, y, z.
+  def fill_box(x0, y0, z0, x1, y1, z1, block)
+    (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, block) } } }
   end
 
   # The number of cells from x0, y0, z0 to x1, y1, z1 that hold block.
@@ -1152,14 +1152,14 @@ class Game
   # when that block goes.
   def test_held_blocks_drop(x, z, ground)
     lost = []
-    Block::COUNT.times do |b|
-      next unless Block.plant?(b) && !Block.wall_torch?(b)
+    Block::COUNT.times do |block|
+      next unless Block.plant?(block) && !Block.wall_torch?(block)
       @items.clear
       set_block(x, ground, z, Block::DIRT)
-      set_block(x, ground + 1, z, b)
+      set_block(x, ground + 1, z, block)
       set_block(x, ground, z, Block::AIR)
-      dropped = Block::DROPS[b] == Block::AIR || ground_count(Block::DROPS[b]) == 1
-      lost << Block::NAMES[b] unless @world.get(x, ground + 1, z) == Block::AIR && dropped
+      dropped = Block::DROPS[block] == Block::AIR || ground_count(Block::DROPS[block]) == 1
+      lost << Block::NAMES[block] unless @world.get(x, ground + 1, z) == Block::AIR && dropped
     end
     set_block(x, ground, z, Block::DIRT)
     [Block::TORCH, Block::LADDER].each do |base|
@@ -1378,16 +1378,16 @@ class Game
     @vitals = Vitals.new
   end
 
-  # Frames of 0.05 seconds that it takes to break block b at x, y, z (which
+  # Frames of 0.05 seconds that it takes to break block at x, y, z (which
   # the player looks at) with tool in hotbar slot 8.
-  def frames_to_mine(x, y, z, b, tool)
+  def frames_to_mine(x, y, z, block, tool)
     @inv.set(8, tool, tool == Block::AIR ? 0 : Block.uses(tool))
     @slot = 8
-    set_block(x, y, z, b)
+    set_block(x, y, z, block)
     @mining = false
     @mine_delay = 0.0
     n = 0
-    while n < 400 && @world.get(x, y, z) == b
+    while n < 400 && @world.get(x, y, z) == block
       @player.raycast(@world)
       mine(0.05)
       n += 1
@@ -1923,7 +1923,7 @@ class Game
   def test_recipe_scroll
     book = @recipe_book
     @recipe_book = RecipeBook.new
-    @recipe_book.recipe_count.times { |index| Block.fillers(@recipe_book.recipe(index).ingredient).each { |b| @recipe_book.learn(b) } }
+    @recipe_book.recipe_count.times { |index| Block.fillers(@recipe_book.recipe(index).ingredient).each { |block| @recipe_book.learn(block) } }
     x = @player.x.floor + 2
     y = @player.y.floor
     z = @player.z.floor
@@ -1933,7 +1933,7 @@ class Game
     shown = shown_recipes
     rows = (shown.size + 1) / 2
     top = @recipe_book.in_view(active_station) == shown[0, RecipeBook::ROWS * 2]
-    picks = [Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK].map { |b| shown.index(recipe_for(b)) }
+    picks = [Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK].map { |block| shown.index(recipe_for(block)) }
     check("a crafting table shows the planks first, then the pickaxes in one column, one to a row", shown[0] == recipe_for(Block::OAK_PLANKS) && picks == [4, 6, 8, 10])
     @recipe_book.scroll_by(100, active_station)
     end_view = @recipe_book.in_view(active_station)
@@ -1978,10 +1978,10 @@ class Game
     check("the pause screen fits the frame above the hotbar", fits && menu_scale(1440.0) == ui_scale(1440.0))
   end
 
-  # The index of the recipe that makes b.
-  def recipe_for(b)
-    @recipe_book.recipe_count.times { |index| return index if @recipe_book.recipe(index).result == b }
-    abort "no recipe makes #{Block::NAMES[b]}"
+  # The index of the recipe that makes block.
+  def recipe_for(block)
+    @recipe_book.recipe_count.times { |index| return index if @recipe_book.recipe(index).result == block }
+    abort "no recipe makes #{Block::NAMES[block]}"
   end
 
   # The recipes that the open screen lists.
@@ -2561,10 +2561,10 @@ class Game
   end
 
   # Wool does not glow, lava gives light, and water turns lava into cobblestone.
-  # The tint of the face of block b at (cx, SKY_Y, cz) in direction f, from
+  # The tint of the face of block at (cx, SKY_Y, cz) in direction f, from
   # its face record (Mesher.face_tint), or -1 when the mesh has no such face.
-  def face_tint(cx, cz, b, f)
-    set_block(cx, SKY_Y, cz, b)
+  def face_tint(cx, cz, block, f)
+    set_block(cx, SKY_Y, cz, block)
     mesher = Mesher.new(@world)
     mesher.build(cx / CHUNK, cz / CHUNK)
     tint = -1
@@ -2694,8 +2694,8 @@ class Game
     @inv.clear
     @inv.add(Block::BOW)
     @slot = 0
-    opened = [Block::FURNACE, Block::CRAFTING_TABLE].all? do |b|
-      set_block(x, y, z, b)
+    opened = [Block::FURNACE, Block::CRAFTING_TABLE].all? do |block|
+      set_block(x, y, z, block)
       aim_down(x, y, z)
       @action_cooldown = 0.0
       @draw_time = -1.0
@@ -2980,7 +2980,7 @@ class Game
     @plants.grow_tree(sx, sy, z, Block::SPRUCE_WOOD, plan)
     kinds = (0...plan.size / 4).map { |i| plan[i * 4 + 3] }
     spruce = kinds.include?(Block::SPRUCE_LOG) && kinds.include?(Block::SPRUCE_LEAVES) &&
-             kinds.all? { |b| b == Block::SPRUCE_LOG || b == Block::SPRUCE_LEAVES || b == Block::DIRT }
+             kinds.all? { |block| block == Block::SPRUCE_LOG || block == Block::SPRUCE_LEAVES || block == Block::DIRT }
     set_block(sx, sy + 2, z, Block::STONE)
     plan.clear
     @plants.grow_tree(sx, sy, z, Block::SPRUCE_WOOD, plan)
@@ -3333,16 +3333,16 @@ class Game
       plants = 0
       (-10..10).each do |dx|
         (-10..10).each do |dz|
-          b = @world.get(x + dx, g + 1, z + dz)
-          if b == Block::TALL_GRASS || b == Block::ROSE || b == Block::DANDELION
+          block = @world.get(x + dx, g + 1, z + dz)
+          if block == Block::TALL_GRASS || block == Block::ROSE || block == Block::DANDELION
             if dx.abs <= 4 && dz.abs <= 4
               plants += 1
-              flowers += 1 if b != Block::TALL_GRASS
+              flowers += 1 if block != Block::TALL_GRASS
             else
               on_stone += 1
             end
           end
-          set_block(x + dx, g + 1, z + dz, Block::AIR) if Block.plant?(b) && b != Block::OAK_SAPLING && !Block.growing?(b) && b != Block::WHEAT_RIPE && b != Block::PUMPKIN_STEM_RIPE
+          set_block(x + dx, g + 1, z + dz, Block::AIR) if Block.plant?(block) && block != Block::OAK_SAPLING && !Block.growing?(block) && block != Block::WHEAT_RIPE && block != Block::PUMPKIN_STEM_RIPE
         end
       end
       fewest = plants if plants < fewest

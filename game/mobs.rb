@@ -231,15 +231,15 @@ class Mob
 
   def passive? = PASSIVE[@kind] == 1
 
-  # True when b is the breeding food of this animal: wheat for a cow, a
+  # True when block is the breeding food of this animal: wheat for a cow, a
   # sheep and a pig, and seeds for a chicken. minecraft.wiki/w/Breeding
   # Minecraft breeds pigs with carrots since 1.4.2. From Beta 1.9
   # Prerelease 2 until then, wheat bred them (minecraft.wiki/w/Pig). The
   # game has no carrots, so pigs take wheat. A chicken also takes pumpkin
   # seeds. minecraft.wiki/w/Chicken
-  def food?(b)
-    return b == Block::SEEDS || b == Block::PUMPKIN_SEEDS if @kind == CHICKEN
-    b == Block::WHEAT && (@kind == COW || @kind == SHEEP || @kind == PIG)
+  def food?(block)
+    return block == Block::SEEDS || block == Block::PUMPKIN_SEEDS if @kind == CHICKEN
+    block == Block::WHEAT && (@kind == COW || @kind == SHEEP || @kind == PIG)
   end
 
   def in_love? = @love > 0.0

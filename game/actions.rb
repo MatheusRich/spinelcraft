@@ -297,11 +297,11 @@ class Game
   # An empty bucket takes the first water or lava source in view. A full
   # bucket pours its source into the cell where a block would go.
   def use_bucket # rubocop:todo Metrics/MethodLength
-    b = current_block.to_i
-    if b == Block::BUCKET && @target_mob >= 0 && @mobs[@target_mob].kind == Mob::COW
+    block = current_block.to_i
+    if block == Block::BUCKET && @target_mob >= 0 && @mobs[@target_mob].kind == Mob::COW
       swap_bucket(Block::MILK_BUCKET)
       play_from(@mobs[@target_mob], Sfx::MILK, 1.0)
-    elsif b == Block::BUCKET
+    elsif block == Block::BUCKET
       return unless fluid_in_view
       fluid = @world.get(@fluid_x, @fluid_y, @fluid_z)
       set_block(@fluid_x, @fluid_y, @fluid_z, Block::AIR)
@@ -322,9 +322,9 @@ class Game
       return if Block.solid?(current) || Block.door?(current)
       # The wiki does not say what a bucket does to a plant; pour uses the
       # rule of flowing water and lava.
-      pour(x, y, z, b == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
+      pour(x, y, z, block == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
       swap_bucket(Block::BUCKET)
-      play(b == Block::WATER_BUCKET ? Sfx::WATER_POUR : Sfx::LAVA_POUR, 0.5)
+      play(block == Block::WATER_BUCKET ? Sfx::WATER_POUR : Sfx::LAVA_POUR, 0.5)
     end
   end
 
@@ -337,27 +337,27 @@ class Game
       x = (@player.x + @player.fx * t).floor
       y = (@player.eye_y + @player.fy * t).floor
       z = (@player.z + @player.fz * t).floor
-      b = @world.get(x, y, z)
-      if b == Block::WATER || b == Block::LAVA
+      block = @world.get(x, y, z)
+      if block == Block::WATER || block == Block::LAVA
         @fluid_x = x
         @fluid_y = y
         @fluid_z = z
         return true
       end
-      return false if Block.solid?(b)
+      return false if Block.solid?(block)
       t += 0.05
     end
     false
   end
 
-  # Takes one bucket from the selected slot and gives b for it. An emptied
-  # slot gets b, so b stays in the hand.
-  def swap_bucket(b)
+  # Takes one bucket from the selected slot and gives block for it. An emptied
+  # slot gets block, so block stays in the hand.
+  def swap_bucket(block)
     @inv.take(@slot, 1)
     if @inv.empty?(@slot)
-      @inv.set(@slot, b, 1)
-    elsif !@inv.add(b)
-      throw_stack(b, 1)
+      @inv.set(@slot, block, 1)
+    elsif !@inv.add(block)
+      throw_stack(block, 1)
     end
   end
 
@@ -384,30 +384,30 @@ class Game
       @mine_progress = 0.0
       @dig_wait = 0.0
     end
-    b = @world.get(x, y, z)
-    hardness = Block::HARDNESS[b]
+    block = @world.get(x, y, z)
+    hardness = Block::HARDNESS[block]
     return if hardness < 0.0
     @dig_wait -= dt
     if @dig_wait <= 0.0 && hardness > 0.0
-      play(MATERIAL_DIG[material(b)], 0.55)
+      play(MATERIAL_DIG[material(block)], 0.55)
       @dig_wait = 0.25
     end
     # A held button swings again when the last swing ends.
     @swing = SWING if @swing <= 0.0
     tool = current_block.to_i
-    tier = Block.dig_tier(tool, b)
-    need = Block::NEEDS_PICK[b]
-    speed = Block.dig_speed(tool, b)
+    tier = Block.dig_tier(tool, block)
+    need = Block::NEEDS_PICK[block]
+    speed = Block.dig_speed(tool, block)
     speed /= 5.0 if Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
     speed /= 5.0 unless @player.on_ground
     seconds = hardness * (tier >= need ? 1.5 : 5.0)
     @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / seconds
     if @mine_progress >= 1.0
-      @particles.burst(x, y, z, b)
-      play(MATERIAL_BREAK[material(b)], 0.7)
+      @particles.burst(x, y, z, block)
+      play(MATERIAL_BREAK[material(block)], 0.7)
       set_block(x, y, z, Block::AIR)
       @attack_time = 0.0
-      drop_broken(b, x, y, z, tool) if tier >= need
+      drop_broken(block, x, y, z, tool) if tier >= need
       if hardness > 0.0
         wear_tool(Block.wear(tool, false))
         @mine_delay = MINE_DELAY
@@ -417,19 +417,19 @@ class Game
     end
   end
 
-  # The material of block b for its sounds, as in VoxeLibre (mcl_sounds).
-  def material(b) # rubocop:todo Metrics/CyclomaticComplexity
-    b = Block::BASE[b]
-    return M_GLASS if b == Block::GLASS
-    return M_GRAVEL if b == Block::GRAVEL
-    return M_SAND if b == Block::SAND
-    return M_GRASS if b == Block::GRASS || b == Block::SNOW_GRASS
-    return M_SNOW if b == Block::SNOW
-    return M_CLOTH if b == Block::WOOL
-    return M_WOOD if b == Block::TORCH || b == Block::CACTUS || Block.pumpkin?(b)
-    return M_LEAVES if Block.leaves?(b) || Block.plant?(b)
-    return M_STONE if Block::NEEDS_PICK[b] > 0 || b == Block::BEDROCK || b == Block::FURNACE
-    return M_WOOD if Block.log?(b) || Block.planks?(b) || b == Block::CHEST || b == Block::BED || b == Block::DOOR || b == Block::CRAFTING_TABLE || b == Block::LADDER
+  # The material of block for its sounds, as in VoxeLibre (mcl_sounds).
+  def material(block) # rubocop:todo Metrics/CyclomaticComplexity
+    block = Block::BASE[block]
+    return M_GLASS if block == Block::GLASS
+    return M_GRAVEL if block == Block::GRAVEL
+    return M_SAND if block == Block::SAND
+    return M_GRASS if block == Block::GRASS || block == Block::SNOW_GRASS
+    return M_SNOW if block == Block::SNOW
+    return M_CLOTH if block == Block::WOOL
+    return M_WOOD if block == Block::TORCH || block == Block::CACTUS || Block.pumpkin?(block)
+    return M_LEAVES if Block.leaves?(block) || Block.plant?(block)
+    return M_STONE if Block::NEEDS_PICK[block] > 0 || block == Block::BEDROCK || block == Block::FURNACE
+    return M_WOOD if Block.log?(block) || Block.planks?(block) || block == Block::CHEST || block == Block::BED || block == Block::DOOR || block == Block::CRAFTING_TABLE || block == Block::LADDER
     M_DIRT
   end
 
@@ -457,18 +457,18 @@ class Game
 
   # Opens or closes the door at x, y, z and the other half above or below it.
   def toggle_door(x, y, z)
-    b = Block.door_toggled(@world.get(x, y, z))
+    block = Block.door_toggled(@world.get(x, y, z))
     other = @world.door_partner(x, y, z)
     # A closed door must not close on the player or a mob.
-    unless Block.door_open?(b)
+    unless Block.door_open?(block)
       return if @player.overlaps?(x, y, z) || @player.overlaps?(x, other, z)
       return if mob_in?(x, y < other ? y : other, z, 2)
     end
-    @world.set(x, y, z, b)
+    @world.set(x, y, z, block)
     partner = @world.get(x, other, z)
     @world.set(x, other, z, Block.door_toggled(partner)) if Block.door?(partner)
     @chunk_meshes.mark_block(x, z)
-    play(Block.door_open?(b) ? Sfx::DOOR_OPEN : Sfx::DOOR_CLOSE, 0.6)
+    play(Block.door_open?(block) ? Sfx::DOOR_OPEN : Sfx::DOOR_CLOSE, 0.6)
     @swing = SWING
   end
 
@@ -520,14 +520,14 @@ class Game
   # Milk needs no hunger. minecraft.wiki/w/Milk_Bucket
   def edible?
     return false if !@survival || @inv.empty?(@slot)
-    b = current_block.to_i
-    b == Block::MILK_BUCKET || (@vitals.hungry? && Block.food(b) > 0)
+    block = current_block.to_i
+    block == Block::MILK_BUCKET || (@vitals.hungry? && Block.food(block) > 0)
   end
 
   # True for a block that the right button opens or uses.
-  def usable?(b)
-    base = Block::BASE[b]
-    base == Block::CHEST || base == Block::CRAFTING_TABLE || base == Block::FURNACE || Block.bed?(b) || Block.door?(b)
+  def usable?(block)
+    base = Block::BASE[block]
+    base == Block::CHEST || base == Block::CRAFTING_TABLE || base == Block::FURNACE || Block.bed?(block) || Block.door?(block)
   end
 
   # dt more seconds of eating. After CHEW_START, each CHEW_EVERY plays a
@@ -548,10 +548,10 @@ class Game
   # Rotten flesh gives the Hunger effect 4 times in 5.
   # minecraft.wiki/w/Rotten_Flesh
   def eat
-    b = current_block.to_i
-    return drink_milk if b == Block::MILK_BUCKET
-    @vitals.eat(Block.food(b), Block.saturation(b))
-    @vitals.give_hunger_effect if @rng.rand01 < Block.hunger_chance(b)
+    block = current_block.to_i
+    return drink_milk if block == Block::MILK_BUCKET
+    @vitals.eat(Block.food(block), Block.saturation(block))
+    @vitals.give_hunger_effect if @rng.rand01 < Block.hunger_chance(block)
     @inv.take(@slot, 1)
     play(Sfx::EAT, 0.6)
   end
@@ -567,8 +567,8 @@ class Game
   def place # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # Spinel types an Array read as Integer or nil. A plain Integer here keeps
     # the parameters of Block.solid?, plant? and emits? unboxed.
-    b = current_block.to_i
-    return if b == Block::AIR || Block.item?(b)
+    block = current_block.to_i
+    return if block == Block::AIR || Block.item?(block)
     return if @survival && @inv.empty?(@slot)
     x = @player.px
     y = @player.py
@@ -583,62 +583,62 @@ class Game
     # A torch or a ladder on the side of a block hangs on that block, and
     # faces away from it.
     side = y == @player.hy && (x != @player.hx || z != @player.hz)
-    if (b == Block::TORCH || b == Block::LADDER) && side
+    if (block == Block::TORCH || block == Block::LADDER) && side
       wall = @player.hx > x ? 0 : (@player.hx < x ? 1 : (@player.hz > z ? 2 : 3))
-      b = Block.facing_id(b, wall ^ 1)
-    elsif b == Block::LADDER
+      block = Block.facing_id(block, wall ^ 1)
+    elsif block == Block::LADDER
       return
-    elsif Block::FACING[b] >= 0
-      b = Block.facing_id(b, look_direction ^ 1)
-    elsif b == Block::DOOR
+    elsif Block::FACING[block] >= 0
+      block = Block.facing_id(block, look_direction ^ 1)
+    elsif block == Block::DOOR
       # A closed door stands on the edge of its cell next to the player.
-      b = Block.door_id(look_direction ^ 1, false, false)
-    elsif b == Block::BED
+      block = Block.door_id(look_direction ^ 1, false, false)
+    elsif block == Block::BED
       # The head goes the way that the player looks, and each half faces
       # away from the other.
-      b = Block.bed_id(look_direction ^ 1, false)
-    elsif Block.leaves?(b)
-      b = Block::PLACED_LEAVES[Block.wood(b)]
+      block = Block.bed_id(look_direction ^ 1, false)
+    elsif Block.leaves?(block)
+      block = Block::PLACED_LEAVES[Block.wood(block)]
     end
-    return if Block.solid?(b) && @player.overlaps?(x, y, z)
-    return unless @world.can_hold?(b, x, y, z)
-    return if Block.plant?(b) && (Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z)))
-    return if Block.solid?(b) && mob_in?(x, y, z, Block.door?(b) ? 2 : 1)
+    return if Block.solid?(block) && @player.overlaps?(x, y, z)
+    return unless @world.can_hold?(block, x, y, z)
+    return if Block.plant?(block) && (Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z)))
+    return if Block.solid?(block) && mob_in?(x, y, z, Block.door?(block) ? 2 : 1)
     current = @world.get(x, y, z)
     # The view ray can pass a flower, so a block only replaces grass.
     # It passes water and lava, and a block replaces them, as in Minecraft.
     return unless Block.replaceable?(current)
-    if Block.door?(b)
+    if Block.door?(block)
       return unless @world.door_fits?(x, y, z)
       return if @player.overlaps?(x, y + 1, z)
-      set_block(x, y + 1, z, Block.door_id(Block::FACING[b], true, false))
+      set_block(x, y + 1, z, Block.door_id(Block::FACING[block], true, false))
     end
-    if Block.bed?(b)
-      d = Block::FACING[b] ^ 1
+    if Block.bed?(block)
+      d = Block::FACING[block] ^ 1
       return unless bed_fits?(x, y, z, x + Block::DIR_DX[d], z + Block::DIR_DZ[d])
       set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block.bed_id(d, true))
     end
-    b = join_chest(x, y, z, b) if Block::BASE[b] == Block::CHEST
-    set_block(x, y, z, b)
-    play(MATERIAL_PLACE[material(b)], 0.7)
+    block = join_chest(x, y, z, block) if Block::BASE[block] == Block::CHEST
+    set_block(x, y, z, block)
+    play(MATERIAL_PLACE[material(block)], 0.7)
     @swing = SWING
     @inv.take(@slot, 1) if @survival
   end
 
-  # A chest b placed at x, y, z next to a chest of one block that faces the
+  # A chest block placed at x, y, z next to a chest of one block that faces the
   # same way joins it into a large chest. A chest on its left joins first.
   # It gives the block for x, y, z. minecraft.wiki/w/Chest
-  def join_chest(x, y, z, b)
-    d = Block::FACING[b]
+  def join_chest(x, y, z, block)
+    d = Block::FACING[block]
     left = Block::CHEST_LEFT_DIR[d]
-    if @world.get(x + Block::DIR_DX[left], y, z + Block::DIR_DZ[left]) == b
+    if @world.get(x + Block::DIR_DX[left], y, z + Block::DIR_DZ[left]) == block
       set_block(x + Block::DIR_DX[left], y, z + Block::DIR_DZ[left], Block::CHEST_LEFT + d)
       return Block::CHEST_RIGHT + d
     end
-    if @world.get(x - Block::DIR_DX[left], y, z - Block::DIR_DZ[left]) == b
+    if @world.get(x - Block::DIR_DX[left], y, z - Block::DIR_DZ[left]) == block
       set_block(x - Block::DIR_DX[left], y, z - Block::DIR_DZ[left], Block::CHEST_RIGHT + d)
       return Block::CHEST_LEFT + d
     end
-    b
+    block
   end
 end

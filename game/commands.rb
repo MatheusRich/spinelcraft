@@ -155,28 +155,28 @@ class Game
   # item goes to the selected slot of the hotbar.
   def command_give(args)
     return @chat.post_error("USE /GIVE ITEM [COUNT]") if args.size < 1 || args.size > 2
-    b = Command.item_id(args[0])
-    return @chat.post_error("UNKNOWN ITEM: #{args[0]}") if b < 0
+    block = Command.item_id(args[0])
+    return @chat.post_error("UNKNOWN ITEM: #{args[0]}") if block < 0
     n = args.size == 2 ? Command.whole(args[1]) : 1
     return @chat.post_error("BAD COUNT: #{args[1]}") if n < 1 || n > INV * Slots::STACK
     if @survival
-      give(b, n)
+      give(block, n)
     else
-      @hotbar[@slot] = b
+      @hotbar[@slot] = block
     end
-    @chat.post("GAVE #{n} [#{Block::NAMES[b]}] TO PLAYER")
+    @chat.post("GAVE #{n} [#{Block::NAMES[block]}] TO PLAYER")
   end
 
-  def give(b, n)
+  def give(block, n)
     left = n
-    left -= 1 while left > 0 && @inv.add(b)
+    left -= 1 while left > 0 && @inv.add(block)
     x = @player.x.to_f
     y = @player.y.to_f
     z = @player.z.to_f
-    if Block.tool?(b)
-      left.times { drop_item(b, Block.uses(b), x, y, z, 0.0, 0.0, 0.0, PICKUP_WAIT) }
+    if Block.tool?(block)
+      left.times { drop_item(block, Block.uses(block), x, y, z, 0.0, 0.0, 0.0, PICKUP_WAIT) }
     else
-      drop_item(b, left, x, y, z, 0.0, 0.0, 0.0, PICKUP_WAIT)
+      drop_item(block, left, x, y, z, 0.0, 0.0, 0.0, PICKUP_WAIT)
     end
     nil
   end

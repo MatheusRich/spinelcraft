@@ -14,8 +14,8 @@ class Slots
   def count(i) = @counts[i]
   def empty?(i) = @counts[i] == 0
 
-  def set(i, b, n)
-    @blocks[i] = n > 0 ? b : Block::AIR
+  def set(i, block, n)
+    @blocks[i] = n > 0 ? block : Block::AIR
     @counts[i] = n
   end
 
@@ -43,54 +43,54 @@ class Slots
     (0...@size).each { |i| set(i, fields[at + i].to_i, fields[at + @size + i].to_i) }
   end
 
-  # How many of b still fit. Each empty slot fits one tool.
-  def room_for(b)
-    tool = Block.tool?(b)
+  # How many of block still fit. Each empty slot fits one tool.
+  def room_for(block)
+    tool = Block.tool?(block)
     room = 0
     (0...@size).each do |i|
       if @counts[i] == 0
-        room += tool ? 1 : Block.stack(b)
-      elsif @blocks[i] == b && !tool
-        room += Block.stack(b) - @counts[i]
+        room += tool ? 1 : Block.stack(block)
+      elsif @blocks[i] == block && !tool
+        room += Block.stack(block) - @counts[i]
       end
     end
     room
   end
 
-  # Puts a stack of n of b into the first empty slot; false when none is
+  # Puts a stack of n of block into the first empty slot; false when none is
   # empty. For a tool, n is the uses that it has left.
-  def put(b, n)
+  def put(block, n)
     i = @counts.index(0)
     return false if i.nil?
-    set(i.to_i, b, n)
+    set(i.to_i, block, n)
     true
   end
 
-  # Adds one b (a new tool, if b is a tool); false when it does not fit.
-  def add(b)
-    return true if b == Block::AIR
-    return put(b, Block.uses(b)) if Block.tool?(b)
+  # Adds one block (a new tool, if block is a tool); false when it does not fit.
+  def add(block)
+    return true if block == Block::AIR
+    return put(block, Block.uses(block)) if Block.tool?(block)
     (0...@size).each do |i|
-      if @blocks[i] == b && @counts[i] > 0 && @counts[i] < Block.stack(b)
+      if @blocks[i] == block && @counts[i] > 0 && @counts[i] < Block.stack(block)
         @counts[i] += 1
         return true
       end
     end
-    put(b, 1)
+    put(block, 1)
   end
 
-  # The number of b in all slots.
-  def total(b)
+  # The number of block in all slots.
+  def total(block)
     n = 0
-    (0...@size).each { |i| n += @counts[i] if @blocks[i] == b }
+    (0...@size).each { |i| n += @counts[i] if @blocks[i] == block }
     n
   end
 
-  # Takes n of b, from the last slots first.
-  def remove(b, n)
+  # Takes n of block, from the last slots first.
+  def remove(block, n)
     i = @size - 1
     while i >= 0 && n > 0
-      if @blocks[i] == b && @counts[i] > 0
+      if @blocks[i] == block && @counts[i] > 0
         taken = @counts[i] < n ? @counts[i] : n
         take(i, taken)
         n -= taken

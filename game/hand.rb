@@ -7,9 +7,9 @@ class Game
   SWING = 0.3
 
   def update_hand(dt)
-    b = current_block.to_i
-    if b != @hand_block
-      @hand_block = b
+    block = current_block.to_i
+    if block != @hand_block
+      @hand_block = block
       @equip = 1.0
       @attack_time = 0.0
       @eat_time = -1.0
@@ -29,7 +29,7 @@ class Game
   # Adds the held model to @dyn, in the frame of the eye at ex, ey, ez.
   def draw_hand(ex, ey, ez) # rubocop:todo Metrics/MethodLength
     return if !@captured || @vitals.dead?
-    b = @hand_block
+    block = @hand_block
     p = @player
     fx = p.fx
     fy = p.fy
@@ -40,7 +40,7 @@ class Game
     ux = -rz * fy
     uy = rz * fx - rx * fz
     uz = rx * fy
-    flat = b != Block::AIR && Block.flat?(b)
+    flat = block != Block::AIR && Block.flat?(block)
     # The move of the model from the arm, which turns with the swing.
     dx = 0.0
     dy = 0.0
@@ -49,7 +49,7 @@ class Game
     # Items and blocks copy Minecraft: ItemInHandRenderer puts the arm at
     # (0.56, -0.52, -0.72), and the firstperson_righthand display of the
     # models item/generated and block/block moves, turns and scales the model.
-    if b == Block::AIR
+    if block == Block::AIR
       ox = 0.6
       oy = -0.62
       oz = -0.55
@@ -113,14 +113,14 @@ class Game
     # part faces forward.
     # The arm of the skin is long in y, with the hand at -y and the front at
     # +z. Its y goes back along the view, and its front faces down.
-    if b == Block::AIR
+    if block == Block::AIR
       3.times do |i|
         t = frame[3 + i]
         frame[3 + i] = frame[6 + i]
         frame[6 + i] = -t
       end
     end
-    if Block.tool?(b)
+    if Block.tool?(block)
       3.times do |i|
         t = frame[i]
         frame[i] = -frame[3 + i]
@@ -158,12 +158,12 @@ class Game
                    (m00 * rx + m10 * ux - m20 * fx) * size, (m10 * uy - m20 * fy) * size, (m00 * rz + m10 * uz - m20 * fz) * size,
                    (m01 * rx + m11 * ux - m21 * fx) * size, (m11 * uy - m21 * fy) * size, (m01 * rz + m11 * uz - m21 * fz) * size,
                    (m02 * rx + m12 * ux - m22 * fx) * size, (m12 * uy - m22 * fy) * size, (m02 * rz + m12 * uz - m22 * fz) * size)
-    if b == Block::AIR
+    if block == Block::AIR
       # The right arm of the skin of the player, 4 x 12 x 4 pixels, reaches
       # forward from below the view.
       @dyn.frame_skin_box(-0.5, -2.5, -0.5, 0.5, 0.5, 0.5, Tex::SKINS + Tex::SKIN_PLAYER, 40.0, 16.0, 4.0, 12.0, 4.0, false, 1.0, 1.0, 1.0, 1.0)
     else
-      @dyn.item_model(b)
+      @dyn.item_model(block)
     end
   end
 

@@ -207,24 +207,24 @@ class Mesh3
     end
   end
 
-  # Block or item b as a unit model around the origin of the frame of set_frame.
+  # Block or item as a unit model around the origin of the frame of set_frame.
   # A flat item is its sprite with a thickness of one pixel, as in Minecraft.
   # The texture goes along -x on both faces.
-  def item_model(b)
-    if Block.flat?(b)
-      layer = Block::SIDE[b]
+  def item_model(block)
+    if Block.flat?(block)
+      layer = Block::SIDE[block]
       frame_corners(-0.5, -0.5, -ITEM_T, 0.5, 0.5, ITEM_T)
       face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
       face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
       item_edges(layer)
-    elsif Block::SHAPE[b] > 0
-      shape_model(b)
-    elsif Block::FACING[b] >= 0
+    elsif Block::SHAPE[block] > 0
+      shape_model(block)
+    elsif Block::FACING[block] >= 0
       # The front is on the -x face, which faces the view in the hand.
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 2, Block::FRONT[b], Block::FRONT[b], Block::FRONT[b], 1.0, 1.0, 1.0, 1.0)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], 1.0, 1.0, 1.0, 1.0)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 2, Block::FRONT[block], Block::FRONT[block], Block::FRONT[block], 1.0, 1.0, 1.0, 1.0)
     else
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[b], Block::SIDE[b], Block::BOTTOM[b], 1.0, 1.0, 1.0, 1.0)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], 1.0, 1.0, 1.0, 1.0)
     end
   end
 
@@ -293,12 +293,12 @@ class Mesh3
          f[2] + x * f[5] + y * f[8] + z * f[11], u, w, l, s, s, s, 1.0)
   end
 
-  # Block b with a shape (a chest) as the box of its shape, with the front
+  # Block with a shape (a chest) as the box of its shape, with the front
   # on the -x face. Each face takes the part of its texture that it covers
   # on the block in the world (see vchunk in gfx.rb). The box is the same
   # on both sides of its middle, so it needs no turn.
-  def shape_model(b)
-    s = Block::SHAPE[b] * 6
+  def shape_model(block)
+    s = Block::SHAPE[block] * 6
     x0 = Block::SHAPE_BOX[s] / 16.0
     y0 = Block::SHAPE_BOX[s + 1] / 16.0
     z0 = Block::SHAPE_BOX[s + 2] / 16.0
@@ -306,12 +306,12 @@ class Mesh3
     y1 = Block::SHAPE_BOX[s + 4] / 16.0
     z1 = Block::SHAPE_BOX[s + 5] / 16.0
     frame_corners(x0 - 0.5, y0 - 0.5, z0 - 0.5, x1 - 0.5, y1 - 0.5, z1 - 0.5)
-    face_quad(0, Block::SIDE[b], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
-    face_quad(1, Block::FRONT[b], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
-    face_quad(2, Block::TOP[b], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
-    face_quad(3, Block::BOTTOM[b], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
-    face_quad(4, Block::SIDE[b], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
-    face_quad(5, Block::SIDE[b], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(0, Block::SIDE[block], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(1, Block::FRONT[block], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(2, Block::TOP[block], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
+    face_quad(3, Block::BOTTOM[block], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
+    face_quad(4, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(5, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
   end
 
   # The faces in mask of the box with the corners in @cx, @cy and @cz.

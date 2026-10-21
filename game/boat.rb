@@ -74,11 +74,11 @@ class Boat
     x = @x.floor
     z = @z.floor
     y = (@y + 0.1).floor.to_i
-    b = world.get(x, y, z)
-    unless Block.water?(b)
+    block = world.get(x, y, z)
+    unless Block.water?(block)
       y -= 1
-      b = world.get(x, y, z)
-      return -1.0 unless Block.water?(b)
+      block = world.get(x, y, z)
+      return -1.0 unless Block.water?(block)
     end
     n = 0
     while n < 16 && Block.water?(world.get(x, y + 1, z))

@@ -60,7 +60,7 @@ module Command
   def self.item_names
     out = [""]
     out.clear
-    Game::CREATIVE_ITEMS.each { |b| out << Block::NAMES[b] }
+    Game::CREATIVE_ITEMS.each { |block| out << Block::NAMES[block] }
     out
   end
 
@@ -143,8 +143,8 @@ module Command
   # such as a door half or a crop, is not an item.
   def self.item_id(name)
     n = name.start_with?("MINECRAFT:") ? name[10, name.size - 10] : name
-    Game::CREATIVE_ITEMS.each do |b|
-      return b if id_of(Block::NAMES[b]) == n
+    Game::CREATIVE_ITEMS.each do |block|
+      return block if id_of(Block::NAMES[block]) == n
     end
     -1
   end

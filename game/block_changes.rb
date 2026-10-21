@@ -2,34 +2,34 @@
 # drop, the changes of flowing water and lava (see Fluids), falling sand
 # and gravel, and the plants that grow and the leaves that decay.
 class Game
-  def set_block(x, y, z, b) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def set_block(x, y, z, block) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @changed = true
     old = @world.get(x, y, z)
-    drop_chest(x, y, z) if Block::BASE[b] != Block::CHEST && Block::BASE[old] == Block::CHEST
-    drop_furnace(x, y, z) if Block::BASE[old] == Block::FURNACE && Block::BASE[b] != Block::FURNACE
+    drop_chest(x, y, z) if Block::BASE[block] != Block::CHEST && Block::BASE[old] == Block::CHEST
+    drop_furnace(x, y, z) if Block::BASE[old] == Block::FURNACE && Block::BASE[block] != Block::FURNACE
     # A door goes as a whole: removing one half removes the other.
-    if Block.door?(old) && !Block.door?(b)
-      @world.set(x, y, z, b)
+    if Block.door?(old) && !Block.door?(block)
+      @world.set(x, y, z, block)
       other = @world.door_partner(x, y, z)
       set_block(x, other, z, Block::AIR) if Block.door?(@world.get(x, other, z))
     end
     # A bed also goes as a whole. Each half faces away from the other.
-    if Block.bed?(old) && !Block.bed?(b)
-      @world.set(x, y, z, b)
+    if Block.bed?(old) && !Block.bed?(block)
+      @world.set(x, y, z, block)
       d = Block::FACING[old] ^ 1
       set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block::AIR) if Block.bed?(@world.get(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d]))
     end
-    if b != old && (Block.chest_left?(old) || Block.chest_right?(old))
-      @world.set(x, y, z, b)
+    if block != old && (Block.chest_left?(old) || Block.chest_right?(old))
+      @world.set(x, y, z, block)
       split_chest(x, y, z, old)
     end
-    if Block.emits?(b) || Block.emits?(old) || (Block::OPAQUE[b] == 0 && @world.near_lava?(x, y, z))
+    if Block.emits?(block) || Block.emits?(old) || (Block::OPAQUE[block] == 0 && @world.near_lava?(x, y, z))
       mark_light_area(x, z)
     end
-    @world.set(x, y, z, b)
+    @world.set(x, y, z, block)
     @chunk_meshes.mark_block(x, z)
     release_unheld(x, y, z)
-    release_if_unheld(x, y, z) if Block.falls?(b)
+    release_if_unheld(x, y, z) if Block.falls?(block)
     @fluids.wake(x, y, z)
   end
 
@@ -70,9 +70,9 @@ class Game
 
   # Breaks the block at x, y, z with no tool (see drop_broken).
   def break_block(x, y, z)
-    b = @world.get(x, y, z)
+    block = @world.get(x, y, z)
     set_block(x, y, z, Block::AIR)
-    drop_broken(b, x, y, z, Block::AIR)
+    drop_broken(block, x, y, z, Block::AIR)
   end
 
   # Drops what block drops when tool breaks it at x, y, z. Block::AIR is no
@@ -92,16 +92,16 @@ class Game
   # What a broken block drops besides Block::DROPS: leaves now and then a
   # sapling of their wood, oak leaves also now and then an apple, tall
   # grass now and then seeds, and ripe wheat 1 to 4 seeds.
-  def drop_extra(b, x, y, z)
-    if Block.leaves?(b)
+  def drop_extra(block, x, y, z)
+    if Block.leaves?(block)
       # Leaves drop a sapling 1 time in 20, and oak leaves also an apple 1
       # time in 200. Leaves also drop a stick 1 time in 50, but the game
       # has no sticks. minecraft.wiki/w/Leaves
-      drop_from_block(Block::SAPLINGS[Block.wood(b)], 1, x, y, z) if @rng.rand01 < 0.05
-      drop_from_block(Block::APPLE, 1, x, y, z) if Block::BASE[b] == Block::OAK_LEAVES && @rng.rand01 < 0.005
-    elsif b == Block::TALL_GRASS
+      drop_from_block(Block::SAPLINGS[Block.wood(block)], 1, x, y, z) if @rng.rand01 < 0.05
+      drop_from_block(Block::APPLE, 1, x, y, z) if Block::BASE[block] == Block::OAK_LEAVES && @rng.rand01 < 0.005
+    elsif block == Block::TALL_GRASS
       drop_from_block(Block::SEEDS, 1, x, y, z) if @rng.rand01 < 0.125
-    elsif b == Block::WHEAT_RIPE
+    elsif block == Block::WHEAT_RIPE
       drop_from_block(Block::SEEDS, ripe_wheat_seeds, x, y, z)
     end
   end
@@ -114,13 +114,13 @@ class Game
     seeds
   end
 
-  # Puts b, water, lava or the air of drained fluid, at x, y, z. Water
+  # Puts block, water, lava or the air of drained fluid, at x, y, z. Water
   # washes a plant or a torch away, and it drops. Lava burns it, and it
   # drops nothing. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
-  def pour(x, y, z, b)
+  def pour(x, y, z, block)
     old = @world.get(x, y, z)
-    drop_broken(old, x, y, z, Block::AIR) if Block.plant?(old) && Block.water?(b)
-    set_block(x, y, z, b)
+    drop_broken(old, x, y, z, Block::AIR) if Block.plant?(old) && Block.water?(block)
+    set_block(x, y, z, block)
   end
 
   # The half old of a large chest at x, y, z is gone, so the other half is

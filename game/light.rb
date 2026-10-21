@@ -105,9 +105,9 @@ class Light
         next_cell = ((nx - x + REACH) * SIDE + ny - y + REACH) * SIDE + nz - z + REACH
         if ny >= 0 && ny < WY && @seen[next_cell] != stamp
           @seen[next_cell] = stamp
-          b = @world.get(nx, ny, nz)
-          return -1 if lamp && (b == Block::LAVA || Block.jack_o_lantern?(b)) && steps + 1 < LAVA
-          queue << next_cell << steps + 1 if Block::OPAQUE[b] == 0
+          block = @world.get(nx, ny, nz)
+          return -1 if lamp && (block == Block::LAVA || Block.jack_o_lantern?(block)) && steps + 1 < LAVA
+          queue << next_cell << steps + 1 if Block::OPAQUE[block] == 0
         end
         side += 1
       end

@@ -135,12 +135,12 @@ class World
   # Byte 7 holds the sign bit, and 255 << 56 is too large for an Integer.
   KEEP = [~255, ~(255 << 8), ~(255 << 16), ~(255 << 24), ~(255 << 32), ~(255 << 40), ~(255 << 48), (1 << 56) - 1]
 
-  def put_block(i, b)
+  def put_block(i, block)
     j = i >> 3
     k = i & 7
     # An id from 128 goes into byte 7 as a negative number, so the shift
     # does not pass the sign bit.
-    v = k == 7 ? ((b ^ 128) - 128) << 56 : b << (k << 3)
+    v = k == 7 ? ((block ^ 128) - 128) << 56 : block << (k << 3)
     @blocks[j] = (@blocks[j] & KEEP[k]) | v
   end
 
@@ -182,8 +182,8 @@ class World
   # Ground above the beach with no tree or water on top.
   def dry_land?(x, z)
     h = height_at(x, z)
-    b = get(x, h - 1, z)
-    h > SEA + 2 && !Block.leaves?(b) && !Block.water?(b)
+    block = get(x, h - 1, z)
+    h > SEA + 2 && !Block.leaves?(block) && !Block.water?(block)
   end
 
   # A door is two blocks tall. It stands on a solid block that is not a
@@ -287,13 +287,13 @@ class World
     false
   end
 
-  # True when b is solid and its box (Block.box_hx and the others) in the
+  # True when block is solid and its box (Block.box_hx and the others) in the
   # cell bx, by, bz overlaps the box of solid_in_box?.
-  def block_in_box?(b, bx, by, bz, x, y, z, half, tall)
-    return false unless Block.solid?(b)
-    y0 = by + Block.box_dy(b)
-    (bx + 0.5 + Block.box_dx(b) - x).abs < Block.box_hx(b) + half && (bz + 0.5 + Block.box_dz(b) - z).abs < Block.box_hz(b) + half &&
-      y0 < y + tall && y0 + Block.box_top(b) > y
+  def block_in_box?(block, bx, by, bz, x, y, z, half, tall)
+    return false unless Block.solid?(block)
+    y0 = by + Block.box_dy(block)
+    (bx + 0.5 + Block.box_dx(block) - x).abs < Block.box_hx(block) + half && (bz + 0.5 + Block.box_dz(block) - z).abs < Block.box_hz(block) + half &&
+      y0 < y + tall && y0 + Block.box_top(block) > y
   end
 
   # True when the body with the box of solid_in_box? touches a cactus. In
@@ -338,10 +338,10 @@ class World
       while by <= y1
         bz = (z - half).floor
         while bz <= z1
-          b = get(bx, by, bz)
-          if block_in_box?(b, bx, by, bz, x, y, z, half, tall)
-            lo = axis == 0 ? bx + 0.5 + Block.box_dx(b) - Block.box_hx(b) : (axis == 1 ? by + Block.box_dy(b) : bz + 0.5 + Block.box_dz(b) - Block.box_hz(b))
-            hi = axis == 0 ? bx + 0.5 + Block.box_dx(b) + Block.box_hx(b) : (axis == 1 ? by + Block.box_dy(b) + Block.box_top(b) : bz + 0.5 + Block.box_dz(b) + Block.box_hz(b))
+          block = get(bx, by, bz)
+          if block_in_box?(block, bx, by, bz, x, y, z, half, tall)
+            lo = axis == 0 ? bx + 0.5 + Block.box_dx(block) - Block.box_hx(block) : (axis == 1 ? by + Block.box_dy(block) : bz + 0.5 + Block.box_dz(block) - Block.box_hz(block))
+            hi = axis == 0 ? bx + 0.5 + Block.box_dx(block) + Block.box_hx(block) : (axis == 1 ? by + Block.box_dy(block) + Block.box_top(block) : bz + 0.5 + Block.box_dz(block) + Block.box_hz(block))
             if dir > 0
               edge = lo if lo < edge
             elsif hi > edge
@@ -372,15 +372,15 @@ class World
     expose_lava(ix, iy, iz) if Block::OPAQUE[v] == 0
   end
 
-  # Stores b at index i and in the padding copy of an edge column.
-  def write(i, lx, lz, b)
-    put_block(i, b)
+  # Stores block at index i and in the padding copy of an edge column.
+  def write(i, lx, lz, block)
+    put_block(i, block)
     return if lx != 0 && lx != LMASK && lz != 0 && lz != LMASK
     ex = lx == 0 ? WX * PZ * PY : (lx == LMASK ? -WX * PZ * PY : 0)
     ez = lz == 0 ? WZ * PY : (lz == LMASK ? -WZ * PY : 0)
-    put_block(i + ex, b) if ex != 0
-    put_block(i + ez, b) if ez != 0
-    put_block(i + ex + ez, b) if ex != 0 && ez != 0
+    put_block(i + ex, block) if ex != 0
+    put_block(i + ez, block) if ez != 0
+    put_block(i + ex + ez, block) if ex != 0 && ez != 0
   end
 
   # Copies the edge columns of a chunk into the padding.

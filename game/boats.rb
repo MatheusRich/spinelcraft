@@ -12,7 +12,7 @@ class Game
   # A boat item on a water source in view puts a boat there that faces the
   # way the player looks.
   def place_boat
-    b = current_block.to_i
+    block = current_block.to_i
     return if @survival && @inv.empty?(@slot)
     return unless fluid_in_view && @world.get(@fluid_x, @fluid_y, @fluid_z) == Block::WATER
     return if @boats.size >= MAX_BOATS
@@ -20,7 +20,7 @@ class Game
     y = @fluid_y.to_i + Block::WATER_LEVEL[Block::WATER] / 9.0 - Boat::DRAFT
     z = @fluid_z.to_i + 0.5
     return if @world.solid_in_box?(x, y, z, Boat::HALF, Boat::TALL)
-    @boats << Boat.new(b, x, y, z, @player.yaw)
+    @boats << Boat.new(block, x, y, z, @player.yaw)
     @inv.take(@slot, 1) if @survival
     play_at(Sfx::SPLASH, x, y, z, 0.4, SOUND_RANGE)
     @swing = SWING

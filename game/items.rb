@@ -8,31 +8,31 @@ class Game
   PICKUP_WAIT = 0.4
   THROW_WAIT = 1.5
 
-  # Drops n of b at x, y, z (the bottom of the item) with a velocity.
-  def drop_item(b, n, x, y, z, vx, vy, vz, wait)
-    return if b == Block::AIR || n <= 0
+  # Drops n of block at x, y, z (the bottom of the item) with a velocity.
+  def drop_item(block, n, x, y, z, vx, vy, vz, wait)
+    return if block == Block::AIR || n <= 0
     @items.shift if @items.size >= MAX_ITEMS
-    @items << Item.new(b, n, x, y, z, vx, vy, vz, wait, 0.0)
+    @items << Item.new(block, n, x, y, z, vx, vy, vz, wait, 0.0)
   end
 
-  # Drops n of b from the block cell x, y, z with a small random push.
-  def drop_from_block(b, n, x, y, z)
-    drop_item(b, n, x + 0.5, y + 0.3, z + 0.5, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
+  # Drops n of block from the block cell x, y, z with a small random push.
+  def drop_from_block(block, n, x, y, z)
+    drop_item(block, n, x + 0.5, y + 0.3, z + 0.5, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
   end
 
   # Q in survival throws one of the selected stack where the player looks.
   def throw_selected
-    b = @inv.block(@slot)
+    block = @inv.block(@slot)
     return if @inv.empty?(@slot)
     # A tool goes with the uses that it has left.
-    n = Block.tool?(b) ? @inv.count(@slot) : 1
+    n = Block.tool?(block) ? @inv.count(@slot) : 1
     @inv.take(@slot, n)
-    throw_stack(b, n)
+    throw_stack(block, n)
   end
 
-  def throw_stack(b, n)
+  def throw_stack(block, n)
     p = @player
-    drop_item(b, n, p.x + p.fx * 0.3, p.eye_y - 0.3, p.z + p.fz * 0.3, p.fx * 6.0 + p.vx, p.fy * 6.0 + 2.0, p.fz * 6.0 + p.vz, THROW_WAIT)
+    drop_item(block, n, p.x + p.fx * 0.3, p.eye_y - 0.3, p.z + p.fz * 0.3, p.fx * 6.0 + p.vx, p.fy * 6.0 + 2.0, p.fz * 6.0 + p.vz, THROW_WAIT)
     @swing = SWING
   end
 
@@ -50,8 +50,8 @@ class Game
     @held.clear
   end
 
-  # The number of b on the ground.
-  def ground_count(b) = @items.sum { |item| item.block == b ? item.count : 0 }
+  # The number of block on the ground.
+  def ground_count(block) = @items.sum { |item| item.block == block ? item.count : 0 }
 
   def update_items(dt)
     @items.each do |item|
@@ -73,22 +73,22 @@ class Game
 
   # Moves as much of the item as fits into the inventory.
   def pick_up(item)
-    b = item.block
+    block = item.block
     n = item.count
-    if Block.tool?(b)
-      return unless @inv.put(b, n)
+    if Block.tool?(block)
+      return unless @inv.put(block, n)
       item.count = 0
       play(Sfx::POP, 0.5)
-      say("+1 #{Block::NAMES[b]}")
+      say("+1 #{Block::NAMES[block]}")
       return
     end
-    room = @inv.room_for(b)
+    room = @inv.room_for(block)
     n = room if room < n
     return if n <= 0
-    n.times { @inv.add(b) }
+    n.times { @inv.add(block) }
     item.count -= n
     play(Sfx::POP, 0.5)
-    say("+#{n} #{Block::NAMES[b]}") if Block.item?(b)
+    say("+#{n} #{Block::NAMES[block]}") if Block.item?(block)
   end
 
   # Lava destroys an item with a puff of smoke.

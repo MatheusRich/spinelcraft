@@ -11,13 +11,13 @@ class Game
   # Uses up n uses of the selected tool. A tool with no uses left breaks.
   def wear_tool(n)
     return unless @survival && n > 0
-    b = @inv.block(@slot)
-    return unless Block.tool?(b) && @inv.count(@slot) > 0
+    block = @inv.block(@slot)
+    return unless Block.tool?(block) && @inv.count(@slot) > 0
     @inv.take(@slot, n < @inv.count(@slot) ? n : @inv.count(@slot))
     return unless @inv.empty?(@slot)
     play(Sfx::TOOL_BREAK, 0.8)
-    @particles.shatter(@player, b)
-    say("#{Block::NAMES[b]} BROKE")
+    @particles.shatter(@player, block)
+    say("#{Block::NAMES[block]} BROKE")
   end
 
   # Crafts the recipe at index up to want times from items anywhere in the
@@ -57,20 +57,20 @@ class Game
     @furnaces[World.key(@station_x, @station_y, @station_z)] ||= Furnace.new(@station_x, @station_y, @station_z)
   end
 
-  # Moves up to want of b from the inventory into the input slot of the
+  # Moves up to want of block from the inventory into the input slot of the
   # open furnace.
-  def load_furnace(b, want)
+  def load_furnace(block, want)
     slots = open_furnace.slots
-    if !slots.empty?(Furnace::INPUT) && slots.block(Furnace::INPUT) != b
+    if !slots.empty?(Furnace::INPUT) && slots.block(Furnace::INPUT) != block
       say("THE FURNACE HOLDS #{Block::NAMES[slots.block(Furnace::INPUT)]}")
       return
     end
-    n = Block.stack(b) - slots.count(Furnace::INPUT)
+    n = Block.stack(block) - slots.count(Furnace::INPUT)
     n = want if want < n
-    n = @inv.total(b) if @inv.total(b) < n
+    n = @inv.total(block) if @inv.total(block) < n
     return if n == 0
-    @inv.remove(b, n)
-    slots.set(Furnace::INPUT, b, slots.count(Furnace::INPUT) + n)
+    @inv.remove(block, n)
+    slots.set(Furnace::INPUT, block, slots.count(Furnace::INPUT) + n)
     play(Sfx::PLACE, 0.4)
   end
 
@@ -87,9 +87,9 @@ class Game
         out = recipe.nil? ? 0 : recipe.result
         out_n = recipe.nil? ? 0 : recipe.result_count
         ticks.times { f.tick(out, out_n, Furnace.fuel_ticks(f.slots.block(Furnace::FUEL))) }
-        b = @world.get(f.x, f.y, f.z)
-        lit = Block.furnace_id(Block::FACING[b], f.lit?)
-        set_block(f.x, f.y, f.z, lit) if Block::BASE[b] == Block::FURNACE && lit != b
+        block = @world.get(f.x, f.y, f.z)
+        lit = Block.furnace_id(Block::FACING[block], f.lit?)
+        set_block(f.x, f.y, f.z, lit) if Block::BASE[block] == Block::FURNACE && lit != block
       end
     end
   end
@@ -134,8 +134,8 @@ class Game
   # screen.
   def active_station
     return Recipe::BY_HAND if @station == Recipe::BY_HAND
-    b = @station == Recipe::AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
-    return Recipe::BY_HAND if Block::BASE[@world.get(@station_x, @station_y, @station_z)] != b
+    block = @station == Recipe::AT_TABLE ? Block::CRAFTING_TABLE : Block::FURNACE
+    return Recipe::BY_HAND if Block::BASE[@world.get(@station_x, @station_y, @station_z)] != block
     @station
   end
 
@@ -252,8 +252,8 @@ class Game
     tell_recipes(@held.block(0)) unless @held.empty?(0)
   end
 
-  def tell_recipes(b)
-    text = @recipe_book.see(b)
+  def tell_recipes(block)
+    text = @recipe_book.see(block)
     say(text) unless text.empty?
   end
 

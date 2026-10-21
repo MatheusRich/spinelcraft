@@ -491,32 +491,32 @@ module Block
   define_item PUMPKIN_PIE, "PUMPKIN PIE", Tex::PUMPKIN_PIE, food: 8, saturation: 4.8 # minecraft.wiki/w/Pumpkin_Pie
   COUNT = NAMES.size
 
-  def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)
-  def self.solid?(b) = SOLID[b] == 1
-  def self.plant?(b) = PLANT[b] == 1
+  def self.blocks_light(block) = block != AIR && block != GLASS && !door?(block) && BASE[block] != LADDER && !plant?(block)
+  def self.solid?(block) = SOLID[block] == 1
+  def self.plant?(block) = PLANT[block] == 1
   # A placed block takes the cell of air, water, lava, tall grass or dry
   # grass. Each half of a bed and of a door does too. The wiki does not
   # list the blocks that a placed block takes the place of.
-  def self.replaceable?(b) = b == AIR || water?(b) || lava?(b) || b == TALL_GRASS || b == DRY_GRASS
-  def self.water?(b) = WATER_LEVEL[b] > 0
-  def self.falls?(b) = HOLD[b] == HOLD_FALL
+  def self.replaceable?(block) = block == AIR || water?(block) || lava?(block) || block == TALL_GRASS || block == DRY_GRASS
+  def self.water?(block) = WATER_LEVEL[block] > 0
+  def self.falls?(block) = HOLD[block] == HOLD_FALL
   # A falling block passes air, water, lava and plants. The wiki does not
   # say what a falling block does in lava. Here it lands at the bottom and
   # takes the place of the lava, so sand and gravel fill a pool of lava.
-  def self.lets_fall?(b) = b == AIR || water?(b) || lava?(b) || plant?(b)
-  def self.log?(b) = LOGS.include?(b)
+  def self.lets_fall?(block) = block == AIR || water?(block) || lava?(block) || plant?(block)
+  def self.log?(block) = LOGS.include?(block)
   # Leaves of a tree or leaves that the player placed.
-  def self.leaves?(b) = LEAVES.include?(BASE[b])
-  def self.placed_leaves?(b) = PLACED_LEAVES.include?(b)
-  def self.planks?(b) = PLANKS.include?(b)
-  def self.sapling?(b) = SAPLINGS.include?(b)
+  def self.leaves?(block) = LEAVES.include?(BASE[block])
+  def self.placed_leaves?(block) = PLACED_LEAVES.include?(block)
+  def self.planks?(block) = PLANKS.include?(block)
+  def self.sapling?(block) = SAPLINGS.include?(block)
   # The blocks that fill the recipe ingredient ing.
   def self.fillers(ing) = ing == ANY_PLANKS ? PLANKS : Array.new(1, ing.to_i)
   def self.ingredient_name(ing) = ing == ANY_PLANKS ? "PLANKS" : NAMES[ing]
   # The wood of a log, leaves, planks or sapling (Block::OAK_WOOD and so
   # on), or -1.
-  def self.wood(b)
-    LOGS.size.times { |w| return w if LOGS[w] == b || LEAVES[w] == BASE[b] || PLANKS[w] == b || SAPLINGS[w] == b }
+  def self.wood(block)
+    LOGS.size.times { |w| return w if LOGS[w] == block || LEAVES[w] == BASE[block] || PLANKS[w] == block || SAPLINGS[w] == block }
     -1
   end
   # The boxes of SHAPE_BOX as #defines for the shaders: SHAPE_COUNT, and
@@ -530,125 +530,125 @@ module Block
     "#define SHAPE_COUNT #{SHAPE_BOX.size / 6}\n#define SHAPE_BOXES #{boxes}}}\n"
   end
   # Things that live in the inventory but are never placed.
-  def self.item?(b) = ITEM[b] == 1
-  def self.bucket?(b) = b >= BUCKET && b <= LAVA_BUCKET
-  def self.boat?(b) = b >= OAK_BOAT && b <= BIRCH_BOAT
-  # The most of b that one slot holds. A boat, a bed and a full bucket do
+  def self.item?(block) = ITEM[block] == 1
+  def self.bucket?(block) = block >= BUCKET && block <= LAVA_BUCKET
+  def self.boat?(block) = block >= OAK_BOAT && block <= BIRCH_BOAT
+  # The most of block that one slot holds. A boat, a bed and a full bucket do
   # not stack, and eggs and empty buckets stack to 16. minecraft.wiki/w/Boat,
   # /w/Bed, /w/Water_Bucket, /w/Lava_Bucket, /w/Milk_Bucket, /w/Egg and /w/Bucket
-  def self.stack(b)
-    return 1 if boat?(b) || b == BED || b == WATER_BUCKET || b == LAVA_BUCKET || b == MILK_BUCKET
-    return 16 if b == EGG || b == BUCKET
+  def self.stack(block)
+    return 1 if boat?(block) || block == BED || block == WATER_BUCKET || block == LAVA_BUCKET || block == MILK_BUCKET
+    return 16 if block == EGG || block == BUCKET
 
     Slots::STACK
   end
   # Items, plants and the door, bed and ladder items are flat pictures; the
   # other blocks are cubes.
-  def self.flat?(b) = item?(b) || plant?(b) || b == DOOR || b == BED || b == LADDER
-  def self.door?(b) = b >= DOOR_BLOCK && b < DOOR_BLOCK + 16
-  def self.door_open?(b) = door?(b) && b >= DOOR_BLOCK + 8
+  def self.flat?(block) = item?(block) || plant?(block) || block == DOOR || block == BED || block == LADDER
+  def self.door?(block) = block >= DOOR_BLOCK && block < DOOR_BLOCK + 16
+  def self.door_open?(block) = door?(block) && block >= DOOR_BLOCK + 8
   def self.door_id(facing, upper, open) = DOOR_BLOCK + (open ? 8 : 0) + (upper ? 4 : 0) + facing
   # The same door half, opened or closed.
-  def self.door_toggled(b) = door_open?(b) ? b - 8 : b + 8
-  def self.torch?(b) = BASE[b] == TORCH
-  def self.wall_torch?(b) = torch?(b) && FACING[b] >= 0
-  def self.bed?(b) = b >= BED_BLOCK && b < BED_BLOCK + 8
+  def self.door_toggled(block) = door_open?(block) ? block - 8 : block + 8
+  def self.torch?(block) = BASE[block] == TORCH
+  def self.wall_torch?(block) = torch?(block) && FACING[block] >= 0
+  def self.bed?(block) = block >= BED_BLOCK && block < BED_BLOCK + 8
   def self.bed_id(facing, head) = BED_BLOCK + (head ? 4 : 0) + facing
-  def self.chest_left?(b) = b >= CHEST_LEFT && b < CHEST_LEFT + 4
-  def self.chest_right?(b) = b >= CHEST_RIGHT && b < CHEST_RIGHT + 4
+  def self.chest_left?(block) = block >= CHEST_LEFT && block < CHEST_LEFT + 4
+  def self.chest_right?(block) = block >= CHEST_RIGHT && block < CHEST_RIGHT + 4
   # The direction from a half of a large chest to the other half.
-  def self.chest_partner_dir(b) = chest_right?(b) ? CHEST_LEFT_DIR[FACING[b]] : CHEST_LEFT_DIR[FACING[b]] ^ 1
-  def self.furnace_lit?(b) = b >= FURNACE_LIT && b < FURNACE_LIT + 4
+  def self.chest_partner_dir(block) = chest_right?(block) ? CHEST_LEFT_DIR[FACING[block]] : CHEST_LEFT_DIR[FACING[block]] ^ 1
+  def self.furnace_lit?(block) = block >= FURNACE_LIT && block < FURNACE_LIT + 4
   # The furnace that faces direction d, lit when it has heat.
   def self.furnace_id(d, lit) = lit ? FURNACE_LIT + d : facing_id(FURNACE, d)
   # The block of kind base that faces direction d; base when the kind has
   # no block for that direction. The first one wins, so a furnace is not lit.
   def self.facing_id(base, d)
-    COUNT.times { |b| return b if BASE[b] == base && FACING[b] == d }
+    COUNT.times { |block| return block if BASE[block] == base && FACING[block] == d }
     base
   end
   # The box of a block in its cell: half its size on x and z around the
   # center, and its height. A plant is smaller than its cell, a torch is
   # thin, and a block with a shape has the box of SHAPE_BOX turned to its
   # facing.
-  def self.box_half(b) = torch?(b) ? 0.1 : (plant?(b) ? 0.3 : 0.5)
-  def self.box_hx(b) = SHAPE[b] > 0 ? shape_half(b, FACING[b] < 2 ? 0 : 2) : box_half(b)
-  def self.box_hz(b) = SHAPE[b] > 0 ? shape_half(b, FACING[b] < 2 ? 2 : 0) : box_half(b)
-  def self.box_top(b) = SHAPE[b] > 0 ? SHAPE_BOX[SHAPE[b] * 6 + 4] / 16.0 : (torch?(b) ? 0.6 : (plant?(b) ? 0.8 : 1.0))
-  # Half the size of the box of shape SHAPE[b] on the axis a (0 x, 2 z) of
+  def self.box_half(block) = torch?(block) ? 0.1 : (plant?(block) ? 0.3 : 0.5)
+  def self.box_hx(block) = SHAPE[block] > 0 ? shape_half(block, FACING[block] < 2 ? 0 : 2) : box_half(block)
+  def self.box_hz(block) = SHAPE[block] > 0 ? shape_half(block, FACING[block] < 2 ? 2 : 0) : box_half(block)
+  def self.box_top(block) = SHAPE[block] > 0 ? SHAPE_BOX[SHAPE[block] * 6 + 4] / 16.0 : (torch?(block) ? 0.6 : (plant?(block) ? 0.8 : 1.0))
+  # Half the size of the box of shape SHAPE[block] on the axis a (0 x, 2 z) of
   # the block that faces +x, and the move of its center from the middle of
   # the cell.
-  def self.shape_half(b, a) = (SHAPE_BOX[SHAPE[b] * 6 + 3 + a] - SHAPE_BOX[SHAPE[b] * 6 + a]) / 32.0
-  def self.shape_mid(b, a) = (SHAPE_BOX[SHAPE[b] * 6 + 3 + a] + SHAPE_BOX[SHAPE[b] * 6 + a]) / 32.0 - 0.5
+  def self.shape_half(block, a) = (SHAPE_BOX[SHAPE[block] * 6 + 3 + a] - SHAPE_BOX[SHAPE[block] * 6 + a]) / 32.0
+  def self.shape_mid(block, a) = (SHAPE_BOX[SHAPE[block] * 6 + 3 + a] + SHAPE_BOX[SHAPE[block] * 6 + a]) / 32.0 - 0.5
   # A wall torch leans out of its wall. This is how far the point at height
   # h of the torch moves toward the wall. vchunk in gfx.rb draws the same lean.
   def self.wall_lean(h) = 0.42 - 0.4 * h
-  # The move of the box of b from the middle of its cell, and up from the
+  # The move of the box of block from the middle of its cell, and up from the
   # floor. A shape turns by a quarter turn for each step from +x to +z,
   # and so on: +x goes to the facing. A shape without a facing (a cactus)
   # sits in the middle of its cell.
-  def self.box_dx(b)
-    return -DIR_DX[FACING[b]] * wall_lean(0.3) if wall_torch?(b)
-    return 0.0 if SHAPE[b] == 0 || FACING[b] < 0
-    d = FACING[b]
-    d < 2 ? DIR_DX[d] * shape_mid(b, 0) : -DIR_DZ[d] * shape_mid(b, 2)
+  def self.box_dx(block)
+    return -DIR_DX[FACING[block]] * wall_lean(0.3) if wall_torch?(block)
+    return 0.0 if SHAPE[block] == 0 || FACING[block] < 0
+    d = FACING[block]
+    d < 2 ? DIR_DX[d] * shape_mid(block, 0) : -DIR_DZ[d] * shape_mid(block, 2)
   end
-  def self.box_dz(b)
-    return -DIR_DZ[FACING[b]] * wall_lean(0.3) if wall_torch?(b)
-    return 0.0 if SHAPE[b] == 0 || FACING[b] < 0
-    d = FACING[b]
-    d < 2 ? DIR_DX[d] * shape_mid(b, 2) : DIR_DZ[d] * shape_mid(b, 0)
+  def self.box_dz(block)
+    return -DIR_DZ[FACING[block]] * wall_lean(0.3) if wall_torch?(block)
+    return 0.0 if SHAPE[block] == 0 || FACING[block] < 0
+    d = FACING[block]
+    d < 2 ? DIR_DX[d] * shape_mid(block, 2) : DIR_DZ[d] * shape_mid(block, 0)
   end
-  def self.box_dy(b) = wall_torch?(b) ? WALL_LIFT : 0.0
-  # Hunger and saturation points that eating b gives back.
-  def self.food(b) = FOOD[b]
-  # The chance that eating b gives the Hunger effect.
+  def self.box_dy(block) = wall_torch?(block) ? WALL_LIFT : 0.0
+  # Hunger and saturation points that eating block gives back.
+  def self.food(block) = FOOD[block]
+  # The chance that eating block gives the Hunger effect.
   # minecraft.wiki/w/Rotten_Flesh and /w/Raw_Chicken
-  def self.hunger_chance(b) = b == ROTTEN_FLESH ? 0.8 : (b == RAW_CHICKEN ? 0.3 : 0.0)
-  def self.saturation(b) = SATURATION[b]
+  def self.hunger_chance(block) = block == ROTTEN_FLESH ? 0.8 : (block == RAW_CHICKEN ? 0.3 : 0.0)
+  def self.saturation(block) = SATURATION[block]
   # A crop that has not ripened yet.
-  def self.growing?(b) = (b >= SEEDS && b < WHEAT_RIPE) || (b >= PUMPKIN_SEEDS && b < PUMPKIN_STEM_RIPE)
-  def self.sword?(b) = b >= WOOD_SWORD && b <= DIAMOND_SWORD
-  # The damage of a hit with b when the attack cooldown is full. A hand and
+  def self.growing?(block) = (block >= SEEDS && block < WHEAT_RIPE) || (block >= PUMPKIN_SEEDS && block < PUMPKIN_STEM_RIPE)
+  def self.sword?(block) = block >= WOOD_SWORD && block <= DIAMOND_SWORD
+  # The damage of a hit with block when the attack cooldown is full. A hand and
   # what is not a weapon or a tool do 1. minecraft.wiki/w/Sword, /w/Axe,
   # /w/Pickaxe, /w/Shovel and /w/Melee_attack
-  def self.damage(b)
-    return SWORD_DAMAGE[b - WOOD_SWORD] if sword?(b)
-    kind = tool_kind(b)
+  def self.damage(block)
+    return SWORD_DAMAGE[block - WOOD_SWORD] if sword?(block)
+    kind = tool_kind(block)
     return 1.0 if kind == 0
-    tier = tool_tier(b)
+    tier = tool_tier(block)
     kind == 1 ? tier + 1.0 : (kind == 2 ? AXE_DAMAGE[tier - 1] : tier + 1.5)
   end
   SWORD_DAMAGE = [4.0, 5.0, 6.0, 7.0]
   AXE_DAMAGE = [7.0, 9.0, 9.0, 9.0]
-  # Attacks each second with b: the attack cooldown is 1 / speed seconds.
+  # Attacks each second with block: the attack cooldown is 1 / speed seconds.
   # minecraft.wiki/w/Sword, /w/Axe, /w/Pickaxe, /w/Shovel and
   # /w/Melee_attack
-  def self.attack_speed(b)
-    return 1.6 if sword?(b)
-    kind = tool_kind(b)
+  def self.attack_speed(block)
+    return 1.6 if sword?(block)
+    kind = tool_kind(block)
     return 4.0 if kind == 0
-    kind == 1 ? 1.2 : (kind == 2 ? AXE_SPEED[tool_tier(b) - 1] : 1.0)
+    kind == 1 ? 1.2 : (kind == 2 ? AXE_SPEED[tool_tier(block) - 1] : 1.0)
   end
   AXE_SPEED = [0.8, 0.8, 0.9, 1.0]
-  # The uses that one hit (attack true) or one broken block takes from b:
+  # The uses that one hit (attack true) or one broken block takes from block:
   # a sword is for hits and a digging tool for blocks, and each loses 2 for
   # the other job. minecraft.wiki/w/Item_durability
-  def self.wear(b, attack)
-    return attack ? 1 : 2 if sword?(b)
-    return attack ? 0 : 1 if b == SHEARS
-    return attack ? 2 : 1 if tool_kind(b) > 0
+  def self.wear(block, attack)
+    return attack ? 1 : 2 if sword?(block)
+    return attack ? 0 : 1 if block == SHEARS
+    return attack ? 2 : 1 if tool_kind(block) > 0
     0
   end
-  # How fast shears dig b: 15 times on leaves and 5 times on wool. The wiki
+  # How fast shears dig block: 15 times on leaves and 5 times on wool. The wiki
   # gives 2 for some other blocks, but not which ones, so the others take
   # 1. minecraft.wiki/w/Shears
-  def self.shear_speed(b) = leaves?(b) ? 15.0 : (b == WOOL ? 5.0 : 1.0)
-  # How fast a sword digs b: 1.5 times on leaves, pumpkins and jack
+  def self.shear_speed(block) = leaves?(block) ? 15.0 : (block == WOOL ? 5.0 : 1.0)
+  # How fast a sword digs block: 1.5 times on leaves, pumpkins and jack
   # o'lanterns, and 1 on the other blocks. minecraft.wiki/w/Sword
-  def self.sword_speed(b)
-    return 1.5 if leaves?(b) || jack_o_lantern?(b)
-    return 1.5 if BASE[b] == PUMPKIN || BASE[b] == CARVED_PUMPKIN
+  def self.sword_speed(block)
+    return 1.5 if leaves?(block) || jack_o_lantern?(block)
+    return 1.5 if BASE[block] == PUMPKIN || BASE[block] == CARVED_PUMPKIN
 
     1.0
   end
@@ -659,63 +659,63 @@ module Block
   # tool of Minecraft (minecraft.wiki/w/Breaking). The wiki does not
   # confirm its iron tier and its uses: they are a choice for balance.
   MATTOCK_SPEED = 12.0
-  # How fast tool digs b. A hand has speed 1, and so has a tool on a
+  # How fast tool digs block. A hand has speed 1, and so has a tool on a
   # block that it does not dig fast. minecraft.wiki/w/Breaking
-  def self.dig_speed(tool, b)
-    return shear_speed(b) if tool == SHEARS
-    return sword_speed(b) if sword?(tool)
-    tier = dig_tier(tool, b)
+  def self.dig_speed(tool, block)
+    return shear_speed(block) if tool == SHEARS
+    return sword_speed(block) if sword?(tool)
+    tier = dig_tier(tool, block)
     return 1.0 if tier == 0
     return MATTOCK_SPEED if tool == SPINEL_MATTOCK
 
     TOOL_SPEED[tier - 1]
   end
-  # The tier of tool when it is the kind that digs b fast, else 0.
-  def self.dig_tier(tool, b)
-    return 0 if DIG_KIND[b] == 0
+  # The tier of tool when it is the kind that digs block fast, else 0.
+  def self.dig_tier(tool, block)
+    return 0 if DIG_KIND[block] == 0
     return tool_tier(tool) if tool == SPINEL_MATTOCK
-    return 0 if tool_kind(tool) != DIG_KIND[b]
+    return 0 if tool_kind(tool) != DIG_KIND[block]
 
     tool_tier(tool)
   end
   # Leaves and grass that shears cut drop themselves, and nothing else. The
   # rest drop what they drop by hand. minecraft.wiki/w/Shears
-  def self.shears_cut?(b) = leaves?(b) || b == TALL_GRASS || b == DRY_GRASS
+  def self.shears_cut?(block) = leaves?(block) || block == TALL_GRASS || block == DRY_GRASS
 
   # Uses before a wooden, stone, iron or diamond tool breaks, and a bow.
   # minecraft.wiki/w/Item_durability
   TOOL_USES = [59, 131, 250, 1561]
-  # The uses of a new tool b; 0 for what is not a tool. A tool never
+  # The uses of block when it is a new tool; 0 for what is not a tool. A tool never
   # stacks: the count of its stack is the uses that it has left.
-  def self.uses(b)
-    return TOOL_USES[tool_tier(b) - 1] if tool_tier(b) > 0
-    return TOOL_USES[b - WOOD_SWORD] if sword?(b)
+  def self.uses(block)
+    return TOOL_USES[tool_tier(block) - 1] if tool_tier(block) > 0
+    return TOOL_USES[block - WOOD_SWORD] if sword?(block)
     # minecraft.wiki/w/Item_durability
-    b == BOW ? 384 : (b == SHEARS ? 238 : 0)
+    block == BOW ? 384 : (block == SHEARS ? 238 : 0)
   end
   # The kind of a digging tool, as in DIG_KIND; 0 for anything else. The
   # spinel mattock is an axe here, so it hits and wears as an axe.
-  def self.tool_kind(b)
-    return DIG_PICK if PICK_TIER[b] > 0
-    return DIG_AXE if (b >= WOOD_AXE && b <= DIAMOND_AXE) || b == SPINEL_MATTOCK
-    return DIG_SHOVEL if b >= WOOD_SHOVEL && b <= DIAMOND_SHOVEL
+  def self.tool_kind(block)
+    return DIG_PICK if PICK_TIER[block] > 0
+    return DIG_AXE if (block >= WOOD_AXE && block <= DIAMOND_AXE) || block == SPINEL_MATTOCK
+    return DIG_SHOVEL if block >= WOOD_SHOVEL && block <= DIAMOND_SHOVEL
 
     0
   end
   # The tier of a digging tool: 1 wood, 2 stone, 3 iron, 4 diamond; 0 for anything else.
-  def self.tool_tier(b)
-    return PICK_TIER[b] if PICK_TIER[b] > 0
-    return 3 if b == SPINEL_MATTOCK
-    return b - WOOD_AXE + 1 if b >= WOOD_AXE && b <= DIAMOND_AXE
-    b >= WOOD_SHOVEL && b <= DIAMOND_SHOVEL ? b - WOOD_SHOVEL + 1 : 0
+  def self.tool_tier(block)
+    return PICK_TIER[block] if PICK_TIER[block] > 0
+    return 3 if block == SPINEL_MATTOCK
+    return block - WOOD_AXE + 1 if block >= WOOD_AXE && block <= DIAMOND_AXE
+    block >= WOOD_SHOVEL && block <= DIAMOND_SHOVEL ? block - WOOD_SHOVEL + 1 : 0
   end
-  def self.tool?(b) = uses(b) > 0
-  def self.lava?(b) = LAVA_LEVEL[b] > 0
-  def self.jack_o_lantern?(b) = BASE[b] == JACK_O_LANTERN
+  def self.tool?(block) = uses(block) > 0
+  def self.lava?(block) = LAVA_LEVEL[block] > 0
+  def self.jack_o_lantern?(block) = BASE[block] == JACK_O_LANTERN
   # A pumpkin, a carved pumpkin or a jack o'lantern.
-  def self.pumpkin?(b) = b >= PUMPKIN && b < SHEARS
+  def self.pumpkin?(block) = block >= PUMPKIN && block < SHEARS
   # Dirt, grass and snowy grass: the soil of HOLD_SOIL.
-  def self.soil?(b) = b == DIRT || b == GRASS || b == SNOW_GRASS
+  def self.soil?(block) = block == DIRT || block == GRASS || block == SNOW_GRASS
   # Torches, lava sources and jack o'lanterns light their surroundings.
-  def self.emits?(b) = torch?(b) || b == LAVA || jack_o_lantern?(b)
+  def self.emits?(block) = torch?(block) || block == LAVA || jack_o_lantern?(block)
 end

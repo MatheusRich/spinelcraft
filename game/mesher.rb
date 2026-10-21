@@ -132,15 +132,15 @@ class Mesher
     @step_x = [1, -1, 0, 0, 0, 0]
     @step_y = [0, 0, 0, 0, 1, -1]
     @step_z = [0, 0, 1, -1, 0, 0]
-    # 1 when block b fills its cell, so the faces next to it do not show.
+    # 1 when block fills its cell, so the faces next to it do not show.
     # Lava does not: its surface sinks (fluid_corners).
     @cover = Array.new(Block::COUNT, 0)
-    # 1 when block b shows faces even with covers on all 6 sides: a plant,
+    # 1 when block shows faces even with covers on all 6 sides: a plant,
     # or a fluid, whose top shows under a block.
     @always = Array.new(Block::COUNT, 0)
-    Block::COUNT.times do |b|
-      @cover[b] = Block.lava?(b) ? 0 : Block::OPAQUE[b]
-      @always[b] = Block.plant?(b) || Mesher.fluid(b) > 0 ? 1 : 0
+    Block::COUNT.times do |block|
+      @cover[block] = Block.lava?(block) ? 0 : Block::OPAQUE[block]
+      @always[block] = Block.plant?(block) || Mesher.fluid(block) > 0 ? 1 : 0
     end
     # Masks of the columns of a chunk and of the ring around it, WORDS
     # Integers for each column (fill_masks).
@@ -191,24 +191,24 @@ class Mesher
   # Integer, and the mesher calls this for each cell.
   def cell(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 255
 
-  # The fluid kind of block b: 1 water, 2 lava, 0 not a fluid.
-  def self.fluid(b) = Block::WATER_LEVEL[b] > 0 ? 1 : (Block.lava?(b) ? 2 : 0)
+  # The fluid kind of block: 1 water, 2 lava, 0 not a fluid.
+  def self.fluid(block) = Block::WATER_LEVEL[block] > 0 ? 1 : (Block.lava?(block) ? 2 : 0)
 
   # The second-word bits of the corner heights h of a fluid face
   # (fluid_corners), in HEIGHTS_LOW and HEIGHTS_HIGH.
   def self.fluid_w1(h) = ((h & ((1 << HEIGHTS_LOW_BITS) - 1)) << HEIGHTS_LOW_AT) | ((h >> HEIGHTS_LOW_BITS) << HEIGHTS_HIGH_AT)
 
-  # The height of the surface of fluid kind k in the cell of block b, with
+  # The height of the surface of fluid kind k in the cell of block, with
   # block over above it, as the fluid renderer of Minecraft reads it: 1
   # under the same fluid, else the level in ninths (lava drops 2 ninths
   # each step, as it spreads 3 blocks); 0 in a cell that the fluid could
   # flow into, and -1 in a solid block, which the average skips.
-  def fluid_height(k, b, over)
-    if Mesher.fluid(b) == k
+  def fluid_height(k, block, over)
+    if Mesher.fluid(block) == k
       return 1.0 if Mesher.fluid(over) == k
-      return k == 1 ? Block::WATER_LEVEL[b] / 9.0 : Block::LAVA_LEVEL[b] * 2 / 9.0
+      return k == 1 ? Block::WATER_LEVEL[block] / 9.0 : Block::LAVA_LEVEL[block] * 2 / 9.0
     end
-    Block.solid?(b) ? -1.0 : 0.0
+    Block.solid?(block) ? -1.0 : 0.0
   end
 
   def cell_fluid_height(k, i)
@@ -330,10 +330,10 @@ class Mesher
       last = top if top < last
       bit = 1
       while y <= last
-        b = cell(base + y)
-        covers |= bit if @cover[b] == 1
-        blocks |= bit if b != Block::AIR
-        always |= bit if @always[b] == 1
+        block = cell(base + y)
+        covers |= bit if @cover[block] == 1
+        blocks |= bit if block != Block::AIR
+        always |= bit if @always[block] == 1
         bit <<= 1
         y += 1
       end

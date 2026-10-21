@@ -76,11 +76,11 @@ class Lod
     end
     biome = @terrain.biome(x, z, h)
     @biome[k] = biome
-    b = @terrain.top_block(x, z, h, biome)
-    @top[k] = Block::TOP[b]
-    @side[k] = Block::SIDE[b]
+    block = @terrain.top_block(x, z, h, biome)
+    @top[k] = Block::TOP[block]
+    @side[k] = Block::SIDE[block]
     @h[k] = h
-    if (b == Block::GRASS || b == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome]
+    if (block == Block::GRASS || block == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome]
       # About the height of the biome's trees: the trunk, plus the leaves above it.
       @h[k] = h + Trees::TRUNK[Biome::TREE[biome]] + 2
       leaves = Block::TOP[Block::LEAVES[Trees::WOOD[Biome::TREE[biome]]]]

@@ -32,7 +32,7 @@ class Game
     land_falling
     chest_fields = @chests.to_a
     seen = []
-    Block::COUNT.times { |b| seen << b if @recipe_book.seen?(b) }
+    Block::COUNT.times { |block| seen << block if @recipe_book.seen?(block) }
     furnace_fields = []
     @furnaces.each do |key, f|
       furnace_fields.concat([f.x, f.y, f.z, f.burn, f.burn_total, f.progress] + f.slots.to_a) unless f.idle?

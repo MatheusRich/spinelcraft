@@ -73,29 +73,29 @@ class RecipeBook
 
   def recipe_count = @recipes.size
 
-  # The recipe that smelts b in a furnace, or nil.
-  def smelt_recipe(b)
+  # The recipe that smelts block in a furnace, or nil.
+  def smelt_recipe(block)
     @recipes.size.times do |index|
       recipe = @recipes[index]
-      return recipe if recipe.where == Recipe::AT_FURNACE && recipe.ingredient == b
+      return recipe if recipe.where == Recipe::AT_FURNACE && recipe.ingredient == block
     end
     nil
   end
 
-  def smelts?(b) = !smelt_recipe(b).nil?
+  def smelts?(block) = !smelt_recipe(block).nil?
 
-  # Marks b as seen. Each recipe that b unlocks gets the NEW tag until the
+  # Marks block as seen. Each recipe that block unlocks gets the NEW tag until the
   # recipe list closes. Returns the message that tells the player where to
-  # make them, or "" when b unlocks nothing new.
-  def see(b)
-    return "" if @seen[b] == 1
-    @seen[b] = 1
+  # make them, or "" when block unlocks nothing new.
+  def see(block)
+    return "" if @seen[block] == 1
+    @seen[block] = 1
     found = 0
     last = 0
     stations = [0, 0, 0]
     @recipes.size.times do |index|
       recipe = @recipes[index]
-      if Block.fillers(recipe.ingredient).include?(b)
+      if Block.fillers(recipe.ingredient).include?(block)
         @fresh[index] = 1
         found += 1
         last = index
@@ -111,19 +111,19 @@ class RecipeBook
     "#{head} - #{places.join(", ")}"
   end
 
-  # Marks b as seen, without the NEW tags, as a loaded save does.
-  def learn(b)
-    @seen[b] = 1
+  # Marks block as seen, without the NEW tags, as a loaded save does.
+  def learn(block)
+    @seen[block] = 1
     nil
   end
 
-  def seen?(b) = @seen[b] == 1
+  def seen?(block) = @seen[block] == 1
 
   # True when the recipe at index has the NEW tag.
   def fresh?(index) = @fresh[index] == 1
 
   # True when the player has seen a block that fills the recipe ingredient ing.
-  def seen_ingredient?(ing) = Block.fillers(ing).any? { |b| @seen[b] == 1 }
+  def seen_ingredient?(ing) = Block.fillers(ing).any? { |block| @seen[block] == 1 }
 
   # The indexes of the recipes that the list shows for the station open, in
   # the order of the list: those that it makes, and whose ingredient the

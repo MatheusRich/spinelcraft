@@ -84,16 +84,16 @@ class Plants
     z = @column_z
     return nil unless @world.loaded?(x, z)
     y = @world.height_at(x, z)
-    b = @world.get(x, y, z)
-    if (Block.sapling?(b) || Block.growing?(b)) && @rng.rand01 < GROW_CHANCE
-      if Block.sapling?(b)
-        grow_tree(x, y, z, Block.wood(b), changes)
+    block = @world.get(x, y, z)
+    if (Block.sapling?(block) || Block.growing?(block)) && @rng.rand01 < GROW_CHANCE
+      if Block.sapling?(block)
+        grow_tree(x, y, z, Block.wood(block), changes)
       else
-        changes << x << y << z << b + 1
+        changes << x << y << z << block + 1
       end
-    elsif b == Block::PUMPKIN_STEM_RIPE && @rng.rand01 < GROW_CHANCE
+    elsif block == Block::PUMPKIN_STEM_RIPE && @rng.rand01 < GROW_CHANCE
       grow_pumpkin(x, y, z, changes)
-    elsif b == Block::AIR && @world.get(x, y - 1, z) == Block::CACTUS && @rng.rand01 < CACTUS_CHANCE
+    elsif block == Block::AIR && @world.get(x, y - 1, z) == Block::CACTUS && @rng.rand01 < CACTUS_CHANCE
       # A cactus blocks the light, so it is the block under height_at.
       grow_cactus(x, y - 1, z, changes)
     end
@@ -110,10 +110,10 @@ class Plants
     return nil unless @world.loaded?(x, z)
     y = @world.height_at(x, z) - 1
     while y > 0
-      b = @world.get(x, y, z)
-      if Block.leaves?(b)
-        changes << x << y << z << Block::AIR if !Block.placed_leaves?(b) && !held_by_log?(x, y, z)
-      elsif b != Block::AIR && !Block.log?(b)
+      block = @world.get(x, y, z)
+      if Block.leaves?(block)
+        changes << x << y << z << Block::AIR if !Block.placed_leaves?(block) && !held_by_log?(x, y, z)
+      elsif block != Block::AIR && !Block.log?(block)
         break
       end
       y -= 1
@@ -184,14 +184,14 @@ class Plants
   # take none. minecraft.wiki/w/Bone_Meal does not say this for a stem; in
   # the code of Minecraft (StemBlock), a stem of age 7 takes no bone meal.
   def fertilize(x, y, z, changes)
-    b = @world.get(x, y, z)
-    if Block.sapling?(b)
-      grow_tree(x, y, z, Block.wood(b), changes) if @rng.rand01 < SAPLING_MEAL_CHANCE
-    elsif Block.growing?(b)
-      first = b >= Block::PUMPKIN_SEEDS ? Block::PUMPKIN_SEEDS : Block::SEEDS
+    block = @world.get(x, y, z)
+    if Block.sapling?(block)
+      grow_tree(x, y, z, Block.wood(block), changes) if @rng.rand01 < SAPLING_MEAL_CHANCE
+    elsif Block.growing?(block)
+      first = block >= Block::PUMPKIN_SEEDS ? Block::PUMPKIN_SEEDS : Block::SEEDS
       last = (first == Block::SEEDS ? Block::WHEAT_RIPE : Block::PUMPKIN_STEM_RIPE) - first
-      changes << x << y << z << first + Plants.meal_stage(b - first, 2 + (@rng.rand01 * 4.0).to_i, last)
-    elsif b == Block::GRASS && @world.get(x, y + 1, z) == Block::AIR
+      changes << x << y << z << first + Plants.meal_stage(block - first, 2 + (@rng.rand01 * 4.0).to_i, last)
+    elsif block == Block::GRASS && @world.get(x, y + 1, z) == Block::AIR
       scatter_plants(x, y + 1, z, changes)
     else
       return false
@@ -298,9 +298,9 @@ class Plants
         nx = qx + LEAF_DX[i]
         ny = qy + LEAF_DY[i]
         nz = qz + LEAF_DZ[i]
-        b = @world.get(nx, ny, nz)
-        return true if Block.log?(b)
-        if d + 1 < LEAF_REACH && Block.leaves?(b)
+        block = @world.get(nx, ny, nz)
+        return true if Block.log?(block)
+        if d + 1 < LEAF_REACH && Block.leaves?(block)
           k = ((nx - x + LEAF_REACH) * LEAF_SPAN + ny - y + LEAF_REACH) * LEAF_SPAN + nz - z + LEAF_REACH
           if @leaf_seen[k] != @leaf_stamp
             @leaf_seen[k] = @leaf_stamp

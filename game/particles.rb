@@ -131,11 +131,11 @@ class Particles
 
   def count(kind) = @all.count { |p| p.kind == kind }
 
-  # Chips of block b that fly out of the block cell x, y, z. As in Minecraft,
+  # Chips of block that fly out of the block cell x, y, z. As in Minecraft,
   # they start on a grid of 4 x 4 x 4 points in the cell and fly away from its
   # middle, and each one shows a random piece of 4 x 4 pixels of the texture.
-  def burst(x, y, z, b)
-    layer = Block::SIDE[b]
+  def burst(x, y, z, block)
+    layer = Block::SIDE[block]
     64.times do |i|
       dx = ((i & 3) + 0.5) / 4.0
       dy = (((i >> 2) & 3) + 0.5) / 4.0
@@ -150,12 +150,12 @@ class Particles
     end
   end
 
-  # Chips of item b that fly from in front of the player when the item
+  # Chips of the item block that fly from in front of the player when the item
   # breaks, or crumbs when the player eats it. As in Minecraft
   # (LivingEntity.spawnItemParticles, not on the wiki), 5 chips start 0.6
   # blocks ahead of the eyes and 0.3 to 0.9 blocks below them, and fly up
   # and a little to the sides.
-  def shatter(player, b)
+  def shatter(player, block)
     cy = Math.cos(player.yaw)
     sy = Math.sin(player.yaw)
     cp = Math.cos(player.pitch)
@@ -171,16 +171,16 @@ class Particles
       vside = (@rng.rand01 - 0.5) * 2.0
       vup = 2.0 + @rng.rand01 * 2.0
       chip(player.x + cy * side + ux * down + fx * 0.6, player.eye_y + cp * down + sp * 0.6,
-           player.z + sy * side + uz * down + fz * 0.6, cy * vside + ux * vup, cp * vup + 1.0, sy * vside + uz * vup, Block::SIDE[b])
+           player.z + sy * side + uz * down + fz * 0.6, cy * vside + ux * vup, cp * vup + 1.0, sy * vside + uz * vup, Block::SIDE[block])
     end
   end
 
-  # Chips of item b at x, y, z that fly a little to each side, as when a
+  # Chips of the item block at x, y, z that fly a little to each side, as when a
   # thrown egg breaks. Minecraft makes 8, with speeds of up to 0.04 blocks
   # each tick on each axis (ThrownEgg.handleEntityEvent, not on the wiki).
-  def splat(x, y, z, b)
+  def splat(x, y, z, block)
     8.times do
-      chip(x, y, z, (@rng.rand01 - 0.5) * 1.6, (@rng.rand01 - 0.5) * 1.6 + 1.0, (@rng.rand01 - 0.5) * 1.6, Block::SIDE[b])
+      chip(x, y, z, (@rng.rand01 - 0.5) * 1.6, (@rng.rand01 - 0.5) * 1.6 + 1.0, (@rng.rand01 - 0.5) * 1.6, Block::SIDE[block])
     end
   end
 
@@ -282,17 +282,17 @@ class Particles
       bx = sx + (@rng.rand01 * span).to_i
       by = sy + (@rng.rand01 * span).to_i
       bz = sz + (@rng.rand01 * span).to_i
-      b = world.get(bx, by, bz)
-      if Block.torch?(b)
+      block = world.get(bx, by, bz)
+      if Block.torch?(block)
         # The flame is at height 0.75 of the torch, and the smoke starts at 0.9.
         fx = bx + 0.5
         fy = by.to_f
         fz = bz + 0.5
         sx = fx
         sz = fz
-        if Block.wall_torch?(b)
+        if Block.wall_torch?(block)
           # The torch leans toward its wall, behind its front.
-          w = Block::FACING[b]
+          w = Block::FACING[block]
           fx -= Block::DIR_DX[w] * Block.wall_lean(0.75)
           fz -= Block::DIR_DZ[w] * Block.wall_lean(0.75)
           sx -= Block::DIR_DX[w] * Block.wall_lean(0.9)
@@ -303,7 +303,7 @@ class Particles
         if @rng.rand01 < 0.5
           add(Particle::SMOKE, sx, fy + 0.9, sz, (@rng.rand01 - 0.5) * 0.1, 0.5, (@rng.rand01 - 0.5) * 0.1, 0.8 + @rng.rand01 * 0.6, Tex::PUFF)
         end
-      elsif b == Block::LAVA && @rng.rand01 < 0.05 && world.get(bx, by + 1, bz) == Block::AIR
+      elsif block == Block::LAVA && @rng.rand01 < 0.05 && world.get(bx, by + 1, bz) == Block::AIR
         add(Particle::EMBER, bx + @rng.rand01, by + 1.0, bz + @rng.rand01, (@rng.rand01 - 0.5) * 2.0, 3.0 + @rng.rand01 * 2.0, (@rng.rand01 - 0.5) * 2.0, 1.2, Tex::WHITE)
       end
     end

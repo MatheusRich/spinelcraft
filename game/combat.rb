@@ -175,9 +175,9 @@ class Game
   end
 
   # A tool drops new: its count is its uses.
-  def loot(m, b, n)
-    n = Block.uses(b) if Block.tool?(b)
-    drop_item(b, n, m.x, m.y + 0.5, m.z, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
+  def loot(m, block, n)
+    n = Block.uses(block) if Block.tool?(block)
+    drop_item(block, n, m.x, m.y + 0.5, m.z, (@rng.rand01 - 0.5) * 2.0, 3.0, (@rng.rand01 - 0.5) * 2.0, PICKUP_WAIT)
   end
 
   # A chicken lays an egg where it stands, with a plop.
@@ -366,11 +366,11 @@ class Game
           dx = x + 0.5 - cx
           dy = y + 0.5 - cy
           dz = z + 0.5 - cz
-          b = @world.get(x, y, z)
-          if dx * dx + dy * dy + dz * dz < 9.5 - @rng.rand01 * 2.5 && b != Block::AIR && b != Block::BEDROCK && !Block.water?(b) && !Block.lava?(b)
-            @particles.burst(x, y, z, b) if @rng.rand01 < 0.15
+          block = @world.get(x, y, z)
+          if dx * dx + dy * dy + dz * dz < 9.5 - @rng.rand01 * 2.5 && block != Block::AIR && block != Block::BEDROCK && !Block.water?(block) && !Block.lava?(block)
+            @particles.burst(x, y, z, block) if @rng.rand01 < 0.15
             set_block(x, y, z, Block::AIR)
-            drop_broken(b, x, y, z, Block::AIR) if @survival && @rng.rand01 < BLAST_DROP
+            drop_broken(block, x, y, z, Block::AIR) if @survival && @rng.rand01 < BLAST_DROP
           end
           z += 1
         end

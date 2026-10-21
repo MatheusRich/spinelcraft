@@ -289,12 +289,12 @@ class Game
     draw_count(slots.block(i), slots.count(i), c[0], c[1], c[2], ts, s)
   end
 
-  # The count of a stack of b at the lower right of the cell at x, y, in
+  # The count of a stack of block at the lower right of the cell at x, y, in
   # text of size ts. A tool has no count: a bar shows the uses that it has
   # left, from green to red, once it has been used.
-  def draw_count(b, n, x, y, size, ts, s)
-    if Block.tool?(b)
-      left = n.to_f / Block.uses(b)
+  def draw_count(block, n, x, y, size, ts, s)
+    if Block.tool?(block)
+      left = n.to_f / Block.uses(block)
       return if left >= 1.0
       @ui.rect(x + 4.0 * s, y + size - 6.0 * s, size - 8.0 * s, 3.0 * s, 0.0, 0.0, 0.0, 1.0)
       @ui.rect(x + 4.0 * s, y + size - 6.0 * s, (size - 8.0 * s) * left, 3.0 * s, 1.0 - left, left, 0.1, 1.0)

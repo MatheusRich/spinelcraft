@@ -297,15 +297,15 @@ class Player
     bx + 1 > @x - HALF && bx < @x + HALF && by + 1 > @y && by < @y + TALL && bz + 1 > @z - HALF && bz < @z + HALF
   end
 
-  # True when the ray from o along d meets the box of b (Block.box_hx, box_hz
+  # True when the ray from o along d meets the box of block (Block.box_hx, box_hz
   # and box_top) in the cell ix, iy, iz within reach.
-  def hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b)
-    hx = Block.box_hx(b)
-    hz = Block.box_hz(b)
-    x = ix + 0.5 + Block.box_dx(b)
-    y = iy + Block.box_dy(b)
-    z = iz + 0.5 + Block.box_dz(b)
-    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, x - hx, y, z - hz, x + hx, y + Block.box_top(b), z + hz)
+  def hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, block)
+    hx = Block.box_hx(block)
+    hz = Block.box_hz(block)
+    x = ix + 0.5 + Block.box_dx(block)
+    y = iy + Block.box_dy(block)
+    z = iz + 0.5 + Block.box_dz(block)
+    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, x - hx, y, z - hz, x + hx, y + Block.box_top(block), z + hz)
     t >= 0.0 && t <= REACH
   end
 
@@ -336,8 +336,8 @@ class Player
     lz = iz
     t = 0.0
     while t <= REACH
-      b = world.get(ix, iy, iz)
-      if b != Block::AIR && !Block.water?(b) && !Block.lava?(b) && (!(Block.plant?(b) || Block::SHAPE[b] > 0) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, b))
+      block = world.get(ix, iy, iz)
+      if block != Block::AIR && !Block.water?(block) && !Block.lava?(block) && (!(Block.plant?(block) || Block::SHAPE[block] > 0) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, block))
         @hit = true
         @hit_t = t
         @hx = ix

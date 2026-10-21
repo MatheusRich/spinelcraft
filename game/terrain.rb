@@ -242,17 +242,17 @@ class Terrain
   # pools at sea level.
   def top_block(x, z, h, biome)
     top = h - 1
-    b = Biome::GROUND[biome]
+    block = Biome::GROUND[biome]
     if biome == Biome::SWAMP
-      b = Block::WATER if top == SEA && @noise3.noise2(x / 9.0, z / 9.0 + 40.0) > -0.05
-      b = Block::DIRT if top < SEA
+      block = Block::WATER if top == SEA && @noise3.noise2(x / 9.0, z / 9.0 + 40.0) > -0.05
+      block = Block::DIRT if top < SEA
     elsif Terrain.beach?(top)
-      b = Block::SAND
+      block = Block::SAND
     end
-    b = Block::GRAVEL if top < GRAVEL_LINE && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
-    b = Block::STONE if Terrain.bare_rock?(top)
-    b = Block::SNOW if top > SNOW_LINE
-    b
+    block = Block::GRAVEL if top < GRAVEL_LINE && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
+    block = Block::STONE if Terrain.bare_rock?(top)
+    block = Block::SNOW if top > SNOW_LINE
+    block
   end
 
   # Caves: two noise fields near zero at once trace long tunnels.
