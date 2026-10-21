@@ -101,6 +101,9 @@ class World
     # The edges along x of a cave grid cell, of the two fields (Terrain.x_edges).
     @edges_a = Array.new(4, 0.0)
     @edges_c = Array.new(4, 0.0)
+    # The grid layer of the edges in @edges_a and @edges_c (see tunnel?).
+    @a_layer = -1
+    @c_layer = -1
     @coal_odds = Array.new(WY, 0)
     @iron_odds = Array.new(WY, 0)
     @diamond_odds = Array.new(WY, 0)
@@ -641,9 +644,19 @@ class World
     y < peak ? (y - low) / (peak - low) : (high - y) / (high - peak)
   end
 
-  def generate_chunk(cx, cz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def generate_chunk(cx, cz)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
+    highest = sample_columns(x0, z0)
+    fill_ground(x0, z0)
+    carve_caves(x0, z0, highest)
+    place_ores(x0, z0, highest)
+    decorate(cx, cz)
+  end
+
+  # The height and the biome of each column of the chunk at x0, z0, into
+  # @col_h and @col_b. Gives the highest height.
+  def sample_columns(x0, z0)
     highest = 0
     lx = 0
     while lx < CHUNK
@@ -657,22 +670,58 @@ class World
       end
       lx += 1
     end
+    highest
+  end
 
-    # The rolls of the 4 x 4 columns of coal cells in the chunk, one for
-    # each 2 layers. The 16 block columns of a cell column read them.
-    i = 0
-    while i < 16
-      j = 0
-      while j <= highest >> 1
-        @coal_rolls[i * COAL_ROLLS + j] = Noise.hash3((x0 >> 2) + (i >> 2), j, (z0 >> 2) + (i & 3), 13)
-        j += 1
+  # Bedrock, stone, the soil and the top block of each column, then water
+  # up to the sea and air above.
+  def fill_ground(x0, z0)
+    CHUNK.times do |lx|
+      CHUNK.times do |lz|
+        x = x0 + lx
+        z = z0 + lz
+        h = @col_h[lx * CHUNK + lz]
+        surface = @terrain.top_block(x, z, h, @col_b[lx * CHUNK + lz])
+        base = World.index(x, 0, z)
+        y = 0
+        while y < h
+          put_block(base + y, World.ground_block(y, h - 1, surface))
+          y += 1
+        end
+        while y <= SEA
+          put_block(base + y, Block::WATER)
+          y += 1
+        end
+        clear_above(base, y)
       end
-      i += 1
     end
+  end
 
-    # Coarse 3D noise for caves, sampled every 4 blocks and interpolated.
-    # Caves stay below the top block of a column, so the grid stops at the
-    # layer above the highest top block.
+  # The block at layer y of a column whose top block is surface at layer
+  # top, before the caves and the ores.
+  def self.ground_block(y, top, surface)
+    return Block::BEDROCK if y == 0
+    return surface if y == top
+    soil = y > top - SOIL_DEPTH
+    return Block::STONE if soil && Terrain.bare_rock?(top)
+    return Block::SAND if soil && surface == Block::SAND
+    return Block::DIRT if soil
+    return Block::SANDSTONE if y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
+    Block::STONE
+  end
+
+  # Air in the tunnels, and lava at LAVA_LEVEL and below.
+  def carve_caves(x0, z0, highest)
+    fill_cave_grid(x0, z0, highest)
+    CHUNK.times do |lx|
+      CHUNK.times { |lz| carve_column(x0, z0, lx, lz) }
+    end
+  end
+
+  # Coarse 3D noise for caves, sampled every 4 blocks and interpolated.
+  # Caves stay below the top block of a column, so the grid stops at the
+  # layer above the highest top block.
+  def fill_cave_grid(x0, z0, highest)
     gx0 = x0 >> 2
     gz0 = z0 >> 2
     gy = (highest - 1) / 4 + 2
@@ -692,6 +741,12 @@ class World
       end
       i += 1
     end
+    mark_cave_cells(gy)
+  end
+
+  # Marks the cells of the lowest gy layers of the cave grid that can
+  # hold a cave (see cave_cell).
+  def mark_cave_cells(gy)
     (GX - 1).times do |i|
       (gy - 1).times do |j|
         (GX - 1).times do |k|
@@ -700,97 +755,130 @@ class World
         end
       end
     end
+  end
 
-    CHUNK.times do |lx|
-      CHUNK.times do |lz|
-        x = x0 + lx
-        z = z0 + lz
-        h = @col_h[lx * CHUNK + lz]
-        biome = @col_b[lx * CHUNK + lz]
-        top = h - 1
-        surface = @terrain.top_block(x, z, h, biome)
-        entrance = @terrain.entrance?(x, z)
-        base = World.index(x, 0, z)
-        # The column's place in the cave grid. The 4 layers of a grid cell
-        # share its edges along x (x_edges), so they are read once a layer.
-        fx = lx / 4.0
-        fz = lz / 4.0
-        ix = fx.to_i
-        iz = fz.to_i
-        a_layer = -1
-        c_layer = -1
-        # Two layers share the rolls for ore.
-        roll_y = -1
-        r = 0
-        coal_r = 0
-        coal_cells = ((lx >> 2) * 4 + (lz >> 2)) * COAL_ROLLS
-        y = 0
-        while y < h
-          b = Block::STONE
-          if y == 0
-            b = Block::BEDROCK
-          elsif y == top
-            b = surface
-          elsif y > top - SOIL_DEPTH
-            b = surface == Block::SAND ? Block::SAND : Block::DIRT
-            b = Block::STONE if Terrain.bare_rock?(top)
-          elsif y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
-            b = Block::SANDSTONE
-          end
-          if y > 1 && (y < top - 2 || (!Terrain.beach?(top) && y <= top))
-            fy = y / 4.0
-            iy = fy.to_i
-            n = (ix * GY + iy) * GX + iz
-            if @cave_cell[n] == 1
-              width = entrance ? Terrain::CAVE_WIDTH : Terrain.cave_width(top - y)
-              if iy != a_layer
-                a_layer = iy
-                Terrain.x_edges(@cave_a, n, GY, GX, fx - ix, @edges_a)
-              end
-              a = Terrain.yz_lerp(@edges_a, fy - iy, fz - iz)
-              if Terrain.cave_possible?(a, width)
-                if iy != c_layer
-                  c_layer = iy
-                  Terrain.x_edges(@cave_b, n, GY, GX, fx - ix, @edges_c)
-                end
-                c = Terrain.yz_lerp(@edges_c, fy - iy, fz - iz)
-                b = (y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if Terrain.cave?(a, c, width)
-              end
-            end
-          end
-          if b == Block::STONE
-            # A roll for the coal cell and a roll for the iron, diamond or
-            # spinel cell pick the ore, and a roll for the block leaves gaps in
-            # the clump. Spinel takes the top of the roll. Its range then
-            # starts at the same roll in both layers of a cell, even where
-            # the odds of iron and diamond change from layer to layer.
-            if (y >> 1) != roll_y
-              roll_y = y >> 1
-              coal_r = @coal_rolls[coal_cells + roll_y]
-              r = Noise.hash3(x >> 1, roll_y, z >> 1, 11)
-            end
-            iron = @iron_odds[y]
-            if coal_r < @coal_odds[y]
-              b = Block::COAL_ORE if Noise.hash3(x, y, z, 12) < COAL_FILL
-            elsif r < iron
-              b = Block::IRON if Noise.hash3(x, y, z, 14) < IRON_FILL
-            elsif r < iron + @diamond_odds[y]
-              b = Block::DIAMOND if Noise.hash3(x, y, z, 16) < DIAMOND_FILL
-            elsif r >= 65536 - @spinel_odds[y]
-              b = Block::SPINEL_ORE if Noise.hash3(x, y, z, 18) < SPINEL_FILL
-            end
-          end
-          put_block(base + y, b)
-          y += 1
-        end
-        while y <= SEA
-          put_block(base + y, Block::WATER)
-          y += 1
-        end
-        clear_above(base, y)
+  # Carves the tunnels of column lx, lz of the chunk at x0, z0. In an
+  # entrance patch they keep their full width up to the top block. A beach
+  # keeps the 3 blocks under its top block.
+  def carve_column(x0, z0, lx, lz)
+    x = x0 + lx
+    z = z0 + lz
+    top = @col_h[lx * CHUNK + lz] - 1
+    entrance = @terrain.entrance?(x, z)
+    base = World.index(x, 0, z)
+    # The column's place in the cave grid.
+    fx = lx / 4.0
+    fz = lz / 4.0
+    ix = fx.to_i
+    iz = fz.to_i
+    @a_layer = -1
+    @c_layer = -1
+    last = Terrain.beach?(top) ? top - 3 : top
+    y = 2
+    while y <= last
+      n = (ix * GY + (y >> 2)) * GX + iz
+      if @cave_cell[n] == 1
+        width = entrance ? Terrain::CAVE_WIDTH : Terrain.cave_width(top - y)
+        put_block(base + y, y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if tunnel?(n, y, fx - ix, fz - iz, width)
       end
+      y += 1
     end
-    decorate(cx, cz)
+    nil
+  end
+
+  # True when layer y of a column is in a tunnel of width. n is the cave
+  # grid point under the block, and tx, tz are the place of the column
+  # inside the grid cell. The 4 layers of a grid cell share its edges along
+  # x (x_edges), so a column reads them once a layer, into @edges_a and
+  # @edges_c.
+  def tunnel?(n, y, tx, tz, width)
+    fy = y / 4.0
+    iy = fy.to_i
+    if iy != @a_layer
+      @a_layer = iy
+      Terrain.x_edges(@cave_a, n, GY, GX, tx, @edges_a)
+    end
+    a = Terrain.yz_lerp(@edges_a, fy - iy, tz)
+    return false unless Terrain.cave_possible?(a, width)
+    if iy != @c_layer
+      @c_layer = iy
+      Terrain.x_edges(@cave_b, n, GY, GX, tx, @edges_c)
+    end
+    Terrain.cave?(a, Terrain.yz_lerp(@edges_c, fy - iy, tz), width)
+  end
+
+  # Coal, iron, diamond and spinel in the stone that the caves left.
+  def place_ores(x0, z0, highest)
+    roll_coal(x0, z0, highest)
+    CHUNK.times do |lx|
+      CHUNK.times { |lz| place_column_ores(x0, z0, lx, lz) }
+    end
+  end
+
+  # The rolls of the 4 x 4 columns of coal cells in the chunk at x0, z0,
+  # one for each 2 layers up to highest. The 16 block columns of a cell
+  # column read them.
+  def roll_coal(x0, z0, highest)
+    i = 0
+    while i < 16
+      j = 0
+      while j <= highest >> 1
+        @coal_rolls[i * COAL_ROLLS + j] = Noise.hash3((x0 >> 2) + (i >> 2), j, (z0 >> 2) + (i & 3), 13)
+        j += 1
+      end
+      i += 1
+    end
+    nil
+  end
+
+  # Puts the ores in the stone of column lx, lz of the chunk at x0, z0.
+  # Two layers share the rolls of their cells.
+  def place_column_ores(x0, z0, lx, lz)
+    x = x0 + lx
+    z = z0 + lz
+    base = World.index(x, 0, z)
+    coal_cells = ((lx >> 2) * 4 + (lz >> 2)) * COAL_ROLLS
+    h = @col_h[lx * CHUNK + lz]
+    roll_y = -1
+    coal_r = 0
+    r = 0
+    y = 1
+    while y < h
+      if block(base + y) == Block::STONE
+        if (y >> 1) != roll_y
+          roll_y = y >> 1
+          coal_r = @coal_rolls[coal_cells + roll_y]
+          r = Noise.hash3(x >> 1, roll_y, z >> 1, 11)
+        end
+        ore = clump_ore(y, coal_r, r)
+        put_block(base + y, ore) if ore != Block::STONE && World.ore_fills?(ore, x, y, z)
+      end
+      y += 1
+    end
+    nil
+  end
+
+  # The ore of the clump at layer y, or stone: coal_r is the roll of the
+  # coal cell, and r the roll of the iron, diamond or spinel cell. Spinel
+  # takes the top of the roll. Its range then starts at the same roll in
+  # both layers of a cell, even where the odds of iron and diamond change
+  # from layer to layer.
+  def clump_ore(y, coal_r, r)
+    return Block::COAL_ORE if coal_r < @coal_odds[y]
+    iron = @iron_odds[y]
+    return Block::IRON if r < iron
+    return Block::DIAMOND if r < iron + @diamond_odds[y]
+    return Block::SPINEL_ORE if r >= 65536 - @spinel_odds[y]
+    Block::STONE
+  end
+
+  # True when block x, y, z of a clump of ore is ore. A roll for each block
+  # leaves gaps in the clump.
+  def self.ore_fills?(ore, x, y, z)
+    return Noise.hash3(x, y, z, 12) < COAL_FILL if ore == Block::COAL_ORE
+    return Noise.hash3(x, y, z, 14) < IRON_FILL if ore == Block::IRON
+    return Noise.hash3(x, y, z, 16) < DIAMOND_FILL if ore == Block::DIAMOND
+    Noise.hash3(x, y, z, 18) < SPINEL_FILL
   end
 
   # 1 when the cell of the cave grid from point n can hold a cave, else 0.
