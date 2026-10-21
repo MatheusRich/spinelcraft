@@ -169,6 +169,7 @@ module Tex
   JACK_FACE = image("jack_face")
   SHEARS = image("shears")
   PUMPKIN_SEEDS = image("pumpkin_seeds")
+  PUMPKIN_PIE = image("pumpkin_pie")
   # A young stem is green, and a ripe stem yellow.
   PUMPKIN_STEM = image("pumpkin_stem", bleed: 1)
   PUMPKIN_STEM_RIPE = image("pumpkin_stem_ripe", bleed: 1)

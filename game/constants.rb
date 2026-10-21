@@ -23,7 +23,7 @@ class Game
                     Block::RAW_CHICKEN, Block::COOKED_CHICKEN, Block::ROTTEN_FLESH, Block::LEATHER, Block::MILK_BUCKET,
                     Block::FEATHER, Block::EGG,
                     Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
-                    Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::SHEARS,
+                    Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::PUMPKIN_PIE, Block::SHEARS,
                     Block::BONE, Block::BONE_MEAL]
   # Floats that render passes to the shaders: 28, one square for each level,
   # 8 for the far cloud layer, 4 for the rain, 4 for the options, then 8

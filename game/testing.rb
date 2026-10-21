@@ -507,7 +507,7 @@ class Game
     items = Command.complete("/give ")
     check("Tab completes item names in /give and mob names in /summon, also after @s",
           Command.complete("/give @s diamond_p") == ["diamond_pickaxe"] && Command.complete("/summon c") == ["creeper", "cow", "chicken"] &&
-          Command.complete("/give pum") == ["pumpkin", "pumpkin_seeds"] && Command.complete("/give jack") == ["jack_o_lantern"] &&
+          Command.complete("/give pum") == ["pumpkin", "pumpkin_seeds", "pumpkin_pie"] && Command.complete("/give jack") == ["jack_o_lantern"] &&
           items.size == CREATIVE_ITEMS.size && items.count("water") == 1 && items.count("wheat") == 1 &&
           !items.include?("wheat_crops"))
     check("Tab completes the words of /time, /weather and /gamemode",

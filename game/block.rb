@@ -145,6 +145,7 @@ module Block
   # the directions 1-3. CHEST is the item. minecraft.wiki/w/Chest
   CHEST_LEFT = 161
   CHEST_RIGHT = 165
+  PUMPKIN_PIE = 169
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -487,6 +488,7 @@ module Block
   define_block CHEST_RIGHT, "CHEST", Tex::CHEST_SIDE, top: Tex::CHEST_RIGHT_TOP, front: Tex::CHEST_RIGHT_FRONT, facing: 0, base: CHEST,
                shape: 7, opaque: 0, hardness: 2.5, drops: CHEST, dig: DIG_AXE
   define_turns CHEST_RIGHT + 1, CHEST_RIGHT
+  define_item PUMPKIN_PIE, "PUMPKIN PIE", Tex::PUMPKIN_PIE, food: 8, saturation: 4.8 # minecraft.wiki/w/Pumpkin_Pie
   COUNT = NAMES.size
 
   def self.blocks_light(b) = b != AIR && b != GLASS && !door?(b) && BASE[b] != LADDER && !plant?(b)

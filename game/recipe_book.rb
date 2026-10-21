@@ -44,7 +44,11 @@ class RecipeBook
                 # A boat takes 5 planks of its wood. minecraft.wiki/w/Boat
                 Recipe.new(Block::OAK_PLANKS, 5, Block::OAK_BOAT, 1, Recipe::AT_TABLE), Recipe.new(Block::SPRUCE_PLANKS, 5, Block::SPRUCE_BOAT, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::BIRCH_PLANKS, 5, Block::BIRCH_BOAT, 1, Recipe::AT_TABLE), Recipe.new(Block::IRON_INGOT, 2, Block::SHEARS, 1, Recipe::BY_HAND),
-                Recipe.new(Block::PUMPKIN, 1, Block::PUMPKIN_SEEDS, 4, Recipe::BY_HAND), Recipe.new(Block::BONE, 1, Block::BONE_MEAL, 3, Recipe::BY_HAND),
+                Recipe.new(Block::PUMPKIN, 1, Block::PUMPKIN_SEEDS, 4, Recipe::BY_HAND),
+                # Minecraft makes a pumpkin pie of a pumpkin, sugar and an egg
+                # (minecraft.wiki/w/Pumpkin_Pie). The game has no sugar.
+                Recipe.new(Block::PUMPKIN, 1, Block::PUMPKIN_PIE, 1, Recipe::BY_HAND, Block::EGG, 1),
+                Recipe.new(Block::BONE, 1, Block::BONE_MEAL, 3, Recipe::BY_HAND),
                 Recipe.new(Block::CARVED_PUMPKIN, 1, Block::JACK_O_LANTERN, 1, Recipe::BY_HAND, Block::TORCH, 1),
                 Recipe.new(Block::IRON, 1, Block::IRON_INGOT, 1, Recipe::AT_FURNACE), Recipe.new(Block::OAK_LOG, 1, Block::COAL, 1, Recipe::AT_FURNACE),
                 Recipe.new(Block::SPRUCE_LOG, 1, Block::COAL, 1, Recipe::AT_FURNACE), Recipe.new(Block::BIRCH_LOG, 1, Block::COAL, 1, Recipe::AT_FURNACE), Recipe.new(Block::PORKCHOP, 1, Block::COOKED_PORKCHOP, 1, Recipe::AT_FURNACE),

@@ -49,6 +49,7 @@ These files are copies with no changes.
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 | `pumpkin_side.png`, `pumpkin_top.png`, `pumpkin_face.png`, `jack_face.png` | `farming_pumpkin_side.png`, `farming_pumpkin_top.png`, `farming_pumpkin_face.png`, `farming_pumpkin_face_light.png` |
 | `pumpkin_seeds.png`, `shears.png` | `mcl_farming_pumpkin_seeds.png`, `default_tool_shears.png` |
+| `pumpkin_pie.png` | `mcl_farming_pumpkin_pie.png` |
 | `bone.png` | `mcl_mobitems_bone.png` |
 | `bone_meal.png` | `mods/ITEMS/mcl_bone_meal/textures/mcl_bone_meal.png`. VoxeLibre keeps this image with its item code, so it is not in the `textures/` folder. |
 

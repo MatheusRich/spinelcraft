@@ -88,7 +88,7 @@ class RecipeBookTest < Minitest::Test
     book = RecipeBook.new
     book.recipe_count.times do |index|
       ingredient = book.recipe(index).ingredient
-      Block.fillers(ingredient).each { |b| book.learn(b) } unless [Block::COAL, Block::SPINEL].include?(ingredient)
+      Block.fillers(ingredient).each { |b| book.learn(b) } unless [Block::COAL, Block::SPINEL, Block::BONE].include?(ingredient)
     end
     assert_equal 38, book.shown(TABLE).size
     book.scroll_by(100, TABLE)
@@ -159,6 +159,20 @@ class RecipeBookTest < Minitest::Test
     assert_equal "3 WOOL + 3 PLANKS", bed.need
     assert_equal 1, bed.craft(1, slots)
     assert_equal [1, 0, 0, 0], [slots.total(Block::BED), slots.total(Block::WOOL), slots.total(Block::OAK_PLANKS), slots.total(Block::SPRUCE_PLANKS)]
+  end
+
+  def test_a_pumpkin_and_an_egg_make_a_pumpkin_pie_by_hand
+    book = RecipeBook.new
+    assert_equal "2 NEW RECIPES - PRESS E", book.see(Block::PUMPKIN)
+    pie = book.recipe(recipe_for(Block::PUMPKIN_PIE))
+    assert pie.made_at?(HAND)
+    slots = Slots.new(36)
+    2.times { slots.add(Block::PUMPKIN) }
+    slots.add(Block::EGG)
+    assert_equal "1 PUMPKIN + 1 EGG", pie.need
+    assert_equal 1, pie.craft(2, slots)
+    assert_equal [1, 1, 0], [slots.total(Block::PUMPKIN_PIE), slots.total(Block::PUMPKIN), slots.total(Block::EGG)]
+    assert_operator Block.food(Block::PUMPKIN_PIE), :>, 0
   end
 
   def test_a_furnace_smelts_the_ingredient_of_its_recipes
