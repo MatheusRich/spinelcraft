@@ -105,6 +105,31 @@ class ChestsTest < Minitest::Test
     assert_equal [Block::DIRT, 10], [bottom.block(0), bottom.count(0)]
   end
 
+  def test_a_large_chest_adds_onto_a_stack_in_its_bottom_half_before_an_empty_top_slot
+    large_chest(8, 8)
+    @chests.open_at(@world, 8, Y, 8)
+    chest = @chests.current
+    chest.slots_for(Chest::SLOTS).set(0, Block::DIRT, 60)
+    hand = Slots.new(1)
+    hand.set(0, Block::DIRT, 10)
+    chest.store(hand, 0)
+    assert_equal [6, 64], [chest.slots_for(0).count(0), chest.slots_for(Chest::SLOTS).count(0)]
+    assert hand.empty?(0)
+  end
+
+  def test_a_large_chest_adds_onto_the_stacks_of_its_top_half_first
+    large_chest(8, 8)
+    @chests.open_at(@world, 8, Y, 8)
+    chest = @chests.current
+    chest.slots_for(0).set(0, Block::DIRT, 60)
+    chest.slots_for(Chest::SLOTS).set(0, Block::DIRT, 60)
+    hand = Slots.new(1)
+    hand.set(0, Block::DIRT, 10)
+    chest.store(hand, 0)
+    top = chest.slots_for(0)
+    assert_equal [64, 64, 2], [top.count(0), chest.slots_for(Chest::SLOTS).count(0), top.count(1)]
+  end
+
   def test_a_full_chest_of_one_block_leaves_the_stack_in_the_hand
     @world.set(8, Y, 8, Block::CHEST)
     @chests.open_at(@world, 8, Y, 8)

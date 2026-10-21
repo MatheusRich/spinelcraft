@@ -29,11 +29,17 @@ class Chest
     @bottom
   end
 
-  # Moves the stack in a slot of from into the chest: into the top half
-  # of a large chest first.
+  # Moves the stack in a slot of from into the chest. The two halves of a
+  # large chest are one row of 54 slots, as in Minecraft: the stack goes
+  # onto the stacks of its kind in both halves first, then into the first
+  # empty slot, top half first. What does not fit stays in from.
   def store(from, slot)
-    from.move_stack(slot, @top, 0...SLOTS)
-    from.move_stack(slot, @bottom, 0...SLOTS) if large?
+    block = from.block(slot)
+    rest = @top.stack_onto_existing(block, from.count(slot), 0...SLOTS)
+    rest = @bottom.stack_onto_existing(block, rest, 0...SLOTS) if large?
+    rest = @top.move_to_empty(block, rest, 0...SLOTS)
+    rest = @bottom.move_to_empty(block, rest, 0...SLOTS) if large?
+    from.set(slot, block, rest)
     nil
   end
 
