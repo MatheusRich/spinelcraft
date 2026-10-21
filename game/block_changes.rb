@@ -166,6 +166,17 @@ class Game
     nil
   end
 
+  # Grass under an opaque block turns to dirt in the random ticks of the
+  # columns near the player (see Plants#covered_grass_column). It needs no
+  # light, so it happens at night too.
+  def kill_covered_grass(dt)
+    @plants.random_ticks(dt, Plants::DECAY_SAMPLES).times do
+      @plants.covered_grass_column(@player.x.floor.to_i, @player.z.floor.to_i, @changes)
+      apply_changes
+    end
+    nil
+  end
+
   # Decayed leaves break, and now and then they drop a sapling or an
   # apple. Each change of Plants#decay_column is air.
   def decay_leaves(dt)

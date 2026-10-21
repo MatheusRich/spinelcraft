@@ -471,4 +471,32 @@ class PlantsTest < Minitest::Test
     # Column X + WX shares its place in the ring of chunks with column X.
     assert_empty grass_columns(50_000, X + WX, Z)
   end
+
+  # The cells that count random ticks of dying grass around X, Z turn to dirt.
+  def dying_grass(count)
+    count.times { @plants.covered_grass_column(X, Z, @changes) }
+    apply.uniq.sort
+  end
+
+  def test_grass_under_an_opaque_block_dies
+    @world.set(X, Y, Z, Block::GRASS)
+    @world.set(X, Y + 1, Z, Block::STONE)
+    # Under a stack of blocks, below leaves.
+    @world.set(X + 1, Y, Z, Block::GRASS)
+    3.times { |up| @world.set(X + 1, Y + 1 + up, Z, Block::COBBLE) }
+    @world.set(X + 1, Y + 5, Z, Block::OAK_LEAVES)
+    assert_equal [[X, Y, Z, Block::DIRT], [X + 1, Y, Z, Block::DIRT]], dying_grass(50_000)
+  end
+
+  def test_grass_under_air_glass_or_leaves_stays
+    @world.set(X, Y, Z, Block::GRASS)
+    @world.set(X + 1, Y, Z, Block::GRASS)
+    @world.set(X + 1, Y + 1, Z, Block::GLASS)
+    @world.set(X + 2, Y, Z, Block::GRASS)
+    @world.set(X + 2, Y + 1, Z, Block::OAK_LEAVES)
+    # Grass under air under a roof.
+    @world.set(X + 3, Y, Z, Block::GRASS)
+    @world.set(X + 3, Y + 3, Z, Block::STONE)
+    assert_empty dying_grass(50_000)
+  end
 end

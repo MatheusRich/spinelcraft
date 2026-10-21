@@ -175,6 +175,7 @@ class Game
     test_mob_panic
     test_leaf_decay
     test_grass_spread
+    test_covered_grass
     test_drop_rates
     test_items(cx, cz)
     test_light_sources(cx, cz)
@@ -2326,6 +2327,26 @@ class Game
     check("grass spreads onto dirt by day, but not at night, under stone or under water", night && day && covered)
     fill_box(bx - 3, y, bz - 3, bx + 3, y + 1, bz + 3, Block::AIR)
     @clock.time_of_day = time
+    restore_pose
+  end
+
+  # Grass under a block that the player placed dies and turns to dirt.
+  # The grass beside it, under the open sky, stays.
+  def test_covered_grass
+    bx = @spawn_x.floor - 30
+    bz = @spawn_z.floor + 30
+    y = SKY_Y - 4
+    keep_pose
+    @player.x = bx + 0.5
+    @player.z = bz + 0.5
+    fill_box(bx - 1, y + 1, bz - 1, bx + 1, SKY_Y - 1, bz + 1, Block::AIR)
+    fill_box(bx - 1, y, bz - 1, bx + 1, y, bz + 1, Block::GRASS)
+    set_block(bx, y + 1, bz, Block::OAK_PLANKS)
+    kill_covered_grass(1800.0)
+    covered = @world.get(bx, y, bz) == Block::DIRT
+    open = count_box(bx - 1, y, bz - 1, bx + 1, y, bz + 1, Block::GRASS) == 8
+    check("grass under a placed block turns to dirt, and the grass beside it stays", covered && open)
+    fill_box(bx - 1, y, bz - 1, bx + 1, y + 1, bz + 1, Block::AIR)
     restore_pose
   end
 

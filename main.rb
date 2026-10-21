@@ -510,6 +510,7 @@ class Game
     grow_plants(dt)
     decay_leaves(dt)
     spread_grass(dt)
+    kill_covered_grass(dt)
     update_furnaces(dt)
     update_items(dt)
     update_falling(dt)

@@ -132,6 +132,24 @@ class Plants
     -1
   end
 
+  # One random tick of the covered grass in a column within GROW_REACH of
+  # px, pz. Down from the top, past the air, the leaves and the plants, then
+  # through the opaque blocks: a grass block under an opaque block dies and
+  # turns to dirt. minecraft.wiki/w/Grass_Block
+  def covered_grass_column(px, pz, changes)
+    pick_column(px, pz)
+    x = @column_x
+    z = @column_z
+    y = @world.height_at(x, z)
+    y -= 1 while y > 0 && Block::OPAQUE[@world.get(x, y, z)] == 0
+    return nil if @world.get(x, y, z) == Block::GRASS
+
+    # Below the world, World#get gives air, which ends this walk.
+    y -= 1 while Block::OPAQUE[@world.get(x, y, z)] != 0 && @world.get(x, y, z) != Block::GRASS
+    changes << x << y << z << Block::DIRT if @world.get(x, y, z) == Block::GRASS
+    nil
+  end
+
   # A random tick of the grass at x, y, z: GRASS_TRIES random cells of the
   # 3 x 5 x 3 cells around it, from 3 below it to 1 above it, turn from
   # dirt to grass. The block above such a cell must let light through, and
