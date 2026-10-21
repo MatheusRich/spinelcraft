@@ -10,7 +10,11 @@ class Clouds
   PERIOD = (CELL * GRID).to_f
   # Minecraft clouds are at y 192.33 (minecraft.wiki/w/Cloud).
   HEIGHT = 192.0
-  DEPTH = 3.0
+  # minecraft.wiki/w/Clouds: "always four blocks tall".
+  DEPTH = 4.0
+  # The share of the cells with a cloud. The wiki does not give it: 20.4% of
+  # the pixels of Minecraft's clouds.png (1.21.1) are clouds.
+  COVER = 0.2
   ALPHA = 0.82
   # Boxes go out to NEAR cells from the player's cell, about 800 blocks.
   NEAR = 66
@@ -23,8 +27,16 @@ class Clouds
     @built = false
     @built_i = 0
     @built_j = 0
+    values = Clouds.noise_values(seed)
+    # The cells with a noise value above the threshold are clouds: COVER of them.
+    threshold = values.sort[((1.0 - COVER) * values.size).to_i]
+    @cells = values.map { |value| value > threshold ? 1 : 0 }
+  end
+
+  # The noise value of each cell, at i * GRID + j.
+  def self.noise_values(seed)
     noise = Noise.new(seed * 13 + 5)
-    @cells = Array.new(GRID * GRID, 0)
+    values = Array.new(GRID * GRID, 0.0)
     # The radius of the torus keeps the clouds the same size for any GRID.
     r = GRID / 32.0
     GRID.times do |i|
@@ -32,10 +44,10 @@ class Clouds
         # Sampled on a torus so the pattern wraps without a seam.
         a = i * 6.283185 / GRID
         b = j * 6.283185 / GRID
-        v = noise.noise3(Math.cos(a) * r, Math.sin(a) * r + Math.cos(b) * r, Math.sin(b) * r)
-        @cells[i * GRID + j] = v > 0.12 ? 1 : 0
+        values[i * GRID + j] = noise.noise3(Math.cos(a) * r, Math.sin(a) * r + Math.cos(b) * r, Math.sin(b) * r)
       end
     end
+    values
   end
 
   # The cell column of the x or z position p, after the drift.
