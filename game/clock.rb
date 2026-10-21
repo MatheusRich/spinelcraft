@@ -15,13 +15,11 @@ class Clock
   MOON_LIT = [1.0, 0.75, 0.5, 0.25, 0.0, 0.25, 0.5, 0.75]
   # The time of day after a night in a bed.
   MORNING = 0.02
-  # The night is the time when a bed works, as a range of the time of day:
-  # in clear weather from tick 12542 to tick 23459, and in rain from tick
-  # 12010 to tick 23991. minecraft.wiki/w/Daylight_cycle
-  # The ranges are not of ticks, because ticks after set_ticks can be one
-  # less than the tick that it set.
-  NIGHT = (12542 / DAY_TICKS.to_f)...(23460 / DAY_TICKS.to_f)
-  RAIN_NIGHT = (12010 / DAY_TICKS.to_f)...(23992 / DAY_TICKS.to_f)
+  # The night is the time when a bed works, as a range of ticks: in clear
+  # weather from tick 12542 to tick 23459, and in rain from tick 12010 to
+  # tick 23991. minecraft.wiki/w/Daylight_cycle
+  NIGHT = 12542...23460
+  RAIN_NIGHT = 12010...23992
 
   attr_accessor :time_of_day, :day
 
@@ -45,10 +43,12 @@ class Clock
   # The tick of the day, from 0 to DAY_TICKS - 1.
   def ticks = (@time_of_day * DAY_TICKS).to_i
 
-  # /time set: the time of day of ticks. The day stays the same.
+  # /time set: the time of day of ticks. The day stays the same. The time
+  # goes to the middle of the tick. At the start of the tick, a float error
+  # can make ticks one less than the tick that it set.
   # minecraft.wiki/w/Commands/time
   def set_ticks(ticks)
-    @time_of_day = (ticks % DAY_TICKS) / DAY_TICKS.to_f
+    @time_of_day = (ticks % DAY_TICKS + 0.5) / DAY_TICKS
     nil
   end
 
@@ -68,10 +68,10 @@ class Clock
   end
 
   # True at night in clear weather.
-  def night? = NIGHT.cover?(@time_of_day)
+  def night? = NIGHT.cover?(ticks)
 
   # True at night in rain.
-  def rainy_night? = RAIN_NIGHT.cover?(@time_of_day)
+  def rainy_night? = RAIN_NIGHT.cover?(ticks)
 
   # The hour on a 24-hour clock, from 0 to 23.
   def hour = ((@time_of_day * 24.0 + 6.0) % 24.0).floor

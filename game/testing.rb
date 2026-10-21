@@ -309,14 +309,14 @@ class Game
     day = @clock.day
     @chat = Chat.new
     run_chat("/time set midnight")
-    midnight = @clock.time_of_day == 0.75
+    midnight = @clock.ticks == 18000
     run_chat("/time add 6000")
-    added = @clock.time_of_day == 0.0 && @clock.day == day + 1
+    added = @clock.ticks == 0 && @clock.day == day + 1
     check("/time set and /time add move the clock, and a new day starts at 6:00", midnight && added)
     run_chat("/time set 0")
     run_chat("/time add 2147483647")
     check("/time add of many days counts them at once",
-          @clock.day == day + 1 + 2147483647 / 24000 && (@clock.time_of_day - (2147483647 % 24000) / 24000.0).abs < 1.0e-9)
+          @clock.day == day + 1 + 2147483647 / 24000 && @clock.ticks == 2147483647 % 24000)
     @clock.time_of_day = 0.3
     @clock.day = day
     set_mode(true)

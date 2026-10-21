@@ -30,10 +30,25 @@ class ClockTest < Minitest::Test
   def test_time_set_moves_the_time_of_day_and_keeps_the_day
     clock = Clock.new(0.3, 7)
     clock.set_ticks(18000)
-    assert_equal 0.75, clock.time_of_day
+    assert_equal 18000, clock.ticks
     clock.set_ticks(Clock::DAY_TICKS + 6000)
-    assert_equal 0.25, clock.time_of_day
+    assert_equal 6000, clock.ticks
     assert_equal 7, clock.day
+  end
+
+  def test_the_clock_shows_each_tick_that_time_set_sets
+    clock = Clock.new(0.0, 0)
+    wrong = (0...Clock::DAY_TICKS).reject do |tick|
+      clock.set_ticks(tick)
+      clock.ticks == tick
+    end
+    assert_empty wrong
+  end
+
+  def test_the_sky_light_goes_down_at_the_tick_that_time_set_sets
+    clock = Clock.new(0.0, 0)
+    clock.set_ticks(12542)
+    assert_equal 11, Light.sky(clock.time_of_day, false)
   end
 
   def test_time_add_counts_the_whole_days_and_moves_the_rest
