@@ -7,9 +7,12 @@
 #   two methods.
 # - UncommunicativeVariableName and UncommunicativeParameterName: a name of
 #   one letter or a name that ends in a digit. x, y and z are good names.
-# - FeatureEnvy and UtilityFunction: a method that uses the data of another
-#   object more than its own. It belongs in that object, as Player#speed.
 # - UnusedParameters: an argument that the method does not use.
+#
+# FeatureEnvy and UtilityFunction are off. They find a method that uses the
+# data of another object more than its own, but they also count numbers
+# such as x as objects. So they are leads for the find-extraction skill,
+# not rules.
 #
 # The exclude lists hold the methods with old offenses. A new method is
 # still checked. When a fix removes the last offense of a method, make the
@@ -84,110 +87,7 @@ detectors:
   DuplicateMethodCall:
     enabled: false
   FeatureEnvy:
-    enabled: true
-    exclude:
-    - "/\\ABoat\\#draw_paddle\\z/"
-    - "/\\ABoat\\#water_surface\\z/"
-    - "/\\AChunkMeshes\\#meshable\\?\\z/"
-    - "/\\AClouds\\#side\\z/"
-    - "/\\AClouds\\#write_uniforms\\z/"
-    - "/\\AFarTerrain\\#cull_tiles\\z/"
-    - "/\\AGame\\#apply_loaded\\z/"
-    - "/\\AGame\\#bite_grass\\z/"
-    - "/\\AGame\\#breed\\z/"
-    - "/\\AGame\\#burn_item\\z/"
-    - "/\\AGame\\#chest_cell\\z/"
-    - "/\\AGame\\#chest_hover\\z/"
-    - "/\\AGame\\#command_time\\z/"
-    - "/\\AGame\\#court_mates\\z/"
-    - "/\\AGame\\#draw_hand\\z/"
-    - "/\\AGame\\#draw_slot\\z/"
-    - "/\\AGame\\#entity_in_view\\?\\z/"
-    - "/\\AGame\\#feed_animal\\z/"
-    - "/\\AGame\\#follow_fullscreen\\z/"
-    - "/\\AGame\\#furnace_cell\\z/"
-    - "/\\AGame\\#furnace_hover\\z/"
-    - "/\\AGame\\#ground_count\\z/"
-    - "/\\AGame\\#inventory_hover\\z/"
-    - "/\\AGame\\#land\\z/"
-    - "/\\AGame\\#lay_egg\\z/"
-    - "/\\AGame\\#leave_boat\\z/"
-    - "/\\AGame\\#mark_light_area\\z/"
-    - "/\\AGame\\#menu_help_y\\z/"
-    - "/\\AGame\\#menu_hover\\z/"
-    - "/\\AGame\\#menu_label\\z/"
-    - "/\\AGame\\#merge_items\\z/"
-    - "/\\AGame\\#mob_in\\?\\z/"
-    - "/\\AGame\\#nearest_mate\\z/"
-    - "/\\AGame\\#over_recipes\\?\\z/"
-    - "/\\AGame\\#pack_hover\\z/"
-    - "/\\AGame\\#play_from\\z/"
-    - "/\\AGame\\#push_mobs\\z/"
-    - "/\\AGame\\#seat_player\\z/"
-    - "/\\AGame\\#throw_stack\\z/"
-    - "/\\AGame\\#title_cell\\z/"
-    - "/\\AGame\\#title_hover\\z/"
-    - "/\\AGame\\#title_label\\z/"
-    - "/\\AGame\\#turn_hand\\z/"
-    - "/\\AGame\\#update_arrows\\z/"
-    - "/\\AGame\\#update_boats\\z/"
-    - "/\\AGame\\#update_eggs\\z/"
-    - "/\\AGame\\#update_falling\\z/"
-    - "/\\AGame\\#update_furnaces\\z/"
-    - "/\\AGame\\#update_mobs\\z/"
-    - "/\\AItem\\#absorb\\z/"
-    - "/\\ALight\\#lamp_near\\?\\z/"
-    - "/\\AMesh3\\#block_box\\z/"
-    - "/\\AMesh3\\#corner_faces\\z/"
-    - "/\\AMesh3\\#edge_runs\\z/"
-    - "/\\AMesh3\\#frame_corners\\z/"
-    - "/\\AMesh3\\#frame_vert\\z/"
-    - "/\\AMesh3\\#outline\\z/"
-    - "/\\AMesh3\\#set_frame\\z/"
-    - "/\\AMesh3\\#skin_faces\\z/"
-    - "/\\AMesher\\#cell\\z/"
-    - "/\\AMob\\#act_zombie\\z/"
-    - "/\\AMob\\#legs\\z/"
-    - "/\\AMusic\\#fill\\z/"
-    - "/\\ANaturalSpawner\\#pick_kind\\z/"
-    - "/\\ANaturalSpawner\\#spawn_monsters\\z/"
-    - "/\\ANoise\\#fbm2\\z/"
-    - "/\\ANoise\\#initialize\\z/"
-    - "/\\AParticles\\#shatter\\z/"
-    - "/\\APlants\\#grow_cactus\\z/"
-    - "/\\ASky\\#make_stars\\z/"
-    - "/\\ATerrain\\#top_block\\z/"
-    - "/\\ATerrain\\#warp_x\\z/"
-    - "/\\ATerrain\\#warp_z\\z/"
-    - "/\\ATint\\#write_uniforms\\z/"
-    - "/\\ATrees\\#acacia\\z/"
-    - "/\\ATrees\\#giant_jungle_tree\\z/"
-    - "/\\ATrees\\#jungle_crown\\z/"
-    - "/\\ATrees\\#large_oak\\z/"
-    - "/\\ATrees\\#limb\\z/"
-    - "/\\ATrees\\#spruce\\z/"
-    - "/\\AUi\\#block_text\\z/"
-    - "/\\AUi\\#item\\z/"
-    - "/\\AWeather\\#sound\\z/"
-    - "/\\AWorld\\#air_in\\?\\z/"
-    - "/\\AWorld\\#block\\z/"
-    - "/\\AWorld\\#box_edge\\z/"
-    - "/\\AWorld\\#cactus_in_box\\?\\z/"
-    - "/\\AWorld\\#can_hold\\?\\z/"
-    - "/\\AWorld\\#cave_cell\\z/"
-    - "/\\AWorld\\#chunk_bytes\\z/"
-    - "/\\AWorld\\#clear_above\\z/"
-    - "/\\AWorld\\#column_top\\z/"
-    - "/\\AWorld\\#door_partner\\z/"
-    - "/\\AWorld\\#expose_lava\\z/"
-    - "/\\AWorld\\#inside\\?\\z/"
-    - "/\\AWorld\\#listed\\?\\z/"
-    - "/\\AWorld\\#mirror_edges\\z/"
-    - "/\\AWorld\\#put\\z/"
-    - "/\\AWorld\\#remove_torch\\z/"
-    - "/\\AWorld\\#roll_coal\\z/"
-    - "/\\AWorld\\#unpack_chunk\\z/"
-    - "/\\Alogo_blocks\\z/"
+    enabled: false
   InstanceVariableAssumption:
     enabled: false
   IrresponsibleModule:
@@ -838,44 +738,7 @@ detectors:
   UnusedPrivateMethod:
     enabled: false
   UtilityFunction:
-    enabled: true
-    exclude:
-    - "/\\ABoat\\#part\\z/"
-    - "/\\AGame\\#blast_damage\\z/"
-    - "/\\AGame\\#chicks\\z/"
-    - "/\\AGame\\#command_args\\z/"
-    - "/\\AGame\\#file_prefix\\z/"
-    - "/\\AGame\\#hotbar_y\\z/"
-    - "/\\AGame\\#inventory_cell\\z/"
-    - "/\\AGame\\#material\\z/"
-    - "/\\AGame\\#menu_cell\\z/"
-    - "/\\AGame\\#mouse_in\\?\\z/"
-    - "/\\AGame\\#pack_cell\\z/"
-    - "/\\AGame\\#slider\\?\\z/"
-    - "/\\AGame\\#ui_scale\\z/"
-    - "/\\AGame\\#usable\\?\\z/"
-    - "/\\AGame\\#voice\\z/"
-    - "/\\AMesher\\#ao_value\\z/"
-    - "/\\AMesher\\#fluid_height\\z/"
-    - "/\\AMesher\\#fluid_weight\\z/"
-    - "/\\AMesher\\#offset\\z/"
-    - "/\\ANoise\\#fade\\z/"
-    - "/\\ANoise\\#grad2\\z/"
-    - "/\\ANoise\\#grad3\\z/"
-    - "/\\ANoise\\#lerp\\z/"
-    - "/\\APlants\\#listed\\?\\z/"
-    - "/\\APlayer\\#fits_dry\\?\\z/"
-    - "/\\APlayer\\#hits_box\\?\\z/"
-    - "/\\ATrees\\#large_oak_spread\\z/"
-    - "/\\ATrees\\#square\\z/"
-    - "/\\AUi\\#text_width\\z/"
-    - "/\\AWorld\\#block_in_box\\?\\z/"
-    - "/\\AWorld\\#well_block\\z/"
-    - "/\\Aface_texel\\z/"
-    - "/\\Alerp\\z/"
-    - "/\\Ashade\\z/"
-    - "/\\Atexture\\z/"
-    - "/\\Awrite_png\\z/"
+    enabled: false
 exclude_paths:
 - game/gfx.rb
 - game/testing.rb
