@@ -668,7 +668,6 @@ detectors:
     - "/\\AGame\\#update_hand\\z/"
     - "/\\AGame\\#update_mobs\\z/"
     - "/\\AGame\\#update_survival\\z/"
-    - "/\\AGame\\#use_bed\\z/"
     - "/\\AGame\\#use_bucket\\z/"
     - "/\\AGame\\#wear_tool\\z/"
     - "/\\AItem\\#draw\\z/"
@@ -836,8 +835,6 @@ detectors:
     - "/\\Ashade\\z/"
   UnusedParameters:
     enabled: true
-    exclude:
-    - "/\\AGame\\#use_bed\\z/"
   UnusedPrivateMethod:
     enabled: false
   UtilityFunction:

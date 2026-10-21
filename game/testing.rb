@@ -2734,6 +2734,15 @@ class Game
     use_bed(bx + 6, SKY_Y - 1, bz)
     @weather.set_now(false)
     check("a bed works earlier in the evening in rain", dusk && @clock.time_of_day == Clock::MORNING)
+    awake = [[3.0, 0.0], [0.0, 6.0], [9.0, 0.0]].map do |(across, up)|
+      @mobs.clear
+      @mobs << Mob.new(Mob::ZOMBIE, bx + 6.5 + across, SKY_Y - 1.0 + up, bz + 0.5, 9)
+      @clock.time_of_day = 0.75
+      use_bed(bx + 6, SKY_Y - 1, bz)
+      @clock.time_of_day == 0.75
+    end
+    @mobs.clear
+    check("a zombie 3 blocks from a bed keeps the player awake, but not 6 blocks up or 9 blocks away", awake == [true, false, false])
     set_block(bx + 6, SKY_Y - 1, bz, Block::AIR)
     @clock.time_of_day = 0.3
     check("sneaking stops at an edge", @player.y > SKY_Y - 1.1 && @player.z < bz + 1.4)

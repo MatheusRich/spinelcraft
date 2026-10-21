@@ -442,7 +442,11 @@ class Game
       say("SPAWN SET: YOU CAN ONLY SLEEP AT NIGHT")
       return
     end
-    near = @mobs.count { |m| !m.passive? && !m.dying? && (m.x - x) ** 2 + (m.z - z) ** 2 < 100.0 }
+    # A monster within 8 blocks across and 5 blocks up or down keeps the
+    # player awake. minecraft.wiki/w/Bed
+    near = @mobs.count do |mob|
+      !mob.passive? && !mob.dying? && (mob.x - x - 0.5).abs <= 8.0 && (mob.z - z - 0.5).abs <= 8.0 && (mob.y - y).abs <= 5.0
+    end
     if near > 0
       say("YOU CANNOT SLEEP NOW: MONSTERS ARE NEARBY")
       return
