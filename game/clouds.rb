@@ -21,6 +21,10 @@ class Clouds
   # than the pattern, so a cell of the pattern has at most one box.
   NEAR = 66
   REACH = 127
+  # The walls of the boxes fade out over FADE blocks, and are gone at
+  # NEAR * CELL, the nearest that a cloud switches between boxes and the
+  # flat layer. So a switch shows no change.
+  FADE = 300.0
 
   # The boxes for the clouds around (built_i, built_j).
   attr_reader :mesh
@@ -57,6 +61,12 @@ class Clouds
       end
     end
     values
+  end
+
+  # The fade of the walls as #defines for vcloud_box.
+  def self.shader_defines
+    fade_end = (NEAR * CELL).to_f
+    "#define CLOUD_FADE_START #{fade_end - FADE}\n#define CLOUD_FADE_END #{fade_end}\n"
   end
 
   # The cell column of the x or z position p, after the drift.
@@ -114,9 +124,15 @@ class Clouds
             dj += 1
             j += 1
           end
-          @mesh.aabb_faces(x0, HEIGHT, (start * CELL).to_f, x0 + CELL, HEIGHT + DEPTH, ((j + 1) * CELL).to_f, 4 | 8 | 16 | 32, Tex::WHITE, 1.0, 1.0, 1.0, ALPHA)
+          z0 = (start * CELL).to_f
+          z1 = ((j + 1) * CELL).to_f
+          @mesh.aabb_faces(x0, HEIGHT, z0, x0 + CELL, HEIGHT + DEPTH, z1, 4 | 8, Tex::WHITE, 1.0, 1.0, 1.0, ALPHA)
+          # Glow -1 marks the walls, which vcloud_box fades out with distance.
+          @mesh.glow = -1.0
+          @mesh.aabb_faces(x0, HEIGHT, z0, x0 + CELL, HEIGHT + DEPTH, z1, 16 | 32, Tex::WHITE, 1.0, 1.0, 1.0, ALPHA)
           side(i, start, j, i + 1, 1)
           side(i, start, j, i - 1, 2)
+          @mesh.glow = 0.0
         end
         dj += 1
       end

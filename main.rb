@@ -242,7 +242,7 @@ class Game
 
   def setup # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     vsync = ENV["NOVSYNC"] ? 0 : 1
-    Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines)
+    Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
     Gfx.gfx_fullscreen(1) if @options.fullscreen

@@ -3,6 +3,8 @@ require_relative "test_helper"
 class CloudsTest < Minitest::Test
   # The floats of one vertex in a Mesh3.
   VERTEX = 11
+  # The float of a Mesh3 vertex with its glow.
+  GLOW = 10
 
   def test_the_clouds_cover_a_fifth_of_the_sky
     [1, 1337].each do |seed|
@@ -72,6 +74,28 @@ class CloudsTest < Minitest::Test
     boxed = boxed_cells(clouds, 0, 0)
     assert_equal boxed, flat_cells(clouds.mesh, Clouds::HEIGHT + Clouds::DEPTH)
     assert_equal boxed, flat_cells(clouds.mesh, Clouds::HEIGHT)
+  end
+
+  def test_only_the_walls_have_the_glow_that_makes_them_fade
+    clouds = Clouds.new(1337)
+    clouds.build(0.0, 0.0, 0.0)
+    faces(clouds.mesh).each do |face|
+      wall = face.map { |vertex| vertex[1] }.uniq.size > 1
+      assert_equal [wall ? -1.0 : 0.0], face.map { |vertex| vertex[GLOW] }.uniq
+    end
+  end
+
+  def test_the_walls_fade_out_before_the_nearest_cell_that_can_switch
+    defines = Clouds.shader_defines.scan(/^#define (\w+) ([\d.]+)$/).to_h { |name, value| [name, value.to_f] }
+    # A player at the edge of cell 0, next to cell 1. The first cell past
+    # NEAR in that direction can switch.
+    player = Clouds::CELL - 0.01
+    switch = (Clouds::NEAR + 1) * Clouds::CELL - player
+    assert_operator defines["CLOUD_FADE_END"], :<=, switch
+    assert_in_delta switch, defines["CLOUD_FADE_END"], 1.0
+    assert_equal Clouds::FADE, defines["CLOUD_FADE_END"] - defines["CLOUD_FADE_START"]
+    # The shader source goes on after the last line.
+    assert Clouds.shader_defines.end_with?("\n")
   end
 
   def test_the_boxes_have_a_wall_only_where_a_boxed_cell_meets_a_cell_with_no_box
