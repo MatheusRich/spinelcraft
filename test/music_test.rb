@@ -7,10 +7,21 @@ require_relative "test_helper"
 class MusicTest < Minitest::Test
   def test_the_next_track_waits_for_the_track_to_end_and_then_for_the_gap
     music = Music.new(1)
-    assert_equal(-1, music.next_track(Music::FIRST_WAIT - 0.5, false, false, false))
-    assert_includes 0...Music::MINING, music.next_track(1.0, false, false, false)
+    assert_includes 0...Music::MINING, music.next_track(Music::FIRST_WAIT_MAX, false, false, false)
     assert_equal(-1, music.next_track(Music::GAP_MAX, true, false, false))
     assert_equal(-1, music.next_track(Music::GAP_MIN - 1.0, false, false, false))
+  end
+
+  def test_the_first_track_starts_at_a_random_time_from_1_to_30_seconds
+    waits = (1..100).map do |seed|
+      music = Music.new(seed)
+      seconds = 0.0
+      seconds += 0.1 while music.next_track(0.1, false, false, false) < 0
+      seconds
+    end
+    assert_operator waits.min, :>=, Music::FIRST_WAIT_MIN
+    assert_operator waits.max, :<=, Music::FIRST_WAIT_MAX + 0.1
+    assert_operator waits.uniq.size, :>, 50
   end
 
   def test_at_night_a_track_starts_underground_but_not_on_the_surface

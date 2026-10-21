@@ -12,16 +12,17 @@ class Music
   # integrated loudness of each track to -23 LUFS, so that all tracks are
   # equally loud.
   GAINS = [-9.5, -6.7, -4.2, -6.3, -2.4, -8.1, -7.6, -5.4, -1.6, -4.5]
-  # Seconds before the first track. Minecraft Java waits 100 ticks before
-  # the first track; minecraft.wiki/w/Music does not confirm it.
-  FIRST_WAIT = 5.0
+  # Seconds before the first track: 1 to 30, as for a track on the menu
+  # screens. minecraft.wiki/w/Music
+  FIRST_WAIT_MIN = 1.0
+  FIRST_WAIT_MAX = 30.0
   # Seconds of quiet after a track: 10 to 20 minutes. minecraft.wiki/w/Music
   GAP_MIN = 600.0
   GAP_MAX = 1200.0
 
   def initialize(seed)
     @rng = Rng.new(seed)
-    @wait = FIRST_WAIT
+    @wait = FIRST_WAIT_MIN + @rng.rand01 * (FIRST_WAIT_MAX - FIRST_WAIT_MIN)
     # The track that played last, or -1.
     @last = -1
     # A bag for each pool: the tracks that have yet to play in this round,
