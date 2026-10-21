@@ -438,12 +438,12 @@ class Game
     @spawn_x = x + 0.5
     @spawn_z = z + 0.5
     if @clock.daylight > 0.35
-      say("SPAWN SET  YOU CAN ONLY SLEEP AT NIGHT")
+      say("SPAWN SET: YOU CAN ONLY SLEEP AT NIGHT")
       return
     end
     near = @mobs.count { |m| !m.passive? && !m.dying? && (m.x - x) ** 2 + (m.z - z) ** 2 < 100.0 }
     if near > 0
-      say("YOU CANNOT SLEEP NOW  MONSTERS ARE NEARBY")
+      say("YOU CANNOT SLEEP NOW: MONSTERS ARE NEARBY")
       return
     end
     @clock.skip_night

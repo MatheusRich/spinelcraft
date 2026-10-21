@@ -308,7 +308,7 @@ class Game
     respawn
     @spawner.spawn_animals(@mobs, @player)
     @changed = true
-    say("NEW WORLD  SEED #{@seed}")
+    say("NEW WORLD: SEED #{@seed}")
   end
 
   # Finds dry land near x = z = 0 and puts a new player there. The origin
