@@ -467,7 +467,7 @@ class Mob
         speed = act_zombie(dx, dz, dist)
         damage = bite(player, dist)
       end
-      exposed = world.height_at(@x.floor, @z.floor) <= (@y + 1.6).floor
+      exposed = world.under_sky?(@x, @y + @tall, @z)
       # Something on the head stops the sun. The wiki names head armor
       # (minecraft.wiki/w/Zombie). That a carved pumpkin also counts comes
       # from the game code, which checks for any head item; the wiki does
