@@ -516,7 +516,7 @@ class Game
     update_falling(dt)
     note_seen if @survival
     @weather.update_weather(dt)
-    @weather.splash(@particles, @world, @player, dt) if @weather.rain > 0.0
+    @weather.splash(@particles, @world, @player, dt)
     Gfx.au_loop(Sfx::RAIN, @weather.sound(@world, @player) * @options.volume) if @sound
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
