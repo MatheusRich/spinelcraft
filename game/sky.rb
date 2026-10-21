@@ -44,9 +44,8 @@ class Sky
 
   # The stars at night. Rain hides them.
   def draw_stars(w, h, s)
-    night = (0.55 - @clock.daylight) * 2.5 * (1.0 - @weather.rain)
+    night = @clock.starlight * (1.0 - @weather.rain)
     return if night <= 0.0
-    night = 1.0 if night > 1.0
     a = @clock.time_of_day * Math::PI * 2.0
     ca = Math.cos(a)
     sa = Math.sin(a)

@@ -82,6 +82,10 @@ class Clock
     (0.5 + s * 0.9).clamp(0.12, 1.0)
   end
 
+  # How bright the stars are, from 0.0 by day to 1.0 at night. The wiki
+  # does not give the curve.
+  def starlight = ((0.55 - daylight) * 2.5).clamp(0.0, 1.0)
+
   # The phase of the moon, from 0 (full) to 7.
   def moon_phase = @day % 8
 

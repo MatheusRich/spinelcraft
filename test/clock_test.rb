@@ -87,6 +87,14 @@ class ClockTest < Minitest::Test
     refute clock.rainy_night?
   end
 
+  def test_the_stars_are_dark_by_day_full_at_midnight_and_fade_in_at_dusk
+    assert_equal 0.0, Clock.new(0.25, 0).starlight
+    assert_equal 1.0, Clock.new(0.75, 0).starlight
+    dusk = Clock.new(0.52, 0).starlight
+    assert_operator dusk, :>, 0.0
+    assert_operator dusk, :<, 0.5
+  end
+
   def test_the_hour_starts_at_6_00
     assert_equal 6, Clock.new(0.0, 0).hour
     assert_equal 12, Clock.new(0.25, 0).hour

@@ -127,7 +127,7 @@ class SkyTest < Minitest::Test
     @clock.time_of_day = 0.52
     dusk = stars(build(0.0, 1.3)).map { |star| star[:alpha] }.uniq
     assert_equal 1, dusk.size
-    assert_in_delta (0.55 - @clock.daylight) * 2.5, dusk[0], 1e-9
+    assert_in_delta @clock.starlight, dusk[0], 1e-9
     assert_operator dusk[0], :<, 0.5
   end
 
