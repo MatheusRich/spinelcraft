@@ -46,7 +46,7 @@ class Sky
   def draw_stars(w, h, s)
     night = @clock.starlight * (1.0 - @weather.rain)
     return if night <= 0.0
-    a = @clock.time_of_day * Math::PI * 2.0
+    a = @clock.sun_angle
     ca = Math.cos(a)
     sa = Math.sin(a)
     i = 0
@@ -71,7 +71,7 @@ class Sky
   # The sun (side 1) or the moon (side -1): the texture layer with the color
   # r, g, b, in a glow that is as bright as the lit part.
   def draw_sky_body(w, h, s, side, layer, r, g, b, size, lit)
-    a = @clock.time_of_day * Math::PI * 2.0
+    a = @clock.sun_angle
     dx = Math.cos(a) * side
     dy = Math.sin(a) * side
     return if dy < -0.15

@@ -95,6 +95,11 @@ class ClockTest < Minitest::Test
     assert_operator dusk, :<, 0.5
   end
 
+  def test_the_sun_rises_at_6_00_and_is_highest_at_noon
+    assert_equal 0.0, Clock.new(0.0, 0).sun_angle
+    assert_in_delta Math::PI / 2.0, Clock.new(0.25, 0).sun_angle, 1.0e-9
+  end
+
   def test_the_hour_starts_at_6_00
     assert_equal 6, Clock.new(0.0, 0).hour
     assert_equal 12, Clock.new(0.25, 0).hour

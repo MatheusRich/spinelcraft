@@ -50,7 +50,7 @@ class Game
     sky_r = 0.03 + 0.50 * day
     sky_g = 0.04 + 0.68 * day
     sky_b = 0.10 + 0.88 * day
-    dusk = 1.0 - Math.sin(@clock.time_of_day * Math::PI * 2.0).abs * 4.0
+    dusk = 1.0 - Math.sin(@clock.sun_angle).abs * 4.0
     if dusk > 0.0
       dusk *= 0.75
       sky_r += (1.0 - sky_r) * dusk

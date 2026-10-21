@@ -76,9 +76,13 @@ class Clock
   # The hour on a 24-hour clock, from 0 to 23.
   def hour = ((@time_of_day * 24.0 + 6.0) % 24.0).floor
 
+  # The angle of the sun around the z axis, in radians: 0 when it rises at
+  # 6:00, and PI / 2 at noon.
+  def sun_angle = @time_of_day * Math::PI * 2.0
+
   # The light of the sun, from 0.12 at midnight to 1.0 by day.
   def daylight
-    s = Math.sin(@time_of_day * Math::PI * 2.0)
+    s = Math.sin(sun_angle)
     (0.5 + s * 0.9).clamp(0.12, 1.0)
   end
 
