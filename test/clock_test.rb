@@ -45,12 +45,6 @@ class ClockTest < Minitest::Test
     assert_empty wrong
   end
 
-  def test_the_sky_light_goes_down_at_the_tick_that_time_set_sets
-    clock = Clock.new(0.0, 0)
-    clock.set_ticks(12542)
-    assert_equal 11, Light.sky(clock.time_of_day, false)
-  end
-
   def test_time_add_counts_the_whole_days_and_moves_the_rest
     clock = Clock.new(0.75, 0)
     clock.add_ticks(6000)

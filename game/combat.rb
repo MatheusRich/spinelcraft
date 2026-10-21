@@ -56,7 +56,7 @@ class Game
     # start of the next night. minecraft.wiki/w/Daylight_cycle
     # The wiki does not confirm that rain stops the burning.
     sun = !@weather.raining? && !@clock.night?
-    @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.time_of_day, @weather.raining?), dt)
+    @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.ticks, raining: @weather.raining?), dt)
     court_mates
     push_mobs(dt)
     held = current_block.to_i

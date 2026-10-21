@@ -586,7 +586,7 @@ class Game
     y = @player.eye_y.floor
     z = @player.z.floor
     return if y >= SEA || !@world.inside?(x, y, z)
-    sky = Light.sky(@clock.time_of_day, @weather.raining?)
+    sky = Light.sky(@clock.ticks, raining: @weather.raining?)
     light = @light.level(x, y, z, sky, @light.lamp_near?(x, y, z), sky)
     light = 15 if light < 0
     @cave_fear += 3.0 * (15 - light) / 15.0

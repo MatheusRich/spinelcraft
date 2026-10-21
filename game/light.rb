@@ -36,10 +36,9 @@ class Light
     nil
   end
 
-  # The sky light under the open sky at time_of_day (0.0 is 6:00), from
-  # SKY_DUSK and SKY_DAWN.
-  def self.sky(time_of_day, raining)
-    tick = (time_of_day * 24000.0).to_i
+  # The sky light under the open sky at the tick of the day (Clock#ticks),
+  # from SKY_DUSK and SKY_DAWN.
+  def self.sky(tick, raining:)
     dawn = raining ? SKY_DAWN_RAIN : SKY_DAWN_CLEAR
     ticks = tick >= dawn[0] ? dawn : (raining ? SKY_DUSK_RAIN : SKY_DUSK_CLEAR)
     passed = 0

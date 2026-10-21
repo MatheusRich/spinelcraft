@@ -15,21 +15,21 @@ class LightTest < Minitest::Test
   end
 
   def test_the_sky_light_is_15_at_noon_7_at_tick_13200_4_at_midnight_and_12_in_rain
-    assert_equal 15, Light.sky(0.25, false)
-    assert_equal 7, Light.sky(0.55, false)
-    assert_equal 4, Light.sky(0.75, false)
-    assert_equal 12, Light.sky(0.25, true)
+    assert_equal 15, Light.sky(6000, raining: false)
+    assert_equal 7, Light.sky(13200, raining: false)
+    assert_equal 4, Light.sky(18000, raining: false)
+    assert_equal 12, Light.sky(6000, raining: true)
   end
 
   def test_the_sky_light_goes_down_at_the_first_tick_of_each_level_and_up_at_dawn
-    assert_equal 15, Light.sky(12040 / 24000.0, false)
-    assert_equal 14, Light.sky(12041 / 24000.0, false)
-    assert_equal 4, Light.sky(22330 / 24000.0, false)
-    assert_equal 5, Light.sky(22331 / 24000.0, false)
-    assert_equal 15, Light.sky(23961 / 24000.0, false)
-    assert_equal 15, Light.sky(0.0, false)
-    assert_equal 4, Light.sky(13670 / 24000.0, true)
-    assert_equal 12, Light.sky(23992 / 24000.0, true)
+    assert_equal 15, Light.sky(12040, raining: false)
+    assert_equal 14, Light.sky(12041, raining: false)
+    assert_equal 4, Light.sky(22330, raining: false)
+    assert_equal 5, Light.sky(22331, raining: false)
+    assert_equal 15, Light.sky(23961, raining: false)
+    assert_equal 15, Light.sky(0, raining: false)
+    assert_equal 4, Light.sky(13670, raining: true)
+    assert_equal 12, Light.sky(23992, raining: true)
   end
 
   def test_a_cell_under_the_open_sky_has_the_sky_light
