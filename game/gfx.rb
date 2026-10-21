@@ -15,7 +15,7 @@ module Gfx
     static SDL_Window *win;
     static SDL_GPUDevice *dev;
     static SDL_GPUGraphicsPipeline *p_chunk, *p_water, *p_lod, *p_dyn, *p_ui, *p_cloud, *p_cloud_box, *p_cloud_depth, *p_hand, *p_rain;
-    static SDL_GPUTexture *atlas, *skins, *depth_tex, *cloud_tex, *cloud_mask, *tint_tex;
+    static SDL_GPUTexture *atlas, *skins, *depth_tex, *cloud_tex, *tint_tex;
     static SDL_GPUSampler *sampler, *cloud_sampler, *tint_sampler;
     static SDL_GPUTextureFormat depth_fmt;
     static Uint32 depth_w, depth_h;
@@ -82,8 +82,8 @@ module Gfx
     /* The cloud boxes change only when the player's cloud cell changes. */
     #define CLOUD_CAP (1 << 17)
     static SDL_GPUBuffer *cloud_buf;
-    static SDL_GPUTransferBuffer *cloud_tb, *cloud_mask_tb;
-    static Uint32 cloud_count, cloud_grid;
+    static SDL_GPUTransferBuffer *cloud_tb;
+    static Uint32 cloud_count;
     static int cloud_changed;
     /* The rain quads change only when the player moves to another block. */
     #define RAIN_CAP (1 << 15)
@@ -312,7 +312,7 @@ module Gfx
       "}\n"
       "// The far cloud layer: one square around the camera, out to the far plane.\n"
       "// u.cloud is (drift, y of the layer, cell size, grid size), and u.cloud_near\n"
-      "// the square of cells (i0, j0, i1, j1) that can have boxes.\n"
+      "// the cells (i0, j0, i1, j1) that have boxes.\n"
       "struct VOutC { float4 pos [[position]]; float3 wp; float shade [[flat]]; };\n"
       "constant float2 SQUARE[6] = {{-1,-1},{1,-1},{1,1},{-1,-1},{1,1},{-1,1}};\n"
       "vertex VOutC vcloud(uint vid [[vertex_id]], constant U &u [[buffer(0)]]) {\n"
@@ -326,14 +326,11 @@ module Gfx
       "  return o;\n"
       "}\n"
       "fragment float4 fcloud(VOutC in [[stage_in]], constant U &u [[buffer(0)]],\n"
-      "                       texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]],\n"
-      "                       texture2d<float> mask [[texture(1)]], sampler msmp [[sampler(1)]]) {\n"
+      "                       texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {\n"
       "  float2 cell = float2(in.wp.x - u.cloud.x, in.wp.z) / u.cloud.z;\n"
       "  float2 c = floor(cell);\n"
       "  float4 n = u.cloud_near;\n"
-      "  // The pattern repeats, so the mask counts only in the square of the boxes.\n"
-      "  bool near = c.x >= n.x && c.x <= n.z && c.y >= n.y && c.y <= n.w;\n"
-      "  if (near && mask.sample(msmp, (c + 0.5) / u.cloud.w).r > 0.0) discard_fragment();\n"
+      "  if (c.x >= n.x && c.x <= n.z && c.y >= n.y && c.y <= n.w) discard_fragment();\n"
       "  // Fog lowers the alpha: over the sky this gives the same color as a mix\n"
       "  // with the fog color, and the sun and the stars still show.\n"
       "  float a = tex.sample(smp, cell / u.cloud.w).a * (1.0 - fog_of(in.wp, u));\n"
@@ -561,7 +558,7 @@ module Gfx
       SDL_GPUShader *vlod = shader("vlod", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
       SDL_GPUShader *flod = shader("flod", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1);
       SDL_GPUShader *vcloud = shader("vcloud", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1);
-      SDL_GPUShader *fcloud = shader("fcloud", SDL_GPU_SHADERSTAGE_FRAGMENT, 2, 1);
+      SDL_GPUShader *fcloud = shader("fcloud", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1);
       SDL_GPUShader *fui = shader("fui", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0);
       if (!vchunk || !vdyn || !vui || !fworld || !fdyn || !fui || !vlod || !flod || !vcloud || !fcloud || !vcloud_box || !vhand || !vrain) return fail("SDL_CreateGPUShader");
 
@@ -748,14 +745,6 @@ module Gfx
       /* SDL frees the old texture when no frame on the GPU uses it. */
       if (cloud_tex) SDL_ReleaseGPUTexture(dev, cloud_tex);
       cloud_tex = t;
-      if (!cloud_mask) {
-        SDL_GPUTextureCreateInfo mi = {.type = SDL_GPU_TEXTURETYPE_2D, .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-          .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER, .width = (Uint32)size, .height = (Uint32)size, .layer_count_or_depth = 1, .num_levels = 1};
-        cloud_mask = SDL_CreateGPUTexture(dev, &mi);
-        cloud_mask_tb = make_transfer((Uint32)(size * size * 4));
-        cloud_grid = (Uint32)size;
-        if (!cloud_mask || !cloud_mask_tb) return fail("cloud mask");
-      }
       return true;
     }
 
@@ -805,11 +794,8 @@ module Gfx
     }
     long gfx_ui(const double *v, long nfloats) { ui_count = stage_floats(ui_tb, v, nfloats, UI_CAP * 9) / 9; return 0; }
     long gfx_sky(const double *v, long nfloats) { sky_count = stage_floats(sky_tb, v, nfloats, SKY_CAP * 9) / 9; return 0; }
-    /* The cloud boxes, and the mask of the cells with a box: one Integer
-       per cell of the cloud grid, 1 for a box, else 0. */
-    long gfx_cloud_boxes(const double *v, long nfloats, const int64_t *mask) {
+    long gfx_cloud_boxes(const double *v, long nfloats) {
       cloud_count = stage_floats(cloud_tb, v, nfloats, CLOUD_CAP * DYN_FLOATS) / DYN_FLOATS;
-      stage_ints(cloud_mask_tb, mask, (long)cloud_grid * cloud_grid, true);
       cloud_changed = 1;
       return 0;
     }
@@ -888,13 +874,7 @@ module Gfx
       npending = 0;
       upload_buffer(cp, dyn_tb, dyn_buf, dyn_count * DYN_FLOATS * 4);
       upload_buffer(cp, ui_tb, ui_buf, ui_count * 36);
-      if (cloud_changed) {
-        upload_buffer(cp, cloud_tb, cloud_buf, cloud_count * DYN_FLOATS * 4);
-        /* Cycled, so a frame on the GPU keeps the old mask. */
-        SDL_GPUTextureTransferInfo src = {.transfer_buffer = cloud_mask_tb, .pixels_per_row = cloud_grid, .rows_per_layer = cloud_grid};
-        SDL_GPUTextureRegion dst = {.texture = cloud_mask, .w = cloud_grid, .h = cloud_grid, .d = 1};
-        SDL_UploadToGPUTexture(cp, &src, &dst, true);
-      }
+      if (cloud_changed) upload_buffer(cp, cloud_tb, cloud_buf, cloud_count * DYN_FLOATS * 4);
       cloud_changed = 0;
       if (rain_changed) upload_buffer(cp, rain_tb, rain_buf, rain_count * DYN_FLOATS * 4);
       rain_changed = 0;
@@ -1024,8 +1004,8 @@ module Gfx
       }
       if (!cloud_tex) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_cloud);
-      SDL_GPUTextureSamplerBinding cb[2] = {{.texture = cloud_tex, .sampler = cloud_sampler}, {.texture = cloud_mask, .sampler = sampler}};
-      SDL_BindGPUFragmentSamplers(pass, 0, cb, 2);
+      SDL_GPUTextureSamplerBinding cb = {.texture = cloud_tex, .sampler = cloud_sampler};
+      SDL_BindGPUFragmentSamplers(pass, 0, &cb, 1);
       SDL_DrawGPUPrimitives(pass, 6, 1, 0, 0);
       SDL_GPUTextureSamplerBinding tsb = {.texture = atlas, .sampler = sampler};
       SDL_BindGPUFragmentSamplers(pass, 0, &tsb, 1);
@@ -1393,7 +1373,7 @@ module Gfx
   ffi_func :gfx_dyn, [:float_array, :long, :long], :long
   ffi_func :gfx_ui, [:float_array, :long], :long
   ffi_func :gfx_sky, [:float_array, :long], :long
-  ffi_func :gfx_cloud_boxes, [:float_array, :long, :int_array], :long
+  ffi_func :gfx_cloud_boxes, [:float_array, :long], :long
   ffi_func :gfx_rain, [:float_array, :long], :long
   ffi_func :gfx_tint, [:int_array], :long
   ffi_func :gfx_begin, [:float_array], :bool
