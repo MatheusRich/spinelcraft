@@ -200,6 +200,8 @@ F3 shows the frame rate, the CPU time, the position, the faces drawn, the visibl
 
 `tools/bench.sh [REF]` compares the working tree with a git ref (`main` by default). It builds both, runs each `N` times in turns (3 by default) with `AUTOPILOT=1`, and prints the median world generation time and CPU time per frame. It also prints two counts from Spinel that go up when a value loses its type: the `sp_box` calls in the C and the `--warn-widen` warnings.
 
+`tools/box_diff.sh base.c new.c` shows where the `sp_box` count changed. It takes two outputs of `spinel main.rb -S`, and it prints each C function whose count of `sp_box` calls differs, with the count in each file.
+
 ## Credits
 
 The images in `assets/pixel-perfection` come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre and Mineclonia contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license. `assets/pixel-perfection/README.md` gives the sources.
