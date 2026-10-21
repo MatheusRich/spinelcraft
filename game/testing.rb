@@ -243,13 +243,13 @@ class Game
   def test_sandstone
     sand = 0
     held = 0
-    depth = World::SOIL_DEPTH + World::SANDSTONE_DEPTH
+    depth = ChunkGenerator::SOIL_DEPTH + ChunkGenerator::SANDSTONE_DEPTH
     (@spawn_x.floor - 128...@spawn_x.floor + 128).each do |x|
       (@spawn_z.floor - 128...@spawn_z.floor + 128).each do |z|
         top = @world.height_at(x, z) - 1
         if @world.loaded?(x, z) && @world.get(x, top, z) == Block::SAND && (1...depth).none? { |d| @world.get(x, top - d, z) == Block::AIR }
           sand += 1
-          held += 1 if (0...depth).all? { |d| @world.get(x, top - d, z) == (d < World::SOIL_DEPTH ? Block::SAND : Block::SANDSTONE) }
+          held += 1 if (0...depth).all? { |d| @world.get(x, top - d, z) == (d < ChunkGenerator::SOIL_DEPTH ? Block::SAND : Block::SANDSTONE) }
         end
       end
     end
@@ -262,7 +262,7 @@ class Game
   end
 
   # Near spawn, each ore holds its share of the stone at each layer
-  # (World.ore_at), and no ore lies at a layer where that share is 0.
+  # (ChunkGenerator.ore_at), and no ore lies at a layer where that share is 0.
   def test_ores
     ores = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE]
     stone = Array.new(WY, 0)
@@ -291,7 +291,7 @@ class Game
       want = 0.0
       got = 0
       (1...WY).each do |y|
-        share = World.ore_at(ore, y)
+        share = ChunkGenerator.ore_at(ore, y)
         want += stone[y] * share / 256
         got += found[k * WY + y]
         outside += found[k * WY + y] if share == 0.0

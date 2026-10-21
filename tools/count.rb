@@ -7,6 +7,7 @@ require_relative "../game/noise"
 require_relative "../game/world"
 require_relative "../game/terrain"
 require_relative "../game/trees"
+require_relative "../game/chunk_generator"
 
 # The 24 x 24 chunks from x = z = 0.
 w = World.new((ENV["SEED"] || "1337").to_i)
