@@ -363,6 +363,11 @@ class Mob
     world.get(x, y - 1, z) == Block::GRASS ? 2 : 0
   end
 
+  # True when Game#update_mobs takes the mob out: it is dead, it is out of
+  # the loaded chunks, or it despawns. despawn? comes last, so only a live
+  # mob in a loaded chunk moves its idle time on. Ask once each frame.
+  def gone?(world, player, dt) = !@alive || !world.loaded?(@x.floor, @z.floor) || despawn?(player, dt)
+
   # Why Game#update_mobs takes the mob out, for Log::MOBS.
   def gone_reason(world)
     return "dies" unless @alive

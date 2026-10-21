@@ -22,6 +22,29 @@ class PlayerTest < Minitest::Test
     assert_equal 5.0, player.speed
   end
 
+  def test_a_mob_hit_throws_the_player_away_from_the_mob_and_up
+    player = Player.new(10.5, SKY_Y.to_f, 10.5)
+    player.vx = 3.0
+    player.vy = -2.0
+    player.vz = -2.0
+    player.knock_back(7.5, 14.5)
+    assert_in_delta 3.0 / 5.0 * Player::KNOCK_SPEED, player.vx, 1.0e-9
+    assert_in_delta(-4.0 / 5.0 * Player::KNOCK_SPEED, player.vz, 1.0e-9)
+    assert_equal Player::KNOCK_LIFT, player.vy
+  end
+
+  # Closer than 0.001 blocks, the direction away from the mob is not
+  # known, so the push to the side is only as large as the distance.
+  def test_a_mob_hit_from_where_the_player_stands_throws_the_player_up
+    player = Player.new(0.0, SKY_Y.to_f, 0.0)
+    player.knock_back(-0.001, 0.0)
+    assert_in_delta Player::KNOCK_SPEED, player.vx, 1.0e-9
+    player.knock_back(-0.0009, 0.0)
+    assert_in_delta 0.0009 * Player::KNOCK_SPEED, player.vx, 1.0e-9
+    assert_equal 0.0, player.vz
+    assert_equal Player::KNOCK_LIFT, player.vy
+  end
+
   def test_the_player_fits_dry_on_a_solid_block_with_room_and_no_water
     world = world_with_one_chunk
     world.set(8, SKY_Y - 1, 8, Block::STONE)

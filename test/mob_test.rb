@@ -201,6 +201,23 @@ class MobTest < Minitest::Test
     refute Mob.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3).can_graze?(@world)
   end
 
+  # gone? asks despawn? last, so a dead mob or a mob out of the loaded
+  # chunks keeps its idle time.
+  def test_a_mob_goes_when_it_dies_leaves_the_loaded_chunks_or_despawns
+    player = Player.new(8.5, SKY_Y - 1.0, 8.5 + Mob::DESPAWN_NEAR + 1.0)
+    zombie = Mob.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 8.5, 1)
+    refute zombie.gone?(@world, player, 1.0)
+    assert_equal 1.0, zombie.idle
+    zombie.x = 40.5
+    assert zombie.gone?(@world, player, 1.0)
+    zombie.x = 8.5
+    zombie.alive = false
+    assert zombie.gone?(@world, player, 1.0)
+    assert_equal 1.0, zombie.idle
+    pig = Mob.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    assert pig.gone?(@world, Player.new(8.5 + Mob::ANIMAL_DESPAWN + 1.0, SKY_Y - 1.0, 8.5), 0.0)
+  end
+
   def test_the_log_says_why_a_mob_goes
     pig = Mob.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
     assert_equal "despawns", pig.gone_reason(@world)

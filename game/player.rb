@@ -11,6 +11,10 @@ class Player
   MOB_REACH = 3.0
   # A step sound plays each time the player or a mob walks this far.
   STEP = 2.1
+  # The speed away from a mob, and the speed up, that a hit from the mob
+  # gives the player in survival. The wiki does not give these values.
+  KNOCK_SPEED = 8.0
+  KNOCK_LIFT = 5.0
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water
   attr_writer :fall_start
@@ -71,6 +75,20 @@ class Player
 
   # The speed along the ground: x and z, without the speed up or down.
   def speed = Math.sqrt(@vx * @vx + @vz * @vz)
+
+  # A hit from a mob at from_x, from_z throws the player away from it and
+  # up. The new speed takes the place of the old one. A mob that stands
+  # where the player stands throws the player only up.
+  def knock_back(from_x, from_z)
+    dx = @x - from_x
+    dz = @z - from_z
+    len = Math.sqrt(dx * dx + dz * dz)
+    len = 1.0 if len < 0.001
+    @vx = dx / len * KNOCK_SPEED
+    @vz = dz / len * KNOCK_SPEED
+    @vy = KNOCK_LIFT
+    nil
+  end
 
   # True when an attack now is a critical hit, if the attack cooldown is
   # full enough: the player falls, and is not on a ladder, in water, flying

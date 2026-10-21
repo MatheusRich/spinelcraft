@@ -1427,12 +1427,16 @@ class Game
     @mobs.clear
     @mobs << Mob.new(Mob::ZOMBIE, px + 1.5, SKY_Y - 1.0, pz + 0.5, 9)
     @vitals.health = Vitals::MAX_HEALTH
+    @player.vx = 0.0
+    @player.vy = 0.0
+    @player.vz = 0.0
     frames = 0
     while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
       update_mobs(1.0 / 60.0)
       frames += 1
     end
     check("zombie hit hurts the player", @vitals.health < Vitals::MAX_HEALTH)
+    check("a zombie hit throws the player away from the zombie and up", @player.vx < 0.0 && @player.vy > 0.0)
     @mobs.clear
     # Each block that the blast breaks drops by chance, so the blast gets
     # two more rows of stone to break, and the random numbers start from a

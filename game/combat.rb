@@ -51,7 +51,7 @@ class Game
     Gfx.in_capture(0)
   end
 
-  def update_mobs(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def update_mobs(dt)
     # In clear weather, undead mobs burn from the end of the night to the
     # start of the next night. minecraft.wiki/w/Daylight_cycle
     # The wiki does not confirm that rain stops the burning.
@@ -61,79 +61,107 @@ class Game
     push_mobs(dt)
     held = current_block.to_i
     @spawner.refill_animals(@mobs, @player, dt)
-    @mobs.each do |m|
-      if MOB_SOUND[m.kind] >= 0 && @rng.rand01 < dt * 0.08
-        play_from(m, voice(m, MOB_SOUND), 0.8)
-      end
-      if m.step
-        # A mob steps with the sound of the block under it, as the player
-        # does. A creeper has no step sound of its own
-        # (minecraft.wiki/w/Creeper), and VoxeLibre has none for the others.
-        m.step = false
-        ground = MATERIAL_STEP[material(@world.get(m.x.floor, (m.y - 0.1).floor, m.z.floor))]
-        play_at(ground, m.x, m.y, m.z, 0.35, SOUND_RANGE)
-      end
-      if m.hiss
-        m.hiss = false
-        play_from(m, Sfx::FUSE, 1.0)
-      end
-      if m.shoot
-        m.shoot = false
-        shoot_arrow(m)
-      end
-      if m.explode
-        m.explode = false
-        m.alive = false
-        explode(m.x, m.y + 0.8, m.z)
-      end
-      m.douse if m.fire > 0.0 && @weather.wet? && @world.under_sky?(m.x, m.y + m.tall, m.z)
-      m.start_graze if m.can_graze?(@world) && @rng.rand01 < dt * (m.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
-      @particles.fire(m.x, m.y, m.z, m.half, m.tall, dt) if m.fire > 0.0
-      steps = dt > 0.025 ? 2 : 1
-      sdt = dt / steps
-      lived = m.death == 0.0
-      steps.times do
-        damage = m.update_mob(@world, sdt, @player, held, sun: sun)
-        if damage > 0
-          hurt(damage, Sfx::HURT)
-          if @survival
-            dx = @player.x - m.x
-            dz = @player.z - m.z
-            len = Math.sqrt(dx * dx + dz * dz)
-            len = 1.0 if len < 0.001
-            @player.vx = dx / len * 8.0
-            @player.vz = dz / len * 8.0
-            @player.vy = 5.0
-          end
-        end
-      end
-      bite_grass(m) if m.grass_bite
-      lay_egg(m) if m.lay
-      if m.love_heart
-        m.love_heart = false
-        # to_f: Spinel cannot type the mob, and the particles need Floats.
-        @particles.heart(m.x.to_f, m.y.to_f, m.z.to_f, m.half.to_f, m.tall.to_f)
-      end
+    @mobs.each do |mob|
+      before_step(mob, dt)
+      lived = mob.death == 0.0
+      step_mob(mob, dt, held, sun: sun)
+      after_step(mob)
       # A mob drops its loot when it dies, and its body goes up in smoke
       # when it is gone. minecraft.wiki/w/Death
-      drop_loot(m) if @survival && lived && m.dying? && m.by_player
-      if lived && m.dying?
-        play_from(m, voice(m, MOB_DEATH), 1.0)
-      elsif m.ouch
-        play_from(m, voice(m, MOB_HURT), 1.0)
+      if lived && mob.dying?
+        mob_died(mob)
+      elsif mob.ouch
+        play_from(mob, voice(mob, MOB_HURT), 1.0)
       end
-      m.ouch = false
-      @particles.smoke(m.x, m.y + m.tall * 0.3, m.z, 12, m.tall * 0.6) if !m.alive && m.dying?
+      mob.ouch = false
+      @particles.smoke(mob.x, mob.y + mob.tall * 0.3, mob.z, 12, mob.tall * 0.6) if !mob.alive && mob.dying?
     end
     steps = (dt * 180.0).ceil
     steps = 1 if steps < 1
     steps.times { update_arrows(dt / steps) }
     update_eggs(dt)
-    @mobs.reject! do |m|
-      gone = !m.alive || !@world.loaded?(m.x.floor, m.z.floor) || m.despawn?(@player, dt)
-      Log.debug(Log::MOBS) { "#{Mob::NAMES[m.kind]} at #{m.x.floor} #{m.y.floor} #{m.z.floor} #{m.gone_reason(@world)}" } if gone
+    remove_gone_mobs(dt)
+  end
+
+  # Plays the sounds and does the actions that the mob asked for in its
+  # last step, and lets the weather and the grass act on it.
+  def before_step(mob, dt)
+    if MOB_SOUND[mob.kind] >= 0 && @rng.rand01 < dt * 0.08
+      play_from(mob, voice(mob, MOB_SOUND), 0.8)
+    end
+    if mob.step
+      # A mob steps with the sound of the block under it, as the player
+      # does. A creeper has no step sound of its own
+      # (minecraft.wiki/w/Creeper), and VoxeLibre has none for the others.
+      mob.step = false
+      ground = MATERIAL_STEP[material(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))]
+      play_at(ground, mob.x, mob.y, mob.z, 0.35, SOUND_RANGE)
+    end
+    if mob.hiss
+      mob.hiss = false
+      play_from(mob, Sfx::FUSE, 1.0)
+    end
+    if mob.shoot
+      mob.shoot = false
+      shoot_arrow(mob)
+    end
+    if mob.explode
+      mob.explode = false
+      mob.alive = false
+      explode(mob.x, mob.y + 0.8, mob.z)
+    end
+    mob.douse if mob.fire > 0.0 && @weather.wet? && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
+    mob.start_graze if mob.can_graze?(@world) && @rng.rand01 < dt * (mob.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
+    @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.fire > 0.0
+  end
+
+  # Moves the mob, in two steps when the frame takes more than 0.025
+  # seconds. A hit on the player hurts and, in survival, throws the
+  # player back.
+  def step_mob(mob, dt, held, sun:)
+    steps = dt > 0.025 ? 2 : 1
+    sdt = dt / steps
+    steps.times do
+      damage = mob.update_mob(@world, sdt, @player, held, sun: sun)
+      next if damage <= 0
+
+      hurt(damage, Sfx::HURT)
+      # to_f: Spinel cannot type the mob.
+      @player.knock_back(mob.x.to_f, mob.z.to_f) if @survival
+    end
+  end
+
+  # What the step of the mob left: a bite of grass, an egg, or a heart.
+  def after_step(mob)
+    bite_grass(mob) if mob.grass_bite
+    lay_egg(mob) if mob.lay
+    show_heart(mob) if mob.love_heart
+    nil
+  end
+
+  # A heart over a mob in love mode, now and then (see Mob#love_clock).
+  def show_heart(mob)
+    mob.love_heart = false
+    # to_f: Spinel cannot type the mob, and the particles need Floats.
+    @particles.heart(mob.x.to_f, mob.y.to_f, mob.z.to_f, mob.half.to_f, mob.tall.to_f)
+    nil
+  end
+
+  # The loot of a mob that the player killed, and the death cry.
+  def mob_died(mob)
+    drop_loot(mob) if @survival && mob.by_player
+    play_from(mob, voice(mob, MOB_DEATH), 1.0)
+  end
+
+  # Removes the mobs that are dead, that are in a chunk that is not loaded,
+  # or that despawn.
+  def remove_gone_mobs(dt)
+    @mobs.reject! do |mob|
+      gone = mob.gone?(@world, @player, dt)
+      Log.debug(Log::MOBS) { "#{Mob::NAMES[mob.kind]} at #{mob.x.floor} #{mob.y.floor} #{mob.z.floor} #{mob.gone_reason(@world)}" } if gone
       gone
     end
+    nil
   end
 
   # The sound of the mob m from sounds: a chick peeps for all of them, as
