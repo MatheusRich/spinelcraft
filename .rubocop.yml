@@ -21,6 +21,26 @@ AllCops:
   # box a value or stop the compile. So only the cops below run.
   DisabledByDefault: true
 
+# The cops of this game, in tools/cops. Each one keeps a rule in one
+# class, so that other code cannot make a second copy of the rule.
+require:
+  - ./tools/cops/day_ticks.rb
+  - ./tools/cops/rain_strength.rb
+
+Spinelcraft/DayTicks:
+  Enabled: true
+  Exclude:
+    - "game/clock.rb"
+    - "tools/cops/day_ticks.rb"
+
+# The checks read the strength of the rain on purpose.
+Spinelcraft/RainStrength:
+  Enabled: true
+  Exclude:
+    - "game/weather.rb"
+    - "game/testing.rb"
+    - "test/**/*"
+
 Lint:
   Enabled: true
 

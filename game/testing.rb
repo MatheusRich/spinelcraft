@@ -316,7 +316,7 @@ class Game
     run_chat("/time set 0")
     run_chat("/time add 2147483647")
     check("/time add of many days counts them at once",
-          @clock.day == day + 1 + 2147483647 / 24000 && @clock.ticks == 2147483647 % 24000)
+          @clock.day == day + 1 + 2147483647 / Clock::DAY_TICKS && @clock.ticks == 2147483647 % Clock::DAY_TICKS)
     @clock.time_of_day = 0.3
     @clock.day = day
     set_mode(true)

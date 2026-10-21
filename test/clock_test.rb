@@ -52,7 +52,7 @@ class ClockTest < Minitest::Test
     assert_in_delta 0.0, clock.time_of_day, 1.0e-9
     clock.add_ticks(Command::MAX_TICKS)
     assert_equal 1 + Command::MAX_TICKS / Clock::DAY_TICKS, clock.day
-    assert_in_delta (Command::MAX_TICKS % Clock::DAY_TICKS) / 24000.0, clock.time_of_day, 1.0e-9
+    assert_in_delta (Command::MAX_TICKS % Clock::DAY_TICKS) / Clock::DAY_TICKS.to_f, clock.time_of_day, 1.0e-9
   end
 
   def test_a_night_in_a_bed_ends_in_the_morning_of_the_next_day
