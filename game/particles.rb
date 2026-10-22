@@ -1,11 +1,12 @@
 # Particles: block chips, flames, smoke, embers, effect specks, the
-# sparks of a critical hit, the sparkles of bone meal and the hearts of
-# animals in love. Each one
-# is a small square that faces the camera. Burning mobs, torches, lava and
-# explosions make the flames and the smoke.
+# sparks of a critical hit, the sparkles of bone meal, the hearts of
+# animals in love and the cloud of an explosion. Each one is a square that
+# faces the camera. Burning mobs, torches, lava and explosions make the
+# flames and the smoke.
 class Particle
   # Particle kinds. Chips, embers and drops of rain fall; flames, smoke and
   # effect specks rise; the sparks of a critical hit fly out and slow down.
+  # The puffs of the cloud of an explosion stay in place and grow.
   CHIP = 0
   FLAME = 1
   SMOKE = 2
@@ -15,6 +16,7 @@ class Particle
   CRIT = 6
   GROWTH = 7
   HEART = 8
+  BLAST = 9
 
   attr_reader :kind
 
@@ -46,7 +48,7 @@ class Particle
 
   def update(world, dt)
     @life -= dt
-    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT || @kind == CRIT || @kind == GROWTH || @kind == HEART
+    if @kind == FLAME || @kind == SMOKE || @kind == EFFECT || @kind == CRIT || @kind == GROWTH || @kind == HEART || @kind == BLAST
       # Flames, smoke and effect specks rise and slow down sideways. Sparks
       # slow down fast in all directions.
       k = 1.0 - ((@kind == CRIT ? 6.0 : 2.0) * dt).clamp(0.0, 1.0)
@@ -98,6 +100,9 @@ class Particle
     when HEART
       # The heart of the HUD, whose icon fills the top left of its layer.
       mesh.billboard(@x, @y, @z, 0.12, rx, rz, ux, uy, uz, 0.0, 0.0, Tex::ICON_PART, Tex::HEART, 1.0, 1.0, 1.0, 1.0)
+    when BLAST
+      c = 0.55 + 0.45 * t
+      mesh.billboard(@x, @y, @z, 1.5 - 0.75 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, c, c, c, 1.0)
     when CRIT
       mesh.billboard(@x, @y, @z, 0.03 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.85, 0.85, 0.8, 1.0)
     when EFFECT
@@ -262,6 +267,18 @@ class Particles
   def heart(x, y, z, half, tall)
     add(Particle::HEART, x + (@rng.rand01 * 2.0 - 1.0) * half, y + 0.5 + @rng.rand01 * tall, z + (@rng.rand01 * 2.0 - 1.0) * half,
         (@rng.rand01 - 0.5) * 0.4, 2.0, (@rng.rand01 - 0.5) * 0.4, 0.8, Tex::HEART)
+  end
+
+  # The cloud of an explosion at x, y, z: 48 puffs up to 4 blocks from x,
+  # y, z along each axis, which last 0.3 to 0.8 seconds. Minecraft has the
+  # same count and spread (HugeExplosionSeedParticle, not on the wiki). Its
+  # puffs are 2 to 4 blocks wide, but its sprite does not fill its square.
+  # A round PUFF does, so these puffs are 1.5 to 3 blocks wide.
+  def blast(x, y, z)
+    48.times do
+      add(Particle::BLAST, x + (@rng.rand01 - @rng.rand01) * 4.0, y + (@rng.rand01 - @rng.rand01) * 4.0, z + (@rng.rand01 - @rng.rand01) * 4.0,
+          0.0, 0.0, 0.0, 0.3 + @rng.rand01 * 0.5, Tex::PUFF)
+    end
   end
 
   # n puffs of smoke that spread from x, y, z, for an explosion or a burnt item.

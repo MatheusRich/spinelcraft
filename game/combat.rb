@@ -422,6 +422,7 @@ class Game
       end
       x += 1
     end
+    @particles.blast(cx, cy, cz)
     @particles.smoke(cx, cy, cz, 40, 3.0)
     play_at(Sfx::EXPLODE, cx, cy, cz, 1.0, EXPLOSION_RANGE)
     pdx = @player.x - cx

@@ -1494,6 +1494,7 @@ class Game
       frames += 1
     end
     check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, SKY_Y - 2, pz) == Block::AIR && @vitals.health < 100.0 && frames > 60)
+    check("a creeper explosion makes a cloud", @particles.count(Particle::BLAST) > 0)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
     # A block that a blast breaks drops its extras too, so ripe wheat drops
     # seeds. Each of the 20 blasts drops with chance BLAST_DROP.
@@ -1504,6 +1505,9 @@ class Game
       explode(px + 20.5, SKY_Y + 2.5, pz + 20.5)
     end
     check("ripe wheat that a blast breaks drops wheat and seeds", ground_count(Block::WHEAT) > 0 && ground_count(Block::SEEDS) > 0)
+    # Nothing updated the particles of the 20 blasts. Without this step
+    # they fill Particles::MAX, and the next checks cannot add theirs.
+    @particles.update(@world, 5.0)
     @items.clear
     @mobs.clear
     @clock.time_of_day = 0.3
