@@ -185,6 +185,7 @@ class Game
     test_door_furnace_sapling
     test_door_rules
     test_door_board
+    test_door_swing
     test_ladder
     test_ladder_wall
     test_low_blocks
@@ -2862,6 +2863,35 @@ class Game
     through = @player.z > z + 2.5
     set_block(x, y, z + 1, Block::AIR)
     check("a door stops the player at its board, and an open door lets the player through", stops && inside && through)
+  end
+
+  # A door does not open onto the player or a mob. Else the body is inside
+  # its board and climbs out to the top of the column.
+  def test_door_swing
+    x = @spawn_x.floor + 50
+    z = @spawn_z.floor + 68
+    y = @world.height_at(x, z) + 3
+    set_block(x, y - 1, z, Block::STONE)
+    set_block(x, y + 2, z, Block::DIRT)
+    # The closed door faces +x, so its board is on the +x edge of the cell,
+    # and the open board is on the +z edge.
+    set_block(x, y, z, Block.door_id(0, false, false))
+    set_block(x, y + 1, z, Block.door_id(0, true, false))
+    @player.move_to(x + 0.5, y.to_f, z + 0.6)
+    @player.flying = false
+    toggle_door(x, y, z)
+    closed = !Block.door_open?(@world.get(x, y, z))
+    10.times { @player.move(@world, 0.0, 0.0, 0.0) }
+    stays = @player.y == y.to_f
+    @player.move_to(x + 0.5, y.to_f, z - 1.5)
+    @mobs.clear
+    @mobs << Monster.new(Mob::ZOMBIE, x + 0.5, y.to_f, z + 0.6, 3)
+    toggle_door(x, y, z)
+    mob_closed = !Block.door_open?(@world.get(x, y, z))
+    @mobs.clear
+    set_block(x, y, z, Block::AIR)
+    set_block(x, y + 2, z, Block::AIR)
+    check("a door does not open onto the player or a mob", closed && stays && mob_closed)
   end
 
   # An item in a chunk that is not loaded waits there.

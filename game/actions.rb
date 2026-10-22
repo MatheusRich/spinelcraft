@@ -464,10 +464,14 @@ class Game
   def toggle_door(x, y, z)
     block = Block.door_toggled(@world.get(x, y, z))
     other = @world.door_partner(x, y, z)
-    # A closed door must not close on the player or a mob.
-    unless Block.door_open?(block)
+    bottom = y < other ? y : other
+    if Block.door_open?(block)
+      # An open door must not swing onto the player or a mob.
+      return if board_on_body?(block, x, bottom, z)
+    else
+      # A closed door must not close on the player or a mob.
       return if @player.overlaps?(x, y, z) || @player.overlaps?(x, other, z)
-      return if mob_in?(x, y < other ? y : other, z, 2)
+      return if mob_in?(x, bottom, z, 2)
     end
     @world.set(x, y, z, block)
     partner = @world.get(x, other, z)
@@ -475,6 +479,20 @@ class Game
     @chunk_meshes.mark_block(x, z)
     play(Block.door_open?(block) ? Sfx::DOOR_OPEN : Sfx::DOOR_CLOSE, 0.6)
     @swing = SWING
+  end
+
+  # True when the board of the door half block, in the cells x, y, z and
+  # x, y + 1, z, overlaps the player or a mob.
+  def board_on_body?(block, x, y, z)
+    return true if board_on?(block, x, y, z, @player.x, @player.y, @player.z, Player::HALF, Player::TALL)
+
+    @mobs.any? { |mob| !mob.dying? && board_on?(block, x, y, z, mob.x, mob.y, mob.z, mob.half, mob.tall) }
+  end
+
+  # True when the board of the door half block, in the cells x, y, z and
+  # x, y + 1, z, overlaps the box of solid_in_box? at bx, by, bz.
+  def board_on?(block, x, y, z, bx, by, bz, half, tall)
+    @world.block_in_box?(block, x, y, z, bx, by, bz, half, tall) || @world.block_in_box?(block, x, y + 1, z, bx, by, bz, half, tall)
   end
 
   # True when a mob overlaps the column of height cells from x, y, z up.
