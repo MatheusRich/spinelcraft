@@ -23,12 +23,12 @@ class Animal < Mob
   # TEMPT_PACE (Mob.define_mob). The wiki does not give this value; it is
   # that of the game code (TemptGoal).
   TEMPT_NEAR = 2.5
-  # After damage an animal panics for PANIC seconds: it runs at
-  # PANIC_SPEED, first away from a hit and then to a new side about each
-  # second. The wiki says only that a pig "flees for a short time when
-  # harmed" (minecraft.wiki/w/Pig), so it does not confirm these values.
+  # After damage an animal panics for PANIC seconds: it runs at its
+  # PANIC_SPEED (Mob.define_mob), first away from a hit and then to a new
+  # side about each second. The wiki says only that a pig "flees for a
+  # short time when harmed" (minecraft.wiki/w/Pig), so it does not confirm
+  # these values.
   PANIC = 5.0
-  PANIC_SPEED = 2.6
   # An animal that a wall stops for this many seconds turns to a new side.
   STUCK = 0.5
   # An animal despawns farther than this many blocks along x and z from
@@ -213,7 +213,7 @@ class Animal < Mob
     # A grazing sheep stands still.
     return 0.0 if @graze > 0.0
 
-    @walking ? (@panic > 0.0 ? PANIC_SPEED : WALK_SPEED) : 0.0
+    @walking ? (@panic > 0.0 ? PANIC_SPEED[@kind] : WALK_SPEED) : 0.0
   end
 
   # An animal that a wall stopped for STUCK seconds turns to a new side

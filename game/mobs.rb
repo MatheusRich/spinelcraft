@@ -24,6 +24,14 @@ class Mob
   # The wiki does not give these values; they are those of the game code
   # (the registerGoals of Pig, Sheep, Cow and Chicken).
   TEMPT_PACE = []
+  # An animal that panics runs at this speed, in blocks each second; 0.0
+  # for a monster. In Minecraft, a mob on the ground runs at about 43 times
+  # the square of its speed times its boost. The speeds are those of the
+  # wiki page of each kind: 0.25 for a pig and a chicken, 0.23 for a sheep
+  # and 0.2 for a cow. minecraft.wiki/w/Cow gives a boost of 25% to a cow
+  # that panics. The wiki does not confirm the rule of 43, the boost of a
+  # pig and a sheep (1.25 in the game code) or that of a chicken (1.4).
+  PANIC_SPEED = []
   # The sounds of each kind. They follow VoxeLibre. SOUND plays now and
   # then, HURT_SOUND after a hit, and DEATH_SOUND when the mob dies. -1 is
   # no sound.
@@ -50,7 +58,7 @@ class Mob
   # Adds kind to the tables above, which name its arguments. The kinds come
   # in the order of their numbers. A kind is a monster that tempting does
   # not move, unless the arguments say something else.
-  def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, passive: 0, tempt_pace: 0.0)
+  def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, passive: 0, tempt_pace: 0.0, panic_speed: 0.0)
     abort "Mob.define_mob: kind #{kind} comes out of order" if kind != NAMES.size
     NAMES << name
     HP << hp
@@ -58,13 +66,14 @@ class Mob
     TALL << tall
     PASSIVE << passive
     TEMPT_PACE << tempt_pace
+    PANIC_SPEED << panic_speed
     SOUND << sound
     HURT_SOUND << hurt
     DEATH_SOUND << death
   end
 
   # minecraft.wiki/w/Pig
-  define_mob PIG, "PIG", hp: 10.0, half: 0.45, tall: 0.95, passive: 1, tempt_pace: 1.2,
+  define_mob PIG, "PIG", hp: 10.0, half: 0.45, tall: 0.95, passive: 1, tempt_pace: 1.2, panic_speed: 4.22,
                          sound: Sfx::OINK, hurt: Sfx::OINK, death: Sfx::PIG_DEATH
   # minecraft.wiki/w/Zombie
   define_mob ZOMBIE, "ZOMBIE", hp: 20.0, half: 0.3, tall: 1.9,
@@ -73,17 +82,17 @@ class Mob
   define_mob SKELETON, "SKELETON", hp: 20.0, half: 0.3, tall: 1.9,
                                    sound: Sfx::RATTLE, hurt: Sfx::SKELETON_HURT, death: Sfx::SKELETON_DEATH
   # minecraft.wiki/w/Sheep
-  define_mob SHEEP, "SHEEP", hp: 8.0, half: 0.45, tall: 1.2, passive: 1, tempt_pace: 1.1,
+  define_mob SHEEP, "SHEEP", hp: 8.0, half: 0.45, tall: 1.2, passive: 1, tempt_pace: 1.1, panic_speed: 3.57,
                              sound: Sfx::BAA, hurt: Sfx::BAA, death: Sfx::BAA
   # A creeper makes no sound now and then, as in Minecraft.
   # minecraft.wiki/w/Creeper
   define_mob CREEPER, "CREEPER", hp: 20.0, half: 0.3, tall: 1.7,
                                  sound: -1, hurt: Sfx::CREEPER_HURT, death: Sfx::CREEPER_DEATH
   # minecraft.wiki/w/Cow
-  define_mob COW, "COW", hp: 10.0, half: 0.45, tall: 1.4, passive: 1, tempt_pace: 1.25,
+  define_mob COW, "COW", hp: 10.0, half: 0.45, tall: 1.4, passive: 1, tempt_pace: 1.25, panic_speed: 2.7,
                          sound: Sfx::MOO, hurt: Sfx::COW_HURT, death: Sfx::COW_HURT
   # minecraft.wiki/w/Chicken
-  define_mob CHICKEN, "CHICKEN", hp: 4.0, half: 0.2, tall: 0.7, passive: 1, tempt_pace: 1.0,
+  define_mob CHICKEN, "CHICKEN", hp: 4.0, half: 0.2, tall: 0.7, passive: 1, tempt_pace: 1.0, panic_speed: 5.29,
                                  sound: Sfx::CLUCK, hurt: Sfx::CHICKEN_HURT, death: Sfx::CHICKEN_HURT
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :by_player

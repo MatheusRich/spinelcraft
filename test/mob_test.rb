@@ -149,6 +149,34 @@ class MobTest < Minitest::Test
     assert_operator pig.x, :>, 4.5 + 2.0
   end
 
+  def test_a_pig_that_does_not_panic_strolls_and_rests
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 3)
+    speeds = Array.new(1200) do
+      pig.update_mob(@world, DT, player, Block::AIR)
+      Math.hypot(pig.vx, pig.vz)
+    end
+    assert_operator speeds.max, :<=, Mob::WALK_SPEED + 0.001
+    assert_operator speeds.min, :<, 0.01
+  end
+
+  # In Minecraft, a walking player only just keeps up with a pig that
+  # panics.
+  def test_a_hit_pig_runs_almost_as_fast_as_a_walking_player
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 3)
+    pig.hit(1.0, 7.5, 8.5)
+    60.times { pig.update_mob(@world, DT, player, Block::AIR) }
+    fastest = 0.0
+    60.times do
+      pig.update_mob(@world, DT, player, Block::AIR)
+      fastest = [fastest, Math.hypot(pig.vx, pig.vz)].max
+    end
+    assert_operator fastest, :>, 0.9 * Player::WALK
+  end
+
   def test_a_hit_that_takes_nothing_does_not_throw_an_animal_back
     pig = Animal.new(Mob::PIG, 4.5, SKY_Y - 1.0, 8.5, 3)
     pig.hit(5.0, 3.5, 8.5)
