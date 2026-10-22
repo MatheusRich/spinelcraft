@@ -536,8 +536,6 @@ detectors:
     - "/\\APlants\\#held_by_log\\?\\z/"
     - "/\\APlants\\#listed\\?\\z/"
     - "/\\APlants\\#scatter_plants\\z/"
-    - "/\\APlayer\\#hits_box\\?\\z/"
-    - "/\\APlayer\\#raycast\\z/"
     - "/\\ARay\\#self\\.box_distance\\z/"
     - "/\\ASky\\#draw_sky_body\\z/"
     - "/\\ASky\\#draw_stars\\z/"

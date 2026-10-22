@@ -52,8 +52,8 @@ class Game
     right = Gfx.in_button(3) && !@wait_for_release
     left_pressed = Gfx.in_button_pressed(1)
     @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3)
-    if Gfx.in_button_pressed(2) && @player.hit && !@survival
-      picked = @world.get(@player.hx, @player.hy, @player.hz)
+    if Gfx.in_button_pressed(2) && @target_block.hit? && !@survival
+      picked = @world.get(@target_block.x, @target_block.y, @target_block.z)
       picked = Block::BASE[picked]
       @hotbar[@slot] = picked if picked != Block::BEDROCK
       say(Block::NAMES[@hotbar[@slot]])
@@ -137,14 +137,14 @@ class Game
     elsif held && @target_boat >= 0
       hit_boat(@target_boat) if pressed
       @mining = false
-    elsif held && @player.hit
+    elsif held && @target_block.hit?
       if @survival
         mine(dt)
       elsif @action_cooldown <= 0.0
-        broken = @world.get(@player.hx, @player.hy, @player.hz)
-        @particles.burst(@player.hx, @player.hy, @player.hz, broken)
+        broken = @world.get(@target_block.x, @target_block.y, @target_block.z)
+        @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
         play(MATERIAL_BREAK[material(broken)], 0.7)
-        set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
+        set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
         @attack_time = 0.0
         @action_cooldown = 0.22
         @swing = SWING
@@ -190,7 +190,7 @@ class Game
       end
       return
     end
-    target = block_in_view? ? @world.get(@player.hx, @player.hy, @player.hz) : Block::AIR
+    target = block_in_view? ? @world.get(@target_block.x, @target_block.y, @target_block.z) : Block::AIR
     if edible? && !usable?(target)
       if held
         chew(dt)
@@ -213,24 +213,24 @@ class Game
     @draw_time = -1.0
     if held && @action_cooldown <= 0.0
       if @survival && block_in_view? && Block::BASE[target] == Block::CHEST
-        open_chest(@player.hx, @player.hy, @player.hz)
+        open_chest(@target_block.x, @target_block.y, @target_block.z)
         return
       elsif @survival && Block::BASE[target] == Block::CRAFTING_TABLE
-        open_station(@player.hx, @player.hy, @player.hz, Recipe::AT_TABLE)
+        open_station(@target_block.x, @target_block.y, @target_block.z, Recipe::AT_TABLE)
         return
       elsif @survival && Block::BASE[target] == Block::FURNACE
-        open_station(@player.hx, @player.hy, @player.hz, Recipe::AT_FURNACE)
+        open_station(@target_block.x, @target_block.y, @target_block.z, Recipe::AT_FURNACE)
         return
       elsif Block.bed?(target)
-        use_bed(@player.hx, @player.hy, @player.hz)
+        use_bed(@target_block.x, @target_block.y, @target_block.z)
       elsif Block.door?(target)
-        toggle_door(@player.hx, @player.hy, @player.hz)
+        toggle_door(@target_block.x, @target_block.y, @target_block.z)
       elsif @survival && Block.bucket?(current_block.to_i)
         use_bucket
       elsif Block.boat?(current_block.to_i)
         place_boat
       elsif current_block == Block::SHEARS && target == Block::PUMPKIN
-        carve_pumpkin(@player.hx, @player.hy, @player.hz)
+        carve_pumpkin(@target_block.x, @target_block.y, @target_block.z)
       elsif current_block == Block::BONE_MEAL && block_in_view?
         use_bone_meal
       elsif current_block == Block::EGG && (!@survival || !@inv.empty?(@slot))
@@ -244,7 +244,7 @@ class Game
 
   # True when the view ray hits a block and no mob stands in front of it.
   # The ray stops at a mob, so a right-click never acts on the block behind.
-  def block_in_view? = @player.hit && @target_mob < 0
+  def block_in_view? = @target_block.hit? && @target_mob < 0
 
   # Shears take the wool of a sheep without a hit: 1 to 3 wool
   # (minecraft.wiki/w/Sheep), for 1 use of the shears (minecraft.wiki/w/Shears).
@@ -281,10 +281,10 @@ class Game
   # player looks at. On the top or the bottom, the face turns to the
   # player. The pumpkin drops 4 seeds. minecraft.wiki/w/Pumpkin
   def carve_pumpkin(x, y, z)
-    d = if @player.px != x
-      @player.px > x ? 0 : 1
-    elsif @player.pz != z
-      @player.pz > z ? 2 : 3
+    d = if @target_block.front_x != x
+      @target_block.front_x > x ? 0 : 1
+    elsif @target_block.front_z != z
+      @target_block.front_z > z ? 2 : 3
     else
       look_direction ^ 1
     end
@@ -312,13 +312,13 @@ class Game
     else
       return unless block_in_view?
 
-      x = @player.px
-      y = @player.py
-      z = @player.pz
-      if Block.replaceable?(@world.get(@player.hx, @player.hy, @player.hz))
-        x = @player.hx
-        y = @player.hy
-        z = @player.hz
+      x = @target_block.front_x
+      y = @target_block.front_y
+      z = @target_block.front_z
+      if Block.replaceable?(@world.get(@target_block.x, @target_block.y, @target_block.z))
+        x = @target_block.x
+        y = @target_block.y
+        z = @target_block.z
       end
       return unless @world.inside?(x, y, z)
 
@@ -380,9 +380,9 @@ class Game
     @mine_delay -= dt
     return if @mine_delay > 0.0
 
-    x = @player.hx
-    y = @player.hy
-    z = @player.hz
+    x = @target_block.x
+    y = @target_block.y
+    z = @target_block.z
     if !@mining || x != @mine_x || y != @mine_y || z != @mine_z
       @mining = true
       @mine_x = x
@@ -509,9 +509,9 @@ class Game
   # Bone meal on the block in view: it spends one in survival when the
   # block grows, and green sparkles show where it worked.
   def use_bone_meal
-    x = @player.hx.to_i
-    y = @player.hy.to_i
-    z = @player.hz.to_i
+    x = @target_block.x.to_i
+    y = @target_block.y.to_i
+    z = @target_block.z.to_i
     grass = @world.get(x, y, z) == Block::GRASS
     grows = @plants.fertilize(x, y, z, @changes)
     apply_changes
@@ -578,22 +578,22 @@ class Game
     return if block == Block::AIR || Block.item?(block)
     return if @survival && @inv.empty?(@slot)
 
-    x = @player.px
-    y = @player.py
-    z = @player.pz
+    x = @target_block.front_x
+    y = @target_block.front_y
+    z = @target_block.front_z
     # A block placed on grass (Block.replaceable?) takes its cell, as in Minecraft.
-    if Block.replaceable?(@world.get(@player.hx, @player.hy, @player.hz))
-      x = @player.hx
-      y = @player.hy
-      z = @player.hz
+    if Block.replaceable?(@world.get(@target_block.x, @target_block.y, @target_block.z))
+      x = @target_block.x
+      y = @target_block.y
+      z = @target_block.z
     end
     return unless @world.inside?(x, y, z)
 
     # A torch or a ladder on the side of a block hangs on that block, and
     # faces away from it.
-    side = y == @player.hy && (x != @player.hx || z != @player.hz)
+    side = y == @target_block.y && (x != @target_block.x || z != @target_block.z)
     if (block == Block::TORCH || block == Block::LADDER) && side
-      wall = @player.hx > x ? 0 : (@player.hx < x ? 1 : (@player.hz > z ? 2 : 3))
+      wall = @target_block.x > x ? 0 : (@target_block.x < x ? 1 : (@target_block.z > z ? 2 : 3))
       block = Block.facing_id(block, wall ^ 1)
     elsif block == Block::LADDER
       return

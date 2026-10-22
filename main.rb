@@ -17,6 +17,7 @@ require_relative "game/tint"
 require_relative "game/ray"
 require_relative "game/controls"
 require_relative "game/player"
+require_relative "game/block_target"
 require_relative "game/vitals"
 require_relative "game/camera"
 require_relative "game/ui"
@@ -264,6 +265,7 @@ class Game
     reset_world unless loaded
     if loaded
       @player = Player.new(0.5, 80.0, 0.5)
+      @target_block = BlockTarget.new
       apply_loaded
     else
       spawn
@@ -369,6 +371,8 @@ class Game
     @spawn_x = best_x + 0.5
     @spawn_z = best_z + 0.5
     @player = Player.new(@spawn_x, h + 0.01, @spawn_z)
+    # A new player has no block in the crosshair yet.
+    @target_block = BlockTarget.new
     Log.debug(Log::WORLD) { "spawn at #{best_x} #{h} #{best_z}#{found ? "" : ", but no dry land was near"}" }
   end
 
@@ -473,7 +477,7 @@ class Game
     # Edition. minecraft.wiki/w/Flying
     @player.flying = false if @player.on_ground && !@autopilot
     update_boats(dt)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     # Water splashes and swishes, but lava makes no sound when the player
     # enters it or moves in it. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
     swimming = @player.in_water && !@player.in_lava

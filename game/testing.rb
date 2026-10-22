@@ -110,13 +110,13 @@ class Game
   # so screenshots can check breaking, placing and particles.
   def demo(frame)
     @player.pitch = -1.3
-    return unless @player.hit
+    return unless @target_block.hit?
 
     if frame % 20 == 0 && frame < 50
-      block = @world.get(@player.hx, @player.hy, @player.hz)
-      @particles.burst(@player.hx, @player.hy, @player.hz, block)
+      block = @world.get(@target_block.x, @target_block.y, @target_block.z)
+      @particles.burst(@target_block.x, @target_block.y, @target_block.z, block)
       play(Sfx::BREAK, 0.7)
-      set_block(@player.hx, @player.hy, @player.hz, Block::AIR)
+      set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
     elsif frame % 20 == 0 && frame >= 60 && frame < 120
       @slot = 7
       place
@@ -557,7 +557,7 @@ class Game
     @player.z = bz + 0.5
     @player.flying = true
     @player.pitch = -1.55
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     @captured = false
     Gfx.in_test_button(1, 1)
     click_menu(M_RESUME)
@@ -1042,7 +1042,7 @@ class Game
     update_hand(0.0)
     @equip = 0.0
     @player.pitch = 1.5
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     @target_mob = -1
     @target_boat = -1
     @swing = 0.0
@@ -1052,7 +1052,7 @@ class Game
     # Halfway through the swing, as Game#update counts it down.
     @swing -= SWING / 2.0
     moved = (hand_corner - rest).abs > 0.05
-    check("a click at the air swings the held sword and starts the cooldown again", !@player.hit && moved && attack_charge < 0.2)
+    check("a click at the air swings the held sword and starts the cooldown again", !@target_block.hit? && moved && attack_charge < 0.2)
     @swing = 0.0
     @dyn.clear
     @inv.clear
@@ -1248,24 +1248,24 @@ class Game
     @player.y = ground + 1.0
     @player.z = z + 0.5
     @player.pitch = -1.55
-    @player.raycast(@world)
-    check("raycast hits the ground", @player.hit && @player.hy == ground)
+    @target_block.trace(@world, @player)
+    check("raycast hits the ground", @target_block.hit? && @target_block.y == ground)
     @slot = 1
     before = @inv.count(1)
     @player.y = ground + 3.0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     check("survival place uses one item", @inv.count(1) == before - 1 && @world.get(x, ground + 1, z) == Block::OAK_PLANKS)
     set_block(x, ground + 1, z, Block::TALL_GRASS)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     check("a block placed on tall grass takes its cell", @world.get(x, ground + 1, z) == Block::OAK_PLANKS && @world.get(x, ground + 2, z) == Block::AIR)
     set_block(x, ground + 1, z, Block::LAVA)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     check("a block placed in lava takes its cell", @world.get(x, ground + 1, z) == Block::OAK_PLANKS)
     set_block(x, ground + 1, z, Block::AIR)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     @mobs << Animal.new(Mob::PIG, x + 0.5, ground + 1.0, z + 0.5, 4)
     place
     blocked = @world.get(x, ground + 1, z) == Block::AIR
@@ -1281,7 +1281,7 @@ class Game
     @player.on_ground = true
     n = 0
     while n < 200 && @world.get(x, ground + 1, z) == Block::STONE
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       mine(0.05)
       n += 1
     end
@@ -1298,7 +1298,7 @@ class Game
     set_block(x, ground + 1, z, Block::STONE)
     mining_frames = 0
     while mining_frames < 200 && @world.get(x, ground + 1, z) == Block::STONE
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       mine(0.05)
       mining_frames += 1
     end
@@ -1328,7 +1328,7 @@ class Game
       @mine_delay = 0.0
       n = 0
       while n < 20 && @world.get(x, ground + 1, z) == Block::OAK_LEAVES
-        @player.raycast(@world)
+        @target_block.trace(@world, @player)
         mine(0.05)
         n += 1
       end
@@ -1409,7 +1409,7 @@ class Game
     @mine_delay = 0.0
     n = 0
     while n < 400 && @world.get(x, y, z) == block
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       mine(0.05)
       n += 1
     end
@@ -1635,16 +1635,16 @@ class Game
     @player.y = SKY_Y + 1.0
     @player.z = pz + 0.5
     set_block(px + 5, SKY_Y - 2, pz, Block::STONE)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     stone = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR
     # Sand falls, so stone holds it up.
     set_block(px + 5, SKY_Y - 3, pz, Block::STONE)
     set_block(px + 5, SKY_Y - 2, pz, Block::SAND)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     sand = @world.get(px + 5, SKY_Y - 1, pz) == Block::CACTUS
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     stacked = @world.get(px + 5, SKY_Y, pz) == Block::CACTUS
     check("a cactus stands only on sand or on a cactus", stone && sand && stacked)
@@ -1693,7 +1693,7 @@ class Game
     end
     @items.clear
     set_block(px + 6, SKY_Y - 1, pz, Block::STONE)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     refused = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR
     set_block(px + 6, SKY_Y - 1, pz, Block::AIR)
@@ -1705,16 +1705,16 @@ class Game
     # its cell.
     @hotbar[0] = Block::DRY_GRASS
     set_block(px + 5, SKY_Y - 2, pz, Block::STONE)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     stone = @world.get(px + 5, SKY_Y - 1, pz) == Block::AIR
     set_block(px + 5, SKY_Y - 3, pz, Block::STONE)
     set_block(px + 5, SKY_Y - 2, pz, Block::SAND)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     sand = @world.get(px + 5, SKY_Y - 1, pz) == Block::DRY_GRASS
     @hotbar[0] = Block::COBBLE
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     replaced = @world.get(px + 5, SKY_Y - 1, pz) == Block::COBBLE
     check("dry grass goes on sand, and a placed block takes its cell", stone && sand && replaced)
@@ -2454,7 +2454,7 @@ class Game
     @player.pitch = -1.55
     @player.flying = true
     set_block(bx + 10, y - 1, bz, Block::STONE)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     set_block(bx + 10, y - 1, bz, Block::AIR)
     placed = @world.get(bx + 10, y, bz) == Block::PLACED_OAK_LEAVES
@@ -3039,24 +3039,24 @@ class Game
     @player.yaw = Math::PI / 2.0
     @player.pitch = -Math.atan(Player::EYE / 2.0)
     set_block(x + 1, g, z, Block::STONE)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     blocked = @world.get(x, g, z) == Block::AIR && @inv.count(0) == 1
     set_block(x + 1, g, z, Block::AIR)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     two = @world.get(x, g, z) == Block.bed_id(1, false) && @world.get(x + 1, g, z) == Block.bed_id(0, true) && @inv.empty?(0)
     set_block(x + 1, g, z, Block::AIR)
     gone = @world.get(x, g, z) == Block::AIR
     @inv.clear
     @inv.add(Block::FURNACE)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     furnace = @world.get(x, g, z)
     set_block(x, g, z, Block::AIR)
     @inv.clear
     @inv.add(Block::DOOR)
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     door = @world.get(x, g, z) == Block.door_id(1, false, false) && @world.get(x, g + 1, z) == Block.door_id(1, true, false)
     set_block(x, g, z, Block::AIR)
@@ -3099,7 +3099,7 @@ class Game
     @inv.clear
     @inv.add(block)
     @slot = 0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     left = @world.get(x, y, z)
     fill_box(x - 1, y, z - 1, x + 2, y + 2, z + 1, Block::AIR)
@@ -3128,7 +3128,7 @@ class Game
     # The player looks along +x, so the chest on the left is at -z.
     [z, z + 1].each do |cz|
       @player.z = cz + 0.5
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       place
     end
     left = @world.get(x, g, z)
@@ -3149,7 +3149,7 @@ class Game
     @inv.clear
     # A large chest that loses a half while it is open closes.
     @player.z = z + 1.5
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     @inv.set(0, Block::CHEST, 1)
     place
     open_chest(x, g, z)
@@ -3174,11 +3174,12 @@ class Game
     set_block(x, g + 1, z, Block::ROSE)
     p = Player.new(x - 1.5, g + 1.5 - Player::EYE, z + 0.1)
     p.yaw = Math::PI / 2.0
-    p.raycast(@world)
-    past = p.hit && p.hx == x + 2
+    target = BlockTarget.new
+    target.trace(@world, p)
+    past = target.hit? && target.x == x + 2
     p.z = z + 0.5
-    p.raycast(@world)
-    on = p.hit && p.hx == x
+    target.trace(@world, p)
+    on = target.hit? && target.x == x
     set_block(x, g + 1, z, Block::AIR)
     check("the view ray hits a flower only in its small box", past && on)
   end
@@ -3201,10 +3202,10 @@ class Game
       full = fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET
       set_block(x, y - 1, z, fluid)
       @inv.add(Block::BUCKET)
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       use_bucket
       took = @inv.block(0) == full && @world.get(x, y - 1, z) == Block::AIR
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       use_bucket
       ok = false unless took && @inv.block(0) == Block::BUCKET && @world.get(x, y - 1, z) == fluid
       @inv.remove(Block::BUCKET, 1)
@@ -3215,7 +3216,7 @@ class Game
     @inv.set(0, Block::BUCKET, 16)
     2.times do
       set_block(x, y - 1, z, Block::WATER)
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       use_bucket
     end
     filled = @inv.count(0) == 14 && @inv.block(1) == Block::WATER_BUCKET && @inv.block(2) == Block::WATER_BUCKET &&
@@ -3228,7 +3229,7 @@ class Game
       set_block(x, y, z, Block::ROSE)
       @inv.clear
       @inv.add(full)
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       use_bucket
       poured = @world.get(x, y, z) != Block::ROSE
       set_block(x, y, z, Block::AIR)
@@ -3253,7 +3254,7 @@ class Game
     @mobs << Animal.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
     @player.yaw = 0.0
     @player.pitch = -0.2
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     find_target_mob
     @inv.clear
     @inv.add(Block::BUCKET)
@@ -3394,7 +3395,7 @@ class Game
     @player.y = y + 2.0
     @player.z = z + 0.5
     @player.pitch = -Math::PI / 2.0 + 0.001
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
   end
 
   def test_pumpkins
@@ -3418,7 +3419,7 @@ class Game
     @player.pitch = 0.0
     @player.flying = true
     @action_cooldown = 0.0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     right_button(0.05, true)
     seeds = @items.size == 1 && @items[0].block == Block::PUMPKIN_SEEDS && @items[0].count == 4
     side = @world.get(bx, y + 2, bz) == Block.facing_id(Block::CARVED_PUMPKIN, 1)
@@ -3429,7 +3430,7 @@ class Game
     @player.y = y + 3.5
     @player.pitch = -1.55
     @action_cooldown = 0.0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     right_button(0.05, true)
     top = @world.get(bx, y + 2, bz) == Block.facing_id(Block::CARVED_PUMPKIN, look_direction ^ 1)
     @items.clear
@@ -3446,7 +3447,7 @@ class Game
       @player.yaw = s[2].to_f
       @player.pitch = 0.0
       @action_cooldown = 0.0
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       right_button(0.05, true)
       @world.get(bx, y + 2, bz) == Block.facing_id(Block::CARVED_PUMPKIN, s[3].to_i)
     end
@@ -3456,14 +3457,14 @@ class Game
     @player.yaw = 1.5708
     @inv.set(0, Block::AIR, 0)
     @action_cooldown = 0.0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     right_button(0.05, true)
     by_hand = @world.get(bx, y + 2, bz) == Block::PUMPKIN
     set_block(bx, y + 2, bz, Block::STONE)
     @inv.add(Block::SHEARS)
     @items.clear
     @action_cooldown = 0.0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     right_button(0.05, true)
     on_stone = @world.get(bx, y + 2, bz) == Block::STONE && @items.empty?
     @items.clear
@@ -3586,7 +3587,7 @@ class Game
         set_block(bx, y + 1, bz, Block::AIR)
         set_block(bx, y, bz, ground)
         @hotbar[0] = plant
-        @player.raycast(@world)
+        @target_block.trace(@world, @player)
         place
         @world.get(bx, y + 1, bz) == plant
       end
@@ -3632,20 +3633,20 @@ class Game
     @action_cooldown = 0.0
     60.times do
       @action_cooldown -= 1.0 / 60.0
-      @player.raycast(@world)
+      @target_block.trace(@world, @player)
       find_target_boat
       find_target_mob
       right_button(1.0 / 60.0, true)
     end
-    aimed = @target_mob == 0 && @player.hit && @player.hx == bx + 2
+    aimed = @target_mob == 0 && @target_block.hit? && @target_block.x == bx + 2
     check("held shears on a sheep in front of a pumpkin take the wool once and do not carve the pumpkin",
           aimed && sheep.sheared && @world.get(bx + 2, y + 1, bz) == Block::PUMPKIN && @inv.count(0) == Block.uses(Block::SHEARS) - 1)
     set_block(bx + 2, y + 1, bz, Block.facing_id(Block::CHEST, 1))
     @action_cooldown = 0.0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     find_target_mob
     right_button(1.0 / 60.0, true)
-    check("a click on a sheared sheep in front of a chest does not open the chest", @target_mob == 0 && @player.hit && !@chests.open?)
+    check("a click on a sheared sheep in front of a chest does not open the chest", @target_mob == 0 && @target_block.hit? && !@chests.open?)
     set_block(bx + 2, y + 1, bz, Block::AIR)
     @chests.close
     @inventory_open = false
@@ -3724,7 +3725,7 @@ class Game
     @inv.clear
     @slot = 0
     @items.clear
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     find_target_mob
     aimed = @target_mob == 0
     left_button(1.0 / 60.0, true, true)
@@ -3739,7 +3740,7 @@ class Game
     sheep.y = y + 1.0
     sheep.z = bz + 0.5
     @attack_time = 1.0
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     find_target_mob
     left_button(1.0 / 60.0, true, true)
     update_mobs(1.0 / 60.0)
@@ -3817,7 +3818,7 @@ class Game
     @player.yaw = 0.0
     @player.pitch = Math.atan2(m.y.to_f + m.tall * 0.5 - @player.eye_y.to_f, 2.0).to_f
     @player.flying = false
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     @target_boat = -1
     find_target_mob
     @action_cooldown = 0.0
@@ -4120,15 +4121,15 @@ class Game
     @player.z = z + 0.5
     @player.yaw = Math::PI / 2.0
     @player.pitch = -0.45
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
     hung = @world.get(x, g, z) == Block.facing_id(Block::LADDER, 1)
     # A view ray across the middle of the cell misses the board.
     @player.x = x + 0.5
     @player.z = z - 1.5
     @player.yaw = Math::PI
-    @player.raycast(@world)
-    thin = !(@player.hit && @player.hx == x && @player.hy == g && @player.hz == z)
+    @target_block.trace(@world, @player)
+    thin = !(@target_block.hit? && @target_block.x == x && @target_block.y == g && @target_block.z == z)
     set_block(x + 1, g, z, Block::AIR)
     fell = @world.get(x, g, z) == Block::AIR
     # On the top of a block, a ladder does not hang.
@@ -4136,9 +4137,9 @@ class Game
     @player.z = z + 0.5
     @player.yaw = Math::PI / 2.0
     @player.pitch = -1.2
-    @player.raycast(@world)
+    @target_block.trace(@world, @player)
     place
-    floor = @player.hy == g - 1 && @world.get(x - 1, g, z) == Block::AIR && @inv.count(0) == 1
+    floor = @target_block.y == g - 1 && @world.get(x - 1, g, z) == Block::AIR && @inv.count(0) == 1
     @survival = survival
     @inv.clear
     check("a ladder hangs on the side of a solid block as a thin board, and falls with it", hung && thin && fell && floor)

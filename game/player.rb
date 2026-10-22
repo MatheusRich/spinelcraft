@@ -1,4 +1,5 @@
-# The physics of the player and the raycast that finds the block in view.
+# The physics of the player: how it walks, swims, climbs, flies and falls.
+# BlockTarget finds the block in view.
 class Player
   HALF = 0.3
   TALL = 1.8
@@ -24,7 +25,6 @@ class Player
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water
   attr_writer :fall_start
-  attr_reader :hit, :hx, :hy, :hz, :px, :py, :pz, :hit_t
   # True when the feet are in lava. in_water is true then too, because the
   # player moves the same way in both.
   attr_reader :in_lava
@@ -36,7 +36,7 @@ class Player
   # The keys that move the player (Controls).
   attr_reader :controls
 
-  def initialize(x, y, z) # rubocop:todo Metrics/MethodLength
+  def initialize(x, y, z)
     @x = x
     @y = y
     @z = z
@@ -59,14 +59,6 @@ class Player
     @eye = EYE
     @controls = Controls.new
     @fall_start = y
-    @hit = false
-    @hit_t = 0.0
-    @hx = 0
-    @hy = 0
-    @hz = 0
-    @px = 0
-    @py = 0
-    @pz = 0
   end
 
   # Puts the player at rest at x, y, z. A fall starts again from there.
@@ -410,75 +402,5 @@ class Player
   # True when the block cell at x, y, z overlaps the player's box.
   def overlaps?(bx, by, bz)
     bx + 1 > @x - HALF && bx < @x + HALF && by + 1 > @y && by < @y + TALL && bz + 1 > @z - HALF && bz < @z + HALF
-  end
-
-  # True when the ray from o along d meets the box of block (Block.box_hx, box_hz
-  # and box_top) in the cell ix, iy, iz within reach.
-  def hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, block)
-    hx = Block.box_hx(block)
-    hz = Block.box_hz(block)
-    x = ix + 0.5 + Block.box_dx(block)
-    y = iy + Block.box_dy(block)
-    z = iz + 0.5 + Block.box_dz(block)
-    t = Ray.box_distance(ox, oy, oz, dx, dy, dz, x - hx, y, z - hz, x + hx, y + Block.box_top(block), z + hz)
-    t >= 0.0 && t <= REACH
-  end
-
-  # Voxel walk along the view ray. Sets hit, the hit cell, and the empty
-  # cell in front of it. The ray passes a plant when it misses its box.
-  def raycast(world) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
-    ox = @x
-    oy = eye_y
-    oz = @z
-    dx = fx
-    dy = fy
-    dz = fz
-    ix = ox.floor
-    iy = oy.floor
-    iz = oz.floor
-    step_x = dx > 0.0 ? 1 : -1
-    step_y = dy > 0.0 ? 1 : -1
-    step_z = dz > 0.0 ? 1 : -1
-    tdx = dx == 0.0 ? 1.0e9 : (1.0 / dx).abs
-    tdy = dy == 0.0 ? 1.0e9 : (1.0 / dy).abs
-    tdz = dz == 0.0 ? 1.0e9 : (1.0 / dz).abs
-    tmx = dx > 0.0 ? (ix + 1.0 - ox) * tdx : (ox - ix) * tdx
-    tmy = dy > 0.0 ? (iy + 1.0 - oy) * tdy : (oy - iy) * tdy
-    tmz = dz > 0.0 ? (iz + 1.0 - oz) * tdz : (oz - iz) * tdz
-    @hit = false
-    lx = ix
-    ly = iy
-    lz = iz
-    t = 0.0
-    while t <= REACH
-      block = world.get(ix, iy, iz)
-      if block != Block::AIR && !Block.water?(block) && !Block.lava?(block) && (!(Block.plant?(block) || Block::SHAPE[block] > 0) || hits_box?(ox, oy, oz, dx, dy, dz, ix, iy, iz, block))
-        @hit = true
-        @hit_t = t
-        @hx = ix
-        @hy = iy
-        @hz = iz
-        @px = lx
-        @py = ly
-        @pz = lz
-        return
-      end
-      lx = ix
-      ly = iy
-      lz = iz
-      if tmx < tmy && tmx < tmz
-        ix += step_x
-        t = tmx
-        tmx += tdx
-      elsif tmy < tmz
-        iy += step_y
-        t = tmy
-        tmy += tdy
-      else
-        iz += step_z
-        t = tmz
-        tmz += tdz
-      end
-    end
   end
 end

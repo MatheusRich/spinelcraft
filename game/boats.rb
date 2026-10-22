@@ -127,8 +127,8 @@ class Game
   # the reach for mobs, in @target_boat (or -1), and its distance.
   def find_target_boat
     @target_boat = -1
-    hit_t = @player.hit_t.to_f
-    best = @player.hit && hit_t < Player::MOB_REACH ? hit_t : Player::MOB_REACH
+    hit_t = @target_block.distance.to_f
+    best = @target_block.hit? && hit_t < Player::MOB_REACH ? hit_t : Player::MOB_REACH
     @boats.size.times do |i|
       if i != @riding
         t = @boats[i].hit_distance(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f

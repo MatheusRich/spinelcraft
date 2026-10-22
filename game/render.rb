@@ -122,8 +122,8 @@ class Game
     rx = Math.cos(@player.yaw)
     rz = Math.sin(@player.yaw)
     @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
-    if @player.hit && @captured && @target_mob < 0 && @target_boat < 0
-      aimed = @world.get(@player.hx, @player.hy, @player.hz)
+    if @target_block.hit? && @captured && @target_mob < 0 && @target_boat < 0
+      aimed = @world.get(@target_block.x, @target_block.y, @target_block.z)
       # The outline lines are max(2.5, width / 1920 * 2.5) pixels wide, as
       # in the game code of Minecraft Java (LevelRenderer); the wiki does
       # not give it. A pixel at the depth d along the view is
@@ -131,7 +131,7 @@ class Game
       h = Gfx.gfx_height.to_f
       pixels = [2.5, Gfx.gfx_width.to_f / 1920.0 * 2.5].max
       k = pixels * Math.tan(@fov.to_f) / h
-      @dyn.outline(@player.hx + Block.box_dx(aimed), @player.hy + Block.box_dy(aimed), @player.hz + Block.box_dz(aimed), Block.box_hx(aimed), Block.box_hz(aimed), Block.box_top(aimed),
+      @dyn.outline(@target_block.x + Block.box_dx(aimed), @target_block.y + Block.box_dy(aimed), @target_block.z + Block.box_dz(aimed), Block.box_hx(aimed), Block.box_hz(aimed), Block.box_top(aimed),
                    ex, ey, ez, fx, fy, fz, k)
       if @mining && @mine_progress > 0.0
         e = 0.003
