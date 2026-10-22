@@ -381,16 +381,9 @@ class Player
     end
   end
 
-  # True when a solid block lies under any part of the player's feet.
-  def ground_below?(world)
-    y = (@y - 0.05).floor
-    x = (@x - HALF).floor
-    while x <= (@x + HALF).floor
-      ((@z - HALF).floor..(@z + HALF).floor).each { |z| return true if Block.solid?(world.get(x, y, z)) }
-      x += 1
-    end
-    false
-  end
+  # True when the box of a solid block lies under any part of the player's
+  # feet.
+  def ground_below?(world) = world.solid_in_box?(@x, @y - 0.05, @z, HALF, 0.05)
 
   # True when the player fits at x, y, z, out of the water, and stands on
   # a solid block.

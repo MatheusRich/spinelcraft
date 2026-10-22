@@ -330,6 +330,18 @@ class PlayerMovementTest < Minitest::Test
     end
   end
 
+  # The box of a chest is 1/16 smaller than its cell on each side. A sneak
+  # stops where the box of the player no longer overlaps the box of the
+  # chest, not the cell.
+  def test_a_sneak_on_a_chest_stops_at_the_edge_of_its_box
+    @world.set(8, FLOOR, 8, Block::CHEST)
+    @player.move_to(8.5, FLOOR + 0.875, 8.5)
+    walk(0.1)
+    walk(3.0, fwd: 1.0, down: true)
+    assert_in_delta FLOOR + 0.875, @player.y, 1.0e-9
+    assert_operator @player.z, :>, 8.0 + 0.0625 - Player::HALF
+  end
+
   def test_a_sneak_walks_across_the_floor
     walk(1.0, fwd: 1.0, down: true)
     assert_operator @player.z, :<, 8.5 - Player::WALK * Player::SNEAK * 0.8
