@@ -55,31 +55,12 @@ class Game
   end
 
   def update_mobs(dt)
-    # In clear weather, undead mobs burn from the end of the night to the
-    # start of the next night. minecraft.wiki/w/Daylight_cycle
-    # The wiki does not confirm that rain stops the burning.
-    sun = !@weather.wet? && !@clock.night?
     @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.ticks, raining: @weather.raining?), dt)
     court_mates
     push_mobs(dt)
     held = current_block.to_i
     @spawner.refill_animals(@mobs, @player, dt)
-    @mobs.each do |mob|
-      before_step(mob, dt)
-      lived = mob.death == 0.0
-      mob.burn_in_sun(@world) if sun && !mob.passive?
-      step_mob(mob, dt, held)
-      after_step(mob)
-      # A mob drops its loot when it dies, and its body goes up in smoke
-      # when it is gone. minecraft.wiki/w/Death
-      if lived && mob.dying?
-        mob_died(mob)
-      elsif mob.ouch
-        play_from(mob, voice(mob, MOB_HURT), 1.0)
-      end
-      mob.ouch = false
-      @particles.smoke(mob.x, mob.y + mob.tall * 0.3, mob.z, 12, mob.tall * 0.6) if !mob.alive && mob.dying?
-    end
+    @mobs.each { |mob| mob_turn(mob, dt, held) }
     steps = (dt * 180.0).ceil
     steps = 1 if steps < 1
     steps.times { update_arrows(dt / steps) }
@@ -87,8 +68,30 @@ class Game
     remove_gone_mobs(dt)
   end
 
-  # Plays the sounds and does the actions that the mob asked for in its
-  # last step, and lets the weather and the grass act on it.
+  # The turn of a mob in a frame: its sounds and the weather, the turn of
+  # an animal or a monster, and then its death or its cry of pain.
+  def mob_turn(mob, dt, held)
+    before_step(mob, dt)
+    lived = mob.death == 0.0
+    if mob.passive?
+      update_animal(mob, dt, held)
+    else
+      update_monster(mob, dt, held)
+    end
+    # A mob drops its loot when it dies, and its body goes up in smoke
+    # when it is gone. minecraft.wiki/w/Death
+    if lived && mob.dying?
+      mob_died(mob)
+    elsif mob.ouch
+      play_from(mob, voice(mob, MOB_HURT), 1.0)
+    end
+    mob.ouch = false
+    @particles.smoke(mob.x, mob.y + mob.tall * 0.3, mob.z, 12, mob.tall * 0.6) if !mob.alive && mob.dying?
+    # A nil return keeps Spinel from boxing it.
+    nil
+  end
+
+  # Plays the sounds of the mob, and lets the weather act on it.
   def before_step(mob, dt)
     if MOB_SOUND[mob.kind] >= 0 && @rng.rand01 < dt * 0.08
       play_from(mob, voice(mob, MOB_SOUND), 0.8)
@@ -100,11 +103,6 @@ class Game
       mob.step = false
       ground = MATERIAL_STEP[material(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))]
       play_at(ground, mob.x, mob.y, mob.z, 0.35, SOUND_RANGE)
-    end
-    if mob.passive?
-      graze(mob, dt)
-    else
-      attack(mob)
     end
     mob.douse if mob.fire > 0.0 && @weather.wet? && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
     @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.fire > 0.0
@@ -130,9 +128,28 @@ class Game
     nil
   end
 
-  # A sheep starts to eat grass now and then.
-  def graze(animal, dt)
+  # In clear weather, undead mobs burn from the end of the night to the
+  # start of the next night. minecraft.wiki/w/Daylight_cycle
+  # The wiki does not confirm that rain stops the burning.
+  def sun_burns? = !@weather.wet? && !@clock.night?
+
+  # The turn of a monster: what it asked for in its last step, the sun
+  # burn, and its step.
+  def update_monster(monster, dt, held)
+    attack(monster)
+    monster.burn_in_sun(@world) if sun_burns?
+    step_mob(monster, dt, held)
+  end
+
+  # The turn of an animal: a sheep starts to eat grass now and then, and
+  # the step can leave a bite of grass, an egg or a heart.
+  def update_animal(animal, dt, held)
     animal.start_graze if animal.can_graze?(@world) && @rng.rand01 < dt * (animal.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
+    step_mob(animal, dt, held)
+    bite_grass(animal) if animal.grass_bite
+    lay_egg(animal) if animal.lay
+    show_heart(animal) if animal.love.heart
+    nil
   end
 
   # Moves the mob, in two steps when the frame takes more than 0.025
@@ -149,16 +166,6 @@ class Game
       # to_f: Spinel cannot type the mob.
       @player.knock_back(mob.x.to_f, mob.z.to_f) if @survival
     end
-  end
-
-  # What the step of an animal left: a bite of grass, an egg, or a heart.
-  def after_step(mob)
-    return unless mob.passive?
-
-    bite_grass(mob) if mob.grass_bite
-    lay_egg(mob) if mob.lay
-    show_heart(mob) if mob.love.heart
-    nil
   end
 
   # A heart over a mob in love mode, now and then (see Love#clock).
