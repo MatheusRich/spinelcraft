@@ -19,12 +19,10 @@ class Animal < Mob
   # (minecraft.wiki/w/Cow and /w/Chicken, Java Edition).
   TEMPT_REACH = 6.0
   TEMPT_KEEP = 10.0
-  # A tempted animal stops 2.5 blocks from the player, and walks at this
-  # part of WALK_SPEED, by kind as in Mob::NAMES. The wiki does not give
-  # these values; they are those of the game code (TemptGoal, and the
-  # registerGoals of Pig, Sheep, Cow and Chicken).
+  # A tempted animal stops 2.5 blocks from the player, and walks at its
+  # TEMPT_PACE (Mob.define_mob). The wiki does not give this value; it is
+  # that of the game code (TemptGoal).
   TEMPT_NEAR = 2.5
-  TEMPT_PACE = [1.2, 0.0, 0.0, 1.1, 0.0, 1.25, 1.0]
   # After damage an animal panics for PANIC seconds: it runs at
   # PANIC_SPEED, first away from a hit and then to a new side about each
   # second. The wiki says only that a pig "flees for a short time when

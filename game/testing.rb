@@ -2274,7 +2274,7 @@ class Game
     @mobs.clear
     hen = Animal.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 6)
     check("a chick peeps, and a grown chicken clucks",
-          voice(chick, MOB_SOUND) == Sfx::CHICK && voice(hen, MOB_SOUND) == Sfx::CLUCK && voice(hen, MOB_HURT) == Sfx::CHICKEN_HURT)
+          voice(chick, Mob::SOUND) == Sfx::CHICK && voice(hen, Mob::SOUND) == Sfx::CLUCK && voice(hen, Mob::HURT_SOUND) == Sfx::CHICKEN_HURT)
   end
 
   # The player throws an egg from the hand. An egg breaks on a block, and

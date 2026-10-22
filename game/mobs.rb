@@ -9,16 +9,27 @@ class Mob
   CREEPER = 4
   COW = 5
   CHICKEN = 6
-  # Traits indexed by kind: pig, zombie, skeleton, sheep, creeper, cow,
-  # chicken. MOB_SOUND in game/combat.rb has the sounds.
-  # minecraft.wiki/w/Pig, /w/Zombie, /w/Skeleton, /w/Sheep, /w/Creeper,
-  # /w/Cow and /w/Chicken
-  NAMES = ["PIG", "ZOMBIE", "SKELETON", "SHEEP", "CREEPER", "COW", "CHICKEN"]
-  HP = [10.0, 20.0, 20.0, 8.0, 20.0, 10.0, 4.0]
-  HALF = [0.45, 0.3, 0.3, 0.45, 0.3, 0.45, 0.2]
-  TALL = [0.95, 1.9, 1.9, 1.2, 1.7, 1.4, 0.7]
-  # Passive mobs wander, never attack, and do not count as monsters.
-  PASSIVE = [1, 0, 0, 1, 0, 1, 1]
+  # The traits of each kind, indexed by kind. Mob.define_mob fills them,
+  # and each kind is one call to it, below the method.
+  NAMES = []
+  # The health of a new mob.
+  HP = []
+  # Half the width of the box, and its height, in blocks.
+  HALF = []
+  TALL = []
+  # 1 for an animal (see Animal), which wanders, never attacks, and does
+  # not count as a monster; 0 for a monster (see Monster).
+  PASSIVE = []
+  # A tempted animal walks at this part of WALK_SPEED; 0.0 for a monster.
+  # The wiki does not give these values; they are those of the game code
+  # (the registerGoals of Pig, Sheep, Cow and Chicken).
+  TEMPT_PACE = []
+  # The sounds of each kind. They follow VoxeLibre. SOUND plays now and
+  # then, HURT_SOUND after a hit, and DEATH_SOUND when the mob dies. -1 is
+  # no sound.
+  SOUND = []
+  HURT_SOUND = []
+  DEATH_SOUND = []
   # A chicken in the air falls no faster than this, in blocks each second.
   # The wiki says only that chickens fall slowly (minecraft.wiki/w/Chicken).
   # This is the speed where Minecraft's gravity and the chicken's slowdown
@@ -35,6 +46,45 @@ class Mob
   # A dead mob falls on its left side for 20 ticks, then its body goes up
   # in smoke. minecraft.wiki/w/Death
   DEATH_TIME = 1.0
+
+  # Adds kind to the tables above, which name its arguments. The kinds come
+  # in the order of their numbers. A kind is a monster that tempting does
+  # not move, unless the arguments say something else.
+  def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, passive: 0, tempt_pace: 0.0)
+    abort "Mob.define_mob: kind #{kind} comes out of order" if kind != NAMES.size
+    NAMES << name
+    HP << hp
+    HALF << half
+    TALL << tall
+    PASSIVE << passive
+    TEMPT_PACE << tempt_pace
+    SOUND << sound
+    HURT_SOUND << hurt
+    DEATH_SOUND << death
+  end
+
+  # minecraft.wiki/w/Pig
+  define_mob PIG, "PIG", hp: 10.0, half: 0.45, tall: 0.95, passive: 1, tempt_pace: 1.2,
+                         sound: Sfx::OINK, hurt: Sfx::OINK, death: Sfx::PIG_DEATH
+  # minecraft.wiki/w/Zombie
+  define_mob ZOMBIE, "ZOMBIE", hp: 20.0, half: 0.3, tall: 1.9,
+                               sound: Sfx::GROAN, hurt: Sfx::ZOMBIE_HURT, death: Sfx::ZOMBIE_DEATH
+  # minecraft.wiki/w/Skeleton
+  define_mob SKELETON, "SKELETON", hp: 20.0, half: 0.3, tall: 1.9,
+                                   sound: Sfx::RATTLE, hurt: Sfx::SKELETON_HURT, death: Sfx::SKELETON_DEATH
+  # minecraft.wiki/w/Sheep
+  define_mob SHEEP, "SHEEP", hp: 8.0, half: 0.45, tall: 1.2, passive: 1, tempt_pace: 1.1,
+                             sound: Sfx::BAA, hurt: Sfx::BAA, death: Sfx::BAA
+  # A creeper makes no sound now and then, as in Minecraft.
+  # minecraft.wiki/w/Creeper
+  define_mob CREEPER, "CREEPER", hp: 20.0, half: 0.3, tall: 1.7,
+                                 sound: -1, hurt: Sfx::CREEPER_HURT, death: Sfx::CREEPER_DEATH
+  # minecraft.wiki/w/Cow
+  define_mob COW, "COW", hp: 10.0, half: 0.45, tall: 1.4, passive: 1, tempt_pace: 1.25,
+                         sound: Sfx::MOO, hurt: Sfx::COW_HURT, death: Sfx::COW_HURT
+  # minecraft.wiki/w/Chicken
+  define_mob CHICKEN, "CHICKEN", hp: 4.0, half: 0.2, tall: 0.7, passive: 1, tempt_pace: 1.0,
+                                 sound: Sfx::CLUCK, hurt: Sfx::CHICKEN_HURT, death: Sfx::CHICKEN_HURT
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :by_player
   # True after a hit, until Game#update_mobs plays the hurt sound.

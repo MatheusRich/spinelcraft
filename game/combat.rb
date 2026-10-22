@@ -1,13 +1,5 @@
 # Mobs and combat: mob turns, damage, explosions, the bow, and arrows.
 class Game
-  # The sound that each mob kind makes now and then, indexed by kind.
-  # The sounds of a mob by kind: pig, zombie, skeleton, sheep and creeper.
-  # They follow VoxeLibre. MOB_SOUND plays now and then, MOB_HURT after a
-  # hit, and MOB_DEATH when the mob dies. A creeper makes no sound now and
-  # then, as in Minecraft (minecraft.wiki/w/Creeper). -1 is no sound.
-  MOB_SOUND = [Sfx::OINK, Sfx::GROAN, Sfx::RATTLE, Sfx::BAA, -1, Sfx::MOO, Sfx::CLUCK]
-  MOB_HURT = [Sfx::OINK, Sfx::ZOMBIE_HURT, Sfx::SKELETON_HURT, Sfx::BAA, Sfx::CREEPER_HURT, Sfx::COW_HURT, Sfx::CHICKEN_HURT]
-  MOB_DEATH = [Sfx::PIG_DEATH, Sfx::ZOMBIE_DEATH, Sfx::SKELETON_DEATH, Sfx::BAA, Sfx::CREEPER_DEATH, Sfx::COW_HURT, Sfx::CHICKEN_HURT]
   # An adult sheep starts to eat grass with chance "1⁄500 every other game
   # tick", so 10/500 each second. minecraft.wiki/w/Sheep
   GRAZE_CHANCE = 10.0 / 500.0
@@ -83,7 +75,7 @@ class Game
     if lived && mob.dying?
       mob_died(mob)
     elsif mob.ouch
-      play_from(mob, voice(mob, MOB_HURT), 1.0)
+      play_from(mob, voice(mob, Mob::HURT_SOUND), 1.0)
     end
     mob.ouch = false
     @particles.smoke(mob.x, mob.y + mob.tall * 0.3, mob.z, 12, mob.tall * 0.6) if !mob.alive && mob.dying?
@@ -93,8 +85,8 @@ class Game
 
   # Plays the sounds of the mob, and lets the weather act on it.
   def before_step(mob, dt)
-    if MOB_SOUND[mob.kind] >= 0 && @rng.rand01 < dt * 0.08
-      play_from(mob, voice(mob, MOB_SOUND), 0.8)
+    if Mob::SOUND[mob.kind] >= 0 && @rng.rand01 < dt * 0.08
+      play_from(mob, voice(mob, Mob::SOUND), 0.8)
     end
     if mob.step
       # A mob steps with the sound of the block under it, as the player
@@ -179,7 +171,7 @@ class Game
   # The loot of a mob that the player killed, and the death cry.
   def mob_died(mob)
     drop_loot(mob) if @survival && mob.by_player
-    play_from(mob, voice(mob, MOB_DEATH), 1.0)
+    play_from(mob, voice(mob, Mob::DEATH_SOUND), 1.0)
   end
 
   # Removes the mobs that are dead, that are in a chunk that is not loaded,
