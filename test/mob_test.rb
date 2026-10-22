@@ -82,6 +82,175 @@ class MobTest < Minitest::Test
     assert_operator zombie.fire, :>, Monster::SUN_FIRE
   end
 
+  def test_a_dying_zombie_does_not_catch_fire_in_the_sun
+    zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    zombie.wound(Mob::HP[Mob::ZOMBIE])
+    zombie.burn_in_sun(@world)
+    refute zombie.burning?
+  end
+
+  def test_a_zombie_next_to_the_player_bites_for_3_once_each_second
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 8.5)
+    zombie = Monster.new(Mob::ZOMBIE, 9.5, SKY_Y - 1.0, 8.5, 3)
+    bites = Array.new(90) { zombie.update_mob(@world, DT, player, Block::AIR) }
+    assert_equal [3, 3], bites.reject(&:zero?)
+    assert_equal 3, bites[0]
+  end
+
+  def test_a_zombie_that_dies_after_its_bite_bites_no_more
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 8.5)
+    zombie = Monster.new(Mob::ZOMBIE, 9.5, SKY_Y - 1.0, 8.5, 3)
+    assert_equal 3, zombie.update_mob(@world, DT, player, Block::AIR)
+    zombie.hp = 0.0
+    assert_equal 0, zombie.update_mob(@world, DT, player, Block::AIR)
+  end
+
+  def test_a_zombie_far_from_the_player_does_not_bite
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    zombie = Monster.new(Mob::ZOMBIE, 14.5, SKY_Y - 1.0, 14.5, 3)
+    assert_equal 0, zombie.update_mob(@world, DT, player, Block::AIR)
+  end
+
+  def test_a_skeleton_shoots_at_a_player_in_sight
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 8.5)
+    skeleton = Monster.new(Mob::SKELETON, 11.5, SKY_Y - 1.0, 8.5, 3)
+    assert_equal 0, skeleton.update_mob(@world, DT, player, Block::AIR)
+    assert skeleton.shoot
+  end
+
+  def test_a_new_monster_out_of_reach_does_not_shoot_hiss_or_explode
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    creeper = Monster.new(Mob::CREEPER, 14.5, SKY_Y - 1.0, 14.5, 3)
+    creeper.update_mob(@world, DT, player, Block::AIR)
+    refute creeper.shoot
+    refute creeper.hiss
+    refute creeper.explode
+  end
+
+  def test_an_animal_next_to_the_player_does_not_hurt_it
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 8.5)
+    pig = Animal.new(Mob::PIG, 9.5, SKY_Y - 1.0, 8.5, 3)
+    assert_equal 0, pig.update_mob(@world, DT, player, Block::AIR)
+  end
+
+  def test_a_hit_animal_runs_away_from_the_hit
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    pig = Animal.new(Mob::PIG, 4.5, SKY_Y - 1.0, 8.5, 3)
+    assert pig.hit(1.0, 3.5, 8.5)
+    60.times { pig.update_mob(@world, DT, player, Block::AIR) }
+    assert_operator pig.panic, :>, 0.0
+    assert_operator pig.x, :>, 4.5 + 2.0
+  end
+
+  def test_a_hit_that_takes_nothing_does_not_throw_an_animal_back
+    pig = Animal.new(Mob::PIG, 4.5, SKY_Y - 1.0, 8.5, 3)
+    pig.hit(5.0, 3.5, 8.5)
+    pig.vx = 0.0
+    yaw = pig.yaw
+    refute pig.hit(1.0, 5.5, 8.5)
+    assert_equal 0.0, pig.vx
+    assert_equal yaw, pig.yaw
+  end
+
+  def test_a_cow_eats_wheat_and_a_chicken_eats_seeds
+    cow = Animal.new(Mob::COW, 4.5, SKY_Y - 1.0, 8.5, 3)
+    hen = Animal.new(Mob::CHICKEN, 4.5, SKY_Y - 1.0, 8.5, 3)
+    assert cow.food?(Block::WHEAT)
+    refute cow.food?(Block::SEEDS)
+    assert hen.food?(Block::SEEDS)
+    assert hen.food?(Block::PUMPKIN_SEEDS)
+    refute hen.food?(Block::WHEAT)
+  end
+
+  def test_a_monster_eats_no_food
+    zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 8.5, 3)
+    refute zombie.food?(Block::WHEAT)
+  end
+
+  def test_a_grazing_sheep_stands_still_and_takes_its_bite_near_the_end
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    sheep = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    sheep.start_graze
+    bites = []
+    moved = 0.0
+    steps = (Animal::GRAZE_TIME / DT).to_i + 5
+    steps.times do |i|
+      sheep.update_mob(@world, DT, player, Block::AIR)
+      moved = [moved, (sheep.x - 8.5).abs + (sheep.z - 8.5).abs].max if sheep.graze > 0.0
+      bites << i if sheep.grass_bite
+      sheep.grass_bite = false
+    end
+    assert_equal 1, bites.size
+    assert_in_delta (Animal::GRAZE_TIME - Animal::BITE_LEFT) / DT, bites[0], 1
+    assert_in_delta 0.0, moved, 0.001
+  end
+
+  def test_a_hit_stops_a_grazing_sheep_before_its_bite
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    sheep = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    sheep.start_graze
+    sheep.wound(1.0)
+    bites = 0
+    (Animal::GRAZE_TIME / DT).to_i.times do
+      sheep.update_mob(@world, DT, player, Block::AIR)
+      bites += 1 if sheep.grass_bite
+    end
+    assert_equal 0, bites
+    assert_operator sheep.graze, :<=, 0.0
+  end
+
+  def test_a_dying_sheep_takes_no_bite_of_grass
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    sheep = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    sheep.start_graze
+    sheep.hp = 0.0
+    (Animal::GRAZE_TIME / DT).to_i.times { sheep.update_mob(@world, DT, player, Block::AIR) }
+    refute sheep.grass_bite
+  end
+
+  def test_a_lamb_grows_up_as_it_lives
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    lamb = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    lamb.make_baby
+    60.times { lamb.update_mob(@world, DT, player, Block::AIR) }
+    assert_in_delta Animal::GROW_TIME - 1.0, lamb.grow_left, 0.001
+  end
+
+  def test_a_chicken_lays_its_egg_when_it_is_due
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    hen = Animal.new(Mob::CHICKEN, 8.5, SKY_Y - 1.0, 8.5, 3)
+    hen.egg_time = DT / 2.0
+    hen.update_mob(@world, DT, player, Block::AIR)
+    assert hen.lay
+  end
+
+  # The pig runs west into a wall. It turns to a new side after STUCK
+  # seconds there, before its 1 second of running from the hit is over.
+  def test_an_animal_that_a_wall_stops_turns_to_a_new_side
+    lay_floor
+    6.times { |y| 16.times { |z| @world.set(3, SKY_Y - 1 + y, z, Block::STONE) } }
+    player = Player.new(14.5, SKY_Y - 1.0, 1.5)
+    pig = Animal.new(Mob::PIG, 4.6, SKY_Y - 1.0, 8.5, 3)
+    pig.hit(1.0, 5.5, 8.5)
+    yaw = pig.yaw
+    15.times { pig.update_mob(@world, DT, player, Block::AIR) }
+    assert_equal yaw, pig.yaw
+    40.times { pig.update_mob(@world, DT, player, Block::AIR) }
+    refute_equal yaw, pig.yaw
+  end
+
   def test_a_chicken_falls_slowly
     player = Player.new(8.5, SKY_Y - 1.0, 8.5)
     hen = Animal.new(Mob::CHICKEN, 4.5, SKY_Y.to_f, 4.5, 13)
