@@ -152,8 +152,7 @@ class Game
   def draw_chat_lines(w, y0, s)
     ts = 2.0 * s
     row = 12.0 * s
-    per = (w * 0.5 / (4.0 * ts)).to_i
-    per = 20 if per < 20
+    per = [(w * 0.5 / (4.0 * ts)).to_i, 20].max
     y = y0 - 120.0 * s
     (@chat.lines.size - 1).downto(0) do |i|
       a = @chat.opacity(i)

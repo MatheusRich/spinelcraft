@@ -95,8 +95,8 @@ class Camera
   def box_distance2(x0, z0, x1, z1)
     dx = ((x0 + x1) * 0.5 - @ex).abs - (x1 - x0) * 0.5
     dz = ((z0 + z1) * 0.5 - @ez).abs - (z1 - z0) * 0.5
-    dx = 0.0 if dx < 0.0
-    dz = 0.0 if dz < 0.0
+    dx = [dx, 0.0].max
+    dz = [dz, 0.0].max
     dx * dx + dz * dz
   end
 

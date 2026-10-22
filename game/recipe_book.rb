@@ -156,9 +156,7 @@ class RecipeBook
   # the list.
   def scroll_by(rows, open)
     most = (shown(open).size + 1) / 2 - ROWS
-    @top += rows
-    @top = most if @top > most
-    @top = 0 if @top < 0
+    @top = (@top + rows).clamp(0, [most, 0].max)
     nil
   end
 

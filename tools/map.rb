@@ -70,8 +70,8 @@ n.times do |j|
     k = j * n + i
     next unless land[k]
 
-    dx = top[j * n + [i + 1, n - 1].min] - top[j * n + [i - 1, 0].max]
-    dz = top[[j + 1, n - 1].min * n + i] - top[[j - 1, 0].max * n + i]
+    dx = top[j * n + (i + 1).clamp(0, n - 1)] - top[j * n + (i - 1).clamp(0, n - 1)]
+    dz = top[(j + 1).clamp(0, n - 1) * n + i] - top[(j - 1).clamp(0, n - 1) * n + i]
     shade = (1.0 - (dx + dz) * 0.06).clamp(0.6, 1.3)
     3.times { |c| color[k * 3 + c] = (color[k * 3 + c] * shade).round.clamp(0, 255) }
   end
