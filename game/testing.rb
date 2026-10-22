@@ -783,6 +783,7 @@ class Game
           MATERIAL_STEP[material(Block::WOOL)] == Sfx::CLOTH && MATERIAL_STEP[material(Block::SNOW)] == Sfx::SNOW)
     test_sound_position
     test_block_sounds
+    test_furnace_crackle
     test_lava_swim
     test_eat_slowdown
     test_jump
@@ -954,6 +955,28 @@ class Game
     check("lava, flowing water and a lit furnace make sounds",
           AMBIENT[open_lava] == Sfx::LAVA && covered_lava < 0 && AMBIENT[flowing] == Sfx::FLOWING &&
           still < 0 && AMBIENT[furnace] == Sfx::CRACKLE)
+  end
+
+  # A lit furnace next to the player crackles about once in 3 seconds, as
+  # in Minecraft, not once in 25 seconds. The check counts the crackles in
+  # 2 minutes, with no wait for the end of the clip.
+  def test_furnace_crackle
+    x = @spawn_x.floor + 30
+    z = @spawn_z.floor + 80
+    y = @world.height_at(x, z) + 6
+    set_block(x + 1, y, z, Block.furnace_id(0, true))
+    player = [@player.x, @player.y, @player.z]
+    @player.move_to(x + 0.5, y.to_f, z + 0.5)
+    crackles = 0
+    7200.times do
+      @ambient_wait[2] = 0.0
+      update_block_sounds(1.0 / 60.0)
+      crackles += 1 if @ambient_wait[2] > 0.0
+    end
+    @ambient_wait[2] = 0.0
+    set_block(x + 1, y, z, Block::AIR)
+    @player.move_to(player[0], player[1], player[2])
+    check("a lit furnace next to the player crackles every few seconds", crackles > 15)
   end
 
   # A sound to the side pans to that side, a sound far below is quiet,

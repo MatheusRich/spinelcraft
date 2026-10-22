@@ -74,14 +74,19 @@ class Game
   # Blocks near the player make these sounds now and then (Game#block_sound):
   # lava under air, flowing water, and a lit furnace. The wiki says only
   # that they play at random (minecraft.wiki/w/Lava, minecraft.wiki/w/Water,
-  # minecraft.wiki/w/Furnace). It does not give the rates, so these are a
-  # guess, as sounds for each block in each second.
+  # minecraft.wiki/w/Furnace). It does not confirm the chances. They are
+  # those of the code of Java Edition: each time that Minecraft looks at a
+  # block, lava plays its sound at a chance of 1 in 200, flowing water 1 in
+  # 64, and a lit furnace 1 in 10.
   AMBIENT = [Sfx::LAVA, Sfx::FLOWING, Sfx::CRACKLE]
-  AMBIENT_RATE = [1.0 / 150.0, 1.0 / 150.0, 1.0 / 25.0]
+  AMBIENT_CHANCE = [1.0 / 200.0, 1.0 / 64.0, 0.1]
   AMBIENT_VOLUME = [0.4, 0.3, 0.5]
   # Each second, Game#update_block_sounds looks at this many random blocks
-  # within SOUND_RANGE of the player.
+  # near the player. Minecraft looks at MC_AMBIENT_SAMPLES of them (667 in
+  # each tick), so the chances grow to make up the difference. The wiki
+  # does not confirm the count.
   AMBIENT_SAMPLES = 3000.0
+  MC_AMBIENT_SAMPLES = 667.0 * 20.0
   # Survival inventory: slots 0..8 are the hotbar, 9..35 the backpack.
   INV = 36
   HOTBAR = 9

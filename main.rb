@@ -612,27 +612,32 @@ class Game
   end
 
   # Looks at random blocks near the player, and plays the sound of each one
-  # that makes a sound, at its AMBIENT_RATE. Each sound waits for its last
-  # clip to end, so the long clips do not take all the voices.
+  # that makes a sound, at its AMBIENT_CHANCE. As in Minecraft, each offset
+  # from the player is the difference of two random numbers below
+  # SOUND_RANGE, so a block near the player sounds more often. Each sound
+  # waits for its last clip to end, so the long clips do not take all the
+  # voices.
   def update_block_sounds(dt)
     AMBIENT.size.times { |i| @ambient_wait[i] -= dt }
-    r = SOUND_RANGE.to_i
-    span = r * 2 + 1
-    blocks = (span * span * span).to_f
-    sx = @player.x.floor - r
-    sy = @player.y.floor - r
-    sz = @player.z.floor - r
+    px = @player.x.floor
+    py = @player.y.floor
+    pz = @player.z.floor
     (dt * AMBIENT_SAMPLES + @rng.rand01).to_i.times do
-      x = sx + (@rng.rand01 * span).to_i
-      y = sy + (@rng.rand01 * span).to_i
-      z = sz + (@rng.rand01 * span).to_i
+      x = px + sound_offset
+      y = py + sound_offset
+      z = pz + sound_offset
       k = block_sound(x, y, z)
-      next if k < 0 || @ambient_wait[k] > 0.0 || @rng.rand01 >= AMBIENT_RATE[k] * blocks / AMBIENT_SAMPLES
+      next if k < 0 || @ambient_wait[k] > 0.0 || @rng.rand01 >= AMBIENT_CHANCE[k] * MC_AMBIENT_SAMPLES / AMBIENT_SAMPLES
 
       @ambient_wait[k] = Gfx.au_seconds(AMBIENT[k])
       play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k], SOUND_RANGE)
     end
   end
+
+  # A random offset from the player along one axis for update_block_sounds,
+  # from 1 - SOUND_RANGE to SOUND_RANGE - 1. An offset near 0 comes more
+  # often than one far from it.
+  def sound_offset = (@rng.rand01 * SOUND_RANGE).to_i - (@rng.rand01 * SOUND_RANGE).to_i
 
   # The index in AMBIENT of the sound that block x, y, z makes, or -1.
   def block_sound(x, y, z)
