@@ -15,6 +15,12 @@ class Player
   # gives the player in survival. The wiki does not give these values.
   KNOCK_SPEED = 8.0
   KNOCK_LIFT = 5.0
+  # The medium of the player (Player#medium_in), which decides how it
+  # moves up and down, and whether a fall ends.
+  FLYING = 0
+  CLIMBING = 1
+  SWIMMING = 2
+  ON_LAND = 3
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :pitch, :flying, :on_ground, :in_water
   attr_writer :fall_start
@@ -46,7 +52,7 @@ class Player
     # True when the last step ran into a wall in x or z.
     @against_wall = false
     @jumped = false
-    @climbing = false
+    @medium = ON_LAND
     @sprinting = false
     @eye = EYE
     @fall_start = y
@@ -93,7 +99,7 @@ class Player
   # True when an attack now is a critical hit, if the attack cooldown is
   # full enough: the player falls, and is not on a ladder, in water, flying
   # or sprinting. minecraft.wiki/w/Damage
-  def falling_attack? = @vy < 0.0 && !@on_ground && !@climbing && !@in_water && !@flying && !@sprinting
+  def falling_attack? = @vy < 0.0 && !@on_ground && @medium != CLIMBING && !@in_water && !@flying && !@sprinting
   def fx = Math.sin(@yaw) * Math.cos(@pitch)
   def fy = Math.sin(@pitch)
   def fz = -Math.cos(@yaw) * Math.cos(@pitch)
@@ -156,35 +162,95 @@ class Player
 
   # Moves the player for one step of dt seconds and returns the fall
   # distance when it lands (0.0 otherwise).
-  def update(world, dt, fwd, strafe, jump, down, sprint) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def update(world, dt, fwd, strafe, jump, down, sprint)
+    sense(world)
+    @sneaking = down && standing?
+    @sprinting = sprint && !slow?
+    ease_eyes(dt)
+    @jumped = false
+    boost = @flying ? fly_boost(world) : 1.0
+    steer(dt, fwd, strafe, move_speed(world, boost))
+    case @medium
+    when FLYING
+      fly_up_down(dt, (jump ? 1.0 : 0.0) - (down ? 1.0 : 0.0), boost)
+    when CLIMBING
+      # Jump or forward climbs, Shift holds on, and nothing slides down.
+      @vy = jump || fwd > 0.0 ? CLIMB : (down ? 0.0 : -SLIDE)
+    when SWIMMING
+      # The wiki does not give the speeds to swim up and to sink.
+      @vy = jump ? swim_up_speed : (@vy - 10.0 * dt).clamp(-4.0, 4.0)
+    else
+      apply_gravity(dt)
+      @jumped = jump && @on_ground
+      leap if @jumped
+    end
+    move_and_land(world, dt)
+  end
+
+  # Finds the medium of the player from the cells at its feet and its body.
+  def sense(world)
     feet = world.get(@x.floor, (@y + 0.4).floor, @z.floor)
     @in_lava = Block.lava?(feet)
     @in_water = Block.water?(feet) || @in_lava
+    @medium = medium_in(world)
+  end
+
+  # The medium decides how the player moves up and down: flight first,
+  # then a ladder, then water or lava.
+  def medium_in(world)
+    return FLYING if @flying
     # The feet or the body in a ladder cell: the player climbs to the top.
-    climbing = !@flying && (Block::BASE[world.get(@x.floor, @y.floor, @z.floor)] == Block::LADDER ||
-                            Block::BASE[world.get(@x.floor, (@y + 1.0).floor, @z.floor)] == Block::LADDER)
-    @climbing = climbing
-    @sneaking = down && !@flying && @on_ground
-    sprint = false if @sneaking || @slowed
-    @sprinting = sprint
-    # The eyes move down or up over about a tenth of a second.
+    return CLIMBING if ladder_at?(world, @y) || ladder_at?(world, @y + 1.0)
+    return SWIMMING if @in_water
+
+    ON_LAND
+  end
+
+  def ladder_at?(world, y) = Block::BASE[world.get(@x.floor, y.floor, @z.floor)] == Block::LADDER
+
+  # A sneak needs the ground.
+  def standing? = @on_ground && !@flying
+
+  # A player who sneaks, eats or draws the bow moves at the sneak speed,
+  # and cannot sprint.
+  def slow? = @sneaking || @slowed
+
+  # The eyes move down or up over about a tenth of a second.
+  def ease_eyes(dt)
     @eye += ((@sneaking ? SNEAK_EYE : EYE) - @eye) * (dt * 20.0).clamp(0.0, 1.0)
-    @jumped = false
-    # The swim speed holds while the feet are in the liquid, also when the
-    # player bobs at the surface and only the feet are under it.
+  end
+
+  # The speed of a flight, a swim or a walk. The swim speed holds while the
+  # feet are in the liquid, also when the player bobs at the surface and
+  # only the feet are under it.
+  def move_speed(world, boost)
+    return (@sprinting ? SPRINT_FLY : FLY) * boost if @flying
+
     low = world.get(@x.floor, @y.floor, @z.floor)
-    boost = @flying ? fly_boost(world) : 1.0
-    speed = if @flying
-              (sprint ? SPRINT_FLY : FLY) * boost
-            elsif @in_lava || Block.lava?(low)
-              (Block.lava?(world.get(@x.floor, eye_y.floor, @z.floor)) ? SWIM_UNDER : SWIM) * LAVA
-            elsif @in_water || Block.water?(low)
-              under = Block.water?(world.get(@x.floor, eye_y.floor, @z.floor))
-              sprint ? SWIM_SPRINT : (under ? SWIM_UNDER : SWIM)
-            else
-              sprint ? SPRINT : WALK
-            end
-    keys = @sneaking || @slowed ? SNEAK : 1.0
+    return lava_speed(world) if @in_lava || Block.lava?(low)
+    return water_speed(world) if @in_water || Block.water?(low)
+    return SPRINT if @sprinting
+
+    WALK
+  end
+
+  def lava_speed(world) = (Block.lava?(at_eyes(world)) ? SWIM_UNDER : SWIM) * LAVA
+
+  def water_speed(world)
+    return SWIM_SPRINT if @sprinting
+    return SWIM_UNDER if Block.water?(at_eyes(world))
+
+    SWIM
+  end
+
+  # The block at the eyes.
+  def at_eyes(world) = world.get(@x.floor, eye_y.floor, @z.floor)
+
+  # The keys push the speed along the ground toward speed: forward along
+  # the view, and strafe to the right of it. The ground and a flight give
+  # more control than the air.
+  def steer(dt, fwd, strafe, speed)
+    keys = slow? ? SNEAK : 1.0
     sy = Math.sin(@yaw)
     cy = Math.cos(@yaw)
     wx = (sy * fwd + cy * strafe) * keys
@@ -195,39 +261,47 @@ class Player
       wz /= len
     end
     accel = @on_ground || @flying ? 14.0 : 4.0
-    k = (accel * dt).clamp(0.0, 1.0)
-    @vx += (wx * speed - @vx) * k
-    @vz += (wz * speed - @vz) * k
-    if @flying
-      target = (jump ? 1.0 : 0.0) - (down ? 1.0 : 0.0)
-      @vy += (target * FLY_UP * boost - @vy) * (10.0 * dt).clamp(0.0, 1.0)
-    elsif climbing
-      # Jump or forward climbs, Shift holds on, and nothing slides down.
-      @vy = jump || fwd > 0.0 ? CLIMB : (down ? 0.0 : -SLIDE)
-    elsif @in_water
-      # The wiki does not give the speeds to swim up and to sink.
-      @vy -= 10.0 * dt
-      @vy = 3.2 if jump
-      @vy = @vy.clamp(-4.0, 4.0)
-      # Against a wall, a jump lifts the player over an edge as high as the water.
-      @vy = 6.0 if jump && @against_wall
-    else
-      # The fall gets faster at GRAVITY, less so near TERMINAL.
-      @vy -= GRAVITY * (1.0 + @vy / TERMINAL) * dt
-      @jumped = jump && @on_ground
-      if @jumped
-        @vy = JUMP
-        # A sprint-jump pushes the player forward.
-        if sprint
-          @vx += sy * SPRINT_JUMP_PUSH
-          @vz -= cy * SPRINT_JUMP_PUSH
-        end
-      end
+    share = (accel * dt).clamp(0.0, 1.0)
+    @vx += (wx * speed - @vx) * share
+    @vz += (wz * speed - @vz) * share
+    nil
+  end
+
+  # In a flight, lift is 1 to fly up, -1 to fly down and 0 to stay.
+  def fly_up_down(dt, lift, boost)
+    @vy += (lift * FLY_UP * boost - @vy) * (10.0 * dt).clamp(0.0, 1.0)
+    nil
+  end
+
+  # Against a wall, a jump lifts the player over an edge as high as the
+  # water.
+  def swim_up_speed = @against_wall ? 6.0 : 3.2
+
+  # The fall gets faster at GRAVITY, less so near TERMINAL.
+  def apply_gravity(dt)
+    @vy -= GRAVITY * (1.0 + @vy / TERMINAL) * dt
+    nil
+  end
+
+  # A jump from the ground. A sprint-jump pushes the player forward.
+  def leap
+    @vy = JUMP
+    if @sprinting
+      @vx += Math.sin(@yaw) * SPRINT_JUMP_PUSH
+      @vz -= Math.cos(@yaw) * SPRINT_JUMP_PUSH
     end
+    nil
+  end
+
+  # Moves the player at its speed for dt seconds, and returns the fall
+  # distance when it lands (0.0 otherwise). A flight, a ladder, water and
+  # lava end a fall with no distance. A player under the world comes back
+  # from the sky.
+  def move_and_land(world, dt)
     was_ground = @on_ground
     move(world, @vx * dt, @vy * dt, @vz * dt)
     landed = 0.0
-    if @flying || @in_water || climbing || Block.water?(world.get(@x.floor, (@y + 0.4).floor, @z.floor))
+    if @medium != ON_LAND || Block.water?(world.get(@x.floor, (@y + 0.4).floor, @z.floor))
       @fall_start = @y
     elsif !@on_ground
       @fall_start = @y if @y > @fall_start
