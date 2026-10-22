@@ -17,15 +17,7 @@ class BlockTarget
     @front_y = 0
     @front_z = 0
     @distance = 0.0
-    # The walk of a trace, along x, y and z: the eyes, the direction of
-    # the view, the cell, the cell before it, the distance along the ray
-    # to the next border of a cell, and the distance between two borders.
-    @eye = Array.new(3, 0.0)
-    @dir = Array.new(3, 0.0)
-    @cell = Array.new(3, 0)
-    @last = Array.new(3, 0)
-    @border = Array.new(3, 0.0)
-    @span = Array.new(3, 0.0)
+    @walk = VoxelWalk.new
   end
 
   def hit? = @hit
@@ -33,37 +25,18 @@ class BlockTarget
   # Walks the cells along the view ray of player, from its eyes, until a
   # block stops the ray (see stops_view?).
   def trace(world, player)
-    start(player)
     @hit = false
-    along = 0.0
-    while along <= Player::REACH
-      return hit_at(along) if stops_view?(world.get(@cell[0], @cell[1], @cell[2]))
-
-      along = step
-    end
-    nil
-  end
-
-  # The walk starts in the cell of the eyes.
-  def start(player)
     # to_f: Spinel cannot type the position of the player.
-    @eye[0] = player.x.to_f
-    @eye[1] = player.eye_y.to_f
-    @eye[2] = player.z.to_f
-    @dir[0] = player.fx
-    @dir[1] = player.fy
-    @dir[2] = player.fz
-    axis = 0
-    while axis < 3
-      origin = @eye[axis]
-      dir = @dir[axis]
-      cell = origin.floor
-      @cell[axis] = cell
-      @last[axis] = cell
-      span = dir == 0.0 ? 1.0e9 : (1.0 / dir).abs
-      @span[axis] = span
-      @border[axis] = dir > 0.0 ? (cell + 1.0 - origin) * span : (origin - cell) * span
-      axis += 1
+    @walk.from(player.x.to_f, player.eye_y.to_f, player.z.to_f)
+    front_x = @walk.x
+    front_y = @walk.y
+    front_z = @walk.z
+    @walk.toward(player.fx, player.fy, player.fz, reach: Player::REACH) do |x, y, z|
+      return hit_at(front_x, front_y, front_z) if stops_view?(world.get(x, y, z))
+
+      front_x = x
+      front_y = y
+      front_z = z
     end
     nil
   end
@@ -78,49 +51,27 @@ class BlockTarget
   end
 
   # True when the ray meets the box of block (Block.box_hx, box_hz and
-  # box_top) in the cell within reach.
+  # box_top) in the cell of the walk within reach.
   def in_box?(block)
     half_x = Block.box_hx(block)
     half_z = Block.box_hz(block)
-    x = @cell[0] + 0.5 + Block.box_dx(block)
-    y = @cell[1] + Block.box_dy(block)
-    z = @cell[2] + 0.5 + Block.box_dz(block)
-    along = Ray.box_distance(@eye[0], @eye[1], @eye[2], @dir[0], @dir[1], @dir[2],
-                             x - half_x, y, z - half_z, x + half_x, y + Block.box_top(block), z + half_z)
+    x = @walk.x + 0.5 + Block.box_dx(block)
+    y = @walk.y + Block.box_dy(block)
+    z = @walk.z + 0.5 + Block.box_dz(block)
+    along = @walk.box_distance(x - half_x, y, z - half_z, x + half_x, y + Block.box_top(block), z + half_z)
     along >= 0.0 && along <= Player::REACH
   end
 
-  # Steps to the next cell through the nearest border, and returns the
-  # distance along the ray to it.
-  def step
-    axis = next_axis
-    @last[0] = @cell[0]
-    @last[1] = @cell[1]
-    @last[2] = @cell[2]
-    @cell[axis] += @dir[axis] > 0.0 ? 1 : -1
-    along = @border[axis]
-    @border[axis] += @span[axis]
-    along
-  end
-
-  # The axis of the nearest border. In a tie, the later axis wins: y over
-  # x, and z over x and y.
-  def next_axis
-    return 0 if @border[0] < @border[1] && @border[0] < @border[2]
-    return 1 if @border[1] < @border[2]
-
-    2
-  end
-
-  def hit_at(along)
+  # The block is in the cell of the walk, and the cell before it is front.
+  def hit_at(front_x, front_y, front_z)
     @hit = true
-    @distance = along
-    @x = @cell[0]
-    @y = @cell[1]
-    @z = @cell[2]
-    @front_x = @last[0]
-    @front_y = @last[1]
-    @front_z = @last[2]
+    @distance = @walk.along
+    @x = @walk.x
+    @y = @walk.y
+    @z = @walk.z
+    @front_x = front_x
+    @front_y = front_y
+    @front_z = front_z
     nil
   end
 end

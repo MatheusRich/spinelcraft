@@ -424,7 +424,6 @@ detectors:
     - "/\\AGame\\#explode\\z/"
     - "/\\AGame\\#find_target_boat\\z/"
     - "/\\AGame\\#find_target_mob\\z/"
-    - "/\\AGame\\#fluid_in_view\\z/"
     - "/\\AGame\\#furnace_hover\\z/"
     - "/\\AGame\\#handle_chat\\z/"
     - "/\\AGame\\#handle_inventory\\z/"

@@ -17,6 +17,7 @@ require_relative "game/tint"
 require_relative "game/ray"
 require_relative "game/controls"
 require_relative "game/player"
+require_relative "game/voxel_walk"
 require_relative "game/block_target"
 require_relative "game/vitals"
 require_relative "game/camera"
@@ -98,10 +99,11 @@ class Game
     @station_x = 0
     @station_y = 0
     @station_z = 0
-    # The cell that fluid_in_view found.
+    # The cell that fluid_in_view found, and its walk along the view.
     @fluid_x = 0
     @fluid_y = 0
     @fluid_z = 0
+    @fluid_walk = VoxelWalk.new
     # The stack in the hand while the inventory is open.
     @held = Slots.new(1)
     @chests = Chests.new

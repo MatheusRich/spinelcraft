@@ -337,11 +337,9 @@ class Game
   # and keeps its cell in @fluid_x, @fluid_y and @fluid_z. A solid block
   # ends the line.
   def fluid_in_view
-    t = 0.0
-    while t < Player::REACH
-      x = (@player.x + @player.fx * t).floor
-      y = (@player.eye_y + @player.fy * t).floor
-      z = (@player.z + @player.fz * t).floor
+    # to_f: Spinel cannot type the position of the player.
+    @fluid_walk.from(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f)
+               .toward(@player.fx, @player.fy, @player.fz, reach: Player::REACH) do |x, y, z|
       block = @world.get(x, y, z)
       if block == Block::WATER || block == Block::LAVA
         @fluid_x = x
@@ -350,8 +348,6 @@ class Game
         return true
       end
       return false if Block.solid?(block)
-
-      t += 0.05
     end
     false
   end

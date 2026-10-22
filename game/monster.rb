@@ -43,6 +43,8 @@ class Monster < Mob
     @head = 0
     # The damage that the monster deals to the player in this step.
     @bite = 0
+    # The walk along the line to the player (sees?).
+    @sight = VoxelWalk.new
   end
 
   # Returns the bite of a zombie in this step, or 0.
@@ -146,19 +148,13 @@ class Monster < Mob
     3
   end
 
-  # True when no solid block lies between this mob's eyes and the player's.
+  # True when no solid block stands on the line from the eyes of the
+  # monster to the eyes of the player. The walk checks each cell that the
+  # line crosses, so two blocks that touch at an edge hide the player.
   def sees?(world, player)
-    ox = @x
-    oy = @y + 1.6
-    oz = @z
-    dx = player.x - ox
-    dy = player.eye_y - oy
-    dz = player.z - oz
-    len = Math.sqrt(dx * dx + dy * dy + dz * dz)
-    steps = (len * 2.0).to_i
-    (1...steps).each do |index|
-      along = index / (len * 2.0)
-      return false if Block.solid?(world.get((ox + dx * along).floor, (oy + dy * along).floor, (oz + dz * along).floor))
+    # to_f: Spinel cannot type the positions of the mob and the player.
+    @sight.from(@x.to_f, (@y + 1.6).to_f, @z.to_f).to(player.x.to_f, player.eye_y.to_f, player.z.to_f) do |x, y, z|
+      return false if Block.solid?(world.get(x, y, z))
     end
     true
   end
