@@ -126,6 +126,8 @@ class Game
     monster.explode = false
     monster.alive = false
     explode(monster.x, monster.y + 0.8, monster.z)
+    # A nil return keeps Spinel from boxing it.
+    nil
   end
 
   # A sheep starts to eat grass now and then.

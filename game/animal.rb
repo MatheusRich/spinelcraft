@@ -238,11 +238,17 @@ class Animal < Mob
 
   # The animal as the boxes of its Minecraft model.
   def draw_model(mesh, swing, red, fall)
-    return draw_pig(mesh, swing, red) if @kind == PIG
-    return draw_sheep(mesh, swing, red) if @kind == SHEEP
-    return draw_cow(mesh, swing, red) if @kind == COW
-
-    draw_chicken(mesh, swing, red, fall)
+    if @kind == PIG
+      draw_pig(mesh, swing, red)
+    elsif @kind == SHEEP
+      draw_sheep(mesh, swing, red)
+    elsif @kind == COW
+      draw_cow(mesh, swing, red)
+    else
+      draw_chicken(mesh, swing, red, fall)
+    end
+    # A nil return keeps Spinel from boxing it.
+    nil
   end
 
   # dt more seconds of laying for a grown chicken: it sets lay when an egg

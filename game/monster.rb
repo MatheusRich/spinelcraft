@@ -166,9 +166,13 @@ class Monster < Mob
   # The monster as the boxes of its Minecraft model. A creeper flashes
   # white as its fuse burns down.
   def draw_model(mesh, swing, red, _fall)
-    return draw_creeper(mesh, swing, red) if @kind == CREEPER
-
-    draw_humanoid(mesh, swing, red)
+    if @kind == CREEPER
+      draw_creeper(mesh, swing, red)
+    else
+      draw_humanoid(mesh, swing, red)
+    end
+    # A nil return keeps Spinel from boxing it.
+    nil
   end
 
   def draw_creeper(mesh, swing, red)
