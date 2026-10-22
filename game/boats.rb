@@ -104,7 +104,9 @@ class Game
 
   # Moves each boat in a loaded chunk. The boat that the player rides takes
   # the movement keys, turns the player with it, and carries the player.
-  def update_boats(dt, fwd, turn)
+  def update_boats(dt)
+    fwd = @player.controls.forward
+    turn = @player.controls.strafe
     @boats.size.times do |i|
       boat = @boats[i]
       if @world.loaded?(boat.x.to_f.floor, boat.z.to_f.floor)

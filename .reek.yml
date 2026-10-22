@@ -67,7 +67,6 @@ detectors:
     - "/\\AOres\\#self\\.mc_ore\\z/"
     - "/\\AParticles\\#growth\\z/"
     - "/\\APlants\\#listed\\?\\z/"
-    - "/\\APlayer\\#update\\z/"
     - "/\\ARecipeBook\\#smelt_recipe\\z/"
     - "/\\ARecipe\\#self\\.makes\\?\\z/"
     - "/\\ASlots\\#remove\\z/"

@@ -718,17 +718,20 @@ class Game
     board_boat(0)
     seated = riding? && (@player.y - (boat.y + Boat::SEAT)).abs < 0.001
     start_z = @player.z
-    150.times { update_boats(0.02, 1.0, 0.0) }
+    @player.controls.hold(1.0, 0.0, jump: false, sneak: false, sprint: false)
+    150.times { update_boats(0.02) }
     water = boat.speed
     carried = (@player.z - boat.z).abs < 0.001 && @player.z < start_z - 15.0
     check("a boat goes up to 8 m/s on water and 2 m/s on land",
           water > 7.9 && water < 8.0001 && land > 1.95 && land < 2.0001)
     check("the rider sits in the boat and goes with it", seated && carried)
     # A turn key turns the boat and the player's view at up to 200 degrees/s.
-    150.times { update_boats(0.02, 0.0, 1.0) }
+    @player.controls.hold(0.0, 1.0, jump: false, sneak: false, sprint: false)
+    150.times { update_boats(0.02) }
     yaw = @player.yaw
     boat_yaw = boat.yaw
-    update_boats(0.1, 0.0, 1.0)
+    @player.controls.hold(0.0, 1.0, jump: false, sneak: false, sprint: false)
+    update_boats(0.1)
     turn = (boat.yaw - boat_yaw) * 180.0 / Math::PI
     check("a boat turns at up to 200 degrees/s, and the view turns with it",
           turn > 19.5 && turn < 20.001 && (@player.yaw - yaw - (boat.yaw - boat_yaw)).abs < 0.0001)
@@ -808,14 +811,17 @@ class Game
     @player.move_to(x + 0.5, y + 1.0, z + 0.5)
     top = 0.0
     50.times do
-      @player.update(@world, 0.02, 0.0, 0.0, true, false, false)
+      @player.controls.hold(0.0, 0.0, jump: true, sneak: false, sprint: false)
+      @player.update(@world, 0.02)
       top = @player.y if @player.y > top
     end
     height = top - (y + 1.0)
     @player.z = z + 0.5
-    25.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, true) }
+    @player.controls.hold(1.0, 0.0, jump: false, sneak: false, sprint: true)
+    25.times { @player.update(@world, 0.02) }
     z0 = @player.z
-    150.times { @player.update(@world, 0.02, 1.0, 0.0, true, false, true) }
+    @player.controls.hold(1.0, 0.0, jump: true, sneak: false, sprint: true)
+    150.times { @player.update(@world, 0.02) }
     speed = (z0 - @player.z) / 3.0
     (0..40).each { |d| set_block(x, y, z - d, Block::AIR) }
     restore_pose
@@ -845,9 +851,12 @@ class Game
         set_block(x, y + 2, z - d, under ? Block::WATER : Block::AIR)
       end
       @player.move_to(x + 0.5, y + 1.0, z + 0.5)
-      25.times { @player.update(@world, 0.02, 1.0, 0.0, jump, false, sprint) }
+      # Spinel cannot type the Booleans of the table, and an untyped key
+      # would make the controls untyped in the game too.
+      @player.controls.hold(1.0, 0.0, jump: jump == true, sneak: false, sprint: sprint == true)
+      25.times { @player.update(@world, 0.02) }
       z0 = @player.z
-      100.times { @player.update(@world, 0.02, 1.0, 0.0, jump, false, sprint) }
+      100.times { @player.update(@world, 0.02) }
       (z0 - @player.z) / 2.0
     end
     (0..20).each do |d|
@@ -875,7 +884,8 @@ class Game
     speeds = [false, true].map do |slowed|
       @player.move_to(x + 0.5, y + 1.0, z + 0.5)
       @player.slowed = slowed
-      40.times { @player.update(@world, 0.02, 1.0, 0.0, false, false, true) }
+      @player.controls.hold(1.0, 0.0, jump: false, sneak: false, sprint: true)
+      40.times { @player.update(@world, 0.02) }
       @player.speed
     end
     (0..30).each { |d| set_block(x, y, z - d, Block::AIR) }
@@ -2733,7 +2743,8 @@ class Game
     @player.yaw = 3.14159
     @player.flying = false
     @player.on_ground = true
-    120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, true, false) }
+    @player.controls.hold(1.0, 0.0, jump: false, sneak: true, sprint: false)
+    120.times { @player.update(@world, 1.0 / 60.0) }
     low = (@player.eye_y - @player.y - Player::SNEAK_EYE).abs < 0.01
     @mobs.clear
     set_block(bx + 6, SKY_Y - 1, bz, Block.bed_id(0, true))
@@ -2761,7 +2772,8 @@ class Game
     set_block(bx + 6, SKY_Y - 1, bz, Block::AIR)
     @clock.time_of_day = 0.3
     check("sneaking stops at an edge", @player.y > SKY_Y - 1.1 && @player.z < bz + 1.4)
-    120.times { @player.update(@world, 1.0 / 60.0, 1.0, 0.0, false, false, false) }
+    @player.controls.hold(1.0, 0.0, jump: false, sneak: false, sprint: false)
+    120.times { @player.update(@world, 1.0 / 60.0) }
     check("walking without sneaking falls off", @player.y < SKY_Y - 2.0)
     check("a sneaking player's eyes are lower, and come back up", low && (@player.eye_y - @player.y - Player::EYE).abs < 0.01)
   end
@@ -2791,7 +2803,8 @@ class Game
     # The shore is one block wide, so the player stands on it only for a while.
     out = false
     240.times do
-      @player.update(@world, 1.0 / 60.0, 1.0, 0.0, true, false, false)
+      @player.controls.hold(1.0, 0.0, jump: true, sneak: false, sprint: false)
+      @player.update(@world, 1.0 / 60.0)
       out = true if @player.on_ground && @player.y >= SKY_Y + 1.0 && @player.x + Player::HALF > wx + 2.0
     end
     check("a jump against the shore lifts the player out of the water", out)
@@ -4058,19 +4071,23 @@ class Game
       set_block(x + 1, y + i, z, Block::STONE)
     end
     p = Player.new(x + 0.5, y.to_f, z + 0.5)
-    50.times { p.update(@world, 0.02, 0.0, 0.0, true, false, false) }
+    p.controls.hold(0.0, 0.0, jump: true, sneak: false, sprint: false)
+    50.times { p.update(@world, 0.02) }
     up = (p.y - y - 2.35).abs < 0.05
     h = p.y
-    50.times { p.update(@world, 0.02, 0.0, 0.0, false, true, false) }
+    p.controls.hold(0.0, 0.0, jump: false, sneak: true, sprint: false)
+    50.times { p.update(@world, 0.02) }
     held = (p.y - h).abs < 0.05
-    25.times { p.update(@world, 0.02, 0.0, 0.0, false, false, false) }
+    p.controls.hold(0.0, 0.0, jump: false, sneak: false, sprint: false)
+    25.times { p.update(@world, 0.02) }
     slid = (h - p.y - 1.5).abs < 0.05
     # Forward into the wall climbs to its top and steps onto it.
     p = Player.new(x + 0.5, y.to_f, z + 0.5)
     p.yaw = Math::PI / 2.0
     frames = 0
     while frames < 150 && p.x < x + 1.5
-      p.update(@world, 0.02, 1.0, 0.0, false, false, false)
+      p.controls.hold(1.0, 0.0, jump: false, sneak: false, sprint: false)
+      p.update(@world, 0.02)
       frames += 1
     end
     top = p.x >= x + 1.5 && (p.y - (y + 6)).abs < 0.05
@@ -4138,10 +4155,12 @@ class Game
     set_block(x, g, z, Block.bed_id(0, true))
     set_block(x + 2, g, z, Block.facing_id(Block::CHEST, 3))
     p = Player.new(x + 0.5, g + 1.5, z + 0.5)
-    60.times { p.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false) }
+    p.controls.hold(0.0, 0.0, jump: false, sneak: false, sprint: false)
+    60.times { p.update(@world, 1.0 / 60.0) }
     bed = (p.y - (g + 0.5625)).abs < 0.001 && p.on_ground
     p = Player.new(x + 2.5, g + 1.5, z + 0.5)
-    60.times { p.update(@world, 1.0 / 60.0, 0.0, 0.0, false, false, false) }
+    p.controls.hold(0.0, 0.0, jump: false, sneak: false, sprint: false)
+    60.times { p.update(@world, 1.0 / 60.0) }
     chest = (p.y - (g + 0.875)).abs < 0.001
     m = Animal.new(Mob::PIG, x + 0.5, g + 1.5, z + 0.5, 1)
     m.move(@world, 0.0, -1.0, 0.0)

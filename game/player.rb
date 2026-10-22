@@ -33,6 +33,8 @@ class Player
   attr_writer :slowed
   # True when the last step started a jump.
   attr_reader :jumped
+  # The keys that move the player (Controls).
+  attr_reader :controls
 
   def initialize(x, y, z) # rubocop:todo Metrics/MethodLength
     @x = x
@@ -55,6 +57,7 @@ class Player
     @medium = ON_LAND
     @sprinting = false
     @eye = EYE
+    @controls = Controls.new
     @fall_start = y
     @hit = false
     @hit_t = 0.0
@@ -162,27 +165,19 @@ class Player
 
   # Moves the player for one step of dt seconds and returns the fall
   # distance when it lands (0.0 otherwise).
-  def update(world, dt, fwd, strafe, jump, down, sprint)
+  def update(world, dt)
     sense(world)
-    @sneaking = down && standing?
-    @sprinting = sprint && !slow?
+    @sneaking = @controls.sneak && standing?
+    @sprinting = @controls.sprint && !slow?
     ease_eyes(dt)
     @jumped = false
     boost = @flying ? fly_boost(world) : 1.0
-    steer(dt, fwd, strafe, move_speed(world, boost))
+    steer(dt, move_speed(world, boost))
     case @medium
-    when FLYING
-      fly_up_down(dt, (jump ? 1.0 : 0.0) - (down ? 1.0 : 0.0), boost)
-    when CLIMBING
-      # Jump or forward climbs, Shift holds on, and nothing slides down.
-      @vy = jump || fwd > 0.0 ? CLIMB : (down ? 0.0 : -SLIDE)
-    when SWIMMING
-      # The wiki does not give the speeds to swim up and to sink.
-      @vy = jump ? swim_up_speed : (@vy - 10.0 * dt).clamp(-4.0, 4.0)
-    else
-      apply_gravity(dt)
-      @jumped = jump && @on_ground
-      leap if @jumped
+    when FLYING then fly_up_down(dt, boost)
+    when CLIMBING then climb
+    when SWIMMING then swim(dt)
+    else fall_or_jump(dt)
     end
     move_and_land(world, dt)
   end
@@ -249,7 +244,9 @@ class Player
   # The keys push the speed along the ground toward speed: forward along
   # the view, and strafe to the right of it. The ground and a flight give
   # more control than the air.
-  def steer(dt, fwd, strafe, speed)
+  def steer(dt, speed)
+    fwd = @controls.forward
+    strafe = @controls.strafe
     keys = slow? ? SNEAK : 1.0
     sy = Math.sin(@yaw)
     cy = Math.cos(@yaw)
@@ -267,9 +264,31 @@ class Player
     nil
   end
 
-  # In a flight, lift is 1 to fly up, -1 to fly down and 0 to stay.
-  def fly_up_down(dt, lift, boost)
+  # In a flight, jump flies up and sneak flies down.
+  def fly_up_down(dt, boost)
+    lift = (@controls.jump ? 1.0 : 0.0) - (@controls.sneak ? 1.0 : 0.0)
     @vy += (lift * FLY_UP * boost - @vy) * (10.0 * dt).clamp(0.0, 1.0)
+    nil
+  end
+
+  def climb
+    @vy = climb_speed
+    nil
+  end
+
+  # Jump or forward climbs a ladder, sneak holds on, and nothing slides
+  # down.
+  def climb_speed
+    return CLIMB if @controls.jump || @controls.forward > 0.0
+    return 0.0 if @controls.sneak
+
+    -SLIDE
+  end
+
+  # Jump swims up and nothing sinks. The wiki does not give the speeds to
+  # swim up and to sink.
+  def swim(dt)
+    @vy = @controls.jump ? swim_up_speed : (@vy - 10.0 * dt).clamp(-4.0, 4.0)
     nil
   end
 
@@ -277,9 +296,12 @@ class Player
   # water.
   def swim_up_speed = @against_wall ? 6.0 : 3.2
 
-  # The fall gets faster at GRAVITY, less so near TERMINAL.
-  def apply_gravity(dt)
+  # On land, the player falls, or jumps from the ground.
+  def fall_or_jump(dt)
+    # The fall gets faster at GRAVITY, less so near TERMINAL.
     @vy -= GRAVITY * (1.0 + @vy / TERMINAL) * dt
+    @jumped = @controls.jump && @on_ground
+    leap if @jumped
     nil
   end
 

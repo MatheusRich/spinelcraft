@@ -15,6 +15,7 @@ require_relative "game/light"
 require_relative "game/mesher"
 require_relative "game/tint"
 require_relative "game/ray"
+require_relative "game/controls"
 require_relative "game/player"
 require_relative "game/vitals"
 require_relative "game/camera"
@@ -116,8 +117,6 @@ class Game
     @quit = false
     # The title screen is open (game/menu.rb).
     @title_open = false
-    @last_w = -1.0
-    @w_sprint = false
     # When jump was last pressed, for a double press that starts or stops
     # flying (FLY_TAP).
     @last_jump = -1.0
@@ -448,55 +447,32 @@ class Game
     end
     return if paused?
 
-    fwd = 0.0
-    strafe = 0.0
-    jump = false
-    down = false
-    sprint = false
-    if @captured && !@vitals.dead? && !@chat.open?
-      fwd += 1.0 if Gfx.in_key(Key::W)
-      fwd -= 1.0 if Gfx.in_key(Key::S)
-      strafe += 1.0 if Gfx.in_key(Key::D)
-      strafe -= 1.0 if Gfx.in_key(Key::A)
-      jump = Gfx.in_key(Key::SPACE)
-      down = Gfx.in_key(Key::LSHIFT)
-      # Double-tap W to sprint until W is released.
-      if Gfx.in_key_pressed(Key::W)
-        @w_sprint = @anim_time - @last_w < 0.3 && @anim_time > @last_w
-        @last_w = @anim_time
-      end
-      @w_sprint = false unless Gfx.in_key(Key::W)
-      tap_to_fly if Gfx.in_key_pressed(Key::SPACE)
-      sprint = Gfx.in_key(Key::LCTRL) || @w_sprint
-      # The player sprints only forward. The wiki does not confirm this.
-      sprint = false if fwd <= 0.0 || (@survival && !@vitals.can_sprint?) || using_item?
-    end
+    read_move_keys
     if @autopilot
       @player.flying = true
       @player.yaw += dt * 0.25 unless @autopilot_far
       @player.pitch = -0.25
-      fwd = 1.0
-      sprint = true
+      @player.controls.cruise
       @player.y = 72.0
     end
     @player.slowed = using_item?
     # Shift gets out of a boat. minecraft.wiki/w/Boat
-    leave_boat if riding? && down
+    leave_boat if riding? && @player.controls.sneak
     remaining = riding? ? 0.0 : dt
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining
-      fell = @player.update(@world, step, fwd, strafe, jump, down, sprint)
+      fell = @player.update(@world, step)
       hurt((fell - 3.0).ceil, Sfx::FALL) if fell > 3.5
       if @survival
         moved = @player.speed * step
-        @vitals.move(moved, sprint && @player.on_ground, @player.in_water, @player.jumped)
+        @vitals.move(moved, @player.controls.sprint && @player.on_ground, @player.in_water, @player.jumped)
       end
       remaining -= step
     end
     # A flying player who comes down onto a block stops flying, as in Java
     # Edition. minecraft.wiki/w/Flying
     @player.flying = false if @player.on_ground && !@autopilot
-    update_boats(dt, fwd, strafe)
+    update_boats(dt)
     @player.raycast(@world)
     # Water splashes and swishes, but lava makes no sound when the player
     # enters it or moves in it. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
@@ -546,6 +522,30 @@ class Game
     find_target_boat
     find_target_mob
   end
+
+  # The movement keys of this frame, in the controls of the player. No key
+  # counts when the mouse is free, the player is dead or the chat is open.
+  def read_move_keys
+    controls = @player.controls
+    if !@captured || @vitals.dead? || @chat.open?
+      controls.release_keys
+      return
+    end
+    controls.tap_forward(@anim_time) if Gfx.in_key_pressed(Key::W)
+    controls.release_forward unless Gfx.in_key(Key::W)
+    tap_to_fly if Gfx.in_key_pressed(Key::SPACE)
+    sprint = (Gfx.in_key(Key::LCTRL) || controls.tap_sprint?) && may_sprint?
+    controls.hold(key_axis(Key::W, Key::S), key_axis(Key::D, Key::A),
+                  jump: Gfx.in_key(Key::SPACE), sneak: Gfx.in_key(Key::LSHIFT), sprint: sprint)
+  end
+
+  # 1.0 while the key plus is down, -1.0 while the key minus is down, and
+  # 0.0 for both or none.
+  def key_axis(plus, minus) = (Gfx.in_key(plus) ? 1.0 : 0.0) - (Gfx.in_key(minus) ? 1.0 : 0.0)
+
+  # A hungry player cannot sprint in survival, nor a player who eats or
+  # draws the bow.
+  def may_sprint? = (!@survival || @vitals.can_sprint?) && !using_item?
 
   # A second press of jump within FLY_TAP starts or stops flying in
   # creative, as in Minecraft. A third press starts a new double press.

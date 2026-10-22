@@ -458,6 +458,9 @@ class PlayerMovementTest < Minitest::Test
     assert_equal FLOOR + 1.0, @player.y
     step
     assert_equal(-Player::SLIDE, @player.vy)
+    step(jump: true)
+    step(down: true)
+    assert_equal 0.0, @player.vy
   end
 
   def test_a_ladder_at_the_feet_or_at_the_head_climbs
@@ -574,7 +577,8 @@ class PlayerMovementTest < Minitest::Test
   private
 
   def step(fwd: 0.0, strafe: 0.0, jump: false, down: false, sprint: false)
-    @player.update(@world, DT, fwd, strafe, jump, down, sprint)
+    @player.controls.hold(fwd, strafe, jump: jump, sneak: down, sprint: sprint)
+    @player.update(@world, DT)
   end
 
   def walk(seconds, **keys)
