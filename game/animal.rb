@@ -43,6 +43,13 @@ class Animal < Mob
   BITE_LEFT = 0.2
   # How far a grazing sheep turns its head down, in radians.
   GRAZE_NOD = 0.9
+  # An adult sheep starts to eat grass with chance "1⁄500 every other game
+  # tick", so 10/500 each second. minecraft.wiki/w/Sheep
+  GRAZE_CHANCE = 10.0 / 500.0
+  # A baby sheep has the chance 1/25 where an adult has 1/500, and each
+  # bite takes 1 minute off its growth time. minecraft.wiki/w/Sheep
+  LAMB_GRAZE_CHANCE = 10.0 / 25.0
+  LAMB_BITE_GROWTH = 60.0
 
   # Seconds that the animal still panics.
   attr_reader :panic
@@ -137,10 +144,12 @@ class Animal < Mob
     @graze = GRAZE_TIME
   end
 
-  # The wool of a sheared sheep grows back after its bite of grass.
-  # minecraft.wiki/w/Sheep
-  def regrow
+  # The sheep ate its bite of grass (Game#bite_grass): the wool of a
+  # sheared sheep grows back, and a lamb grows up LAMB_BITE_GROWTH seconds
+  # sooner. minecraft.wiki/w/Sheep
+  def ate_grass
     @sheared = false
+    grow_up(LAMB_BITE_GROWTH)
   end
 
   # A sheep starts to eat when it has grass to eat and does not panic.
@@ -164,9 +173,11 @@ class Animal < Mob
     dx * dx + dz * dz > DESPAWN * DESPAWN
   end
 
-  # The clocks of the grazing, the growth, the eggs and the love mode run
-  # before the step of Mob#update_mob.
+  # A sheep starts to eat grass now and then. Then the clocks of the
+  # grazing, the growth, the eggs and the love mode run before the step of
+  # Mob#update_mob.
   def update_mob(world, dt, player, held)
+    start_graze if can_graze?(world) && @rng.rand01 < dt * (baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
     if @graze > 0.0
       @graze = 0.0 if @panic > 0.0 || dying?
       @grass_bite = true if @graze > BITE_LEFT && @graze - dt <= BITE_LEFT

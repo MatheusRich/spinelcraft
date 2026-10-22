@@ -3739,8 +3739,8 @@ class Game
   end
 
   # An adult sheep on grass starts to eat about once each 50 seconds:
-  # GRAZE_CHANCE is 10/500 each second. Each time that it is done, the
-  # pen gets its grass back.
+  # Animal::GRAZE_CHANCE is 10/500 each second. Each time that it is
+  # done, the pen gets its grass back.
   def test_graze_rate
     bx = @spawn_x.floor + 50
     bz = @spawn_z.floor - 100

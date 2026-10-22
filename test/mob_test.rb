@@ -208,6 +208,51 @@ class MobTest < Minitest::Test
     assert_operator sheep.graze, :<=, 0.0
   end
 
+  def test_a_sheared_sheep_that_ate_grass_grows_its_wool_back
+    sheep = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    sheep.sheared = true
+    sheep.ate_grass
+    refute sheep.sheared
+  end
+
+  def test_a_lamb_that_ate_grass_grows_up_a_minute_sooner
+    lamb = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    lamb.make_baby
+    lamb.ate_grass
+    assert_in_delta Animal::GROW_TIME - Animal::LAMB_BITE_GROWTH, lamb.grow_left, 0.001
+    adult = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    adult.ate_grass
+    refute adult.baby?
+  end
+
+  # In a pen of grass, an adult sheep starts to eat about once each 50
+  # seconds, a lamb about 20 times as often, and a pig never.
+  def test_a_sheep_on_grass_starts_to_eat_now_and_then
+    16.times { |x| 16.times { |z| @world.set(x, SKY_Y - 2, z, Block::GRASS) } }
+    16.times do |i|
+      2.times do |y|
+        [[i, 0], [i, 15], [0, i], [15, i]].each { |x, z| @world.set(x, SKY_Y - 1 + y, z, Block::STONE) }
+      end
+    end
+    player = Player.new(8.5, SKY_Y + 20.0, 8.5)
+    adult = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 3)
+    lamb = Animal.new(Mob::SHEEP, 6.5, SKY_Y - 1.0, 6.5, 4)
+    lamb.make_baby
+    pig = Animal.new(Mob::PIG, 10.5, SKY_Y - 1.0, 10.5, 5)
+    starts = [adult, lamb, pig].map do |sheep|
+      count = 0
+      6000.times do
+        eating = sheep.graze > 0.0
+        sheep.update_mob(@world, 0.05, player, Block::AIR)
+        count += 1 if !eating && sheep.graze > 0.0
+      end
+      count
+    end
+    assert_includes 2..15, starts[0]
+    assert_operator starts[1], :>, starts[0] * 5
+    assert_equal 0, starts[2]
+  end
+
   def test_a_dying_sheep_takes_no_bite_of_grass
     lay_floor
     player = Player.new(1.5, SKY_Y - 1.0, 1.5)

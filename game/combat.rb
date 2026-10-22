@@ -1,16 +1,8 @@
 # Mobs and combat: mob turns, damage, explosions, the bow, and arrows.
 class Game
-  # An adult sheep starts to eat grass with chance "1⁄500 every other game
-  # tick", so 10/500 each second. minecraft.wiki/w/Sheep
-  GRAZE_CHANCE = 10.0 / 500.0
-  # A baby sheep has the chance 1/25 where an adult has 1/500, and each
-  # bite takes 1 minute off its growth time. minecraft.wiki/w/Sheep
-  LAMB_GRAZE_CHANCE = 10.0 / 25.0
-  LAMB_BITE_GROWTH = 60.0
-
   # The bite of a grazing sheep: the tall grass goes, or else the grass
-  # block turns into dirt, the wool grows back, and a baby grows up
-  # faster. With the grass gone, nothing happens. minecraft.wiki/w/Sheep
+  # block turns into dirt, and the sheep ate (Animal#ate_grass). With the
+  # grass gone, nothing happens. minecraft.wiki/w/Sheep
   def bite_grass(m)
     m.grass_bite = false
     eaten = m.grass_under(@world)
@@ -20,8 +12,7 @@ class Game
     y = (m.y + 0.01).floor
     z = m.z.floor
     eaten == 1 ? set_block(x, y, z, Block::AIR) : set_block(x, y - 1, z, Block::DIRT)
-    m.regrow
-    m.grow_up(LAMB_BITE_GROWTH) if m.baby?
+    m.ate_grass
   end
 
   # Takes amount of health and plays sound: Sfx::HURT, or Sfx::FALL for a
@@ -133,10 +124,9 @@ class Game
     step_mob(monster, dt, held)
   end
 
-  # The turn of an animal: a sheep starts to eat grass now and then, and
-  # the step can leave a bite of grass, an egg or a heart.
+  # The turn of an animal: its step can leave a bite of grass, an egg or
+  # a heart.
   def update_animal(animal, dt, held)
-    animal.start_graze if animal.can_graze?(@world) && @rng.rand01 < dt * (animal.baby? ? LAMB_GRAZE_CHANCE : GRAZE_CHANCE)
     step_mob(animal, dt, held)
     bite_grass(animal) if animal.grass_bite
     lay_egg(animal) if animal.lay
