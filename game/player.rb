@@ -335,7 +335,9 @@ class Player
 
   def blocked?(world) = world.solid_in_box?(@x, @y, @z, HALF, TALL)
 
-  def move(world, dx, dy, dz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  # Moves the player by dx, dy, dz, up to the blocks on the way. A wall or
+  # a floor stops the speed along its axis.
+  def move(world, dx, dy, dz)
     # Inside a block (placed on us, or spawned in one): climb out instead of sliding.
     if blocked?(world)
       @y = @y.floor + 1.0
@@ -343,47 +345,39 @@ class Player
       return
     end
     @against_wall = false
-    if dx != 0.0
-      @x += dx
-      if blocked?(world)
-        @x = world.box_edge(@x, @y, @z, HALF, TALL, 0, dx > 0.0 ? 1 : -1) + (dx > 0.0 ? -HALF - 0.001 : HALF + 0.001)
-        @vx = 0.0
-        @against_wall = true
-      elsif @sneaking && !ground_below?(world)
-        # Sneaking never steps off an edge.
-        @x -= dx
-        @vx = 0.0
-      end
-    end
-    if dz != 0.0
-      @z += dz
-      if blocked?(world)
-        @z = world.box_edge(@x, @y, @z, HALF, TALL, 2, dz > 0.0 ? 1 : -1) + (dz > 0.0 ? -HALF - 0.001 : HALF + 0.001)
-        @vz = 0.0
-        @against_wall = true
-      elsif @sneaking && !ground_below?(world)
-        @z -= dz
-        @vz = 0.0
-      end
-    end
-    @on_ground = false
-    return if dy == 0.0
-
-    @y += dy
-    if blocked?(world)
-      if dy < 0.0
-        @y = world.box_edge(@x, @y, @z, HALF, TALL, 1, -1)
-        @on_ground = true
-      else
-        @y = world.box_edge(@x, @y, @z, HALF, TALL, 1, 1) - TALL - 0.001
-      end
-      @vy = 0.0
-    end
+    # to_f: Spinel cannot type the position and the speed of the player.
+    x = slide(world, 0, dx.to_f)
+    @vx = 0.0 if x != @x + dx
+    @x = x
+    z = slide(world, 2, dz.to_f)
+    @vz = 0.0 if z != @z + dz
+    @z = z
+    y = world.collide(@x.to_f, @y.to_f, @z.to_f, HALF, TALL, 1, dy.to_f)
+    @on_ground = dy < 0.0 && y != @y + dy
+    @vy = 0.0 if y != @y + dy
+    @y = y
   end
 
-  # True when the box of a solid block lies under any part of the player's
-  # feet.
-  def ground_below?(world) = world.solid_in_box?(@x, @y - 0.05, @z, HALF, 0.05)
+  # Where the player ends after a move of distance along the x axis (axis
+  # 0) or the z axis (axis 2): against a wall, and in a sneak, not off an edge.
+  def slide(world, axis, distance)
+    # to_f: Spinel cannot type the position of the player.
+    x = @x.to_f
+    z = @z.to_f
+    from = axis == 0 ? x : z
+    to = world.collide(x, @y.to_f, z, HALF, TALL, axis, distance)
+    if to != from + distance
+      @against_wall = true
+      return to
+    end
+    return from if @sneaking && !ground_below?(world, axis == 0 ? to : x, axis == 2 ? to : z)
+
+    to
+  end
+
+  # True when the box of a solid block lies under any part of the feet of
+  # a player at x, z.
+  def ground_below?(world, x, z) = world.solid_in_box?(x, @y - 0.05, z, HALF, 0.05)
 
   # True when the player fits at x, y, z, out of the water, and stands on
   # a solid block.

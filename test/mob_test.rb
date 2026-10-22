@@ -281,19 +281,70 @@ class MobTest < Minitest::Test
     assert hen.lay
   end
 
-  # The pig runs west into a wall. It turns to a new side after STUCK
-  # seconds there, before its 1 second of running from the hit is over.
+  # The pig runs west into a wall, then north into one. It turns to a new
+  # side after STUCK seconds there, before its 1 second of running from the
+  # hit is over.
   def test_an_animal_that_a_wall_stops_turns_to_a_new_side
     lay_floor
-    6.times { |y| 16.times { |z| @world.set(3, SKY_Y - 1 + y, z, Block::STONE) } }
-    player = Player.new(14.5, SKY_Y - 1.0, 1.5)
+    6.times { |y| 16.times { |k| @world.set(3, SKY_Y - 1 + y, k, Block::STONE) } }
+    6.times { |y| 16.times { |k| @world.set(k, SKY_Y - 1 + y, 3, Block::STONE) } }
+    player = Player.new(14.5, SKY_Y - 1.0, 14.5)
+    [[4.6, 8.5, 5.5, 8.5], [8.5, 4.6, 8.5, 5.5]].each do |x, z, from_x, from_z|
+      pig = Animal.new(Mob::PIG, x, SKY_Y - 1.0, z, 3)
+      pig.hit(1.0, from_x, from_z)
+      yaw = pig.yaw
+      15.times { pig.update_mob(@world, DT, player, Block::AIR) }
+      assert_equal yaw, pig.yaw
+      40.times { pig.update_mob(@world, DT, player, Block::AIR) }
+      refute_equal yaw, pig.yaw
+    end
+  end
+
+  # The pig runs west into a wall with its east face at x = 4, then north
+  # into one with its south face at z = 4. It stops against the wall, and
+  # the wall stops its speed.
+  def test_a_mob_that_runs_into_a_wall_stops_against_it
+    lay_floor
+    6.times { |y| 16.times { |k| @world.set(3, SKY_Y - 1 + y, k, Block::STONE) } }
+    6.times { |y| 16.times { |k| @world.set(k, SKY_Y - 1 + y, 3, Block::STONE) } }
+    player = Player.new(14.5, SKY_Y - 1.0, 14.5)
+    west = Animal.new(Mob::PIG, 5.5, SKY_Y - 1.0, 8.5, 3)
+    west.hit(1.0, 6.5, 8.5)
+    north = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 5.5, 3)
+    north.hit(1.0, 8.5, 6.5)
+    30.times do
+      west.update_mob(@world, DT, player, Block::AIR)
+      north.update_mob(@world, DT, player, Block::AIR)
+    end
+    assert_in_delta 4.0 + west.half, west.x, 0.002
+    assert_in_delta 4.0 + north.half, north.z, 0.002
+    assert_operator west.vx.abs, :<, 1.0
+    assert_operator north.vz.abs, :<, 1.0
+  end
+
+  def test_a_falling_mob_lands_on_the_floor
+    lay_floor
+    player = Player.new(14.5, SKY_Y - 1.0, 14.5)
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y + 3.0, 8.5, 3)
+    60.times { pig.update_mob(@world, DT, player, Block::AIR) }
+    assert_equal SKY_Y - 1.0, pig.y
+  end
+
+  # Under a roof 1 block over the floor, a pig that runs into a wall jumps
+  # into the roof, and falls back to the floor each time.
+  def test_a_mob_that_jumps_into_a_roof_falls_back
+    lay_floor
+    6.times { |y| 16.times { |k| @world.set(3, SKY_Y - 1 + y, k, Block::STONE) } }
+    16.times { |x| 16.times { |z| @world.set(x, SKY_Y, z, Block::STONE) } }
+    player = Player.new(14.5, SKY_Y - 1.0, 14.5)
     pig = Animal.new(Mob::PIG, 4.6, SKY_Y - 1.0, 8.5, 3)
     pig.hit(1.0, 5.5, 8.5)
-    yaw = pig.yaw
-    15.times { pig.update_mob(@world, DT, player, Block::AIR) }
-    assert_equal yaw, pig.yaw
-    40.times { pig.update_mob(@world, DT, player, Block::AIR) }
-    refute_equal yaw, pig.yaw
+    heights = Array.new(30) do
+      pig.update_mob(@world, DT, player, Block::AIR)
+      pig.y
+    end
+    assert_operator heights.max, :>, SKY_Y - 1.0
+    assert_operator heights.count(SKY_Y - 1.0), :>=, 5
   end
 
   def test_a_chicken_falls_slowly

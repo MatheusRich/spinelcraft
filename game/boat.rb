@@ -118,31 +118,24 @@ class Boat
     else
       @vy -= GRAVITY * dt
     end
-    nx = @x + @vx * dt
-    if world.solid_in_box?(nx, @y + 0.01, @z, HALF, TALL - 0.02)
-      @vx = 0.0
-    else
-      @x = nx
-    end
-    nz = @z + @vz * dt
-    if world.solid_in_box?(@x, @y + 0.01, nz, HALF, TALL - 0.02)
-      @vz = 0.0
-    else
-      @z = nz
-    end
+    # The box for a move along the ground is 0.01 short at the top and the
+    # bottom, so that it slides over the floor.
+    dx = @vx * dt
+    x = world.collide(@x, @y + 0.01, @z, HALF, TALL - 0.02, 0, dx)
+    @vx = 0.0 if x != @x + dx
+    @x = x
+    dz = @vz * dt
+    z = world.collide(@x, @y + 0.01, @z, HALF, TALL - 0.02, 2, dz)
+    @vz = 0.0 if z != @z + dz
+    @z = z
     @on_ground = false
     return if @afloat
 
-    ny = @y + @vy * dt
-    if world.solid_in_box?(@x, ny, @z, HALF, TALL)
-      if @vy < 0.0
-        @y = world.box_edge(@x, ny, @z, HALF, TALL, 1, -1).to_f
-        @on_ground = true
-      end
-      @vy = 0.0
-    else
-      @y = ny
-    end
+    dy = @vy * dt
+    y = world.collide(@x, @y, @z, HALF, TALL, 1, dy)
+    @on_ground = dy < 0.0 && y != @y + dy
+    @vy = 0.0 if y != @y + dy
+    @y = y
   end
 
   # Turns the paddles: both for forward and back, and the outer one in a

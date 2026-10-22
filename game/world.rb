@@ -256,6 +256,26 @@ class World
     false
   end
 
+  # Where the box of solid_in_box? ends after a move of distance along the x
+  # axis (axis 0), the y axis (axis 1) or the z axis (axis 2). With no
+  # solid block on the way, the box ends at x + distance (or y, z). Else it
+  # stops 0.001 short of the face of the block, or right on its top. The
+  # box must not overlap a solid block at the start.
+  def collide(x, y, z, half, tall, axis, distance)
+    to_x = axis == 0 ? x + distance : x
+    to_y = axis == 1 ? y + distance : y
+    to_z = axis == 2 ? z + distance : z
+    to = axis == 0 ? to_x : (axis == 1 ? to_y : to_z)
+    return to if distance == 0.0 || !solid_in_box?(to_x, to_y, to_z, half, tall)
+
+    edge = box_edge(to_x, to_y, to_z, half, tall, axis, distance > 0.0 ? 1 : -1)
+    return edge if axis == 1 && distance < 0.0
+    return edge - tall - 0.001 if axis == 1
+    return edge - half - 0.001 if distance > 0.0
+
+    edge + half + 0.001
+  end
+
   # The nearest face of the solid blocks that overlap the box of
   # solid_in_box?, on the x axis (axis 0), the y axis (axis 1) or the z axis
   # (axis 2): the lowest face when dir is 1, and the highest when dir is -1.

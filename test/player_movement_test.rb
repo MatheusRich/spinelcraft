@@ -342,6 +342,20 @@ class PlayerMovementTest < Minitest::Test
     assert_operator @player.z, :>, 8.0 + 0.0625 - Player::HALF
   end
 
+  # A path of one block, along z at x = 8 and along x at z = 8, one block
+  # over the floor. A sneak walks along it.
+  def test_a_sneak_walks_along_a_narrow_path
+    16.times { |k| @world.set(8, FLOOR, k, Block::STONE) }
+    16.times { |k| @world.set(k, FLOOR, 8, Block::STONE) }
+    [[0.0, 8.5, 13.5], [Math::PI / 2.0, 2.5, 8.5]].each do |yaw, x, z|
+      @player.move_to(x, FLOOR + 1.0, z)
+      walk(0.1)
+      @player.yaw = yaw
+      walk(1.0, fwd: 1.0, down: true)
+      assert_operator (@player.x - x).abs + (@player.z - z).abs, :>, 1.0
+    end
+  end
+
   def test_a_sneak_walks_across_the_floor
     walk(1.0, fwd: 1.0, down: true)
     assert_operator @player.z, :<, 8.5 - Player::WALK * Player::SNEAK * 0.8

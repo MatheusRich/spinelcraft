@@ -169,31 +169,20 @@ class Mob
 
   # Moves and returns true when a wall stopped the horizontal motion.
   def move(world, dx, dy, dz)
-    bumped = false
-    @x += dx
-    if blocked?(world)
-      @x -= dx
-      @vx = 0.0
-      bumped = true
-    end
-    @z += dz
-    if blocked?(world)
-      @z -= dz
-      @vz = 0.0
-      bumped = true
-    end
-    @y += dy
-    @on_ground = false
-    if blocked?(world)
-      if dy < 0.0
-        @y = world.box_edge(@x, @y, @z, @half, @tall, 1, -1)
-        @on_ground = true
-      else
-        @y -= dy
-      end
-      @vy = 0.0
-    end
-    bumped
+    # to_f: Spinel cannot type the position and the speed of the mob.
+    x = world.collide(@x.to_f, @y.to_f, @z.to_f, @half, @tall, 0, dx.to_f)
+    bumped_x = x != @x + dx
+    @vx = 0.0 if bumped_x
+    @x = x
+    z = world.collide(@x.to_f, @y.to_f, @z.to_f, @half, @tall, 2, dz.to_f)
+    bumped_z = z != @z + dz
+    @vz = 0.0 if bumped_z
+    @z = z
+    y = world.collide(@x.to_f, @y.to_f, @z.to_f, @half, @tall, 1, dy.to_f)
+    @on_ground = dy < 0.0 && y != @y + dy
+    @vy = 0.0 if y != @y + dy
+    @y = y
+    bumped_x || bumped_z
   end
 
   def face(dx, dz)
