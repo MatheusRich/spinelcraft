@@ -189,4 +189,16 @@ class ChestsTest < Minitest::Test
     assert_equal 0, @chests.size
     assert_nil @chests.remove_at(World.key(8, Y, 8))
   end
+
+  def test_keep_gives_a_chest_its_contents_in_the_place_of_the_old_ones
+    @world.set(8, Y, 8, Block::CHEST)
+    @chests.open_at(@world, 8, Y, 8)
+    @chests.close
+    slots = Slots.new(Chest::SLOTS)
+    slots.set(3, Block::BONE, 2)
+    @chests.keep(World.key(8, Y, 8), slots)
+    @chests.open_at(@world, 8, Y, 8)
+    assert_same slots, @chests.current.slots_for(0)
+    assert_equal 1, @chests.size
+  end
 end

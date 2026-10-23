@@ -188,6 +188,7 @@ class Game
     test_breeding
     test_push
     test_far_items
+    test_treasure
     bx = @spawn_x.floor
     bz = @spawn_z.floor
     test_bow(bx, bz)
@@ -2091,6 +2092,50 @@ class Game
     @inv.set(0, Block::OAK_LOG, 1)
     craft_recipe(recipe_for(Block::OAK_PLANKS))
     check("a recipe click counts the slot that it empties as room", @inv.block(0) == Block::OAK_PLANKS && @inv.count(0) == 4)
+  end
+
+  # The treasure chest on the island nearest to spawn fills with its loot
+  # the first time that it breaks or opens, and never again.
+  def test_treasure
+    site = @treasure.nearest(@spawn_x, @spawn_z)
+    check("an island near spawn has a treasure site", site.found?)
+    return unless site.found?
+
+    back_x = @player.x.to_f
+    back_y = @player.y.to_f
+    back_z = @player.z.to_f
+    was_survival = @survival
+    @survival = true
+    x = site.chest_x
+    y = site.chest_y
+    z = site.chest_z
+    teleport(x + 0.5, y + 0.01, z + 2.5)
+    chest = @world.get(x, y, z)
+    check("the treasure site has a chest", Block::BASE[chest] == Block::CHEST)
+    @items.clear
+    set_block(x, y, z, Block::AIR)
+    check("an unopened treasure chest drops its loot when it breaks", ground_count(Block::SPINEL_ORE) == 1 && ground_count(Block::IRON_INGOT) > 0)
+    @items.clear
+    set_block(x, y, z, chest)
+    open_chest(x, y, z)
+    empty = @chests.current.slots_for(0).total(Block::SPINEL_ORE) == 0
+    toggle_inventory
+    check("a chest in the place of a looted treasure chest stays empty", empty)
+    @treasure = Treasure.new(@world.treasure_map, @seed)
+    open_chest(x, y, z)
+    loot = @chests.current.slots_for(0).total(Block::SPINEL_ORE)
+    toggle_inventory
+    check("a treasure chest holds one spinel ore when it opens", loot == 1)
+    save
+    @treasure = Treasure.new(@world.treasure_map, @seed)
+    ok = load
+    apply_loaded if ok
+    open_chest(x, y, z)
+    kept = @chests.current.slots_for(0).total(Block::SPINEL_ORE)
+    toggle_inventory
+    check("a looted treasure chest stays looted after a save", ok && kept == 1 && !@treasure.unlooted?(x, y, z))
+    @survival = was_survival
+    teleport(back_x, back_y, back_z)
   end
 
   # Chest contents survive a save and come back when the chest breaks.

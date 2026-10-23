@@ -46,6 +46,13 @@ class Chests
     nil
   end
 
+  # Gives the chest with the key (see World.key) the contents slots, in
+  # the place of what it holds.
+  def keep(key, slots)
+    @by_key[key] = slots
+    nil
+  end
+
   def close
     @current = nil
     nil

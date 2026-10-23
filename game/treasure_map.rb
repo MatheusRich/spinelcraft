@@ -128,6 +128,13 @@ class TreasureSite
 
   def found? = @chest_y >= 0
 
+  # The distance on x and z from the middle of the top of the chest to x, z.
+  def distance(x, z)
+    dx = @chest_x + 0.5 - x
+    dz = @chest_z + 0.5 - z
+    Math.sqrt(dx * dx + dz * dz)
+  end
+
   # True when other is a site and is less than reach blocks away on x and
   # on z.
   def near?(other, reach) = other.found? && (other.chest_x - @chest_x).abs < reach && (other.chest_z - @chest_z).abs < reach

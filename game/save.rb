@@ -18,7 +18,8 @@ class Game
   # item count and ITEM_FIELDS for each item on the ground. Then the count
   # of seen blocks, and their ids. Then the furnaces (Furnaces#to_a). Then
   # the boat count, BOAT_FIELDS for each boat, and the index of the boat
-  # that the player rides (or -1).
+  # that the player rides (or -1). Then the looted treasure chests
+  # (Treasure#to_a).
   F_CHESTS = F_WEATHER + 2
   ITEM_FIELDS = 6 # block, count, x, y, z, age
   BOAT_FIELDS = 5 # item, x, y, z, yaw
@@ -36,6 +37,7 @@ class Game
     boat_fields = [@boats.size]
     @boats.each { |boat| boat_fields.concat([boat.item, boat.x, boat.y, boat.z, boat.yaw]) }
     boat_fields << @riding
+    looted_fields = @treasure.to_a
     item_fields = [@items.size]
     @items.each { |item| item_fields.concat([item.block, item.count, item.x, item.y, item.z, item.age]) }
     t0 = Gfx.gfx_ns
@@ -43,7 +45,7 @@ class Game
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
     inv = (@inv.to_a + @hotbar + [@vitals.hunger, @vitals.saturation, @vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
-           item_fields + [seen.size] + seen + furnace_fields + boat_fields + chunk_fields).map(&:to_s).join(" ")
+           item_fields + [seen.size] + seen + furnace_fields + boat_fields + looted_fields + chunk_fields).map(&:to_s).join(" ")
     line = "#{SAVE_VERSION} #{header} #{inv}\n"
     File.open(@save_path, "wb") do |f|
       f.write(line)
@@ -78,6 +80,7 @@ class Game
     at += 1 + f[at].to_i
     at += 1 + f[at].to_i * Furnaces::FIELDS
     at += 1 + f[at].to_i * BOAT_FIELDS + 1
+    at += 1 + f[at].to_i
     n = f[at].to_i
     chunk_bytes = data.bytesize - nl - 1
     return load_failed("it has #{chunk_bytes} bytes of chunks, not #{n} * #{CHUNK_BYTES}") if chunk_bytes != n * CHUNK_BYTES
@@ -120,6 +123,7 @@ class Game
     @plants = Plants.new(@world, @seed * 13 + 3)
     @breeding = Breeding.new(@seed * 17 + 9)
     @fluids = Fluids.new(@world)
+    @treasure = Treasure.new(@world.treasure_map, @seed)
     @falling.clear
   end
 
@@ -170,6 +174,7 @@ class Game
       c += 1
     end
     @riding = f[at].to_i
+    @treasure.load(f, at + 1)
     @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     respawn if @vitals.dead?
   end

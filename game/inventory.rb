@@ -314,15 +314,24 @@ class Game
     -1
   end
 
-  # Opens the chest at x, y, z (see Chests#open_at).
+  # Opens the chest at x, y, z (see Chests#open_at). A treasure chest
+  # fills first, also when it is a half of a large chest.
   def open_chest(x, y, z)
+    @treasure.stock(@chests, x, y, z)
+    block = @world.get(x, y, z)
+    if Block.chest_left?(block) || Block.chest_right?(block)
+      dir = Block.chest_partner_dir(block)
+      @treasure.stock(@chests, x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
+    end
     @chests.open_at(@world, x, y, z)
     @sfx.play(Sfx::CHEST_OPEN, 0.5)
     toggle_inventory
   end
 
-  # A broken chest drops what it held (in survival).
+  # A broken chest drops what it held (in survival). A treasure chest
+  # fills first. (to_i: Spinel cannot type the positions of set_block.)
   def drop_chest(x, y, z)
+    @treasure.stock(@chests, x.to_i, y.to_i, z.to_i)
     key = World.key(x, y, z)
     if @chests.open? && @chests.current.shows?(key)
       return_held

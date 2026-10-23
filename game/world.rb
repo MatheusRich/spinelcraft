@@ -47,8 +47,10 @@ class World
     @generator = ChunkGenerator.new(self, seed)
   end
 
-  # The noise of the terrain (see ChunkGenerator).
+  # The noise of the terrain, and the sites of the treasure chests (see
+  # ChunkGenerator).
   def terrain = @generator.terrain
+  def treasure_map = @generator.treasure_map
 
   # Spinel cannot type the positions that the game code gives World (from
   # the player, the mobs or the flow queue). So get, set and the chunk
