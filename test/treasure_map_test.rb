@@ -27,9 +27,12 @@ class FakeTerrain
 end
 
 class TreasureMapTest < Minitest::Test
-  CELLS = -4..4
+  # The step of the search, and a column on its grid in cell 0, 0.
+  S = TreasureMap::STEP
+  M = 3 * S
+  CELLS = -2..2
 
-  # The terrain and the sites of the 9 x 9 cells around x = z = 0.
+  # The terrain and the sites of the 5 x 5 cells around x = z = 0.
   def self.area
     @area ||= begin
       terrain = Terrain.new(1337)
@@ -96,38 +99,38 @@ class TreasureMapTest < Minitest::Test
 
   def test_the_site_is_the_highest_column_near_the_highest_sampled_column
     terrain = FakeTerrain.new
-    terrain.heights[[16, 24]] = SEA + 10
-    terrain.heights[[40, 40]] = SEA + 12
-    terrain.heights[[40 + TreasureMap::STEP / 2, 40 - TreasureMap::STEP / 2]] = SEA + 14
-    terrain.heights[[40 + TreasureMap::STEP / 2 + 1, 40]] = SEA + 20
-    terrain.heights[[40, 40 - TreasureMap::STEP / 2 - 1]] = SEA + 20
+    terrain.heights[[S, 2 * S]] = SEA + 10
+    terrain.heights[[M, M]] = SEA + 12
+    terrain.heights[[M + S / 2, M - S / 2]] = SEA + 14
+    terrain.heights[[M + S / 2 + 1, M]] = SEA + 20
+    terrain.heights[[M, M - S / 2 - 1]] = SEA + 20
     site = TreasureMap.new(terrain).site(0, 0)
-    assert_equal [40 + TreasureMap::STEP / 2, SEA + 14, 40 - TreasureMap::STEP / 2], [site.chest_x, site.chest_y, site.chest_z]
+    assert_equal [M + S / 2, SEA + 14, M - S / 2], [site.chest_x, site.chest_y, site.chest_z]
   end
 
   def test_the_window_reaches_as_far_on_the_other_side
     terrain = FakeTerrain.new
-    terrain.heights[[40, 40]] = SEA + 12
-    terrain.heights[[40 - TreasureMap::STEP / 2, 40 + TreasureMap::STEP / 2]] = SEA + 14
-    terrain.heights[[40 - TreasureMap::STEP / 2 - 1, 40]] = SEA + 20
-    terrain.heights[[40, 40 + TreasureMap::STEP / 2 + 1]] = SEA + 20
+    terrain.heights[[M, M]] = SEA + 12
+    terrain.heights[[M - S / 2, M + S / 2]] = SEA + 14
+    terrain.heights[[M - S / 2 - 1, M]] = SEA + 20
+    terrain.heights[[M, M + S / 2 + 1]] = SEA + 20
     site = TreasureMap.new(terrain).site(0, 0)
-    assert_equal [40 - TreasureMap::STEP / 2, 40 + TreasureMap::STEP / 2], [site.chest_x, site.chest_z]
+    assert_equal [M - S / 2, M + S / 2], [site.chest_x, site.chest_z]
   end
 
   def test_of_two_columns_of_one_height_near_the_highest_the_first_one_wins
     terrain = FakeTerrain.new
-    terrain.heights[[40, 40]] = SEA + 12
-    terrain.heights[[38, 40]] = SEA + 12
-    assert_equal 38, TreasureMap.new(terrain).site(0, 0).chest_x
+    terrain.heights[[M, M]] = SEA + 12
+    terrain.heights[[M - 2, M]] = SEA + 12
+    assert_equal M - 2, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
   def test_a_tree_on_a_higher_column_near_the_highest_keeps_the_chest_off_it
     terrain = FakeTerrain.new
-    terrain.heights[[40, 40]] = SEA + 12
-    terrain.heights[[40, 44]] = SEA + 20
-    terrain.trees << [40, 44]
-    assert_equal 40, TreasureMap.new(terrain).site(0, 0).chest_z
+    terrain.heights[[M, M]] = SEA + 12
+    terrain.heights[[M, M + 4]] = SEA + 20
+    terrain.trees << [M, M + 4]
+    assert_equal M, TreasureMap.new(terrain).site(0, 0).chest_z
   end
 
   def test_the_window_holds_no_site_lower_than_rise
@@ -141,8 +144,8 @@ class TreasureMapTest < Minitest::Test
   def test_the_window_opens_only_around_a_sampled_column_higher_than_rise
     terrain = FakeTerrain.new
     corner = 2 * TreasureMap::CELL
-    terrain.heights[[corner + 8, corner + 8]] = SEA + TreasureMap::RISE
-    terrain.heights[[corner + 9, corner + 8]] = SEA + 20
+    terrain.heights[[corner + S, corner + S]] = SEA + TreasureMap::RISE
+    terrain.heights[[corner + S + 1, corner + S]] = SEA + 20
     refute TreasureMap.new(terrain).site(2, 2).found?
   end
 
@@ -154,7 +157,7 @@ class TreasureMapTest < Minitest::Test
     TreasureMap::BEFORE_X.size.times do |before|
       cell_x = 5 + TreasureMap::BEFORE_X[before]
       cell_z = 5 + TreasureMap::BEFORE_Z[before]
-      terrain.heights[[cell_x * TreasureMap::CELL + 8, cell_z * TreasureMap::CELL + 8]] = SEA + 10
+      terrain.heights[[cell_x * TreasureMap::CELL + S, cell_z * TreasureMap::CELL + S]] = SEA + 10
     end
     refute TreasureMap.new(terrain).site(5, 5).found?
   end
@@ -180,23 +183,23 @@ class TreasureMapTest < Minitest::Test
 
   def test_of_two_columns_of_one_height_the_first_one_found_wins
     terrain = FakeTerrain.new
-    terrain.heights[[8, 8]] = SEA + 10
-    terrain.heights[[200, 200]] = SEA + 10
-    assert_equal 8, TreasureMap.new(terrain).site(0, 0).chest_x
+    terrain.heights[[S, S]] = SEA + 10
+    terrain.heights[[12 * S, 12 * S]] = SEA + 10
+    assert_equal S, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
   def test_a_site_stands_more_than_rise_above_the_sea
     terrain = FakeTerrain.new
-    terrain.heights[[8, 8]] = SEA + TreasureMap::RISE
+    terrain.heights[[S, S]] = SEA + TreasureMap::RISE
     refute TreasureMap.new(terrain).site(0, 0).found?
-    terrain.heights[[8, 8]] = SEA + TreasureMap::RISE + 1
+    terrain.heights[[S, S]] = SEA + TreasureMap::RISE + 1
     assert TreasureMap.new(terrain).site(0, 0).found?
   end
 
   def test_a_column_off_the_coast_is_no_site
     terrain = FakeTerrain.new
-    terrain.heights[[8, 8]] = SEA + 20
-    terrain.coast << [8, 8]
+    terrain.heights[[S, S]] = SEA + 20
+    terrain.coast << [S, S]
     terrain.heights[[64, 64]] = SEA + 10
     assert_equal 64, TreasureMap.new(terrain).site(0, 0).chest_x
   end
@@ -293,15 +296,22 @@ class TreasureMapTest < Minitest::Test
     assert_operator facings.uniq.size, :>=, 3
   end
 
-  # Two sites of seed 7 where the leaves of a tree next to the site and
-  # dry grass of the desert took the place of the chest.
-  def test_the_chest_takes_the_place_of_leaves_and_no_plant_takes_its_place
+  # The block at x, y, z of the generated chunk of seed 7, with site as
+  # the only treasure site.
+  def self.block_with_site(site, x, y, z)
     world = World.new(7)
-    [[-4055, -879], [3644, -776]].each do |x, z|
-      site = world.treasure_map.site_at(x, z)
-      world.load_chunk(x >> 4, z >> 4)
-      assert_equal [x, z], [site.chest_x, site.chest_z]
-      assert_equal Block::CHEST, Block::BASE[world.get(x, site.chest_y, z)], "the site at #{x} #{z}"
+    world.instance_variable_get(:@generator).treasure_map.define_singleton_method(:site_at) { |_x, _z| site }
+    world.load_chunk(x >> 4, z >> 4)
+    world.get(x, y, z)
+  end
+
+  # Two cells of seed 7 on the ground: the leaves of a tree next to it
+  # fill one, and dry grass of the desert grows in the other.
+  def test_the_chest_takes_the_place_of_leaves_and_no_plant_takes_its_place
+    [[-4055, 83, -879], [3644, 79, -776]].each do |x, y, z|
+      refute_equal Block::AIR, self.class.block_with_site(TreasureSite.none, x, y, z)
+      chest = self.class.block_with_site(TreasureSite.new(x, y, z), x, y, z)
+      assert_equal Block::CHEST, Block::BASE[chest], "the site at #{x} #{z}"
     end
   end
 

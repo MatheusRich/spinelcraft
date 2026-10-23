@@ -31,7 +31,7 @@ class Treasure
 
   # nearest looks this many cells around the cell of its point on each
   # side. So it finds each site up to NEAR blocks away.
-  NEAR_CELLS = 4
+  NEAR_CELLS = 2
   NEAR = NEAR_CELLS * TreasureMap::CELL
 
   def initialize(map, seed)

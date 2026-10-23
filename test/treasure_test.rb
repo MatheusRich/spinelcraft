@@ -104,8 +104,8 @@ class TreasureTest < Minitest::Test
   def test_nearest_gives_the_nearest_site_that_is_not_looted
     cell = TreasureMap::CELL
     near = TreasureSite.new(cell + 10, Y, 10)
-    far = TreasureSite.new(-cell * 2 + 10, Y, 10)
-    treasure = Treasure.new(FakeMap.new([1, 0] => near, [-2, 0] => far), 1337)
+    far = TreasureSite.new(-cell + 10, Y, 10)
+    treasure = Treasure.new(FakeMap.new([1, 0] => near, [-1, 0] => far), 1337)
     assert_same near, treasure.nearest(100.5, 10.5)
     assert_same far, treasure.nearest(-600.5, 10.5)
     treasure.stock(Chests.new, near.chest_x, Y, near.chest_z)

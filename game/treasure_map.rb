@@ -3,14 +3,15 @@
 # noise, so it gives the same sites each time. ChunkGenerator puts a chest
 # on each site, and tools/map.rb draws them.
 class TreasureMap
-  # The size of a cell in blocks: 1 << CELL_BITS. With 512, about one
-  # island in two gets a chest, and almost no island gets two. This is not
-  # a Minecraft value.
-  CELL_BITS = 9
+  # The size of a cell in blocks: 1 << CELL_BITS. With 1024, a world of
+  # 8000 x 8000 blocks has 11 to 19 chests, about 600 to 700 blocks apart
+  # (seeds 1337, 42 and 7). This is not a Minecraft value.
+  CELL_BITS = 10
   CELL = 1 << CELL_BITS
   # The search reads one column in STEP on x and on z. Then it reads each
-  # column within STEP / 2 of the highest one.
-  STEP = 8
+  # column within STEP / 2 of the highest one. An island is about 60
+  # blocks across, and a step of 8 finds about as many sites as 16.
+  STEP = 16
   # The ground of a site is at least RISE blocks above the sea.
   RISE = 4
   # The top blocks that a chest can stand on.
