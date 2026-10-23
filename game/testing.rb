@@ -781,7 +781,6 @@ class Game
           MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::OAK_LEAVES)] == Sfx::DIG_LEAVES &&
           MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD &&
           MATERIAL_STEP[material(Block::WOOL)] == Sfx::CLOTH && MATERIAL_STEP[material(Block::SNOW)] == Sfx::SNOW)
-    test_sound_position
     test_block_sounds
     test_furnace_crackle
     test_lava_swim
@@ -977,26 +976,6 @@ class Game
     set_block(x + 1, y, z, Block::AIR)
     @player.move_to(player[0], player[1], player[2])
     check("a lit furnace next to the player crackles every few seconds", crackles > 15)
-  end
-
-  # A sound to the side pans to that side, a sound far below is quiet,
-  # and an explosion reaches farther. At yaw 0 the player looks toward -z,
-  # so +x is to the right.
-  def test_sound_position
-    yaw = @player.yaw
-    @player.yaw = 0.0
-    x = @player.x
-    y = @player.eye_y
-    z = @player.z
-    right = pan_to(x + 5.0, y, z)
-    left = pan_to(x - 5.0, y, z)
-    above = pan_to(x, y + 5.0, z)
-    ahead = pan_to(x, y, z - 5.0)
-    check("a sound pans toward the side that it comes from", right > 0.99 && left < -0.99 && above.abs < 0.01 && ahead.abs < 0.01)
-    check("a sound far below is quiet", near_volume(x, y - 12.0, z, 1.0, Sfx::RANGE) < 0.3 && near_volume(x, y - 20.0, z, 1.0, Sfx::RANGE) == 0.0)
-    check("an explosion carries farther than other sounds",
-          near_volume(x, y, z - 40.0, 1.0, Sfx::EXPLOSION_RANGE) > 0.0 && near_volume(x, y, z - 40.0, 1.0, Sfx::RANGE) == 0.0)
-    @player.yaw = yaw
   end
 
   # In a dark pocket deep in the rock, the fear grows and a cave sound

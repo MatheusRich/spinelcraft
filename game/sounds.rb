@@ -1,6 +1,7 @@
 # Sound effects: OGG files in assets/sounds, from VoxeLibre (see
-# assets/sounds/CREDITS.md).
-module Sfx
+# assets/sounds/CREDITS.md). An Sfx is the listener: it gives the volume
+# and the pan of a sound from where the player hears it.
+class Sfx
   BREAK = 0
   PLACE = 1
   PLACE_HARD = 2
@@ -106,6 +107,44 @@ module Sfx
   # silence, in the order of the ids above.
   RANGES = Array.new(FILES.size, RANGE)
   RANGES[EXPLODE] = EXPLOSION_RANGE
+
+  def initialize
+    @x = 0.0
+    @y = 0.0
+    @z = 0.0
+    @yaw = 0.0
+  end
+
+  # The listener hears from x, y, z (the eyes of the player) and faces
+  # yaw. Game sets it once each frame.
+  def listen(x, y, z, yaw)
+    @x = x
+    @y = y
+    @z = z
+    @yaw = yaw
+    nil
+  end
+
+  # Volume for a sound at x, y, z: fades to silence at range blocks.
+  def near_volume(x, y, z, gain, range)
+    dx = x - @x
+    dy = y - @y
+    dz = z - @z
+    volume = 1.0 - Math.sqrt(dx * dx + dy * dy + dz * dz) / range
+    volume > 0.0 ? volume * gain : 0.0
+  end
+
+  # Pan for a sound at x, y, z: -1.0 is to the left of the listener, 1.0 is
+  # to the right, and 0.0 is ahead, behind, above or below.
+  def pan_to(x, y, z)
+    dx = x - @x
+    dy = y - @y
+    dz = z - @z
+    dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+    return 0.0 if dist < 0.001
+
+    (dx * Math.cos(@yaw) + dz * Math.sin(@yaw)) / dist
+  end
 
   # Loads each sound file. Returns how many loaded.
   def self.load_files

@@ -163,6 +163,7 @@ class Game
     @step_dist = 0.0
     @was_swimming = false
     @last_sound = -1
+    @sfx = Sfx.new
     @particles = Particles.new(@seed)
     @arrows = []
     @eggs = []
@@ -397,28 +398,11 @@ class Game
 
   # Plays a sound that comes from x, y, z and reaches Sfx::RANGES[id] blocks.
   def play_at(id, x, y, z, gain)
-    Gfx.au_play(id, near_volume(x, y, z, gain, Sfx::RANGES[id]) * @options.volume, pan_to(x, y, z)) if @sound
-  end
+    return unless @sound
 
-  # Volume for a sound at x, y, z: fades to silence at range blocks.
-  def near_volume(x, y, z, gain, range)
-    dx = x - @player.x
-    dy = y - @player.eye_y
-    dz = z - @player.z
-    v = 1.0 - Math.sqrt(dx * dx + dy * dy + dz * dz) / range
-    v > 0.0 ? v * gain : 0.0
-  end
-
-  # Pan for a sound at x, y, z: -1.0 is to the left of the player, 1.0 is
-  # to the right, and 0.0 is ahead, behind, above or below.
-  def pan_to(x, y, z)
-    dx = x - @player.x
-    dy = y - @player.eye_y
-    dz = z - @player.z
-    dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
-    return 0.0 if dist < 0.001
-
-    (dx * Math.cos(@player.yaw) + dz * Math.sin(@player.yaw)) / dist
+    # to_f: Spinel cannot type the positions of the mobs and the items.
+    volume = @sfx.near_volume(x.to_f, y.to_f, z.to_f, gain, Sfx::RANGES[id])
+    Gfx.au_play(id, volume * @options.volume, @sfx.pan_to(x.to_f, y.to_f, z.to_f))
   end
 
   # Starts a track when Music says so, and feeds the track that plays. The
@@ -448,6 +432,8 @@ class Game
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
   def update_game(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+    # to_f: Spinel cannot type the position of the player.
+    @sfx.listen(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.yaw.to_f)
     if @title_open
       @player.yaw += TITLE_TURN * dt
       @confirm_wait -= dt
