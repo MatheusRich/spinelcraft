@@ -47,6 +47,12 @@ class NaturalSpawner
   GUARDS = 4
   GUARD_RANGE = 4
   GUARD_TRIES = 40
+  # The kinds of the guards and their weights: the zombies and the
+  # skeletons of MONSTER_KINDS, with their weights. A creeper guard could
+  # blow up the guards next to it and the chest, so no guard is a creeper.
+  # This is not a Minecraft rule.
+  GUARD_KINDS = [Mob::ZOMBIE, Mob::SKELETON]
+  GUARD_WEIGHTS = [95.0, 100.0]
 
   # On Halloween, a zombie or a skeleton wears a carved pumpkin 22.5% of
   # the time and a jack o'lantern 2.5% of the time. minecraft.wiki/w/Halloween
@@ -137,7 +143,7 @@ class NaturalSpawner
   end
 
   # The guards of the treasure chest at x, z: a pack of GUARDS monsters of
-  # random kinds, by MONSTER_WEIGHTS, on the columns around the chest that
+  # random kinds, by GUARD_WEIGHTS, on the columns around the chest that
   # have room for them on top. Light does not stop them. Returns how many
   # spawned.
   def spawn_guards(mobs, x, z)
@@ -149,7 +155,7 @@ class NaturalSpawner
       cell_z = z + @rng.between(-GUARD_RANGE, GUARD_RANGE)
       cell_y = @world.height_at(cell_x, cell_z)
       if room?(cell_x, cell_y, cell_z)
-        add_monster(mobs, pick_kind(MONSTER_KINDS, MONSTER_WEIGHTS), cell_x, cell_y, cell_z).guard = true
+        add_monster(mobs, pick_kind(GUARD_KINDS, GUARD_WEIGHTS), cell_x, cell_y, cell_z).guard = true
         spawned += 1
       end
     end

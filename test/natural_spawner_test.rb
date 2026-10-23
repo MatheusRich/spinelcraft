@@ -113,11 +113,16 @@ class NaturalSpawnerTest < Minitest::Test
     assert_equal NaturalSpawner::GUARDS, mobs.size
     mobs.each do |monster|
       assert monster.guard
-      assert_includes NaturalSpawner::MONSTER_KINDS, monster.kind
       assert_operator (monster.x - (X + 0.5)).abs, :<=, NaturalSpawner::GUARD_RANGE
       assert_operator (monster.z - (Z + 0.5)).abs, :<=, NaturalSpawner::GUARD_RANGE
       assert Block.solid?(@world.get(monster.x.floor, monster.y.floor - 1, monster.z.floor))
     end
+  end
+
+  def test_guards_are_zombies_and_skeletons_and_never_creepers
+    guard_floor
+    kinds = Array.new(100) { [].tap { |mobs| @spawner.spawn_guards(mobs, X, Z) } }.flatten.map(&:kind)
+    assert_equal [Mob::ZOMBIE, Mob::SKELETON].sort, kinds.uniq.sort
   end
 
   def test_guards_reach_each_column_of_their_range
