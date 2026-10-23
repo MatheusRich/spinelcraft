@@ -32,6 +32,17 @@ class LightTest < Minitest::Test
     assert_equal 12, Light.sky(23992, raining: true)
   end
 
+  # In clear weather, minecraft.wiki/w/Daylight_cycle says that undead mobs
+  # stop to burn at tick 12542 and begin to burn at tick 23460. These are
+  # the ticks where the sky light goes below Monster::SUN_BURN_LIGHT and
+  # back, as Game#sun_burns? reads it.
+  def test_the_sky_light_crosses_the_sun_burn_light_at_the_ticks_of_the_wiki
+    assert_operator Light.sky(12541, raining: false), :>=, Monster::SUN_BURN_LIGHT
+    assert_operator Light.sky(12542, raining: false), :<, Monster::SUN_BURN_LIGHT
+    assert_operator Light.sky(23459, raining: false), :<, Monster::SUN_BURN_LIGHT
+    assert_operator Light.sky(23460, raining: false), :>=, Monster::SUN_BURN_LIGHT
+  end
+
   def test_a_cell_under_the_open_sky_has_the_sky_light
     assert_equal 15, @light.level(X, Y, Z, 15, false, 15)
     assert_equal 4, @light.level(X, Y, Z, 4, false, 4)

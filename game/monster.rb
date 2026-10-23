@@ -11,6 +11,12 @@ class Monster < Mob
   FUSE_REACH = 7.0
   # Seconds of fire from the sun. minecraft.wiki/w/Fire
   SUN_FIRE = 8.0
+  # The sun burns undead mobs while the sky light is at least this. In
+  # clear weather, minecraft.wiki/w/Daylight_cycle gives the ticks: they
+  # stop to burn at tick 12542 and begin again at tick 23460, which are
+  # the ticks where the sky light goes below 12 and back. The wiki does
+  # not give the light level itself.
+  SUN_BURN_LIGHT = 12
   # A monster farther than DESPAWN_FAR blocks from the player despawns at
   # once. A monster that has been farther than DESPAWN_NEAR for
   # IDLE_DESPAWN seconds despawns with a chance of 1 in 800 each tick.

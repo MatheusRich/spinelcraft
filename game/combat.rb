@@ -111,10 +111,10 @@ class Game
     nil
   end
 
-  # In clear weather, undead mobs burn from the end of the night to the
-  # start of the next night. minecraft.wiki/w/Daylight_cycle
-  # The wiki does not confirm that rain stops the burning.
-  def sun_burns? = !@weather.wet? && !@clock.night?
+  # The sun burns undead mobs while the sky light is at least
+  # Monster::SUN_BURN_LIGHT and they are not wet. The wiki does not confirm
+  # that rain stops the burning.
+  def sun_burns? = !@weather.wet? && @sky.light >= Monster::SUN_BURN_LIGHT
 
   # The turn of a monster: what it asked for in its last step, the sun
   # burn, and its step.
