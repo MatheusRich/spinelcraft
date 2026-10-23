@@ -1,8 +1,8 @@
 # The generator of the blocks of a chunk: the ground and the water from
 # the noise of Terrain, then the caves, the ores (Ores), the trees
 # (Trees), the treasure chests (TreasureMap), the plants and the desert
-# wells. It writes into the store of
-# World with World#put_block, and keeps its own work arrays.
+# wells. It writes into the store of World with World#put_block, and
+# keeps its own work arrays.
 class ChunkGenerator
   # Cave noise grid of one chunk: a point every 4 blocks.
   GX = CHUNK / 4 + 1
@@ -328,7 +328,7 @@ class ChunkGenerator
           elsif p >= 65536 - Biome::FLOWERS[biome] && meadow > -0.05
             @world.put(x, top + 1, z, (x + z) % 3 == 0 ? Block::ROSE : Block::DANDELION, x0, z0)
           end
-        elsif ground == Block::SAND && biome == Biome::DESERT && !Terrain.beach?(top)
+        elsif ground == Block::SAND && biome == Biome::DESERT && !Terrain.beach?(top) && @world.block(World.index(x, top + 1, z)) == Block::AIR
           r = Noise.hash3(x, 0, z, 21)
           if r < 350
             tall = 1 + Noise.hash3(x, 1, z, 22) % 3
@@ -349,19 +349,20 @@ class ChunkGenerator
   end
 
   # Puts a chest on the treasure site in the chunk cx, cz, if it has one.
-  # A tree that reaches in from next door can fill the cell, and then the
-  # site gets no chest. The chest faces a random way. No site has y -1,
-  # which air_in? rejects.
+  # The chest takes the place of the leaves of a tree next to it. The
+  # plants come after the chest, so they do not take its place. The chest
+  # faces a random way.
   def treasure_chest(cx, cz)
-    x0 = cx * CHUNK
-    z0 = cz * CHUNK
-    site = @treasure_map.site_at(x0, z0)
+    site = @treasure_map.site_at(cx * CHUNK, cz * CHUNK)
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
-    return unless @world.air_in?(x, y, z, x0, z0)
+    return unless site.found? && x >> 4 == cx && z >> 4 == cz
 
-    @world.put(x, y, z, Block.facing_id(Block::CHEST, Noise.hash3(x, y, z, 41) & 3), x0, z0)
+    block = @world.block(World.index(x, y, z))
+    return unless block == Block::AIR || Block.leaves?(block)
+
+    @world.put(x, y, z, Block.facing_id(Block::CHEST, Noise.hash3(x, y, z, 41) & 3), cx * CHUNK, cz * CHUNK)
   end
 
   # A desert well in about 1 of 1000 chunks (minecraft.wiki/w/Desert_Well).

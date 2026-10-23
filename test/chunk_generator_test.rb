@@ -21,6 +21,20 @@ class ChunkGeneratorTest < Minitest::Test
     end
   end
 
+  # The 3 x 3 chunks around x 1408, z -512 of seed 1337 are desert.
+  def test_desert_sand_grows_dry_grass_and_cacti
+    world = World.new(1337)
+    counts = Hash.new(0)
+    (-1..1).each do |dx|
+      (-1..1).each do |dz|
+        world.load_chunk((1408 >> 4) + dx, (-512 >> 4) + dz)
+        world.chunk_bytes((1408 >> 4) + dx, (-512 >> 4) + dz).each_byte { |block| counts[block] += 1 }
+      end
+    end
+    assert_operator counts[Block::DRY_GRASS], :>, 20
+    assert_operator counts[Block::CACTUS], :>, 5
+  end
+
   ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE].freeze
 
   # The stone and ore blocks of each layer, and the blocks of each ore by

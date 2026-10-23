@@ -159,6 +159,16 @@ class TreasureMapTest < Minitest::Test
     refute TreasureMap.new(terrain).site(5, 5).found?
   end
 
+  def test_the_window_stays_in_the_cell
+    terrain = FakeTerrain.new
+    corner = TreasureMap::CELL
+    terrain.heights[[corner, corner]] = SEA + 10
+    terrain.heights[[corner - 1, corner]] = SEA + 20
+    terrain.heights[[corner, corner - 1]] = SEA + 20
+    site = TreasureMap.new(terrain).site(1, 1)
+    assert_equal [corner, corner], [site.chest_x, site.chest_z]
+  end
+
   def test_the_search_reads_the_corner_of_its_cell_but_not_the_next_cell
     terrain = FakeTerrain.new
     terrain.heights[[0, 0]] = SEA + 10
@@ -281,6 +291,18 @@ class TreasureMapTest < Minitest::Test
       Block::FACING[world.get(site.chest_x, site.chest_y, site.chest_z)]
     end
     assert_operator facings.uniq.size, :>=, 3
+  end
+
+  # Two sites of seed 7 where the leaves of a tree next to the site and
+  # dry grass of the desert took the place of the chest.
+  def test_the_chest_takes_the_place_of_leaves_and_no_plant_takes_its_place
+    world = World.new(7)
+    [[-4055, -879], [3644, -776]].each do |x, z|
+      site = world.treasure_map.site_at(x, z)
+      world.load_chunk(x >> 4, z >> 4)
+      assert_equal [x, z], [site.chest_x, site.chest_z]
+      assert_equal Block::CHEST, Block::BASE[world.get(x, site.chest_y, z)], "the site at #{x} #{z}"
+    end
   end
 
   def test_a_site_that_a_block_fills_gets_no_chest

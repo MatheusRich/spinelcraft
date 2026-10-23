@@ -16,8 +16,9 @@ class TreasureMap
   # The top blocks that a chest can stand on.
   GROUND = [Block::GRASS, Block::SNOW_GRASS, Block::SAND, Block::SNOW]
   # An island near the edge of a cell can get the sites of two cells. So a
-  # site closer than GAP blocks (on x and on z) to the site of a cell
-  # before it is no site. The cells before a cell are the 4 cells next to
+  # site closer than GAP blocks (on x and on z) to the site that the
+  # search found in a cell before it is no site, also when the GAP test
+  # drops that site in its turn. The cells before a cell are the 4 cells next to
   # it that come first when the cells go in rows along x, one row of z
   # after another (BEFORE_X, BEFORE_Z).
   GAP = 64
@@ -85,12 +86,16 @@ class TreasureMap
     @terrain.surface_height(x, z)
   end
 
-  # The highest column within STEP / 2 of x, z where a chest can stand.
+  # The highest column within STEP / 2 of x, z and in its cell where a
+  # chest can stand. The cell of a site is the one cell whose chunks put
+  # its chest (ChunkGenerator#treasure_chest).
   def refine(x, z)
     best = SEA + RISE
     site = TreasureSite.none
     (-STEP / 2..STEP / 2).each do |dx|
       (-STEP / 2..STEP / 2).each do |dz|
+        next unless (x + dx) >> CELL_BITS == x >> CELL_BITS && (z + dz) >> CELL_BITS == z >> CELL_BITS
+
         height = island_height(x + dx, z + dz)
         next if height <= best || !holds_chest?(x + dx, z + dz, height)
 
