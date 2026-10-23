@@ -20,6 +20,13 @@ class Treasure
     LootPool.new(0, 1).row(Block::IRON_SWORD, 1, 1, 1).row(0, 1, 1, 1).row(0, 1, 1, 1)
   ]
 
+  # A treasure chest sends its guards when the player comes this near, as
+  # a monster spawner starts in a sphere of 16 blocks around it
+  # (minecraft.wiki/w/Monster_Spawner). It sends them again only after the
+  # player has gone farther than Monster::DESPAWN_FAR, where they despawn.
+  # This is not a Minecraft rule.
+  GUARD_REACH = 16.0
+
   # nearest looks this many cells around the cell of its point on each
   # side, about 2000 blocks.
   NEAR_CELLS = 4
@@ -29,6 +36,8 @@ class Treasure
     @seed = seed
     # The World.key of each looted chest.
     @looted = Array.new(0, 0)
+    # The sites that sent their guards (see call_guards).
+    @sent = Array.new(0) { TreasureSite.none }
     nil
   end
 
@@ -72,6 +81,33 @@ class Treasure
       end
     end
     best
+  end
+
+  # The site of the chest that sends its guards now, with the player at x,
+  # y, z, or no site. That is a chest that is not looted, within
+  # GUARD_REACH of the player, and that did not send its guards before.
+  # A site that sent them can send them again once the player has gone
+  # farther than Monster::DESPAWN_FAR.
+  def call_guards(x, y, z)
+    @sent.reject! { |site| site.distance(x, z) > Monster::DESPAWN_FAR }
+    [-GUARD_REACH, GUARD_REACH].each do |dx|
+      [-GUARD_REACH, GUARD_REACH].each do |dz|
+        site = @map.site_at((x + dx).floor, (z + dz).floor)
+        next unless guards_ready?(site, x, y, z)
+
+        @sent << site
+        return site
+      end
+    end
+    TreasureSite.none
+  end
+
+  # True when site has a chest that is not looted, within GUARD_REACH of
+  # x, y, z, and has not sent its guards.
+  def guards_ready?(site, x, y, z)
+    dy = site.chest_y + 0.5 - y
+    distance = site.distance(x, z)
+    unlooted?(site.chest_x, site.chest_y, site.chest_z) && distance * distance + dy * dy <= GUARD_REACH * GUARD_REACH && !@sent.include?(site)
   end
 
   # The save fields: the number of looted chests, then their keys.

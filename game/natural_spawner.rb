@@ -36,6 +36,16 @@ class NaturalSpawner
   ANIMALS = 24
   REFILL_TIME = 2.0
 
+  # The guards of a treasure chest: a pack of GUARDS monsters in the
+  # cells up to GUARD_RANGE blocks from the chest on x and z and 1 block
+  # on y, as a monster spawner spawns 4 mobs in the 9 x 3 x 9 blocks
+  # around it (minecraft.wiki/w/Monster_Spawner). A spawner makes 4 tries
+  # each time. The pack tries up to GUARD_TRIES cells, so that it nearly
+  # always has all its monsters; this is not a Minecraft value.
+  GUARDS = 4
+  GUARD_RANGE = 4
+  GUARD_TRIES = 40
+
   # On Halloween, a zombie or a skeleton wears a carved pumpkin 22.5% of
   # the time and a jack o'lantern 2.5% of the time. minecraft.wiki/w/Halloween
   HALLOWEEN_CARVED = 0.225
@@ -122,6 +132,26 @@ class NaturalSpawner
 
     ground = @world.get(x, y - 1, z)
     Block.solid?(ground) && !Block.leaves?(ground) && @world.get(x, y, z) == Block::AIR && @world.get(x, y + 1, z) == Block::AIR
+  end
+
+  # The guards of the treasure chest at x, y, z: a pack of GUARDS monsters
+  # of random kinds, by MONSTER_WEIGHTS, in the cells around the chest
+  # that have room for them. Light does not stop them. Returns how many
+  # spawned.
+  def spawn_guards(mobs, x, y, z)
+    spawned = 0
+    tries = 0
+    while spawned < GUARDS && tries < GUARD_TRIES
+      tries += 1
+      cell_x = x + @rng.between(-GUARD_RANGE, GUARD_RANGE)
+      cell_y = y + @rng.between(-1, 1)
+      cell_z = z + @rng.between(-GUARD_RANGE, GUARD_RANGE)
+      if room?(cell_x, cell_y, cell_z)
+        add_monster(mobs, pick_kind(MONSTER_KINDS, MONSTER_WEIGHTS), cell_x, cell_y, cell_z).guard = true
+        spawned += 1
+      end
+    end
+    spawned
   end
 
   # Adds a new monster of kind at the cell x, y, z to mobs, and gives it.

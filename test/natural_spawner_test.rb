@@ -100,6 +100,59 @@ class NaturalSpawnerTest < Minitest::Test
     end
   end
 
+  # A floor of stone at SKY_Y - 1 around X, Z, and a chest on it.
+  def guard_floor
+    (X - 6..X + 6).each { |x| (Z - 6..Z + 6).each { |z| @world.set(x, Y - 1, z, Block::STONE) } }
+    @world.set(X, Y, Z, Block::CHEST)
+  end
+
+  def test_the_guards_of_a_chest_are_4_monsters_around_it
+    guard_floor
+    mobs = []
+    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Y, Z)
+    assert_equal NaturalSpawner::GUARDS, mobs.size
+    mobs.each do |monster|
+      assert monster.guard
+      assert_includes NaturalSpawner::MONSTER_KINDS, monster.kind
+      assert_operator (monster.x - (X + 0.5)).abs, :<=, NaturalSpawner::GUARD_RANGE
+      assert_operator (monster.z - (Z + 0.5)).abs, :<=, NaturalSpawner::GUARD_RANGE
+      assert_operator (monster.y.floor - Y).abs, :<=, 1
+      assert Block.solid?(@world.get(monster.x.floor, monster.y.floor - 1, monster.z.floor))
+    end
+  end
+
+  def test_guards_reach_each_cell_of_their_range
+    guard_floor
+    (Y - 3..Y + 3).each { |y| @world.set(X, y, Z + 9, Block::STONE) }
+    cells = []
+    200.times do
+      mobs = []
+      @spawner.spawn_guards(mobs, X, Y, Z)
+      mobs.each { |monster| cells << [monster.x.floor - X, monster.y.floor - Y, monster.z.floor - Z] }
+    end
+    assert_equal (-NaturalSpawner::GUARD_RANGE..NaturalSpawner::GUARD_RANGE).to_a, cells.map(&:first).uniq.sort
+    assert_equal (-NaturalSpawner::GUARD_RANGE..NaturalSpawner::GUARD_RANGE).to_a, cells.map(&:last).uniq.sort
+    # The chest is a floor too, so a guard can stand on it, 1 block up.
+    assert_equal [0, 1], cells.map { |cell| cell[1] }.uniq.sort
+  end
+
+  def test_guards_spawn_in_the_light_of_day_and_of_a_torch
+    guard_floor
+    @world.set(X + 1, Y, Z, Block::TORCH)
+    mobs = []
+    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Y, Z)
+  end
+
+  def test_guards_need_room_and_stop_after_their_tries
+    mobs = []
+    assert_equal 0, @spawner.spawn_guards(mobs, X, Y, Z)
+    assert_empty mobs
+    @world.set(X + 2, Y - 1, Z + 2, Block::STONE)
+    spawned = Array.new(20) { @spawner.spawn_guards(mobs, X, Y, Z) }
+    assert_operator spawned.max, :<, NaturalSpawner::GUARDS
+    assert_operator spawned.sum, :>, 0
+  end
+
   def test_monsters_spawn_in_packs_of_one_kind
     mobs = []
     @spawner.spawn_monsters(mobs, @player, 0, 10.0)

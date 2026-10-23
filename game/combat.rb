@@ -39,6 +39,7 @@ class Game
 
   def update_mobs(dt)
     @spawner.spawn_monsters(@mobs, @player, @sky.light, dt)
+    guard_treasure
     @breeding.pair_lovers(@mobs, @particles)
     push_mobs(dt)
     held = current_block.to_i
@@ -49,6 +50,17 @@ class Game
     steps.times { update_arrows(dt / steps) }
     update_eggs(dt)
     remove_gone_mobs(dt)
+  end
+
+  # A treasure chest sends its guards when the player comes near it (see
+  # Treasure#call_guards), while the chest is there.
+  def guard_treasure
+    site = @treasure.call_guards(@player.x.to_f, @player.y.to_f, @player.z.to_f)
+    x = site.chest_x
+    y = site.chest_y
+    z = site.chest_z
+    @spawner.spawn_guards(@mobs, x, y, z) if site.found? && Block::BASE[@world.get(x, y, z)] == Block::CHEST
+    nil
   end
 
   # The turn of a mob in a frame: its sounds and the weather, the turn of

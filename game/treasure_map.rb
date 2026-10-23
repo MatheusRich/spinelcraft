@@ -53,8 +53,8 @@ class TreasureMap
     site
   end
 
-  # The site of the cell around block x, z.
-  def site_at(x, z) = site(x.floor.to_i >> CELL_BITS, z.floor.to_i >> CELL_BITS)
+  # The site of the cell around the block x, z (Integers).
+  def site_at(x, z) = site(x >> CELL_BITS, z >> CELL_BITS)
 
   # The highest dry column of the cell with its corner at x0, z0 that is
   # in open ocean, then the highest column near it that a chest can stand

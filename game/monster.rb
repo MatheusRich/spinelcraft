@@ -1,6 +1,6 @@
 # Zombies, skeletons and creepers: they walk to the player and attack,
 # burn in the sun (but a creeper does not), and despawn far from the
-# player.
+# player. A guard of a treasure chest (Treasure) waits by its chest.
 class Monster < Mob
   # Seconds of a creeper's fuse. minecraft.wiki/w/Creeper
   FUSE = 1.5
@@ -37,6 +37,8 @@ class Monster < Mob
   # The block that the monster wears on its head (a carved pumpkin on
   # Halloween), or 0.
   attr_accessor :head
+  # True for a guard of a treasure chest (see despawn?).
+  attr_accessor :guard
 
   def initialize(kind, x, y, z, seed)
     super
@@ -47,6 +49,7 @@ class Monster < Mob
     @attack_wait = 0.0
     @idle = 0.0
     @head = 0
+    @guard = false
     # The damage that the monster deals to the player in this step.
     @bite = 0
     # The walk along the line to the player (sees?).
@@ -62,13 +65,16 @@ class Monster < Mob
   end
 
   # True when the monster despawns after dt seconds more, with player
-  # where it is now.
+  # where it is now. A guard despawns only farther than DESPAWN_FAR, so it
+  # waits by its chest while the player is near. This is not a Minecraft
+  # rule.
   def despawn?(player, dt)
     dx = @x - player.x
     dy = @y - player.y
     dz = @z - player.z
     distance_sq = dx * dx + dy * dy + dz * dz
     return true if distance_sq > DESPAWN_FAR * DESPAWN_FAR
+    return false if @guard
 
     @idle = distance_sq > DESPAWN_NEAR * DESPAWN_NEAR ? @idle + dt : 0.0
     @idle > IDLE_DESPAWN && @rng.rand01 < dt * DESPAWN_CHANCE

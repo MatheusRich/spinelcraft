@@ -423,6 +423,16 @@ class MobTest < Minitest::Test
     refute Monster.new(Mob::ZOMBIE, 0.0, 33.0, 0.0, 1).despawn?(player, 30.0)
   end
 
+  def test_a_guard_waits_by_its_chest_and_despawns_only_farther_than_128_blocks
+    player = Player.new(0.0, 0.0, 0.0)
+    guard = Monster.new(Mob::SKELETON, 40.0, 0.0, 0.0, 1)
+    guard.guard = true
+    10.times { refute guard.despawn?(player, 40.0) }
+    guard.x = 129.0
+    assert guard.despawn?(player, 0.0)
+    refute Monster.new(Mob::SKELETON, 0.0, 0.0, 0.0, 1).guard
+  end
+
   def test_a_monster_that_comes_near_the_player_starts_its_wait_again
     player = Player.new(0.0, 0.0, 0.0)
     zombie = Monster.new(Mob::ZOMBIE, 33.0, 0.0, 0.0, 1)

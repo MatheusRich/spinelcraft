@@ -2109,9 +2109,11 @@ class Game
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
-    teleport(x + 0.5, y + 0.01, z + 2.5)
+    teleport(x + 0.5, y + 0.01, z + 20.5)
     chest = @world.get(x, y, z)
     check("the treasure site has a chest", Block::BASE[chest] == Block::CHEST)
+    test_treasure_guards(x, y, z)
+    teleport(x + 0.5, y + 0.01, z + 2.5)
     @items.clear
     set_block(x, y, z, Block::AIR)
     check("an unopened treasure chest drops its loot when it breaks", ground_count(Block::SPINEL_ORE) == 1 && ground_count(Block::IRON_INGOT) > 0)
@@ -2134,8 +2136,35 @@ class Game
     kept = @chests.current.slots_for(0).total(Block::SPINEL_ORE)
     toggle_inventory
     check("a looted treasure chest stays looted after a save", ok && kept == 1 && !@treasure.unlooted?(x, y, z))
+    @mobs.clear
+    teleport(x + 0.5, y + 0.01, z + 200.5)
+    guard_treasure
+    teleport(x + 0.5, y + 0.01, z + 10.5)
+    guard_treasure
+    check("a looted treasure chest has no guards", @mobs.empty?)
     @survival = was_survival
     teleport(back_x, back_y, back_z)
+  end
+
+  # The guards of the treasure chest at x, y, z come when the player comes
+  # within 16 blocks, once, and again after the player has gone far away.
+  def test_treasure_guards(x, y, z)
+    @mobs.clear
+    guard_treasure
+    check("a treasure chest sends no guards to a player 20 blocks away", @mobs.empty?)
+    teleport(x + 0.5, y + 0.01, z + 10.5)
+    update_mobs(1.0 / 60.0)
+    near = @mobs.count { |mob| !mob.passive? && (mob.x - x - 0.5).abs <= 5.0 && (mob.z - z - 0.5).abs <= 5.0 }
+    check("4 monsters guard a treasure chest when the player comes near", near == NaturalSpawner::GUARDS)
+    @mobs.clear
+    guard_treasure
+    check("the guards that the player kills do not come back while the player stays", @mobs.empty?)
+    teleport(x + 0.5, y + 0.01, z + 200.5)
+    guard_treasure
+    teleport(x + 0.5, y + 0.01, z + 10.5)
+    guard_treasure
+    check("the guards come back after the player goes far away", @mobs.size == NaturalSpawner::GUARDS)
+    @mobs.clear
   end
 
   # Chest contents survive a save and come back when the chest breaks.

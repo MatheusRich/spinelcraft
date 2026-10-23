@@ -70,7 +70,7 @@ class TreasureMapTest < Minitest::Test
     map = TreasureMap.new(terrain)
     sites.each do |site|
       assert_same site.chest_x, map.site_at(site.chest_x, site.chest_z).chest_x
-      assert_same site.chest_z, map.site_at(site.chest_x + 0.5, site.chest_z + 0.5).chest_z
+      assert_same site.chest_z, map.site_at(site.chest_x, site.chest_z).chest_z
     end
   end
 
@@ -224,8 +224,8 @@ class TreasureMapTest < Minitest::Test
 
   def test_the_cell_of_a_block_rounds_down
     map = TreasureMap.new(FakeTerrain.new)
-    assert_same map.site(-1, -1), map.site_at(-0.5, -0.5)
-    assert_same map.site(0, -1), map.site_at(TreasureMap::CELL - 0.5, -0.5)
+    assert_same map.site(-1, -1), map.site_at(-1, -1)
+    assert_same map.site(0, -1), map.site_at(TreasureMap::CELL - 1, -1)
   end
 
   def test_the_search_reads_each_cell_once

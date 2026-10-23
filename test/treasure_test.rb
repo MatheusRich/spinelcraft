@@ -8,7 +8,7 @@ class FakeMap
 
   def site(cell_x, cell_z) = @sites.fetch([cell_x, cell_z], TreasureSite.none)
 
-  def site_at(x, z) = site(x.floor.to_i >> TreasureMap::CELL_BITS, z.floor.to_i >> TreasureMap::CELL_BITS)
+  def site_at(x, z) = site(x >> TreasureMap::CELL_BITS, z >> TreasureMap::CELL_BITS)
 end
 
 # A TreasureMap with one site.
@@ -155,5 +155,48 @@ class TreasureTest < Minitest::Test
     again.load(treasure.to_a.map(&:to_s), 0)
     refute again.unlooted?(10, Y, 10)
     refute again.unlooted?(TreasureMap::CELL + 10, Y, 10)
+  end
+
+  def test_a_chest_sends_its_guards_when_the_player_comes_within_16_blocks
+    reach = Treasure::GUARD_REACH
+    refute @treasure.call_guards(X + 0.5 + reach + 0.1, Y + 0.5, Z + 0.5).found?
+    refute @treasure.call_guards(X + 0.5, Y + 0.5 + reach + 0.1, Z + 0.5).found?
+    assert_equal X, @treasure.call_guards(X + 0.5 + reach - 0.1, Y + 0.5, Z + 0.5).chest_x
+  end
+
+  def test_the_reach_of_the_guards_is_a_sphere_around_the_middle_of_the_chest
+    assert Treasure.new(OneSiteMap.new(TreasureSite.new(X, Y, Z)), 1).call_guards(X + 0.5, Y + 0.5 + Treasure::GUARD_REACH - 0.1, Z + 0.5).found?
+    assert Treasure.new(OneSiteMap.new(TreasureSite.new(X, Y, Z)), 1).call_guards(X + 0.5, Y + 0.5 - Treasure::GUARD_REACH + 0.1, Z + 0.5).found?
+    assert Treasure.new(OneSiteMap.new(TreasureSite.new(X, Y, Z)), 1).call_guards(X + 0.5 + Treasure::GUARD_REACH, Y + 0.5, Z + 0.5).found?
+  end
+
+  def test_a_chest_sends_its_guards_once_until_the_player_goes_far_away
+    assert @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
+    refute @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
+    refute @treasure.call_guards(X + 0.5, Y, Z + 0.5 + Monster::DESPAWN_FAR).found?
+    refute @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
+    refute @treasure.call_guards(X + 0.5, Y, Z + 0.6 + Monster::DESPAWN_FAR).found?
+    assert @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
+  end
+
+  def test_a_looted_chest_sends_no_guards
+    @treasure.stock(@chests, X, Y, Z)
+    refute @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
+  end
+
+  def test_a_chest_in_the_next_cell_sends_its_guards
+    cell = TreasureMap::CELL
+    # A chest at the edge of a cell, and the player 14.5 blocks away in
+    # the cell next to it, on each side.
+    [[cell, 10, cell - 14.0, 10.5], [cell - 1, 10, cell + 14.0, 10.5],
+     [10, cell, 10.5, cell - 14.0], [10, cell - 1, 10.5, cell + 14.0]].each do |chest_x, chest_z, x, z|
+      site = TreasureSite.new(chest_x, Y, chest_z)
+      treasure = Treasure.new(FakeMap.new([chest_x >> TreasureMap::CELL_BITS, chest_z >> TreasureMap::CELL_BITS] => site), 1337)
+      assert_same site, treasure.call_guards(x, Y + 0.5, z), "a chest at #{chest_x} #{chest_z}"
+    end
+  end
+
+  def test_no_site_sends_no_guards
+    refute Treasure.new(FakeMap.new, 1337).call_guards(0.5, 0.5, 0.5).found?
   end
 end
