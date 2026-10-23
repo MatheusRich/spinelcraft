@@ -210,7 +210,11 @@ class Game
     built = (@demo_build.size / 4 * ((at - 0.5) / 10.0).clamp(0.0, 1.0)).to_i
     while @demo_built < built
       index = @demo_built * 4
-      set_block(@demo_build[index], @demo_build[index + 1], @demo_build[index + 2], @demo_build[index + 3])
+      block = @demo_build[index + 3]
+      set_block(@demo_build[index], @demo_build[index + 1], @demo_build[index + 2], block)
+      # A place sound for each third block, so that the sounds do not run
+      # into one noise.
+      @sfx.play(MATERIAL_PLACE[material(block)], 0.4) if @demo_built % 3 == 0
       @demo_built += 1
     end
     house = @demo_house

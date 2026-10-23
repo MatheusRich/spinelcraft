@@ -277,6 +277,10 @@ class Game
     @dyn.opaque = Tex.opaque(px)
     abort "skin upload failed" unless Gfx.gfx_skins(Tex.skins, Tex::SKIN_FILES.size)
     upload_clouds
+    # RECORD_SOUND=file writes the sounds to file as a WAV, in step with
+    # the frames of RECORD, and plays none. The music stays out of it.
+    sound_path = ENV["RECORD_SOUND"] || ""
+    abort "cannot record the sound to #{sound_path}" if sound_path != "" && !Gfx.au_record(sound_path)
     @sound = ENV["MUTE"].nil? && Sfx.init
     puts "audio #{@sound ? "on" : "off"}"
     t0 = Gfx.gfx_ns
@@ -701,6 +705,7 @@ class Game
       demo(dt) if @demo
       update_game(dt)
       send_sounds
+      Gfx.au_record_mix(dt)
       update_music(dt)
       t_stream = Gfx.gfx_ns
       @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)

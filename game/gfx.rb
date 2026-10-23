@@ -1120,7 +1120,71 @@ module Gfx
     static int sound_len[SOUNDS];
     static int next_voice;
 
+    /* Recording (au_record): a mixer in software plays the sounds into a
+       WAV file in place of the device. au_record_mix adds as much sound as
+       the game time of each frame, so that the sound keeps in step with
+       the frames that RECORD writes. Each voice is a sound, the next
+       sample of it, and the gains of the two ears; id -1 is a free voice. */
+    #define REC_VOICES 32
+    static FILE *rec_out;
+    static long rec_samples;
+    static double rec_time;
+    static int rec_id[REC_VOICES], rec_pos[REC_VOICES], rec_next;
+    static float rec_l[REC_VOICES], rec_r[REC_VOICES];
+    static int rec_loop_id = -1;
+    static float rec_loop_volume;
+
+    /* The header of a WAV file of samples stereo samples of 16 bits. */
+    static void rec_header(long samples) {
+      Uint32 data = (Uint32)(samples * 4);
+      Uint32 riff = 36 + data, fmt_size = 16, rate = AU_RATE, bytes = AU_RATE * 4;
+      Uint16 pcm = 1, channels = 2, align = 4, bits = 16;
+      fwrite("RIFF", 1, 4, rec_out); fwrite(&riff, 4, 1, rec_out); fwrite("WAVEfmt ", 1, 8, rec_out);
+      fwrite(&fmt_size, 4, 1, rec_out); fwrite(&pcm, 2, 1, rec_out); fwrite(&channels, 2, 1, rec_out);
+      fwrite(&rate, 4, 1, rec_out); fwrite(&bytes, 4, 1, rec_out); fwrite(&align, 2, 1, rec_out);
+      fwrite(&bits, 2, 1, rec_out); fwrite("data", 1, 4, rec_out); fwrite(&data, 4, 1, rec_out);
+    }
+
+    /* Writes the sounds from now on to the WAV file at path, and opens no
+       audio device. Call it before au_init. Returns false when the file
+       does not open. */
+    bool au_record(const char *path) {
+      rec_out = fopen(path, "wb");
+      if (!rec_out) return false;
+      rec_header(0);
+      for (int i = 0; i < REC_VOICES; i++) rec_id[i] = -1;
+      return true;
+    }
+
+    /* Mixes the voices and the loop of the recording until the file holds
+       the sound of the game time so far, seconds more than before. */
+    void au_record_mix(double seconds) {
+      if (!rec_out) return;
+      rec_time += seconds;
+      long target = (long)(rec_time * AU_RATE);
+      for (; rec_samples < target; rec_samples++) {
+        float l = 0.0f, r = 0.0f;
+        for (int i = 0; i < REC_VOICES; i++) {
+          int id = rec_id[i];
+          if (id < 0) continue;
+          float sample = sound_data[id][rec_pos[i]];
+          l += sample * rec_l[i];
+          r += sample * rec_r[i];
+          if (++rec_pos[i] >= sound_len[id]) rec_id[i] = -1;
+        }
+        if (rec_loop_id >= 0) {
+          float sample = sound_data[rec_loop_id][loop_pos] * rec_loop_volume;
+          l += sample;
+          r += sample;
+          if (++loop_pos >= sound_len[rec_loop_id]) loop_pos = 0;
+        }
+        Sint16 lr[2] = {(Sint16)(SDL_clamp(l, -1.0f, 1.0f) * 32767.0f), (Sint16)(SDL_clamp(r, -1.0f, 1.0f) * 32767.0f)};
+        fwrite(lr, 2, 2, rec_out);
+      }
+    }
+
     bool au_init(void) {
+      if (rec_out) return true;
       if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) return fail("SDL_InitSubSystem(audio)");
       SDL_AudioSpec spec = {SDL_AUDIO_F32, 2, AU_RATE};
       audio_dev = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
@@ -1200,13 +1264,25 @@ module Gfx
        ear stays at full volume, and the far ear drops by up to FAR_EAR. */
     #define FAR_EAR 0.7f
     void au_play(long id, double volume, double pan) {
-      if (!audio_dev || id < 0 || id >= SOUNDS || !sound_data[id] || volume <= 0.01) return;
-      int n = sound_len[id];
-      float *lr = SDL_malloc(n * 2 * sizeof(float));
-      if (!lr) return;
+      if (id < 0 || id >= SOUNDS || !sound_data[id] || volume <= 0.01) return;
       float p = SDL_clamp((float)pan, -1.0f, 1.0f);
       float l = p > 0.0f ? 1.0f - FAR_EAR * p : 1.0f;
       float r = p < 0.0f ? 1.0f + FAR_EAR * p : 1.0f;
+      if (rec_out) {
+        /* A free voice, or else the voices in turn, as the device does. */
+        int v = 0;
+        while (v < REC_VOICES && rec_id[v] >= 0) v++;
+        if (v == REC_VOICES) { v = rec_next; rec_next = (rec_next + 1) % REC_VOICES; }
+        rec_id[v] = (int)id;
+        rec_pos[v] = 0;
+        rec_l[v] = l * (float)volume;
+        rec_r[v] = r * (float)volume;
+        return;
+      }
+      if (!audio_dev) return;
+      int n = sound_len[id];
+      float *lr = SDL_malloc(n * 2 * sizeof(float));
+      if (!lr) return;
       for (int i = 0; i < n; i++) {
         lr[i * 2] = sound_data[id][i] * l;
         lr[i * 2 + 1] = sound_data[id][i] * r;
@@ -1227,7 +1303,13 @@ module Gfx
     #define LOOP_AHEAD 0.25
     #define LOOP_CHUNK 4096
     void au_loop(long id, double volume) {
-      if (!loop || id < 0 || id >= SOUNDS || !sound_data[id]) return;
+      if (id < 0 || id >= SOUNDS || !sound_data[id]) return;
+      if (rec_out) {
+        rec_loop_id = volume > 0.0 ? (int)id : -1;
+        rec_loop_volume = (float)volume;
+        return;
+      }
+      if (!loop) return;
       if (volume <= 0.0) {
         SDL_ClearAudioStream(loop);
         return;
@@ -1316,6 +1398,12 @@ module Gfx
     void gfx_quit(void) {
       SDL_WaitForGPUIdle(dev);
       if (record_out) fclose(record_out);
+      if (rec_out) {
+        /* The sizes in the header come last, when they are known. */
+        fseek(rec_out, 0, SEEK_SET);
+        rec_header(rec_samples);
+        fclose(rec_out);
+      }
       SDL_Quit();
     }
 
@@ -1418,6 +1506,8 @@ module Gfx
   ffi_func :gfx_gpu_ms, [], :double
   ffi_func :gfx_wait_ns, [], :long
   ffi_func :au_init, [], :bool
+  ffi_func :au_record, [:str], :bool
+  ffi_func :au_record_mix, [:double], :void
   ffi_func :au_load_ogg, [:long, :str, :double], :long
   ffi_func :au_seconds, [:long], :double
   ffi_func :au_peak_seconds, [:long], :double
