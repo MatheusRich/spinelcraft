@@ -39,7 +39,7 @@ class Game
 
   def update_mobs(dt)
     @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.ticks, raining: @weather.raining?), dt)
-    court_mates
+    @breeding.pair_lovers(@mobs, @particles)
     push_mobs(dt)
     held = current_block.to_i
     @spawner.refill_animals(@mobs, @player, dt)
@@ -268,72 +268,6 @@ class Game
     n.times { |i| @mobs[i].nudge(dvx[i], dvz[i]) if dvx[i] != 0.0 || dvz[i] != 0.0 }
     # A nil return keeps Spinel from boxing the loop.
     nil
-  end
-
-  # Each adult in love mode walks to the nearest adult of its kind in love
-  # mode within Love::MATE_REACH. Two mates near each other make a baby.
-  # minecraft.wiki/w/Breeding
-  def court_mates
-    n = @mobs.size
-    i = 0
-    while i < n
-      m = @mobs[i]
-      lover = m.passive? && m.love.on?
-      j = lover ? nearest_mate(i) : -1
-      i += 1
-      next unless lover
-
-      if j < 0
-        m.love.alone
-        next
-      end
-      mate = @mobs[j]
-      m.love.court(mate.x.to_f, mate.z.to_f)
-      dx = (mate.x - m.x).to_f
-      dz = (mate.z - m.z).to_f
-      breed(m, mate) if m.love.court_time >= Love::COURT_TIME && dx * dx + dz * dz < Love::MATE_NEAR * Love::MATE_NEAR
-    end
-    # A nil return keeps Spinel from boxing the loop.
-    nil
-  end
-
-  # The index of the nearest other adult of the kind of mob i in love mode,
-  # within Love::MATE_REACH, or -1.
-  def nearest_mate(i)
-    m = @mobs[i]
-    best = -1
-    best_d2 = Love::MATE_REACH * Love::MATE_REACH
-    j = 0
-    while j < @mobs.size
-      o = @mobs[j]
-      if j != i && o.kind == m.kind && o.love.on? && !o.dying?
-        # to_f: Spinel cannot type the positions of the mobs.
-        dx = (o.x - m.x).to_f
-        dy = (o.y - m.y).to_f
-        dz = (o.z - m.z).to_f
-        d2 = dx * dx + dy * dy + dz * dz
-        if d2 < best_d2
-          best = j
-          best_d2 = d2
-        end
-      end
-      j += 1
-    end
-    best
-  end
-
-  # Two mates make one baby of their kind where the first one stands. Both
-  # show a burst of hearts, as in Minecraft since 1.15.
-  # minecraft.wiki/w/Breeding
-  def breed(a, b)
-    a.love.bred
-    b.love.bred
-    baby = Animal.new(a.kind, a.x, a.y, a.z, (@rng.rand01 * 100000.0).to_i)
-    baby.make_baby
-    @mobs << baby
-    # to_f: Spinel cannot type the mobs, and the particles need Floats.
-    @particles.hearts(a.x.to_f, a.y.to_f, a.z.to_f, a.half.to_f, a.tall.to_f)
-    @particles.hearts(b.x.to_f, b.y.to_f, b.z.to_f, b.half.to_f, b.tall.to_f)
   end
 
   # Draw time (seconds) sets speed and damage; a full draw takes one second.

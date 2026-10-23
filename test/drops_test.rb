@@ -1,6 +1,6 @@
 require_relative "test_helper"
 
-# What a mob drops when it dies (Animal#drops, Monster#drops).
+# What a mob drops when it dies (Mob#drops).
 class DropsTest < Minitest::Test
   TRIES = 400
 

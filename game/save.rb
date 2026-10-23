@@ -118,6 +118,7 @@ class Game
     @light = Light.new(@world)
     @spawner = NaturalSpawner.new(@world, @seed * 11 + 5, @halloween)
     @plants = Plants.new(@world, @seed * 13 + 3)
+    @breeding = Breeding.new(@seed * 17 + 9)
     @fluids = Fluids.new(@world)
     @falling.clear
   end

@@ -1,6 +1,6 @@
 # The love mode of one animal: it eats its food, walks to a mate, and
-# waits after the baby comes. Game#court_mates pairs the lovers, and
-# Game#breed makes the baby. minecraft.wiki/w/Breeding
+# waits after the baby comes. Breeding pairs the lovers and makes the
+# baby. minecraft.wiki/w/Breeding
 class Love
   # An animal that eats its food stays in love mode for 30 seconds, and
   # finds a mate in love mode up to 8 blocks away. After the baby comes,
