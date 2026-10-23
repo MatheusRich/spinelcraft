@@ -3,7 +3,9 @@
 # It writes OUT-top.png, a map from above, and OUT-tilt.png, the same land
 # seen at a slant from the south (OUT is "map" by default). Land has the
 # color of its biome and the light from the north-west; snow is white, bare
-# rock gray, and water darker where it is deeper. Spawn is a red dot.
+# rock gray, and water darker where it is deeper. Spawn is a red dot, and
+# each treasure chest (TreasureMap) a yellow dot. It prints the number of
+# chests.
 # SEED (1337), SIZE (8000 blocks across), STEP (8 blocks for each pixel)
 # and LIFT (6, how much taller the slanted view draws the land) change it.
 require "zlib"
@@ -14,6 +16,7 @@ require_relative "../game/biome"
 require_relative "../game/noise"
 require_relative "../game/world"
 require_relative "../game/terrain"
+require_relative "../game/treasure_map"
 
 # Biome colors: plains, forest, taiga, snowy taiga, tundra, desert,
 # savanna, jungle and swamp (the order of Biome::ALL).
@@ -76,6 +79,24 @@ n.times do |j|
     3.times { |c| color[k * 3 + c] = (color[k * 3 + c] * shade).round.clamp(0, 255) }
   end
 end
+# A dot of 3 x 3 pixels at block x, z.
+dot = lambda do |x, z, rgb|
+  i = (x - x0) / step
+  j = (z - x0) / step
+  (j - 1..j + 1).each { |pj| (i - 1..i + 1).each { |pi| color[(pj * n + pi) * 3, 3] = rgb if pi.between?(0, n - 1) && pj.between?(0, n - 1) } }
+end
+treasure = TreasureMap.new(terrain)
+cells = (x0 >> TreasureMap::CELL_BITS)..((x0 + n * step - 1) >> TreasureMap::CELL_BITS)
+chests = 0
+cells.each do |cell_x|
+  cells.each do |cell_z|
+    site = treasure.site(cell_x, cell_z)
+    next unless site.found? && site.chest_x >= x0 && site.chest_z >= x0 && site.chest_x < x0 + n * step && site.chest_z < x0 + n * step
+
+    dot.(site.chest_x, site.chest_z, [255, 220, 0])
+    chests += 1
+  end
+end
 mid = (n / 2 * n + n / 2) * 3
 color[mid, 3] = [255, 0, 0]
 write_png("#{out}-top.png", n, n, color)
@@ -102,4 +123,4 @@ covered = Array.new(n, height)
   end
 end
 write_png("#{out}-tilt.png", n, height, img)
-puts "#{out}-top.png and #{out}-tilt.png: #{n * step} blocks across, #{step} blocks for each pixel"
+puts "#{out}-top.png and #{out}-tilt.png: #{n * step} blocks across, #{step} blocks for each pixel, #{chests} treasure chests"

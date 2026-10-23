@@ -8,6 +8,7 @@ require_relative "../game/world"
 require_relative "../game/terrain"
 require_relative "../game/trees"
 require_relative "../game/ores"
+require_relative "../game/treasure_map"
 require_relative "../game/chunk_generator"
 
 # The 24 x 24 chunks from x = z = 0.

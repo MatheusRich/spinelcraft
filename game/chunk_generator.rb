@@ -1,6 +1,7 @@
 # The generator of the blocks of a chunk: the ground and the water from
 # the noise of Terrain, then the caves, the ores (Ores), the trees
-# (Trees), the plants and the desert wells. It writes into the store of
+# (Trees), the treasure chests (TreasureMap), the plants and the desert
+# wells. It writes into the store of
 # World with World#put_block, and keeps its own work arrays.
 class ChunkGenerator
   # Cave noise grid of one chunk: a point every 4 blocks.
@@ -21,7 +22,7 @@ class ChunkGenerator
   # says only that it generates often in deserts, so the number is a guess.
   DESERT_DRY_GRASS = 1500
 
-  attr_reader :terrain
+  attr_reader :terrain, :treasure_map
 
   def initialize(world, seed)
     @world = world
@@ -41,6 +42,7 @@ class ChunkGenerator
     @ores = Ores.new
     @terrain = Terrain.new(seed)
     @trees = Trees.new(world)
+    @treasure_map = TreasureMap.new(@terrain)
   end
 
   # Fills the chunk cx, cz of the world with the generated blocks.
@@ -289,7 +291,8 @@ class ChunkGenerator
   PATCH_REACH = 3
   PATCH_FILL = 65536 / 4
 
-  # Trees (also those that grow next door and reach in), then plants and cacti.
+  # Trees (also those that grow next door and reach in), the treasure
+  # chest, then plants and cacti.
   def decorate(cx, cz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     x0 = cx * CHUNK
     z0 = cz * CHUNK
@@ -307,6 +310,7 @@ class ChunkGenerator
       end
       x += 1
     end
+    treasure_chest(cx, cz)
     CHUNK.times do |lx|
       CHUNK.times do |lz|
         x = x0 + lx
@@ -342,6 +346,22 @@ class ChunkGenerator
       top = well_top(wx, wz)
       well(wx, top, wz, x0, z0) if top >= 0
     end
+  end
+
+  # Puts a chest on the treasure site in the chunk cx, cz, if it has one.
+  # A tree that reaches in from next door can fill the cell, and then the
+  # site gets no chest. The chest faces a random way. No site has y -1,
+  # which air_in? rejects.
+  def treasure_chest(cx, cz)
+    x0 = cx * CHUNK
+    z0 = cz * CHUNK
+    site = @treasure_map.site_at(x0, z0)
+    x = site.chest_x
+    y = site.chest_y
+    z = site.chest_z
+    return unless @world.air_in?(x, y, z, x0, z0)
+
+    @world.put(x, y, z, Block.facing_id(Block::CHEST, Noise.hash3(x, y, z, 41) & 3), x0, z0)
   end
 
   # A desert well in about 1 of 1000 chunks (minecraft.wiki/w/Desert_Well).
