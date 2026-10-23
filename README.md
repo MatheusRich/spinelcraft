@@ -164,6 +164,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWMOBS=1` | Put one mob of each kind, and a chick, on a stone floor in front of the player |
 | `SHOWBOATS=1` | Put a boat of each wood on a pool of water, with the player in one |
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
+| `BEACONS=1` | Draw a gold beam of light over each treasure chest that is not looted, to find the chests from far away |
 | `INVENTORY=1` | Start with the inventory open |
 | `RAIN=1` | Start in the rain |
 | `HALLOWEEN=1` | Play as on October 31: some zombies and skeletons wear a carved pumpkin or a jack o'lantern. With `SHOWMOBS=1`, the zombie and the skeleton wear one |

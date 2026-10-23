@@ -96,6 +96,7 @@ class Game
       item.draw(@dyn, i.to_f) if ddx * ddx + ddz * ddz < reach * reach
     end
     @falling.each { |f| f.draw(@dyn) }
+    draw_beacons(ex, ez, reach) if @beacons
     # The paddles reach past the box of a boat.
     @boats.each { |boat| boat.draw_boat(@dyn) if entity_in_view?(boat.x.to_f, boat.y.to_f, boat.z.to_f, 1.0, ex, ez, reach) }
     # The camera's right and up axes, as in Camera#update.
@@ -128,6 +129,26 @@ class Game
     end
     @hand_at = @dyn.count
     draw_hand(ex, ey, ez)
+  end
+
+  # A beam of gold light from the top of each treasure chest that is not
+  # looted up past the clouds, within reach of the eye x, z (BEACONS=1).
+  # Minecraft has no such beam: it is for playtests.
+  def draw_beacons(ex, ez, reach)
+    cells = (reach / TreasureMap::CELL).ceil.to_i
+    cell_x = ex.floor >> TreasureMap::CELL_BITS
+    cell_z = ez.floor >> TreasureMap::CELL_BITS
+    (cell_x - cells..cell_x + cells).each do |site_x|
+      (cell_z - cells..cell_z + cells).each do |site_z|
+        site = @world.treasure_map.site(site_x, site_z)
+        x = site.chest_x
+        z = site.chest_z
+        next unless @treasure.unlooted?(x, site.chest_y, z) && site.distance(ex, ez) < reach
+
+        @dyn.aabb(x - 0.5, site.chest_y + 1.0, z - 0.5, x + 1.5, WY + 64.0, z + 1.5, Tex::WHITE, 1.0, 0.85, 0.2, 1.0)
+      end
+    end
+    nil
   end
 
   # True when x, y, z is within reach of the eye, and the box 2 blocks

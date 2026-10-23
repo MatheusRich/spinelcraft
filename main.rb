@@ -101,6 +101,9 @@ class Game
     # on by 1 / RECORD_FPS seconds, however long it takes to draw and save.
     @record = ENV["RECORD"] || ""
     @autopilot = !ENV["AUTOPILOT"].nil?
+    # BEACONS=1 draws a beam of light over each treasure chest that is not
+    # looted (Game#draw_beacons), to find them in a playtest.
+    @beacons = !ENV["BEACONS"].nil?
     # AUTOPILOT=far flies in a straight line, so new chunks stream in.
     @autopilot_far = ENV["AUTOPILOT"] == "far"
     @shot = ENV["SHOT"] || ""

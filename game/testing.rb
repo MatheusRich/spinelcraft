@@ -2117,6 +2117,8 @@ class Game
     teleport(x + 0.5, y + 0.01, z + 20.5)
     chest = @world.get(x, y, z)
     check("the treasure site has a chest", Block::BASE[chest] == Block::CHEST)
+    lit = beacon_faces
+    check("BEACONS=1 draws a beam over a treasure chest that is not looted", lit > 0)
     test_treasure_guards(x, y, z)
     teleport(x + 0.5, y + 0.01, z + 2.5)
     @items.clear
@@ -2147,8 +2149,26 @@ class Game
     teleport(x + 0.5, y + 0.01, z + 10.5)
     guard_treasure
     check("a looted treasure chest has no guards", @mobs.empty?)
+    teleport(x + 0.5, y + 0.01, z + 20.5)
+    check("BEACONS=1 draws no beam over a looted treasure chest", beacon_faces < lit)
     @survival = was_survival
     teleport(back_x, back_y, back_z)
+  end
+
+  # The faces that BEACONS=1 adds to the frame of the player now.
+  def beacon_faces
+    was = @beacons
+    ex = @player.x.to_f
+    ey = @player.eye_y.to_f
+    ez = @player.z.to_f
+    reach = @options.view + 4.0
+    @beacons = false
+    build_dyn(ex, ey, ez, reach)
+    without = @dyn.count
+    @beacons = true
+    build_dyn(ex, ey, ez, reach)
+    @beacons = was
+    @dyn.count - without
   end
 
   # The guards of the treasure chest at x, y, z come when the player comes
