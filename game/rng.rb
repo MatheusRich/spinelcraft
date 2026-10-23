@@ -11,4 +11,7 @@ class Rng
 
   # The next number, from 0.0 up to 1.0.
   def rand01 = (next_int >> 8) / 8388608.0
+
+  # A random Integer from low to high.
+  def between(low, high) = (low + rand01 * (high - low + 1)).floor
 end

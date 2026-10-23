@@ -25,11 +25,12 @@ class LootPool
 
   # Rolls the pool with rng, and puts what it gives into slots.
   def fill_slots(rng, slots)
-    rolls = LootPool.between(rng, @low, @high)
+    rolls = rng.between(@low, @high)
     while rolls > 0
       row = pick(rng)
       block = @blocks[row]
-      place_stack(rng, slots, block, LootPool.between(rng, @lows[row], @highs[row])) if block > 0
+      # to_i: Spinel types the count too late without it.
+      place_stack(rng, slots, block, rng.between(@lows[row], @highs[row]).to_i) if block > 0
       rolls -= 1
     end
     nil
@@ -54,7 +55,4 @@ class LootPool
 
     slots.set(empty[(rng.rand01 * empty.size).to_i], block, Block.tool?(block) ? Block.uses(block) : count)
   end
-
-  # A random number from low to high.
-  def self.between(rng, low, high) = (low + rng.rand01 * (high - low + 1)).to_i
 end

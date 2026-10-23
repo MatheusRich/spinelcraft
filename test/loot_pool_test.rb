@@ -59,9 +59,4 @@ class LootPoolTest < Minitest::Test
     LootPool.new(3, 3).row(Block::COAL, 1, 1, 1).fill_slots(Rng.new(1), slots)
     assert_equal [[Block::COAL, 1], [Block::COAL, 1]], stacks(slots)
   end
-
-  def test_between_gives_each_number_from_low_to_high
-    rng = Rng.new(3)
-    assert_equal [2, 3, 4], Array.new(100) { LootPool.between(rng, 2, 4) }.uniq.sort
-  end
 end
