@@ -183,35 +183,11 @@ class Game
     play_at(id, m.x, m.y + m.tall * 0.5, m.z, gain, SOUND_RANGE)
   end
 
-  # What a mob that the player killed drops, as in Minecraft: a zombie 0 to
-  # 2 rotten flesh, a skeleton 0 to 2 arrows, 0 to 2 bones and now and then
-  # its bow, a sheep its wool and 1 to 2 mutton, a pig 1 to 3 porkchops,
-  # a cow 0 to 2 leather and 1 to 3 raw beef, or steak when it dies on
-  # fire, and a chicken 0 to 2 feathers and 1 raw chicken, or cooked
-  # chicken when it dies on fire. A baby drops nothing.
-  # minecraft.wiki/w/Rotten_Flesh, /w/Skeleton, /w/Sheep, /w/Pig, /w/Cow
-  # and /w/Chicken
-  def drop_loot(m)
-    return if m.baby?
-
-    if m.kind == Mob::ZOMBIE
-      loot(m, Block::ROTTEN_FLESH, (@rng.rand01 * 3.0).to_i)
-    elsif m.kind == Mob::SKELETON
-      loot(m, Block::ARROW, (@rng.rand01 * 3.0).to_i)
-      loot(m, Block::BONE, (@rng.rand01 * 3.0).to_i)
-      loot(m, Block::BOW, 1) if @rng.rand01 < 0.085
-    elsif m.kind == Mob::SHEEP
-      loot(m, Block::WOOL, 1) unless m.sheared
-      loot(m, Block::MUTTON, 1 + (@rng.rand01 * 2.0).to_i)
-    elsif m.kind == Mob::PIG
-      loot(m, Block::PORKCHOP, 1 + (@rng.rand01 * 3.0).to_i)
-    elsif m.kind == Mob::COW
-      loot(m, Block::LEATHER, (@rng.rand01 * 3.0).to_i)
-      loot(m, m.burning? ? Block::STEAK : Block::BEEF, 1 + (@rng.rand01 * 3.0).to_i)
-    elsif m.kind == Mob::CHICKEN
-      loot(m, Block::FEATHER, (@rng.rand01 * 3.0).to_i)
-      loot(m, m.burning? ? Block::COOKED_CHICKEN : Block::RAW_CHICKEN, 1)
-    end
+  # Drops what a mob that the player killed drops (Animal#drops,
+  # Monster#drops).
+  def drop_loot(mob)
+    drops = mob.drops(@rng)
+    (drops.size / 2).times { |pair| loot(mob, drops[pair * 2].to_i, drops[pair * 2 + 1].to_i) }
   end
 
   # A tool drops new: its count is its uses.
