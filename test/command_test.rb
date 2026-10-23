@@ -70,6 +70,11 @@ class CommandTest < Minitest::Test
     assert_equal(-1, Command.mob("GHAST"))
   end
 
+  def test_tab_completes_locate_and_its_treasure
+    assert_equal ["locate"], Command.complete("/lo")
+    assert_equal ["treasure"], Command.complete("/locate tr")
+  end
+
   def test_a_paste_puts_the_text_at_the_end_of_the_line
     assert_equal "/give dirt 64", Command.paste("/give ", "dirt 64", 100)
   end

@@ -338,6 +338,11 @@ class Game
     run_chat("/tp #{tx} 150 #{tz}")
     whole = @player.x == tx + 0.5 && @player.y == 150.0 && @player.z == tz + 0.5
     check("/tp moves the player, with ~ for a place relative to the player", relative && whole)
+    site = @treasure.nearest(@player.x.to_f, @player.z.to_f)
+    run_chat("/locate treasure")
+    found = @chat.lines.last.start_with?("THE NEAREST TREASURE IS AT [#{site.chest_x}, #{site.chest_y}, #{site.chest_z}] (")
+    run_chat("/locate village")
+    check("/locate treasure gives the place of the nearest treasure chest", site.found? && found && last_chat_error?)
     mobs = @mobs.size
     run_chat("/summon creeper ~ ~ ~5")
     m = @mobs.last

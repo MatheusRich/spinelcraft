@@ -9,7 +9,7 @@ module Command
   MAX_TICKS = 2147483647
 
   # The commands, in the order that Tab shows them.
-  NAMES = ["GAMEMODE", "GIVE", "HELP", "KILL", "SEED", "SPAWN", "SUMMON", "TELEPORT", "TIME", "TP", "WEATHER"]
+  NAMES = ["GAMEMODE", "GIVE", "HELP", "KILL", "LOCATE", "SEED", "SPAWN", "SUMMON", "TELEPORT", "TIME", "TP", "WEATHER"]
 
   # The names that complete the last word of a command line, in small
   # letters, as ids (see id_of): a command, or a name that the command takes
@@ -50,6 +50,7 @@ module Command
       return ["SURVIVAL", "CREATIVE"] if cmd == "GAMEMODE"
       return ["SET", "ADD", "QUERY"] if cmd == "TIME"
       return ["CLEAR", "RAIN"] if cmd == "WEATHER"
+      return ["TREASURE"] if cmd == "LOCATE"
     elsif k == 1 && cmd == "TIME" && before[before.size - 1] == "SET"
       return TIME_NAMES
     end

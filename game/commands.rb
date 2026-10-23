@@ -3,7 +3,7 @@
 # minecraft.wiki/w/Commands
 class Game
   HELP = ["/TIME SET|ADD <TIME>  /TIME QUERY  /WEATHER CLEAR|RAIN", "/GAMEMODE SURVIVAL|CREATIVE  /TP <X> <Y> <Z>  /SPAWN",
-          "/GIVE <ITEM> [COUNT]  /SUMMON <MOB> [X Y Z]", "/KILL  /SEED  /HELP"]
+          "/GIVE <ITEM> [COUNT]  /SUMMON <MOB> [X Y Z]", "/LOCATE TREASURE  /KILL  /SEED  /HELP"]
 
   # The farthest x and z of /tp. Minecraft keeps them within 30,000,000,
   # but World.key holds x and z only from -World::KEY_OFF. The 8192
@@ -88,6 +88,7 @@ class Game
     when "KILL" then command_kill
     when "SEED" then @chat.post("SEED: [#{@seed}]")
     when "SPAWN" then command_spawn
+    when "LOCATE" then args == ["TREASURE"] ? locate_treasure : @chat.post_error("USE /LOCATE TREASURE")
     when "HELP" then HELP.each { |line| @chat.post(line) }
     else @chat.post_error("UNKNOWN COMMAND: #{words[0]}")
     end
@@ -147,6 +148,16 @@ class Game
   def command_spawn
     @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     teleport(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
+  end
+
+  # /locate treasure: the nearest treasure chest that is not looted (see
+  # Treasure#nearest), as /locate structure gives the nearest structure
+  # (minecraft.wiki/w/Commands/locate).
+  def locate_treasure
+    site = @treasure.nearest(@player.x.to_f, @player.z.to_f)
+    return @chat.post_error("NO TREASURE NEARBY") unless site.found?
+
+    @chat.post("THE NEAREST TREASURE IS AT [#{site.chest_x}, #{site.chest_y}, #{site.chest_z}] (#{site.distance(@player.x.to_f, @player.z.to_f).round} BLOCKS AWAY)")
   end
 
   # Moves the player to x, y, z, and loads the chunks there before the
