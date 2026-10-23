@@ -72,15 +72,28 @@ require_relative "game/command"
 require_relative "game/chat"
 require_relative "game/commands"
 require_relative "game/testing"
+require_relative "game/house"
+require_relative "game/demo"
 
 class Game
   def initialize # rubocop:todo Metrics/MethodLength
     Log.setup(ENV["LOG"] || "")
     @seed = (ENV["SEED"] || "1337").to_i
     @max_frames = (ENV["FRAMES"] || "0").to_i
-    # A run with FRAMES set ignores the mouse and the keys, so the person at
-    # the computer does not move the camera in a screenshot or a benchmark.
-    @scripted = @max_frames > 0
+    @demo = !ENV["DEMO"].nil?
+    # The state of the demo reel (game/demo.rb).
+    @demo_time = 0.0
+    @demo_scene = -1
+    @demo_left = false
+    @demo_house = nil
+    @demo_build = []
+    @demo_built = 0
+    @demo_animals = []
+    @demo_monsters = []
+    # A run with FRAMES or DEMO set ignores the mouse and the keys, so the
+    # person at the computer does not move the camera in a screenshot, a
+    # benchmark or the demo reel.
+    @scripted = @max_frames > 0 || @demo
     # RECORD=path writes each frame to path. Each frame then moves the game
     # on by 1 / RECORD_FPS seconds, however long it takes to draw and save.
     @record = ENV["RECORD"] || ""
@@ -148,8 +161,8 @@ class Game
     @loaded = [""]
     @load_error = ""
     @changed = false
-    # A scripted run (FRAMES) does not change the save or the options.
-    @save_on_quit = ENV["FRAMES"].nil? || !ENV["SAVE"].nil?
+    # A scripted run (FRAMES or DEMO) does not change the save or the options.
+    @save_on_quit = !@scripted || !ENV["SAVE"].nil?
     prefix = file_prefix
     @save_path = prefix + SAVE_PATH
     @bad_save_path = prefix + BAD_SAVE_PATH
@@ -157,7 +170,6 @@ class Game
     @options.read_file if @save_on_quit
     @options.read_option("view", ENV["VIEW"]) if ENV["VIEW"]
     @sound = false
-    @demo = !ENV["DEMO"].nil?
     @clouds = Clouds.new(@seed)
     @cloud_drift = 0.0
     @bob = 0.0
@@ -268,8 +280,10 @@ class Game
     @sound = ENV["MUTE"].nil? && Sfx.init
     puts "audio #{@sound ? "on" : "off"}"
     t0 = Gfx.gfx_ns
-    loaded = ENV["NEW"].nil? && load
-    keep_bad_save if !loaded && ENV["NEW"].nil?
+    # The demo reel always plays in a new world, so each run looks the same.
+    fresh = !ENV["NEW"].nil? || @demo
+    loaded = !fresh && load
+    keep_bad_save if !loaded && !fresh
     reset_world unless loaded
     if loaded
       @player = Player.new(0.5, 80.0, 0.5)
@@ -684,7 +698,7 @@ class Game
       dt = 1.0 / RECORD_FPS if @record != ""
       last = now
       handle_input(dt) unless @scripted
-      demo(frames) if @demo
+      demo(dt) if @demo
       update_game(dt)
       send_sounds
       update_music(dt)

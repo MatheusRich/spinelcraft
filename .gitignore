@@ -8,6 +8,9 @@
 # Raw screenshots (tools/shot.sh converts them to PNG)
 *.ppm
 
+# The video of the demo reel (tools/demo.sh)
+/demo.mp4
+
 .DS_Store
 
 # Worktrees of Claude Code sessions

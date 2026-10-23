@@ -1,4 +1,4 @@
-# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, SHOWBOATS, and DEMO.
+# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS and SHOWBOATS.
 class Game
   # A height above the land and the trees, where the tests and the
   # screenshot scenes build in open air.
@@ -106,23 +106,6 @@ class Game
     @clock.time_of_day = 0.3
   end
 
-  # DEMO=1 digs and builds in front of the player through the normal actions,
-  # so screenshots can check breaking, placing and particles.
-  def demo(frame)
-    @player.pitch = -1.3
-    return unless @target_block.hit?
-
-    if frame % 20 == 0 && frame < 50
-      block = @world.get(@target_block.x, @target_block.y, @target_block.z)
-      @particles.burst(@target_block.x, @target_block.y, @target_block.z, block)
-      @sfx.play(Sfx::BREAK, 0.7)
-      set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
-    elsif frame % 20 == 0 && frame >= 60 && frame < 120
-      @slot = 7
-      place
-    end
-  end
-
   def check(name, ok)
     puts "#{ok ? "PASS" : "FAIL"} #{name}"
     @checks += 1
@@ -226,6 +209,7 @@ class Game
     test_culling
     test_streaming
     test_title
+    test_demo_reel
     File.delete(@save_path) if File.exist?(@save_path)
     puts @failures == 0 ? "ALL #{@checks} PASS" : "#{@failures} OF #{@checks} FAILED"
     @failures == 0
@@ -387,6 +371,35 @@ class Game
   # Tab completes a command, then the names that the command takes.
   # The scancode of G, a key that no longer does anything.
   KEY_G = 10
+
+  # The demo reel (DEMO=1, tools/demo.sh) plays to its end, as in a
+  # recording: the miner breaks the ores, a calf comes, the sheep loses its
+  # wool, the house goes up, and the player lives through the night. It
+  # plays in a new world of seed 1337, as a recording does, and not among
+  # the blocks of the other checks.
+  def test_demo_reel
+    new_world(1337)
+    dt = 1.0 / RECORD_FPS
+    calf = false
+    wool = false
+    died = false
+    mined = false
+    until @quit
+      demo(dt)
+      update_game(dt)
+      Gfx.in_test_frame
+      mined = true if @demo_scene == 1 && mine_target < 0
+      calf = true if @mobs.any? { |mob| mob.kind == Mob::COW && mob.baby? }
+      wool = true if @mobs.any? { |mob| mob.kind == Mob::SHEEP && !mob.baby? && !mob.shearable? }
+      died = true if @vitals.dead?
+    end
+    @quit = false
+    check("the demo reel: the miner breaks each block of the mine", mined)
+    check("the demo reel: a calf comes", calf)
+    check("the demo reel: the sheep loses its wool", wool)
+    check("the demo reel: the whole house goes up", @demo_built * 4 == @demo_build.size)
+    check("the demo reel: the player lives through the night", !died)
+  end
 
   # Runs one frame of dt seconds with key down or up, through the key
   # state that in_poll fills.

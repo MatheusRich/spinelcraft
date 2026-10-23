@@ -150,7 +150,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `CAM=x,y,z,yaw,pitch` | Start as a flying camera at that place |
 | `AUTOPILOT=1` | Fly in a circle (for benchmarks) |
 | `AUTOPILOT=far` | Fly in a straight line, so chunks stream in all the time |
-| `DEMO=1` | Dig and place blocks in front of the player |
+| `DEMO=1` | Play the demo reel and quit: about a minute of scenes (a flight, mining, animals, a house that goes up, a night fight). It plays in a new world of the seed and does not save |
 | `RECORD=file` | Write each frame to the end of file as a PPM image. Each frame moves the game on by 1/30 second, however long it takes to draw |
 | `GPUTIME=1` | Wait for the GPU each frame and print the GPU time |
 | `MODE=survival` | Start in survival |
@@ -196,6 +196,8 @@ F3 shows the frame rate, the CPU time, the position, the faces drawn, the visibl
 ## Tests
 
 `rake test` runs the Minitest tests in `test/` under CRuby, with no build. They check the game classes that do not need the `Game` object or `Gfx`, such as `World`, `Player`, `Command` and `Music`. Spinel does not compile Minitest, so the self-test (`SELFTEST=1`) checks the compiled game and the rules of `Game`.
+
+`tools/demo.sh [out.mp4]` builds the game, records the demo reel (`DEMO=1`) and makes a video of about a minute with the logo and a music track (`demo.mp4` by default). `TRACK=file` picks another track of `assets/music`. It needs ffmpeg.
 
 `tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby. `ruby tools/map.rb [OUT]` draws the generated world without the game: `OUT-top.png` from above and `OUT-tilt.png` at a slant, with biome colors, water depth and spawn. `SEED`, `SIZE`, `STEP` and `LIFT` change the map.
 
