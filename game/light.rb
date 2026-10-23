@@ -1,6 +1,7 @@
-# The light of a cell for the rules of the game: monster spawns and the
-# cave sounds. Light comes from the open sky, torches, lava and jack
-# o'lanterns. The Mesher has its own light for the faces of the chunks.
+# The light of a cell for the rules of the game: monster spawns, the
+# spread of grass and the cave sounds. Light comes from the open sky (at
+# the sky light of Sky#light), torches, lava and jack o'lanterns. The
+# Mesher has its own light for the faces of the chunks.
 # minecraft.wiki/w/Light
 class Light
   # Light in Minecraft: a torch has 14, lava and a jack o'lantern 15, and a
@@ -14,18 +15,6 @@ class Light
   REACH = 15
   SIDE = REACH * 2 + 1
 
-  # The sky light of Minecraft under the open sky by the time of day, in
-  # clear weather and in rain. DUSK has the first tick of each level as it
-  # goes down from the top level to 4, and DAWN the first tick of each level
-  # as it goes up from 5 to the top level. A day has 24000 ticks, and tick
-  # 6000 is noon. minecraft.wiki/w/Light
-  SKY_TOP_CLEAR = 15
-  SKY_DUSK_CLEAR = [12041, 12210, 12377, 12542, 12705, 12867, 13027, 13188, 13348, 13509, 13670]
-  SKY_DAWN_CLEAR = [22331, 22492, 22653, 22813, 22974, 23135, 23297, 23460, 23624, 23791, 23961]
-  SKY_TOP_RAIN = 12
-  SKY_DUSK_RAIN = [12010, 12256, 12497, 12734, 12969, 13203, 13436, 13670]
-  SKY_DAWN_RAIN = [22331, 22566, 22799, 23032, 23267, 23505, 23746, 23992]
-
   def initialize(world)
     @world = world
     # The search marks each cell of its cube that it has seen with the
@@ -34,16 +23,6 @@ class Light
     @stamp = 0
     @queue = Array.new(0, 0)
     nil
-  end
-
-  # The sky light under the open sky at the tick of the day (Clock#ticks),
-  # from SKY_DUSK and SKY_DAWN.
-  def self.sky(tick, raining:)
-    dawn = raining ? SKY_DAWN_RAIN : SKY_DAWN_CLEAR
-    ticks = tick >= dawn[0] ? dawn : (raining ? SKY_DUSK_RAIN : SKY_DUSK_CLEAR)
-    passed = 0
-    ticks.size.times { |index| passed += 1 if tick >= ticks[index] }
-    tick >= dawn[0] ? 4 + passed : (raining ? SKY_TOP_RAIN : SKY_TOP_CLEAR) - passed
   end
 
   # True when a torch or lava is close enough to light x, y, z if no wall

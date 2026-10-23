@@ -1,7 +1,7 @@
 require_relative "test_helper"
 
-# The light of a cell: from the sky by the time of day, and from torches,
-# lava and jack o'lanterns, through the cells that are not opaque.
+# The light of a cell: from the sky, and from torches, lava and jack
+# o'lanterns, through the cells that are not opaque.
 class LightTest < Minitest::Test
   # A cell high in the open air of the middle chunk.
   X = 8
@@ -12,35 +12,6 @@ class LightTest < Minitest::Test
     @world = World.new(1337)
     (-1..1).each { |cx| (-1..1).each { |cz| @world.load_chunk(cx, cz) } }
     @light = Light.new(@world)
-  end
-
-  def test_the_sky_light_is_15_at_noon_7_at_tick_13200_4_at_midnight_and_12_in_rain
-    assert_equal 15, Light.sky(6000, raining: false)
-    assert_equal 7, Light.sky(13200, raining: false)
-    assert_equal 4, Light.sky(18000, raining: false)
-    assert_equal 12, Light.sky(6000, raining: true)
-  end
-
-  def test_the_sky_light_goes_down_at_the_first_tick_of_each_level_and_up_at_dawn
-    assert_equal 15, Light.sky(12040, raining: false)
-    assert_equal 14, Light.sky(12041, raining: false)
-    assert_equal 4, Light.sky(22330, raining: false)
-    assert_equal 5, Light.sky(22331, raining: false)
-    assert_equal 15, Light.sky(23961, raining: false)
-    assert_equal 15, Light.sky(0, raining: false)
-    assert_equal 4, Light.sky(13670, raining: true)
-    assert_equal 12, Light.sky(23992, raining: true)
-  end
-
-  # In clear weather, minecraft.wiki/w/Daylight_cycle says that undead mobs
-  # stop to burn at tick 12542 and begin to burn at tick 23460. These are
-  # the ticks where the sky light goes below Monster::SUN_BURN_LIGHT and
-  # back, as Game#sun_burns? reads it.
-  def test_the_sky_light_crosses_the_sun_burn_light_at_the_ticks_of_the_wiki
-    assert_operator Light.sky(12541, raining: false), :>=, Monster::SUN_BURN_LIGHT
-    assert_operator Light.sky(12542, raining: false), :<, Monster::SUN_BURN_LIGHT
-    assert_operator Light.sky(23459, raining: false), :<, Monster::SUN_BURN_LIGHT
-    assert_operator Light.sky(23460, raining: false), :>=, Monster::SUN_BURN_LIGHT
   end
 
   def test_a_cell_under_the_open_sky_has_the_sky_light

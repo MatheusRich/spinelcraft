@@ -239,13 +239,40 @@ class SkyTest < Minitest::Test
     end
   end
 
-  def test_the_sky_light_follows_the_time_of_day_and_the_rain
-    @clock.set_ticks(6000)
-    assert_equal 15, @sky.light
-    @weather.set_now(true)
-    assert_equal 12, @sky.light
-    @clock.set_ticks(18000)
-    assert_equal 4, @sky.light
+  def test_the_sky_light_is_15_at_noon_7_at_tick_13200_4_at_midnight_and_12_in_rain
+    assert_equal 15, light_at(6000)
+    assert_equal 7, light_at(13200)
+    assert_equal 4, light_at(18000)
+    assert_equal 12, light_at(6000, raining: true)
+  end
+
+  def test_the_sky_light_goes_down_at_the_first_tick_of_each_level_and_up_at_dawn
+    assert_equal 15, light_at(12040)
+    assert_equal 14, light_at(12041)
+    assert_equal 4, light_at(22330)
+    assert_equal 5, light_at(22331)
+    assert_equal 15, light_at(23961)
+    assert_equal 15, light_at(0)
+    assert_equal 4, light_at(13670, raining: true)
+    assert_equal 12, light_at(23992, raining: true)
+  end
+
+  # In clear weather, minecraft.wiki/w/Daylight_cycle says that undead mobs
+  # stop to burn at tick 12542 and begin to burn at tick 23460. These are
+  # the ticks where the sky light goes below Monster::SUN_BURN_LIGHT and
+  # back, as Game#sun_burns? reads it.
+  def test_the_sky_light_crosses_the_sun_burn_light_at_the_ticks_of_the_wiki
+    assert_operator light_at(12541), :>=, Monster::SUN_BURN_LIGHT
+    assert_operator light_at(12542), :<, Monster::SUN_BURN_LIGHT
+    assert_operator light_at(23459), :<, Monster::SUN_BURN_LIGHT
+    assert_operator light_at(23460), :>=, Monster::SUN_BURN_LIGHT
+  end
+
+  # The sky light at the tick of the day, in rain or not.
+  def light_at(tick, raining: false)
+    @clock.set_ticks(tick)
+    @weather.set_now(raining)
+    @sky.light
   end
 
 

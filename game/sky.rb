@@ -5,6 +5,17 @@
 # are uniforms (Sky#write_uniforms).
 class Sky
   STARS = 260
+  # The sky light of Minecraft under the open sky by the time of day, in
+  # clear weather and in rain. DUSK has the first tick of each level as it
+  # goes down from the top level to 4, and DAWN the first tick of each level
+  # as it goes up from 5 to the top level. A day has 24000 ticks, and tick
+  # 6000 is noon. minecraft.wiki/w/Light
+  TOP_CLEAR = 15
+  DUSK_CLEAR = [12041, 12210, 12377, 12542, 12705, 12867, 13027, 13188, 13348, 13509, 13670]
+  DAWN_CLEAR = [22331, 22492, 22653, 22813, 22974, 23135, 23297, 23460, 23624, 23791, 23961]
+  TOP_RAIN = 12
+  DUSK_RAIN = [12010, 12256, 12497, 12734, 12969, 13203, 13436, 13670]
+  DAWN_RAIN = [22331, 22566, 22799, 23032, 23267, 23505, 23746, 23992]
 
   # The quads of the sky, in pixels.
   attr_reader :mesh
@@ -19,9 +30,22 @@ class Sky
     make_stars
   end
 
-  # The sky light under the open sky now (Light.sky), for the rules of the
-  # game: the spawns of monsters, the spread of grass and the cave sounds.
-  def light = Light.sky(@clock.ticks, raining: @weather.raining?)
+  # The sky light under the open sky now, for the rules of the game: the
+  # spawns of monsters, the spread of grass, the cave sounds, the bed and
+  # the sun that burns undead mobs. It counts the levels of DUSK and DAWN
+  # that the tick of the day has passed.
+  def light
+    tick = @clock.ticks
+    raining = @weather.raining?
+    dawn = raining ? DAWN_RAIN : DAWN_CLEAR
+    return 4 + passed(dawn, tick) if tick >= dawn[0]
+    return TOP_RAIN - passed(DUSK_RAIN, tick) if raining
+
+    TOP_CLEAR - passed(DUSK_CLEAR, tick)
+  end
+
+  # How many ticks of ticks the tick has reached.
+  def passed(ticks, tick) = ticks.count { |start| tick >= start }
 
   # Writes 6 uniforms at uniforms[at]: the red, green and blue of the sky,
   # the end of the fog for a view of view blocks, the daylight, and the

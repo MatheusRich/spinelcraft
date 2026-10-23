@@ -29,8 +29,13 @@ class BedTest < Minitest::Test
 
   # Rain darkens the sky, so the time to sleep comes earlier in the evening.
   def test_in_rain_the_player_sleeps_earlier
-    assert_equal "SPAWN SET: YOU CAN ONLY SLEEP AT NIGHT", Bed.use(X, Y, Z, Light.sky(12200, raining: false), [], @clock)
-    assert_equal "GOOD MORNING", Bed.use(X, Y, Z, Light.sky(12200, raining: true), [], @clock)
+    evening = Clock.new(0.0, 0)
+    evening.set_ticks(12200)
+    weather = Weather.new(1, false)
+    sky = Sky.new(evening, weather, Camera.new)
+    assert_equal "SPAWN SET: YOU CAN ONLY SLEEP AT NIGHT", Bed.use(X, Y, Z, sky.light, [], @clock)
+    weather.set_now(true)
+    assert_equal "GOOD MORNING", Bed.use(X, Y, Z, sky.light, [], @clock)
   end
 
   def test_a_monster_within_8_blocks_across_keeps_the_player_awake
