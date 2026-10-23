@@ -230,7 +230,7 @@ class Game
     hiss = false
     while @fluids.next_water(@changes)
       if @changes[3] == Block::COBBLE && !hiss
-        play_at(Sfx::FIZZ, @changes[0] + 0.5, @changes[1] + 0.5, @changes[2] + 0.5, 0.6, SOUND_RANGE)
+        play_at(Sfx::FIZZ, @changes[0] + 0.5, @changes[1] + 0.5, @changes[2] + 0.5, 0.6)
         hiss = true
       end
       pour_change

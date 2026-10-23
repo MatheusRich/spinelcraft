@@ -66,6 +66,10 @@ module Sfx
   CHICKEN_HURT = 63
   LAY_EGG = 64
   CHICK = 65
+  # A sound from a point fades to silence at RANGE blocks, and an  # explosion at EXPLOSION_RANGE. The wiki gives 64 blocks for TNT. It does
+  # not say if a creeper explosion carries as far. minecraft.wiki/w/Sound
+  RANGE = 16.0
+  EXPLOSION_RANGE = 64.0
   # The file of each sound, in the order of the ids above.
   FILES = ["default_dug_node.1", "default_place_node.1", "default_place_node_hard.1", "player_damage",
            "default_grass_footstep.1", "default_dirt_footstep.1", "default_hard_footstep.1", "default_wood_footstep.1",
@@ -98,6 +102,10 @@ module Sfx
            -1.5, 1.8, -0.6, 6.8, 2.7, -6.0, -1.3, -9.5,
            -10.4, -9.6, -15.5, 6.8, -8.5, 10.6, -6.0, 3.3, -9.7, 2.7,
            -11.4, -8.4, -1.9, -0.6, 9.6, -2.7, -5.4, -2.7]
+  # The distance in blocks at which each sound from a point fades to
+  # silence, in the order of the ids above.
+  RANGES = Array.new(FILES.size, RANGE)
+  RANGES[EXPLODE] = EXPLOSION_RANGE
 
   # Loads each sound file. Returns how many loaded.
   def self.load_files

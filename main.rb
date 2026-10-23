@@ -395,9 +395,9 @@ class Game
     Gfx.au_play(id, volume * @options.volume, 0.0) if @sound
   end
 
-  # Plays a sound that comes from x, y, z and reaches range blocks.
-  def play_at(id, x, y, z, gain, range)
-    Gfx.au_play(id, near_volume(x, y, z, gain, range) * @options.volume, pan_to(x, y, z)) if @sound
+  # Plays a sound that comes from x, y, z and reaches Sfx::RANGES[id] blocks.
+  def play_at(id, x, y, z, gain)
+    Gfx.au_play(id, near_volume(x, y, z, gain, Sfx::RANGES[id]) * @options.volume, pan_to(x, y, z)) if @sound
   end
 
   # Volume for a sound at x, y, z: fades to silence at range blocks.
@@ -615,7 +615,7 @@ class Game
   # Looks at random blocks near the player, and plays the sound of each one
   # that makes a sound, at its AMBIENT_CHANCE. As in Minecraft, each offset
   # from the player is the difference of two random numbers below
-  # SOUND_RANGE, so a block near the player sounds more often. Each sound
+  # Sfx::RANGE, so a block near the player sounds more often. Each sound
   # waits for its last clip to end, so the long clips do not take all the
   # voices.
   def update_block_sounds(dt)
@@ -631,14 +631,14 @@ class Game
       next if k < 0 || @ambient_wait[k] > 0.0 || @rng.rand01 >= AMBIENT_CHANCE[k] * MC_AMBIENT_SAMPLES / AMBIENT_SAMPLES
 
       @ambient_wait[k] = Gfx.au_seconds(AMBIENT[k])
-      play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k], SOUND_RANGE)
+      play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k])
     end
   end
 
   # A random offset from the player along one axis for update_block_sounds,
-  # from 1 - SOUND_RANGE to SOUND_RANGE - 1. An offset near 0 comes more
+  # from 1 - Sfx::RANGE to Sfx::RANGE - 1. An offset near 0 comes more
   # often than one far from it.
-  def sound_offset = (@rng.rand01 * SOUND_RANGE).to_i - (@rng.rand01 * SOUND_RANGE).to_i
+  def sound_offset = (@rng.rand01 * Sfx::RANGE).to_i - (@rng.rand01 * Sfx::RANGE).to_i
 
   # The index in AMBIENT of the sound that block x, y, z makes, or -1.
   def block_sound(x, y, z)

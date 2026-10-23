@@ -85,7 +85,7 @@ class Game
       # (minecraft.wiki/w/Creeper), and VoxeLibre has none for the others.
       mob.step = false
       ground = MATERIAL_STEP[material(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))]
-      play_at(ground, mob.x, mob.y, mob.z, 0.35, SOUND_RANGE)
+      play_at(ground, mob.x, mob.y, mob.z, 0.35)
     end
     mob.douse if mob.fire > 0.0 && @weather.wet? && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
     @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.fire > 0.0
@@ -182,7 +182,7 @@ class Game
   def voice(m, sounds) = m.baby? && m.kind == Mob::CHICKEN ? Sfx::CHICK : sounds[m.kind]
 
   def play_from(m, id, gain)
-    play_at(id, m.x, m.y + m.tall * 0.5, m.z, gain, SOUND_RANGE)
+    play_at(id, m.x, m.y + m.tall * 0.5, m.z, gain)
   end
 
   # Drops what a mob drops when it dies (Animal#drops, Monster#drops).
@@ -335,7 +335,7 @@ class Game
     end
     @particles.blast(cx, cy, cz)
     @particles.smoke(cx, cy, cz, 40, 3.0)
-    play_at(Sfx::EXPLODE, cx, cy, cz, 1.0, EXPLOSION_RANGE)
+    play_at(Sfx::EXPLODE, cx, cy, cz, 1.0)
     pdx = @player.x - cx
     pdy = @player.y + 0.9 - cy
     pdz = @player.z - cz
@@ -370,7 +370,7 @@ class Game
     speed = 22.0
     t = dist / speed
     @arrows << Arrow.new(sx, sy, sz, dx / t, dy / t + 9.0 * t, dz / t, 4.0, 0)
-    play_at(Sfx::SHOOT, sx, sy, sz, 0.9, SOUND_RANGE)
+    play_at(Sfx::SHOOT, sx, sy, sz, 0.9)
   end
 
   def update_arrows(dt) # rubocop:todo Metrics/MethodLength
@@ -380,7 +380,7 @@ class Game
         # hits a mob. minecraft.wiki/w/Arrow
         if a.landed
           a.landed = false
-          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8, SOUND_RANGE)
+          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8)
         end
         next
       end
@@ -389,7 +389,7 @@ class Game
         if m
           m.hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
           m.by_player = true
-          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8, SOUND_RANGE)
+          play_at(Sfx::HIT, a.x, a.y, a.z, 0.8)
           a.vanish
         end
       elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)

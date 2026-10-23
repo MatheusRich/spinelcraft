@@ -65,12 +65,6 @@ class Game
   # Minecraft (LivingEntity.shouldTriggerItemUseEffects, not on the wiki).
   CHEW_START = 0.35
   CHEW_EVERY = 0.2
-  # A sound from a point fades to silence at this distance, in blocks.
-  # minecraft.wiki/w/Sound
-  SOUND_RANGE = 16.0
-  # The wiki gives 64 blocks for TNT. It does not say if a creeper
-  # explosion carries as far. minecraft.wiki/w/Sound
-  EXPLOSION_RANGE = 64.0
   # Blocks near the player make these sounds now and then (Game#block_sound):
   # lava under air, flowing water, and a lit furnace. The wiki says only
   # that they play at random (minecraft.wiki/w/Lava, minecraft.wiki/w/Water,
