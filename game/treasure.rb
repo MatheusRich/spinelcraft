@@ -30,8 +30,9 @@ class Treasure
   REARM = Monster::DESPAWN_FAR + NaturalSpawner::GUARD_RANGE * 2
 
   # nearest looks this many cells around the cell of its point on each
-  # side, about 2000 blocks.
+  # side. So it finds each site up to NEAR blocks away.
   NEAR_CELLS = 4
+  NEAR = NEAR_CELLS * TreasureMap::CELL
 
   def initialize(map, seed)
     @map = map
@@ -63,8 +64,8 @@ class Treasure
     chests.keep(key, slots)
   end
 
-  # The nearest site to x, z of a chest that is not looted, within
-  # NEAR_CELLS cells, or no site.
+  # The nearest site to x, z of a chest that is not looted, up to NEAR
+  # blocks away, or no site.
   def nearest(x, z)
     cell_x = x.floor.to_i >> TreasureMap::CELL_BITS
     cell_z = z.floor.to_i >> TreasureMap::CELL_BITS
@@ -76,7 +77,7 @@ class Treasure
         next unless unlooted?(site.chest_x, site.chest_y, site.chest_z)
 
         distance = site.distance(x, z)
-        next if best.found? && distance >= best_distance
+        next if distance > NEAR || (best.found? && distance >= best_distance)
 
         best = site
         best_distance = distance

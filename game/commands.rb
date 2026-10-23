@@ -155,7 +155,7 @@ class Game
   # (minecraft.wiki/w/Commands/locate).
   def locate_treasure
     site = @treasure.nearest(@player.x.to_f, @player.z.to_f)
-    return @chat.post_error("NO TREASURE NEARBY") unless site.found?
+    return @chat.post_error("NO TREASURE WITHIN #{Treasure::NEAR} BLOCKS") unless site.found?
 
     @chat.post("THE NEAREST TREASURE IS AT [#{site.chest_x}, #{site.chest_y}, #{site.chest_z}] (#{site.distance(@player.x.to_f, @player.z.to_f).round} BLOCKS AWAY)")
   end

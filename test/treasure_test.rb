@@ -134,15 +134,6 @@ class TreasureTest < Minitest::Test
     assert_in_delta 5.0, TreasureSite.new(10, Y, 20).distance(13.5, 24.5), 1e-9
   end
 
-  def test_nearest_starts_from_the_cell_that_holds_its_point
-    cell = TreasureMap::CELL
-    reach = Treasure::NEAR_CELLS
-    west = TreasureSite.new((-1 - reach) * cell + 10, Y, -10)
-    assert_same west, Treasure.new(FakeMap.new([-1 - reach, -1] => west), 1337).nearest(-0.5, -0.5)
-    north = TreasureSite.new(-10, Y, (-1 - reach) * cell + 10)
-    assert_same north, Treasure.new(FakeMap.new([-1, -1 - reach] => north), 1337).nearest(-0.5, -0.5)
-  end
-
   def test_two_looted_chests_survive_a_save
     one = TreasureSite.new(10, Y, 10)
     other = TreasureSite.new(TreasureMap::CELL + 10, Y, 10)
@@ -212,5 +203,12 @@ class TreasureTest < Minitest::Test
     refute guard.despawn?(player, 0.0)
     refute @treasure.call_guards(player.x, player.y, player.z).found?
     refute @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
+  end
+
+  def test_nearest_gives_no_site_farther_than_near
+    site = TreasureSite.new(Treasure::NEAR + 10, Y, 0)
+    treasure = Treasure.new(FakeMap.new([Treasure::NEAR_CELLS, 0] => site), 1337)
+    refute treasure.nearest(9.0, 0.5).found?
+    assert_same site, treasure.nearest(11.0, 0.5)
   end
 end
