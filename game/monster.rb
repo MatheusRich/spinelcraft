@@ -47,16 +47,17 @@ class Monster < Mob
     @sight = VoxelWalk.new
   end
 
-  # What the monster drops when the player kills it, as in Minecraft, as a
-  # block and its count for each drop: a zombie 0 to 2 rotten flesh, and a
-  # skeleton 0 to 2 arrows, 0 to 2 bones and now and then its bow. A
-  # creeper drops nothing. minecraft.wiki/w/Rotten_Flesh and /w/Skeleton
+  # What the monster drops when it dies, as in Minecraft, as a block and
+  # its count for each drop: a zombie 0 to 2 rotten flesh, and a skeleton 0
+  # to 2 arrows, 0 to 2 bones and, when the player killed it, now and then
+  # its bow. A creeper drops nothing. minecraft.wiki/w/Rotten_Flesh and
+  # /w/Skeleton
   def drops(rng)
     return [Block::ROTTEN_FLESH, (rng.rand01 * 3.0).to_i] if @kind == ZOMBIE
     return [] unless @kind == SKELETON
 
     drops = [Block::ARROW, (rng.rand01 * 3.0).to_i, Block::BONE, (rng.rand01 * 3.0).to_i]
-    drops << Block::BOW << 1 if rng.rand01 < 0.085
+    drops << Block::BOW << 1 if @by_player && rng.rand01 < 0.085
     drops
   end
 

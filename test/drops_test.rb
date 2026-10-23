@@ -1,6 +1,6 @@
 require_relative "test_helper"
 
-# What a mob that the player killed drops (Animal#drops, Monster#drops).
+# What a mob drops when it dies (Animal#drops, Monster#drops).
 class DropsTest < Minitest::Test
   TRIES = 400
 
@@ -9,7 +9,15 @@ class DropsTest < Minitest::Test
   end
 
   def test_a_pig_drops_1_to_3_porkchops
-    assert_equal [1, 2, 3], counts(animal(Mob::PIG), Block::PORKCHOP)
+    pig = animal(Mob::PIG)
+    assert_equal [1, 2, 3], counts(pig, Block::PORKCHOP)
+    assert_equal [0], counts(pig, Block::COOKED_PORKCHOP)
+  end
+
+  def test_a_pig_that_dies_on_fire_drops_cooked_porkchops
+    pig = on_fire(animal(Mob::PIG))
+    assert_equal [1, 2, 3], counts(pig, Block::COOKED_PORKCHOP)
+    assert_equal [0], counts(pig, Block::PORKCHOP)
   end
 
   def test_a_cow_drops_0_to_2_leather_and_1_to_3_raw_beef
@@ -42,6 +50,14 @@ class DropsTest < Minitest::Test
     sheep = animal(Mob::SHEEP)
     assert_equal [1], counts(sheep, Block::WOOL)
     assert_equal [1, 2], counts(sheep, Block::MUTTON)
+    assert_equal [0], counts(sheep, Block::COOKED_MUTTON)
+  end
+
+  def test_a_sheep_that_dies_on_fire_drops_cooked_mutton
+    sheep = on_fire(animal(Mob::SHEEP))
+    assert_equal [1], counts(sheep, Block::WOOL)
+    assert_equal [1, 2], counts(sheep, Block::COOKED_MUTTON)
+    assert_equal [0], counts(sheep, Block::MUTTON)
   end
 
   def test_a_sheared_sheep_drops_no_wool
@@ -70,10 +86,16 @@ class DropsTest < Minitest::Test
   end
 
   # minecraft.wiki/w/Skeleton gives the bow a chance of 8.5%.
-  def test_a_skeleton_drops_its_bow_now_and_then
-    bows = Array.new(TRIES) { count_of(monster(Mob::SKELETON).drops(@rng), Block::BOW) }
+  def test_a_skeleton_that_the_player_kills_drops_its_bow_now_and_then
+    skeleton = monster(Mob::SKELETON)
+    skeleton.by_player = true
+    bows = Array.new(TRIES) { count_of(skeleton.drops(@rng), Block::BOW) }
     assert_equal [0, 1], bows.uniq.sort
     assert_in_delta 0.085, bows.sum / TRIES.to_f, 0.04
+  end
+
+  def test_a_skeleton_that_dies_on_its_own_keeps_its_bow
+    assert_equal [0], counts(monster(Mob::SKELETON), Block::BOW)
   end
 
   def test_a_creeper_drops_nothing

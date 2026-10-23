@@ -158,9 +158,11 @@ class Game
     nil
   end
 
-  # The loot of a mob that the player killed, and the death cry.
+  # The loot of a mob, and the death cry. A mob drops its loot whatever
+  # kills it, as in Minecraft. Only experience and the bow of a skeleton
+  # need the player (Monster#drops). minecraft.wiki/w/Pig, /w/Skeleton
   def mob_died(mob)
-    drop_loot(mob) if @survival && mob.by_player
+    drop_loot(mob) if @survival
     play_from(mob, voice(mob, Mob::DEATH_SOUND), 1.0)
   end
 
@@ -183,8 +185,7 @@ class Game
     play_at(id, m.x, m.y + m.tall * 0.5, m.z, gain, SOUND_RANGE)
   end
 
-  # Drops what a mob that the player killed drops (Animal#drops,
-  # Monster#drops).
+  # Drops what a mob drops when it dies (Animal#drops, Monster#drops).
   def drop_loot(mob)
     drops = mob.drops(@rng)
     (drops.size / 2).times { |pair| loot(mob, drops[pair * 2].to_i, drops[pair * 2 + 1].to_i) }

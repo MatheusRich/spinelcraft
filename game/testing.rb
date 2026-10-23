@@ -2154,15 +2154,18 @@ class Game
     check("the chest cells are as big as the inventory cells and fit on the screen", fits)
   end
 
-  # Mobs that die without the player's help drop nothing.
+  # A mob drops its loot also when it dies without the player's help.
   def test_mob_drops
     @inv.clear
+    @items.clear
     far = Animal.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     far.hp = 0.0
     @mobs.clear
     @mobs << far
     update_mobs(1.0 / 60.0)
-    check("a pig that dies on its own drops nothing", @items.empty?)
+    n = ground_count(Block::PORKCHOP)
+    check("a pig that dies on its own drops 1 to 3 porkchops", n >= 1 && n <= 3)
+    @items.clear
     killed = Animal.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     killed.hp = 0.0
     killed.by_player = true
@@ -2185,8 +2188,8 @@ class Game
     @mobs << burnt
     10.times { update_mobs(1.0 / 60.0) }
     set_block(lx, SKY_Y, lz, Block::AIR)
-    stacks = @items.count { |i| i.block == Block::PORKCHOP }
-    check("a mob that dies in lava drops its loot once", burnt.dying? && stacks == 1)
+    stacks = @items.count { |i| i.block == Block::COOKED_PORKCHOP }
+    check("a pig that dies in lava drops cooked porkchops once", burnt.dying? && stacks == 1 && ground_count(Block::PORKCHOP) == 0)
     @items.clear
     sheep = Animal.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     sheep.hp = 0.0

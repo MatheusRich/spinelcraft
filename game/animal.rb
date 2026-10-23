@@ -91,23 +91,23 @@ class Animal < Mob
 
   def baby? = @grow_left > 0.0
 
-  # What the animal drops when the player kills it, as in Minecraft, as a
-  # block and its count for each drop: a pig 1 to 3 porkchops, a cow 0 to 2
-  # leather and 1 to 3 raw beef, or steak when it dies on fire, a chicken 0
-  # to 2 feathers and 1 raw chicken, or cooked chicken when it dies on
-  # fire, and a sheep its wool and 1 to 2 mutton. A baby drops nothing.
-  # minecraft.wiki/w/Pig, /w/Cow, /w/Chicken and /w/Sheep
+  # What the animal drops when it dies, as in Minecraft, as a block and its
+  # count for each drop: a pig 1 to 3 porkchops, a cow 0 to 2 leather and 1
+  # to 3 raw beef, a chicken 0 to 2 feathers and 1 raw chicken, and a sheep
+  # its wool and 1 to 2 mutton. The meat comes cooked when the animal dies
+  # on fire. A baby drops nothing. minecraft.wiki/w/Pig, /w/Cow,
+  # /w/Chicken and /w/Sheep
   def drops(rng)
     return [] if baby?
-    return [Block::PORKCHOP, 1 + (rng.rand01 * 3.0).to_i] if @kind == PIG
+    return [burning? ? Block::COOKED_PORKCHOP : Block::PORKCHOP, 1 + (rng.rand01 * 3.0).to_i] if @kind == PIG
     return [Block::LEATHER, (rng.rand01 * 3.0).to_i, burning? ? Block::STEAK : Block::BEEF, 1 + (rng.rand01 * 3.0).to_i] if @kind == COW
     return [Block::FEATHER, (rng.rand01 * 3.0).to_i, burning? ? Block::COOKED_CHICKEN : Block::RAW_CHICKEN, 1] if @kind == CHICKEN
 
     # A sheep.
-    mutton = 1 + (rng.rand01 * 2.0).to_i
-    return [Block::MUTTON, mutton] if @sheared
+    mutton = [burning? ? Block::COOKED_MUTTON : Block::MUTTON, 1 + (rng.rand01 * 2.0).to_i]
+    return mutton if @sheared
 
-    [Block::WOOL, 1, Block::MUTTON, mutton]
+    [Block::WOOL, 1] + mutton
   end
 
   # Makes this animal a baby that grows up after GROW_TIME.
