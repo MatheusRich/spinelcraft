@@ -996,12 +996,16 @@ class Game
     @player.z = cz + 0.5
     @cave_fear = 0.0
     @cave_timer = 0.0
+    @sfx.clear
     update_cave_sound(0.0)
     grew = @cave_fear == 3.0
+    quiet = @sfx.ids.none? { |id| id >= Sfx::CAVE && id < Sfx::CAVE + Sfx::CAVES }
     @cave_fear = 299.0
     @cave_timer = 0.0
+    @sfx.clear
     update_cave_sound(0.0)
-    check("the dark builds fear, and full fear plays a cave sound", grew && @cave_fear == 0.0)
+    cave = @sfx.ids.size == 1 && @sfx.ids[0] >= Sfx::CAVE && @sfx.ids[0] < Sfx::CAVE + Sfx::CAVES
+    check("the dark builds fear, and full fear plays a cave sound", grew && quiet && cave && @cave_fear == 0.0)
     restore_pose
   end
 
