@@ -147,6 +147,7 @@ class Terrain
     warp(x + SHIFT, z + SHIFT)
     @noise.fbm2(@wx / CONTINENT_SCALE, @wz / CONTINENT_SCALE, 4)
   end
+
   # The height of the column's top block plus one, after Minecraft 1.18.
   # The continent noise picks ocean, coast, lowland or highland, and a
   # spline turns it into a base height. Inland, the landscape noise picks
@@ -159,7 +160,7 @@ class Terrain
     continent = continent(x, z)
     wx = @wx
     wz = @wz
-    land =@noise4.fbm2(wx / LANDSCAPE_SCALE + 30.0, wz / LANDSCAPE_SCALE, 3)
+    land = @noise4.fbm2(wx / LANDSCAPE_SCALE + 30.0, wz / LANDSCAPE_SCALE, 3)
     inland = Terrain.smooth((continent + 0.1) / 0.2)
     mountains = Terrain.smooth((MOUNTAINS - land) / LANDSCAPE_EDGE) * inland
     plateau = Terrain.smooth((land - PLATEAU_LOW) / PLATEAU_EDGE) *
