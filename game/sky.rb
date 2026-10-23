@@ -1,6 +1,8 @@
-# The sky layer: the sun, the moon and the stars. Game draws it before the
-# world, so the terrain and the clouds cover it. The colors of the sky and
-# of the fog are uniforms (Game#set_uniforms).
+# The sky as it is now, from the time of day and the weather: the sky
+# light for the rules of the game, and the sky layer with the sun, the
+# moon and the stars. Game draws the layer before the world, so the
+# terrain and the clouds cover it. The colors of the sky and of the fog
+# are uniforms (Game#set_uniforms).
 class Sky
   STARS = 260
 
@@ -16,6 +18,10 @@ class Sky
     @stars = []
     make_stars
   end
+
+  # The sky light under the open sky now (Light.sky), for the rules of the
+  # game: the spawns of monsters, the spread of grass and the cave sounds.
+  def light = Light.sky(@clock.ticks, raining: @weather.raining?)
 
   # The quads for a frame of w by h pixels, with the HUD scale s. The camera
   # must have the view of the frame.

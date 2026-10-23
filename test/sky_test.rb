@@ -238,4 +238,14 @@ class SkyTest < Minitest::Test
       assert_in_delta y0, y1, 1e-6
     end
   end
+
+  def test_the_sky_light_follows_the_time_of_day_and_the_rain
+    @clock.set_ticks(6000)
+    assert_equal 15, @sky.light
+    @weather.set_now(true)
+    assert_equal 12, @sky.light
+    @clock.set_ticks(18000)
+    assert_equal 4, @sky.light
+  end
+
 end

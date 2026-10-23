@@ -150,7 +150,7 @@ class Game
   # Plants::GRASS_LIGHT (see Plants#grass_tick). At night the sky light
   # is less, so grass does not spread.
   def spread_grass(dt)
-    sky = Light.sky(@clock.ticks, raining: @weather.raining?)
+    sky = @sky.light
     return if sky < Plants::GRASS_LIGHT
 
     @plants.random_ticks(dt, Plants::DECAY_SAMPLES).times do

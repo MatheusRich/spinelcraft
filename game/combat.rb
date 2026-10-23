@@ -38,7 +38,7 @@ class Game
   end
 
   def update_mobs(dt)
-    @spawner.spawn_monsters(@mobs, @player, Light.sky(@clock.ticks, raining: @weather.raining?), dt)
+    @spawner.spawn_monsters(@mobs, @player, @sky.light, dt)
     @breeding.pair_lovers(@mobs, @particles)
     push_mobs(dt)
     held = current_block.to_i
