@@ -36,12 +36,14 @@ class NaturalSpawner
   ANIMALS = 24
   REFILL_TIME = 2.0
 
-  # The guards of a treasure chest: a pack of GUARDS monsters in the
-  # cells up to GUARD_RANGE blocks from the chest on x and z and 1 block
-  # on y, as a monster spawner spawns 4 mobs in the 9 x 3 x 9 blocks
-  # around it (minecraft.wiki/w/Monster_Spawner). A spawner makes 4 tries
-  # each time. The pack tries up to GUARD_TRIES cells, so that it nearly
-  # always has all its monsters; this is not a Minecraft value.
+  # The guards of a treasure chest: a pack of GUARDS monsters on the
+  # ground up to GUARD_RANGE blocks from the chest on x and z, as a
+  # monster spawner spawns 4 mobs up to 4 blocks from it
+  # (minecraft.wiki/w/Monster_Spawner). A spawner keeps them within 1
+  # block of its height, but a chest stands on the top of an island, so a
+  # guard stands on the top of its column instead. A spawner makes 4 tries
+  # each time. The pack tries up to GUARD_TRIES columns, so that it nearly
+  # always has all its monsters. These two rules are not Minecraft rules.
   GUARDS = 4
   GUARD_RANGE = 4
   GUARD_TRIES = 40
@@ -134,18 +136,18 @@ class NaturalSpawner
     Block.solid?(ground) && !Block.leaves?(ground) && @world.get(x, y, z) == Block::AIR && @world.get(x, y + 1, z) == Block::AIR
   end
 
-  # The guards of the treasure chest at x, y, z: a pack of GUARDS monsters
-  # of random kinds, by MONSTER_WEIGHTS, in the cells around the chest
-  # that have room for them. Light does not stop them. Returns how many
+  # The guards of the treasure chest at x, z: a pack of GUARDS monsters of
+  # random kinds, by MONSTER_WEIGHTS, on the columns around the chest that
+  # have room for them on top. Light does not stop them. Returns how many
   # spawned.
-  def spawn_guards(mobs, x, y, z)
+  def spawn_guards(mobs, x, z)
     spawned = 0
     tries = 0
     while spawned < GUARDS && tries < GUARD_TRIES
       tries += 1
       cell_x = x + @rng.between(-GUARD_RANGE, GUARD_RANGE)
-      cell_y = y + @rng.between(-1, 1)
       cell_z = z + @rng.between(-GUARD_RANGE, GUARD_RANGE)
+      cell_y = @world.height_at(cell_x, cell_z)
       if room?(cell_x, cell_y, cell_z)
         add_monster(mobs, pick_kind(MONSTER_KINDS, MONSTER_WEIGHTS), cell_x, cell_y, cell_z).guard = true
         spawned += 1

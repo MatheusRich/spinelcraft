@@ -59,7 +59,7 @@ class Game
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
-    @spawner.spawn_guards(@mobs, x, y, z) if site.found? && Block::BASE[@world.get(x, y, z)] == Block::CHEST
+    @spawner.spawn_guards(@mobs, x, z) if site.found? && Block::BASE[@world.get(x, y, z)] == Block::CHEST
     nil
   end
 

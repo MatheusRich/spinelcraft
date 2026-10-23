@@ -23,9 +23,11 @@ class Treasure
   # A treasure chest sends its guards when the player comes this near, as
   # a monster spawner starts in a sphere of 16 blocks around it
   # (minecraft.wiki/w/Monster_Spawner). It sends them again only after the
-  # player has gone farther than Monster::DESPAWN_FAR, where they despawn.
-  # This is not a Minecraft rule.
+  # player has gone farther than REARM from it. Then each guard that
+  # waits by the chest is farther than Monster::DESPAWN_FAR from the
+  # player, so it has despawned. This is not a Minecraft rule.
   GUARD_REACH = 16.0
+  REARM = Monster::DESPAWN_FAR + NaturalSpawner::GUARD_RANGE * 2
 
   # nearest looks this many cells around the cell of its point on each
   # side, about 2000 blocks.
@@ -87,9 +89,9 @@ class Treasure
   # y, z, or no site. That is a chest that is not looted, within
   # GUARD_REACH of the player, and that did not send its guards before.
   # A site that sent them can send them again once the player has gone
-  # farther than Monster::DESPAWN_FAR.
+  # farther than REARM.
   def call_guards(x, y, z)
-    @sent.reject! { |site| site.distance(x, z) > Monster::DESPAWN_FAR }
+    @sent.reject! { |site| site.distance(x, z) > REARM }
     [-GUARD_REACH, GUARD_REACH].each do |dx|
       [-GUARD_REACH, GUARD_REACH].each do |dz|
         site = @map.site_at((x + dx).floor, (z + dz).floor)

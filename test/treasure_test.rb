@@ -173,9 +173,9 @@ class TreasureTest < Minitest::Test
   def test_a_chest_sends_its_guards_once_until_the_player_goes_far_away
     assert @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
     refute @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
-    refute @treasure.call_guards(X + 0.5, Y, Z + 0.5 + Monster::DESPAWN_FAR).found?
+    refute @treasure.call_guards(X + 0.5, Y, Z + 0.5 + Treasure::REARM).found?
     refute @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
-    refute @treasure.call_guards(X + 0.5, Y, Z + 0.6 + Monster::DESPAWN_FAR).found?
+    refute @treasure.call_guards(X + 0.5, Y, Z + 0.6 + Treasure::REARM).found?
     assert @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
   end
 
@@ -198,5 +198,19 @@ class TreasureTest < Minitest::Test
 
   def test_no_site_sends_no_guards
     refute Treasure.new(FakeMap.new, 1337).call_guards(0.5, 0.5, 0.5).found?
+  end
+
+  # A guard stands up to NaturalSpawner::GUARD_RANGE from the chest on x
+  # and z. Just past Monster::DESPAWN_FAR from the chest, the guard nearest
+  # the player has not despawned, so the chest sends no second pack.
+  def test_a_chest_sends_no_second_pack_while_a_guard_can_still_wait_by_it
+    assert @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
+    range = NaturalSpawner::GUARD_RANGE
+    guard = Monster.new(Mob::ZOMBIE, X + 0.5, Y, Z + 0.5 + range, 1)
+    guard.guard = true
+    player = Player.new(X + 0.5, Y, Z + 0.5 + Monster::DESPAWN_FAR + 2.0)
+    refute guard.despawn?(player, 0.0)
+    refute @treasure.call_guards(player.x, player.y, player.z).found?
+    refute @treasure.call_guards(X + 0.5, Y, Z + 10.5).found?
   end
 end
