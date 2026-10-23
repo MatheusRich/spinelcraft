@@ -70,7 +70,7 @@ class NaturalSpawner
   # packs walk from the center with steps of up to 5 on x and z, and each
   # step can spawn a monster of the pack's kind. Returns how many spawned,
   # room at most.
-  def spawn_packs(mobs, player, sky, room) # rubocop:todo Metrics/MethodLength
+  def spawn_packs(mobs, player, sky, room)
     span = SPAWN_CHUNKS * 2 + 1
     x0 = ((player.x.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
     z0 = ((player.z.floor >> 4) - SPAWN_CHUNKS + (@rng.rand01 * span).to_i) * 16 + (@rng.rand01 * 16.0).to_i
@@ -90,10 +90,7 @@ class NaturalSpawner
         x += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         z += (@rng.rand01 * 6.0).to_i - (@rng.rand01 * 6.0).to_i
         if monster_fits?(player, x, y, z, sky)
-          monster = Monster.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
-          monster.head = halloween_head(kind)
-          mobs << monster
-          Log.debug(Log::MOBS) { "#{Mob::NAMES[kind]} spawns at #{x} #{y} #{z}, #{mobs.size} mobs" }
+          add_monster(mobs, kind, x, y, z)
           spawned += 1
           return spawned if spawned >= room
         end
@@ -103,11 +100,11 @@ class NaturalSpawner
     spawned
   end
 
-  # True when a monster can spawn in the cell x, y, z: a loaded dark cell
-  # with a solid floor and room for its body, between SPAWN_NEAR and
-  # Monster::DESPAWN_FAR blocks from player.
+  # True when a monster can spawn in the cell x, y, z: a dark cell with
+  # room for it (room?), between SPAWN_NEAR and Monster::DESPAWN_FAR
+  # blocks from player.
   def monster_fits?(player, x, y, z, sky)
-    return false if y < 1 || !@world.loaded?(x, z)
+    return false unless room?(x, y, z)
 
     dx = x + 0.5 - player.x
     dy = y - player.y
@@ -115,11 +112,25 @@ class NaturalSpawner
     distance2 = dx * dx + dy * dy + dz * dz
     return false if distance2 < SPAWN_NEAR * SPAWN_NEAR || distance2 > Monster::DESPAWN_FAR * Monster::DESPAWN_FAR
 
-    ground = @world.get(x, y - 1, z)
-    return false unless Block.solid?(ground) && !Block.leaves?(ground)
-    return false if @world.get(x, y, z) != Block::AIR || @world.get(x, y + 1, z) != Block::AIR
-
     dark?(x, y, z, sky)
+  end
+
+  # True when the cell x, y, z is loaded and has room for the body of a
+  # monster: a solid floor that is not leaves, and two cells of air.
+  def room?(x, y, z)
+    return false if y < 1 || !@world.loaded?(x, z)
+
+    ground = @world.get(x, y - 1, z)
+    Block.solid?(ground) && !Block.leaves?(ground) && @world.get(x, y, z) == Block::AIR && @world.get(x, y + 1, z) == Block::AIR
+  end
+
+  # Adds a new monster of kind at the cell x, y, z to mobs, and gives it.
+  def add_monster(mobs, kind, x, y, z)
+    monster = Monster.new(kind, x + 0.5, y + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
+    monster.head = halloween_head(kind)
+    mobs << monster
+    Log.debug(Log::MOBS) { "#{Mob::NAMES[kind]} spawns at #{x} #{y} #{z}, #{mobs.size} mobs" }
+    monster
   end
 
   # True when a monster can spawn in the cell x, y, z by its light, sky
