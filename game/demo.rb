@@ -2,6 +2,18 @@
 # about a minute (tools/demo.sh records it). The first frame of each scene
 # builds its place. Each frame after that moves the player and acts through
 # the normal actions. The game quits after the last scene.
+#
+# To change a scene:
+# - The places come from the terrain of seed 1337. A new place needs a
+#   look at that world.
+# - Two runs are not the same: chunks stream in on a time budget, and the
+#   mobs share the random numbers of the game. So keep a margin, as the
+#   skeleton that comes late in the night does.
+# - To see a take without a player, record it and make a contact sheet,
+#   one frame each second:
+#   ffmpeg -i demo.mp4 -vf "fps=1,scale=320:-2,tile=6x11" -frames:v 1 sheet.png
+# - The self-test plays the whole reel (Game#test_demo_reel) and checks
+#   what the video shows. Change those checks with the scenes.
 class Game
   # The length of each scene in seconds, in the order of Game#play_scene.
   SCENE_SECONDS = [8.0, 9.0, 13.0, 14.0, 10.0, 7.0]
