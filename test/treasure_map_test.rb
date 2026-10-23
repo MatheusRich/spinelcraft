@@ -49,14 +49,95 @@ class TreasureMapTest < Minitest::Test
     assert_operator sites.size, :>=, 5
   end
 
-  def test_a_site_is_on_dry_ground_of_an_island_in_open_ocean
+  def test_a_site_is_on_an_island_in_open_ocean_or_on_a_peak_above_the_clouds
     sites.each do |site|
       x = site.chest_x
       z = site.chest_z
       assert_equal site.chest_y, terrain.surface_height(x, z)
       assert_operator site.chest_y, :>, SEA + TreasureMap::RISE
-      assert_operator terrain.continent(x, z), :<, Terrain::CONTINENT[1]
+      assert(site.chest_y > TreasureMap::CLOUD_TOP || terrain.continent(x, z) < Terrain::CONTINENT[1])
     end
+    assert(sites.any? { |site| site.chest_y > TreasureMap::CLOUD_TOP })
+    assert(sites.any? { |site| site.chest_y <= TreasureMap::CLOUD_TOP })
+  end
+
+  def test_the_cloud_top_is_the_top_of_the_clouds
+    assert_equal Clouds::HEIGHT + Clouds::DEPTH, TreasureMap::CLOUD_TOP
+  end
+
+  def test_a_peak_with_its_top_block_above_the_clouds_holds_a_site
+    terrain = FakeTerrain.new
+    terrain.coast << [M, M]
+    terrain.heights[[M, M]] = TreasureMap::CLOUD_TOP
+    refute TreasureMap.new(terrain).site(0, 0).found?
+    terrain.heights[[M, M]] = TreasureMap::CLOUD_TOP + 1
+    site = TreasureMap.new(terrain).site(0, 0)
+    assert_equal [M, TreasureMap::CLOUD_TOP + 1, M], [site.chest_x, site.chest_y, site.chest_z]
+  end
+
+  def test_an_island_comes_before_a_higher_peak_of_its_cell
+    terrain = FakeTerrain.new
+    terrain.coast << [M, M]
+    terrain.heights[[M, M]] = TreasureMap::CLOUD_TOP + 10
+    terrain.heights[[8 * S, 8 * S]] = SEA + 10
+    assert_equal 8 * S, TreasureMap.new(terrain).site(0, 0).chest_x
+  end
+
+  def test_the_site_of_a_peak_is_its_highest_column_near_the_highest_sampled_one
+    terrain = FakeTerrain.new
+    [[S, S], [M, M], [M + 3, M - 2], [M + S / 2 + 1, M]].each { |column| terrain.coast << column }
+    terrain.heights[[S, S]] = TreasureMap::CLOUD_TOP + 2
+    terrain.heights[[M, M]] = TreasureMap::CLOUD_TOP + 5
+    terrain.heights[[M + 3, M - 2]] = TreasureMap::CLOUD_TOP + 8
+    terrain.heights[[M + S / 2 + 1, M]] = TreasureMap::CLOUD_TOP + 20
+    site = TreasureMap.new(terrain).site(0, 0)
+    assert_equal [M + 3, M - 2], [site.chest_x, site.chest_z]
+  end
+
+  def test_a_lower_peak_after_the_highest_one_is_no_island
+    terrain = FakeTerrain.new
+    [[S, S], [8 * S, 8 * S]].each { |column| terrain.coast << column }
+    terrain.heights[[S, S]] = TreasureMap::CLOUD_TOP + 9
+    terrain.heights[[8 * S, 8 * S]] = TreasureMap::CLOUD_TOP + 4
+    assert_equal S, TreasureMap.new(terrain).site(0, 0).chest_x
+  end
+
+  def test_of_two_peaks_of_one_height_the_first_one_found_wins
+    terrain = FakeTerrain.new
+    [[S, S], [8 * S, 8 * S]].each { |column| terrain.coast << column }
+    terrain.heights[[S, S]] = TreasureMap::CLOUD_TOP + 4
+    terrain.heights[[8 * S, 8 * S]] = TreasureMap::CLOUD_TOP + 4
+    assert_equal S, TreasureMap.new(terrain).site(0, 0).chest_x
+  end
+
+  # As test_a_cell_with_no_sampled_column_higher_than_rise_has_no_site,
+  # with a peak between the columns of the grid.
+  def test_a_cell_with_no_sampled_peak_has_no_peak_site
+    terrain = FakeTerrain.new
+    terrain.coast << [1, 1]
+    terrain.heights[[1, 1]] = TreasureMap::CLOUD_TOP + 20
+    TreasureMap::BEFORE_X.size.times do |before|
+      cell_x = 5 + TreasureMap::BEFORE_X[before]
+      cell_z = 5 + TreasureMap::BEFORE_Z[before]
+      terrain.heights[[cell_x * TreasureMap::CELL + S, cell_z * TreasureMap::CELL + S]] = SEA + 10
+    end
+    refute TreasureMap.new(terrain).site(5, 5).found?
+  end
+
+  def test_the_window_of_a_peak_holds_no_site_below_the_clouds
+    terrain = FakeTerrain.new
+    [[M, M], [M + 1, M]].each { |column| terrain.coast << column }
+    terrain.heights[[M, M]] = TreasureMap::CLOUD_TOP + 5
+    terrain.trees << [M, M]
+    terrain.heights[[M + 1, M]] = TreasureMap::CLOUD_TOP
+    refute TreasureMap.new(terrain).site(0, 0).found?
+  end
+
+  def test_the_generated_chunk_of_a_peak_site_has_a_chest_on_it
+    site = sites.find { |found| found.chest_y > TreasureMap::CLOUD_TOP }
+    world = World.new(1337)
+    world.load_chunk(site.chest_x >> 4, site.chest_z >> 4)
+    assert_equal Block::CHEST, Block::BASE[world.get(site.chest_x, site.chest_y, site.chest_z)]
   end
 
   def test_a_site_has_no_tree_and_stands_on_grass_sand_or_snow

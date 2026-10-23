@@ -1,27 +1,33 @@
-# The sites of the treasure chests: on the islands in open ocean, one at
-# most in each cell of CELL x CELL blocks. Like Terrain, it reads only the
+# The sites of the treasure chests: on the islands in open ocean and on
+# the peaks above the clouds, one at most in each cell of CELL x CELL
+# blocks. Like Terrain, it reads only the
 # noise, so it gives the same sites each time. ChunkGenerator puts a chest
 # on each site, and tools/map.rb draws them.
 class TreasureMap
   # The size of a cell in blocks: 1 << CELL_BITS. With 1024, a world of
-  # 8000 x 8000 blocks has 11 to 19 chests, about 600 to 700 blocks apart
-  # (seeds 1337, 42 and 7). This is not a Minecraft value.
+  # 8000 x 8000 blocks has 21 to 29 chests (seeds 1337, 42 and 7): 11 to
+  # 20 on islands and 9 or 10 on peaks. This is not a Minecraft value.
   CELL_BITS = 10
   CELL = 1 << CELL_BITS
   # The search reads one column in STEP on x and on z. Then it reads each
   # column within STEP / 2 of the highest one. An island is about 60
   # blocks across, and a step of 8 finds about as many sites as 16.
   STEP = 16
-  # The ground of a site is at least RISE blocks above the sea.
+  # The ground of an island site is at least RISE blocks above the sea.
   RISE = 4
+  # A cell with no island site has a site on its highest peak when the
+  # top block of the peak is above the clouds, at CLOUD_TOP or higher: the
+  # top of the clouds (Clouds::HEIGHT + Clouds::DEPTH). Minecraft has no
+  # such site.
+  CLOUD_TOP = 196
   # The top blocks that a chest can stand on.
   GROUND = [Block::GRASS, Block::SNOW_GRASS, Block::SAND, Block::SNOW]
   # An island near the edge of a cell can get the sites of two cells. So a
   # site closer than GAP blocks (on x and on z) to the site that the
   # search found in a cell before it is no site, also when the GAP test
-  # drops that site in its turn. The cells before a cell are the 4 cells next to
-  # it that come first when the cells go in rows along x, one row of z
-  # after another (BEFORE_X, BEFORE_Z).
+  # drops that site in its turn. The cells before a cell are the 4 cells
+  # next to it that come first when the cells go in rows along x, one row
+  # of z after another (BEFORE_X, BEFORE_Z).
   GAP = 64
   BEFORE_X = [-1, -1, 0, 1]
   BEFORE_Z = [0, -1, -1, -1]
@@ -58,46 +64,56 @@ class TreasureMap
   # The site of the cell around the block x, z (Integers).
   def site_at(x, z) = site(x >> CELL_BITS, z >> CELL_BITS)
 
-  # The highest dry column of the cell with its corner at x0, z0 that is
-  # in open ocean, then the highest column near it that a chest can stand
-  # on.
+  # The site of the cell with its corner at x0, z0: near its highest dry
+  # column in open ocean, or else near its highest peak above the clouds
+  # (see refine).
   def find(x0, z0)
-    best = SEA + RISE
-    best_x = 0
-    best_z = 0
+    island = SEA + RISE
+    island_x = 0
+    island_z = 0
+    peak = CLOUD_TOP
+    peak_x = 0
+    peak_z = 0
     (0...CELL).step(STEP) do |dx|
       (0...CELL).step(STEP) do |dz|
-        height = island_height(x0 + dx, z0 + dz)
-        next if height <= best
-
-        best = height
-        best_x = x0 + dx
-        best_z = z0 + dz
+        height = site_height(x0 + dx, z0 + dz)
+        if height > peak
+          peak = height
+          peak_x = x0 + dx
+          peak_z = z0 + dz
+        elsif height > island && height <= CLOUD_TOP
+          island = height
+          island_x = x0 + dx
+          island_z = z0 + dz
+        end
       end
     end
-    return TreasureSite.none if best == SEA + RISE
+    return refine(island_x, island_z, SEA + RISE) if island > SEA + RISE
+    return refine(peak_x, peak_z, CLOUD_TOP) if peak > CLOUD_TOP
 
-    refine(best_x, best_z)
+    TreasureSite.none
   end
 
-  # The height of column x, z when it is in open ocean, else 0.
-  def island_height(x, z)
-    return 0 unless @terrain.continent(x, z) < Terrain::CONTINENT[1]
+  # The height of column x, z when it can hold a site: in open ocean, or
+  # with its top block above the clouds. Else 0.
+  def site_height(x, z)
+    height = @terrain.surface_height(x, z)
+    return height if height > CLOUD_TOP || @terrain.continent(x, z) < Terrain::CONTINENT[1]
 
-    @terrain.surface_height(x, z)
+    0
   end
 
-  # The highest column within STEP / 2 of x, z and in its cell where a
-  # chest can stand. The cell of a site is the one cell whose chunks put
-  # its chest (ChunkGenerator#treasure_chest).
-  def refine(x, z)
-    best = SEA + RISE
+  # The highest column higher than floor, within STEP / 2 of x, z and in
+  # its cell, where a chest can stand. The cell of a site is the one cell
+  # whose chunks put its chest (ChunkGenerator#treasure_chest).
+  def refine(x, z, floor)
+    best = floor
     site = TreasureSite.none
     (-STEP / 2..STEP / 2).each do |dx|
       (-STEP / 2..STEP / 2).each do |dz|
         next unless (x + dx) >> CELL_BITS == x >> CELL_BITS && (z + dz) >> CELL_BITS == z >> CELL_BITS
 
-        height = island_height(x + dx, z + dz)
+        height = site_height(x + dx, z + dz)
         next if height <= best || !holds_chest?(x + dx, z + dz, height)
 
         best = height
