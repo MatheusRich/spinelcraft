@@ -38,6 +38,18 @@ class Mob
   SOUND = []
   HURT_SOUND = []
   DEATH_SOUND = []
+  # The drop table: what a mob drops when it dies. Mob.define_drop fills
+  # it, one row for each drop of a kind. A row drops min to max of its
+  # block with chance. When the mob dies on fire, it drops cooked in
+  # place of block, or block when cooked is 0. A row with player 1 drops
+  # only when the player killed the mob.
+  DROP_KIND = []
+  DROP_BLOCK = []
+  DROP_MIN = []
+  DROP_MAX = []
+  DROP_CHANCE = []
+  DROP_COOKED = []
+  DROP_PLAYER = []
   # A chicken in the air falls no faster than this, in blocks each second.
   # The wiki says only that chickens fall slowly (minecraft.wiki/w/Chicken).
   # This is the speed where Minecraft's gravity and the chicken's slowdown
@@ -72,28 +84,51 @@ class Mob
     DEATH_SOUND << death
   end
 
+  # Adds a row to the drop table, which names its arguments.
+  def self.define_drop(kind, block, min, max, chance: 1.0, cooked: 0, player: 0)
+    DROP_KIND << kind
+    DROP_BLOCK << block
+    DROP_MIN << min
+    DROP_MAX << max
+    DROP_CHANCE << chance
+    DROP_COOKED << cooked
+    DROP_PLAYER << player
+  end
+
   # minecraft.wiki/w/Pig
   define_mob PIG, "PIG", hp: 10.0, half: 0.45, tall: 0.95, passive: 1, tempt_pace: 1.2, panic_speed: 4.22,
                          sound: Sfx::OINK, hurt: Sfx::OINK, death: Sfx::PIG_DEATH
-  # minecraft.wiki/w/Zombie
+  define_drop PIG, Block::PORKCHOP, 1, 3, cooked: Block::COOKED_PORKCHOP
+  # minecraft.wiki/w/Zombie, /w/Rotten_Flesh
   define_mob ZOMBIE, "ZOMBIE", hp: 20.0, half: 0.3, tall: 1.9,
                                sound: Sfx::GROAN, hurt: Sfx::ZOMBIE_HURT, death: Sfx::ZOMBIE_DEATH
+  define_drop ZOMBIE, Block::ROTTEN_FLESH, 0, 2
   # minecraft.wiki/w/Skeleton
   define_mob SKELETON, "SKELETON", hp: 20.0, half: 0.3, tall: 1.9,
                                    sound: Sfx::RATTLE, hurt: Sfx::SKELETON_HURT, death: Sfx::SKELETON_DEATH
-  # minecraft.wiki/w/Sheep
+  define_drop SKELETON, Block::ARROW, 0, 2
+  define_drop SKELETON, Block::BONE, 0, 2
+  define_drop SKELETON, Block::BOW, 1, 1, chance: 0.085, player: 1
+  # minecraft.wiki/w/Sheep. A sheared sheep drops no wool (Animal#drops_row?).
   define_mob SHEEP, "SHEEP", hp: 8.0, half: 0.45, tall: 1.2, passive: 1, tempt_pace: 1.1, panic_speed: 3.57,
                              sound: Sfx::BAA, hurt: Sfx::BAA, death: Sfx::BAA
-  # A creeper makes no sound now and then, as in Minecraft.
+  define_drop SHEEP, Block::WOOL, 1, 1
+  define_drop SHEEP, Block::MUTTON, 1, 2, cooked: Block::COOKED_MUTTON
+  # A creeper makes no sound now and then, and it drops nothing here: the
+  # game has no gunpowder.
   # minecraft.wiki/w/Creeper
   define_mob CREEPER, "CREEPER", hp: 20.0, half: 0.3, tall: 1.7,
                                  sound: -1, hurt: Sfx::CREEPER_HURT, death: Sfx::CREEPER_DEATH
   # minecraft.wiki/w/Cow
   define_mob COW, "COW", hp: 10.0, half: 0.45, tall: 1.4, passive: 1, tempt_pace: 1.25, panic_speed: 2.7,
                          sound: Sfx::MOO, hurt: Sfx::COW_HURT, death: Sfx::COW_HURT
+  define_drop COW, Block::LEATHER, 0, 2
+  define_drop COW, Block::BEEF, 1, 3, cooked: Block::STEAK
   # minecraft.wiki/w/Chicken
   define_mob CHICKEN, "CHICKEN", hp: 4.0, half: 0.2, tall: 0.7, passive: 1, tempt_pace: 1.0, panic_speed: 5.29,
                                  sound: Sfx::CLUCK, hurt: Sfx::CHICKEN_HURT, death: Sfx::CHICKEN_HURT
+  define_drop CHICKEN, Block::FEATHER, 0, 2
+  define_drop CHICKEN, Block::RAW_CHICKEN, 1, 1, cooked: Block::COOKED_CHICKEN
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :by_player
   # True after a hit, until Game#update_mobs plays the hurt sound.
@@ -150,6 +185,24 @@ class Mob
   def passive? = PASSIVE[@kind] == 1
 
   def burning? = @fire > 0.0
+
+  # What the mob drops when it dies, from its rows of the drop table, as a
+  # block and its count for each drop.
+  def drops(rng)
+    drops = []
+    DROP_KIND.size.times do |row|
+      next unless DROP_KIND[row] == @kind && drops_row?(row) && rng.rand01 < DROP_CHANCE[row]
+
+      cooked = DROP_COOKED[row]
+      min = DROP_MIN[row]
+      drops << (burning? && cooked > 0 ? cooked : DROP_BLOCK[row]) << min + (rng.rand01 * (DROP_MAX[row] - min + 1)).to_i
+    end
+    drops
+  end
+
+  # True when the mob drops the row of the drop table: a row for a player
+  # kill only drops when the player killed it.
+  def drops_row?(row) = DROP_PLAYER[row] == 0 || @by_player
 
   # A dying mob lies on the ground until DEATH_TIME. It does not move on its
   # own, attack or take hits.
