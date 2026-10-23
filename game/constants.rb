@@ -25,6 +25,9 @@ class Game
                     Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
                     Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::PUMPKIN_PIE, Block::SHEARS,
                     Block::BONE, Block::BONE_MEAL]
+  # The 6 floats of the colors of the sky and of the fog, the daylight and
+  # the fog range (Sky#write_uniforms).
+  SKY_UNIFORMS = 20
   # Floats that render passes to the shaders: 28, one square for each level,
   # 8 for the far cloud layer, 4 for the rain, 4 for the options, then 8
   # for each biome: its grass and foliage ratios for far terrain (Tint).

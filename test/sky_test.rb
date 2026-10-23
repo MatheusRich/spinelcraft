@@ -248,4 +248,81 @@ class SkyTest < Minitest::Test
     assert_equal 4, @sky.light
   end
 
+
+  def test_by_day_the_sky_is_blue
+    red, green, blue = colors(6000)
+    assert_operator blue, :>, green
+    assert_operator green, :>, red
+  end
+
+  def test_at_night_the_sky_is_dark
+    noon = colors(6000)
+    colors(18000).each_with_index { |color, i| assert_operator color, :<, noon[i] / 3.0 }
+  end
+
+  # The colors of the sky are tuned by eye, and the wiki gives none. At
+  # sunset the glow mixes three quarters of orange into the dusk sky, so
+  # some of the blue still shows.
+  def test_at_sunset_the_sky_glows_orange
+    red, green, blue = colors(12000)
+    assert_in_delta 0.82, red, 0.01
+    assert_in_delta 0.51, green, 0.01
+    assert_in_delta 0.32, blue, 0.01
+  end
+
+  def test_rain_grays_the_sky_with_a_hint_of_blue
+    @weather.set_now(true)
+    red, green, blue = colors(6000)
+    assert_in_delta red, green, 0.05
+    assert_operator blue - green, :>, 0.05
+    assert_operator blue - red, :<, 0.15
+    [red, green, blue].each { |color| assert_operator color, :>, 0.3 }
+  end
+
+  def test_rain_keeps_the_night_sky_dark
+    @weather.set_now(true)
+    colors(18000).each { |color| assert_operator color, :<, 0.3 }
+  end
+
+  def test_at_noon_the_daylight_is_full
+    assert_in_delta 1.0, sky_uniforms(6000, 160.0)[4], 0.001
+  end
+
+  def test_rain_brings_the_fog_nearer_and_dims_the_daylight
+    clear = sky_uniforms(6000, 160.0)
+    @weather.set_now(true)
+    rain = sky_uniforms(6000, 160.0)
+    assert_in_delta 0.4 * clear[3], rain[3], 0.001
+    assert_in_delta 0.65 * clear[4], rain[4], 0.001
+  end
+
+  # The fog starts 65 blocks before the end of a short view, and a quarter
+  # of the view before the end of a long view.
+  def test_the_fog_starts_before_the_end_of_the_view
+    short = sky_uniforms(6000, 160.0)
+    assert_in_delta 160.0, short[3], 0.001
+    assert_in_delta 95.0, short[5], 0.001
+    long = sky_uniforms(6000, 1600.0)
+    assert_in_delta 1200.0, long[5], 0.001
+  end
+
+  def test_the_uniforms_go_at_their_place
+    u = Array.new(10, -1.0)
+    @clock.set_ticks(6000)
+    @sky.write_uniforms(u, 3, 160.0)
+    assert_equal [-1.0, -1.0, -1.0], u[0, 3]
+    assert_equal [-1.0], u[9, 1]
+  end
+
+  # The 6 sky uniforms at the tick of the day, for a view of view blocks.
+  def sky_uniforms(tick, view)
+    @clock.set_ticks(tick)
+    u = Array.new(6, 0.0)
+    @sky.write_uniforms(u, 0, view)
+    u
+  end
+
+  # The red, green and blue of the sky at the tick of the day.
+  def colors(tick) = sky_uniforms(tick, 160.0)[0, 3]
+
 end

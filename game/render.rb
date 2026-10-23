@@ -44,38 +44,21 @@ class Game
   # Uniforms 16 to 27: the eye, the animation clock, the sky and fog colors,
   # daylight, the fog range, and the frame size. Then the far cloud layer and
   # the rain.
-  def set_uniforms(ex, ey, ez, w, h) # rubocop:todo Metrics/MethodLength
-    day = @clock.daylight
-    under = Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
-    sky_r = 0.03 + 0.50 * day
-    sky_g = 0.04 + 0.68 * day
-    sky_b = 0.10 + 0.88 * day
-    dusk = 1.0 - Math.sin(@clock.sun_angle).abs * 4.0
-    if dusk > 0.0
-      dusk *= 0.75
-      sky_r += (1.0 - sky_r) * dusk
-      sky_g += (0.55 - sky_g) * dusk
-      sky_b += (0.25 - sky_b) * dusk
-    end
-    # Rain grays the sky, dims the light, and brings the fog nearer.
-    gray = 0.06 + 0.4 * day
-    sky_r += (gray - sky_r) * @weather.rain * 0.85
-    sky_g += (gray - sky_g) * @weather.rain * 0.85
-    sky_b += (gray * 1.08 - sky_b) * @weather.rain * 0.85
-    fog = @options.view * (1.0 - 0.6 * @weather.rain)
+  def set_uniforms(ex, ey, ez, w, h)
     @uniforms[16] = ex
     @uniforms[17] = ey
     @uniforms[18] = ez
     # Seconds for texture animation; wraps before float precision suffers.
     @uniforms[19] = @anim_time
-    @uniforms[20] = under ? 0.05 : sky_r
-    @uniforms[21] = under ? 0.15 : sky_g
-    @uniforms[22] = under ? 0.35 : sky_b
-    @uniforms[23] = under ? 24.0 : fog
-    @uniforms[24] = day * (1.0 - 0.35 * @weather.rain)
-    # Fog at the view's end starts 65 blocks before it, or a quarter of the
-    # view before it for long views, so it blends with the haze.
-    @uniforms[25] = under ? 2.0 : fog - (fog * 0.25 > 65.0 ? fog * 0.25 : 65.0)
+    @sky.write_uniforms(@uniforms, SKY_UNIFORMS, @options.view)
+    if Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
+      # Under water, the fog is blue and near.
+      @uniforms[SKY_UNIFORMS] = 0.05
+      @uniforms[SKY_UNIFORMS + 1] = 0.15
+      @uniforms[SKY_UNIFORMS + 2] = 0.35
+      @uniforms[SKY_UNIFORMS + 3] = 24.0
+      @uniforms[SKY_UNIFORMS + 5] = 2.0
+    end
     @uniforms[26] = w
     @uniforms[27] = h
     @clouds.write_uniforms(@uniforms, CLOUD_UNIFORMS, ey, @cloud_drift)

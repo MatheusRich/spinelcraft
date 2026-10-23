@@ -2,7 +2,7 @@
 # light for the rules of the game, and the sky layer with the sun, the
 # moon and the stars. Game draws the layer before the world, so the
 # terrain and the clouds cover it. The colors of the sky and of the fog
-# are uniforms (Game#set_uniforms).
+# are uniforms (Sky#write_uniforms).
 class Sky
   STARS = 260
 
@@ -22,6 +22,37 @@ class Sky
   # The sky light under the open sky now (Light.sky), for the rules of the
   # game: the spawns of monsters, the spread of grass and the cave sounds.
   def light = Light.sky(@clock.ticks, raining: @weather.raining?)
+
+  # Writes 6 uniforms at uniforms[at]: the red, green and blue of the sky,
+  # the end of the fog for a view of view blocks, the daylight, and the
+  # start of the fog. The sky is blue by day and dark at night, and it
+  # glows orange at dusk and dawn. Rain grays the sky, dims the daylight,
+  # and brings the fog nearer.
+  def write_uniforms(uniforms, at, view)
+    day = @clock.daylight
+    rain = @weather.rain
+    red = 0.03 + 0.50 * day
+    green = 0.04 + 0.68 * day
+    blue = 0.10 + 0.88 * day
+    dusk = 1.0 - Math.sin(@clock.sun_angle).abs * 4.0
+    if dusk > 0.0
+      dusk *= 0.75
+      red += (1.0 - red) * dusk
+      green += (0.55 - green) * dusk
+      blue += (0.25 - blue) * dusk
+    end
+    gray = 0.06 + 0.4 * day
+    fog = view * (1.0 - 0.6 * rain)
+    uniforms[at] = red + (gray - red) * rain * 0.85
+    uniforms[at + 1] = green + (gray - green) * rain * 0.85
+    uniforms[at + 2] = blue + (gray * 1.08 - blue) * rain * 0.85
+    uniforms[at + 3] = fog
+    uniforms[at + 4] = day * (1.0 - 0.35 * rain)
+    # Fog at the view's end starts 65 blocks before it, or a quarter of the
+    # view before it for long views, so it blends with the haze.
+    uniforms[at + 5] = fog - (fog * 0.25 > 65.0 ? fog * 0.25 : 65.0)
+    nil
+  end
 
   # The quads for a frame of w by h pixels, with the HUD scale s. The camera
   # must have the view of the frame.
