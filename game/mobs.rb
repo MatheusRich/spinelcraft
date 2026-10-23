@@ -38,11 +38,11 @@ class Mob
   SOUND = []
   HURT_SOUND = []
   DEATH_SOUND = []
-  # The drop table: what a mob drops when it dies. Mob.define_drop fills
-  # it, one row for each drop of a kind. A row drops min to max of its
-  # block with chance. When the mob dies on fire, it drops cooked in
-  # place of block, or block when cooked is 0. A row with player 1 drops
-  # only when the player killed the mob.
+  # The drop table: what a mob drops when it dies. Mob.define_mob fills
+  # it from its drops, one row for each drop of a kind. A row drops min to
+  # max of its block with chance. When the mob dies on fire, it drops
+  # cooked in place of block, or block when cooked is 0. A row with player
+  # 1 drops only when the player killed the mob.
   DROP_KIND = []
   DROP_BLOCK = []
   DROP_MIN = []
@@ -69,8 +69,10 @@ class Mob
 
   # Adds kind to the tables above, which name its arguments. The kinds come
   # in the order of their numbers. A kind is a monster that tempting does
-  # not move, unless the arguments say something else.
-  def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, passive: 0, tempt_pace: 0.0, panic_speed: 0.0)
+  # not move and that drops nothing, unless the arguments say something
+  # else. drops gives the amount of each block that the kind drops, and
+  # optionally its chance, its cooked block and if it needs a player kill.
+  def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, passive: 0, tempt_pace: 0.0, panic_speed: 0.0, drops: {})
     abort "Mob.define_mob: kind #{kind} comes out of order" if kind != NAMES.size
     NAMES << name
     HP << hp
@@ -82,38 +84,36 @@ class Mob
     SOUND << sound
     HURT_SOUND << hurt
     DEATH_SOUND << death
-  end
-
-  # Adds a row to the drop table, which names its arguments.
-  def self.define_drop(kind, block, min, max, chance: 1.0, cooked: 0, player: 0)
-    DROP_KIND << kind
-    DROP_BLOCK << block
-    DROP_MIN << min
-    DROP_MAX << max
-    DROP_CHANCE << chance
-    DROP_COOKED << cooked
-    DROP_PLAYER << player
+    drops.each do |block, drop|
+      DROP_KIND << kind
+      DROP_BLOCK << block.to_i
+      DROP_MIN << drop[:amount].min.to_i
+      DROP_MAX << drop[:amount].max.to_i
+      DROP_CHANCE << (drop[:chance] || 1.0).to_f
+      DROP_COOKED << (drop[:cooked] || 0).to_i
+      DROP_PLAYER << (drop[:player] ? 1 : 0)
+    end
+    # A nil return keeps Spinel from boxing it.
+    nil
   end
 
   # minecraft.wiki/w/Pig
   define_mob PIG, "PIG", hp: 10.0, half: 0.45, tall: 0.95, passive: 1, tempt_pace: 1.2, panic_speed: 4.22,
-                         sound: Sfx::OINK, hurt: Sfx::OINK, death: Sfx::PIG_DEATH
-  define_drop PIG, Block::PORKCHOP, 1, 3, cooked: Block::COOKED_PORKCHOP
+                         sound: Sfx::OINK, hurt: Sfx::OINK, death: Sfx::PIG_DEATH,
+                         drops: { Block::PORKCHOP => { amount: 1..3, cooked: Block::COOKED_PORKCHOP } }
   # minecraft.wiki/w/Zombie, /w/Rotten_Flesh
   define_mob ZOMBIE, "ZOMBIE", hp: 20.0, half: 0.3, tall: 1.9,
-                               sound: Sfx::GROAN, hurt: Sfx::ZOMBIE_HURT, death: Sfx::ZOMBIE_DEATH
-  define_drop ZOMBIE, Block::ROTTEN_FLESH, 0, 2
+                               sound: Sfx::GROAN, hurt: Sfx::ZOMBIE_HURT, death: Sfx::ZOMBIE_DEATH,
+                               drops: { Block::ROTTEN_FLESH => { amount: 0..2 } }
   # minecraft.wiki/w/Skeleton
   define_mob SKELETON, "SKELETON", hp: 20.0, half: 0.3, tall: 1.9,
-                                   sound: Sfx::RATTLE, hurt: Sfx::SKELETON_HURT, death: Sfx::SKELETON_DEATH
-  define_drop SKELETON, Block::ARROW, 0, 2
-  define_drop SKELETON, Block::BONE, 0, 2
-  define_drop SKELETON, Block::BOW, 1, 1, chance: 0.085, player: 1
+                                   sound: Sfx::RATTLE, hurt: Sfx::SKELETON_HURT, death: Sfx::SKELETON_DEATH,
+                                   drops: { Block::ARROW => { amount: 0..2 }, Block::BONE => { amount: 0..2 },
+                                            Block::BOW => { amount: 1..1, chance: 0.085, player: true } }
   # minecraft.wiki/w/Sheep. A sheared sheep drops no wool (Animal#drops_row?).
   define_mob SHEEP, "SHEEP", hp: 8.0, half: 0.45, tall: 1.2, passive: 1, tempt_pace: 1.1, panic_speed: 3.57,
-                             sound: Sfx::BAA, hurt: Sfx::BAA, death: Sfx::BAA
-  define_drop SHEEP, Block::WOOL, 1, 1
-  define_drop SHEEP, Block::MUTTON, 1, 2, cooked: Block::COOKED_MUTTON
+                             sound: Sfx::BAA, hurt: Sfx::BAA, death: Sfx::BAA,
+                             drops: { Block::WOOL => { amount: 1..1 }, Block::MUTTON => { amount: 1..2, cooked: Block::COOKED_MUTTON } }
   # A creeper makes no sound now and then, and it drops nothing here: the
   # game has no gunpowder.
   # minecraft.wiki/w/Creeper
@@ -121,14 +121,13 @@ class Mob
                                  sound: -1, hurt: Sfx::CREEPER_HURT, death: Sfx::CREEPER_DEATH
   # minecraft.wiki/w/Cow
   define_mob COW, "COW", hp: 10.0, half: 0.45, tall: 1.4, passive: 1, tempt_pace: 1.25, panic_speed: 2.7,
-                         sound: Sfx::MOO, hurt: Sfx::COW_HURT, death: Sfx::COW_HURT
-  define_drop COW, Block::LEATHER, 0, 2
-  define_drop COW, Block::BEEF, 1, 3, cooked: Block::STEAK
+                         sound: Sfx::MOO, hurt: Sfx::COW_HURT, death: Sfx::COW_HURT,
+                         drops: { Block::LEATHER => { amount: 0..2 }, Block::BEEF => { amount: 1..3, cooked: Block::STEAK } }
   # minecraft.wiki/w/Chicken
   define_mob CHICKEN, "CHICKEN", hp: 4.0, half: 0.2, tall: 0.7, passive: 1, tempt_pace: 1.0, panic_speed: 5.29,
-                                 sound: Sfx::CLUCK, hurt: Sfx::CHICKEN_HURT, death: Sfx::CHICKEN_HURT
-  define_drop CHICKEN, Block::FEATHER, 0, 2
-  define_drop CHICKEN, Block::RAW_CHICKEN, 1, 1, cooked: Block::COOKED_CHICKEN
+                                 sound: Sfx::CLUCK, hurt: Sfx::CHICKEN_HURT, death: Sfx::CHICKEN_HURT,
+                                 drops: { Block::FEATHER => { amount: 0..2 },
+                                          Block::RAW_CHICKEN => { amount: 1..1, cooked: Block::COOKED_CHICKEN } }
 
   attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :by_player
   # True after a hit, until Game#update_mobs plays the hurt sound.
