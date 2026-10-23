@@ -130,7 +130,7 @@ class Game
         wear_tool(Block.wear(current_block.to_i, true))
         @vitals.exhaust(Vitals::ATTACK_COST) if @survival
         mob.by_player = true
-        play(Sfx::HIT, 0.8)
+        @sfx.play(Sfx::HIT, 0.8)
         @swing = SWING
       end
       @mining = false
@@ -143,7 +143,7 @@ class Game
       elsif @action_cooldown <= 0.0
         broken = @world.get(@target_block.x, @target_block.y, @target_block.z)
         @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
-        play(MATERIAL_BREAK[material(broken)], 0.7)
+        @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
         set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
         @attack_time = 0.0
         @action_cooldown = 0.22
@@ -290,7 +290,7 @@ class Game
     end
     set_block(x, y, z, Block.facing_id(Block::CARVED_PUMPKIN, d))
     drop_from_block(Block::PUMPKIN_SEEDS, 4, x, y, z)
-    play(MATERIAL_DIG[M_WOOD], 0.7)
+    @sfx.play(MATERIAL_DIG[M_WOOD], 0.7)
     @swing = SWING
     wear_tool(1)
   end
@@ -308,7 +308,7 @@ class Game
       fluid = @world.get(@fluid_x, @fluid_y, @fluid_z)
       set_block(@fluid_x, @fluid_y, @fluid_z, Block::AIR)
       swap_bucket(fluid == Block::WATER ? Block::WATER_BUCKET : Block::LAVA_BUCKET)
-      play(fluid == Block::WATER ? Sfx::WATER_TAKE : Sfx::LAVA_POUR, 0.5)
+      @sfx.play(fluid == Block::WATER ? Sfx::WATER_TAKE : Sfx::LAVA_POUR, 0.5)
     else
       return unless block_in_view?
 
@@ -329,7 +329,7 @@ class Game
       # rule of flowing water and lava.
       pour(x, y, z, block == Block::WATER_BUCKET ? Block::WATER : Block::LAVA)
       swap_bucket(Block::BUCKET)
-      play(block == Block::WATER_BUCKET ? Sfx::WATER_POUR : Sfx::LAVA_POUR, 0.5)
+      @sfx.play(block == Block::WATER_BUCKET ? Sfx::WATER_POUR : Sfx::LAVA_POUR, 0.5)
     end
   end
 
@@ -393,7 +393,7 @@ class Game
 
     @dig_wait -= dt
     if @dig_wait <= 0.0 && hardness > 0.0
-      play(MATERIAL_DIG[material(block)], 0.55)
+      @sfx.play(MATERIAL_DIG[material(block)], 0.55)
       @dig_wait = 0.25
     end
     # A held button swings again when the last swing ends.
@@ -408,7 +408,7 @@ class Game
     @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / seconds
     if @mine_progress >= 1.0
       @particles.burst(x, y, z, block)
-      play(MATERIAL_BREAK[material(block)], 0.7)
+      @sfx.play(MATERIAL_BREAK[material(block)], 0.7)
       set_block(x, y, z, Block::AIR)
       @attack_time = 0.0
       drop_broken(block, x, y, z, tool) if tier >= need
@@ -477,7 +477,7 @@ class Game
     partner = @world.get(x, other, z)
     @world.set(x, other, z, Block.door_toggled(partner)) if Block.door?(partner)
     @chunk_meshes.mark_block(x, z)
-    play(Block.door_open?(block) ? Sfx::DOOR_OPEN : Sfx::DOOR_CLOSE, 0.6)
+    @sfx.play(Block.door_open?(block) ? Sfx::DOOR_OPEN : Sfx::DOOR_CLOSE, 0.6)
     @swing = SWING
   end
 
@@ -560,7 +560,7 @@ class Game
       @eat_time = -1.0
     elsif @eat_time >= CHEW_START && ((@eat_time - CHEW_START) / CHEW_EVERY).floor != ((before - CHEW_START) / CHEW_EVERY).floor
       milk = current_block == Block::MILK_BUCKET
-      play(milk ? Sfx::DRINK : Sfx::EAT, 0.5)
+      @sfx.play(milk ? Sfx::DRINK : Sfx::EAT, 0.5)
       @particles.shatter(@player, current_block.to_i) unless milk
     end
   end
@@ -574,7 +574,7 @@ class Game
     @vitals.eat(Block.food(block), Block.saturation(block))
     @vitals.give_hunger_effect if @rng.rand01 < Block.hunger_chance(block)
     @inv.take(@slot, 1)
-    play(Sfx::EAT, 0.6)
+    @sfx.play(Sfx::EAT, 0.6)
   end
 
   # Milk ends the effects and leaves the empty bucket.
@@ -582,7 +582,7 @@ class Game
   def drink_milk
     @vitals.clear_effects
     swap_bucket(Block::BUCKET)
-    play(Sfx::DRINK, 0.6)
+    @sfx.play(Sfx::DRINK, 0.6)
   end
 
   def place # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
@@ -647,7 +647,7 @@ class Game
     end
     block = join_chest(x, y, z, block) if Block::BASE[block] == Block::CHEST
     set_block(x, y, z, block)
-    play(MATERIAL_PLACE[material(block)], 0.7)
+    @sfx.play(MATERIAL_PLACE[material(block)], 0.7)
     @swing = SWING
     @inv.take(@slot, 1) if @survival
   end

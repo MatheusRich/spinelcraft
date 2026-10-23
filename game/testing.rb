@@ -115,7 +115,7 @@ class Game
     if frame % 20 == 0 && frame < 50
       block = @world.get(@target_block.x, @target_block.y, @target_block.z)
       @particles.burst(@target_block.x, @target_block.y, @target_block.z, block)
-      play(Sfx::BREAK, 0.7)
+      @sfx.play(Sfx::BREAK, 0.7)
       set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
     elsif frame % 20 == 0 && frame >= 60 && frame < 120
       @slot = 7
@@ -914,23 +914,23 @@ class Game
     survival = @survival
     @survival = false
     set_block(x, y, z, Block::LAVA)
-    lava = splash_into(x, y, z)
+    lava = splashes_into?(x, y, z)
     set_block(x, y, z, Block::WATER)
-    water = splash_into(x, y, z)
+    water = splashes_into?(x, y, z)
     @survival = survival
     fill_box(x - 1, y - 1, z - 1, x + 1, y, z + 1, Block::AIR)
     restore_pose
-    check("the player splashes into water, but not into lava", lava == -1 && water == Sfx::SPLASH)
+    check("the player splashes into water, but not into lava", !lava && water)
   end
 
   # Drops the player into the pool at x, y, z for one frame, and returns
-  # the sound of that frame, or -1.
-  def splash_into(x, y, z)
+  # true when the player hears a splash.
+  def splashes_into?(x, y, z)
     @player.move_to(x + 0.5, y.to_f, z + 0.5)
     @was_swimming = false
-    @last_sound = -1
+    @sfx.clear
     update_game(1.0 / 60.0)
-    @last_sound
+    @sfx.ids.include?(Sfx::SPLASH)
   end
 
   # Lava under air, flowing water and a lit furnace make sounds, but

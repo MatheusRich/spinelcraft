@@ -43,6 +43,39 @@ class SfxTest < Minitest::Test
     assert_equal 0.0, @sfx.near_volume(8.0, 50.0, 8.0, 1.0, Sfx::RANGE)
   end
 
+  def test_a_sound_with_no_place_plays_in_the_middle_at_its_volume
+    @sfx.play(Sfx::CLICK, 0.5)
+    assert_equal [Sfx::CLICK], @sfx.ids
+    assert_equal [0.5], @sfx.volumes
+    assert_equal [0.0], @sfx.pans
+  end
+
+  def test_a_sound_from_a_place_plays_with_its_volume_and_pan_there
+    @sfx.play_at(Sfx::HIT, 8.0 + Sfx::RANGE / 2.0, 70.0, 8.0, 0.8)
+    assert_equal [Sfx::HIT], @sfx.ids
+    assert_in_delta 0.4, @sfx.volumes[0], 0.001
+    assert_in_delta 1.0, @sfx.pans[0], 0.001
+  end
+
+  def test_a_sound_out_of_range_does_not_play
+    @sfx.play_at(Sfx::HIT, 8.0, 70.0, 8.0 + Sfx::RANGE, 1.0)
+    assert_empty @sfx.ids
+  end
+
+  def test_the_sounds_play_in_the_order_that_they_came
+    @sfx.play(Sfx::CLICK, 0.5)
+    @sfx.play_at(Sfx::HIT, 9.0, 70.0, 8.0, 1.0)
+    assert_equal [Sfx::CLICK, Sfx::HIT], @sfx.ids
+  end
+
+  def test_clear_empties_the_queue
+    @sfx.play(Sfx::CLICK, 0.5)
+    @sfx.clear
+    assert_empty @sfx.ids
+    assert_empty @sfx.volumes
+    assert_empty @sfx.pans
+  end
+
   def test_an_explosion_carries_farther_than_other_sounds
     assert_operator @sfx.near_volume(8.0, 70.0, -32.0, 1.0, Sfx::RANGES[Sfx::EXPLODE]), :>, 0.0
     assert_equal 0.0, @sfx.near_volume(8.0, 70.0, -32.0, 1.0, Sfx::RANGES[Sfx::HIT])

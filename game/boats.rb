@@ -24,7 +24,7 @@ class Game
 
     @boats << Boat.new(block, x, y, z, @player.yaw)
     @inv.take(@slot, 1) if @survival
-    play_at(Sfx::SPLASH, x, y, z, 0.4)
+    @sfx.play_at(Sfx::SPLASH, x, y, z, 0.4)
     @swing = SWING
   end
 
@@ -117,7 +117,7 @@ class Game
         if ridden
           @player.yaw += boat.yaw.to_f - yaw
           seat_player(boat.x.to_f, boat.y.to_f, boat.z.to_f)
-          play(boat.afloat ? Sfx::STEP_WATER : Sfx::STEP_WOOD, 0.3) if boat.strokes.to_i != strokes
+          @sfx.play(boat.afloat ? Sfx::STEP_WATER : Sfx::STEP_WOOD, 0.3) if boat.strokes.to_i != strokes
         end
       end
     end
@@ -155,13 +155,13 @@ class Game
     @attack_time = 0.0
     @swing = SWING
     if @survival && !boat.hit(damage)
-      play_at(Sfx::DIG_WOOD, x, y, z, 0.6)
+      @sfx.play_at(Sfx::DIG_WOOD, x, y, z, 0.6)
       return
     end
     leave_boat if @riding == i
     @riding -= 1 if @riding > i
     @particles.burst(x.floor, y.floor, z.floor, Block::PLANKS[item - Block::OAK_BOAT])
-    play_at(Sfx::BREAK, x, y, z, 0.7)
+    @sfx.play_at(Sfx::BREAK, x, y, z, 0.7)
     drop_item(item, 1, x, y + 0.3, z, 0.0, 2.0, 0.0, PICKUP_WAIT) if @survival
     @boats.delete_at(i)
     @target_boat = -1

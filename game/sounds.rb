@@ -1,6 +1,7 @@
 # Sound effects: OGG files in assets/sounds, from VoxeLibre (see
 # assets/sounds/CREDITS.md). An Sfx is the listener: it gives the volume
-# and the pan of a sound from where the player hears it.
+# and the pan of a sound from where the player hears it, and it queues
+# the sounds of a frame. Game sends the queue to Gfx (Game#send_sounds).
 class Sfx
   BREAK = 0
   PLACE = 1
@@ -108,11 +109,45 @@ class Sfx
   RANGES = Array.new(FILES.size, RANGE)
   RANGES[EXPLODE] = EXPLOSION_RANGE
 
+  # The queue: the id, the volume and the pan of each sound to play.
+  attr_reader :ids, :volumes, :pans
+
   def initialize
     @x = 0.0
     @y = 0.0
     @z = 0.0
     @yaw = 0.0
+    @ids = Array.new(0, 0)
+    @volumes = Array.new(0, 0.0)
+    @pans = Array.new(0, 0.0)
+  end
+
+  # Queues sound id at volume, with no place, so it plays in the middle.
+  def play(id, volume)
+    queue(id, volume, 0.0)
+  end
+
+  # Queues sound id from x, y, z at gain. It fades to silence at
+  # RANGES[id] blocks, and a sound out of range is not queued.
+  def play_at(id, x, y, z, gain)
+    # to_f: Spinel cannot type the positions of the mobs and the items.
+    volume = near_volume(x.to_f, y.to_f, z.to_f, gain, RANGES[id])
+    queue(id, volume, pan_to(x.to_f, y.to_f, z.to_f)) if volume > 0.0
+  end
+
+  def queue(id, volume, pan)
+    @ids << id
+    @volumes << volume
+    @pans << pan
+    nil
+  end
+
+  # Empties the queue.
+  def clear
+    @ids.clear
+    @volumes.clear
+    @pans.clear
+    nil
   end
 
   # The listener hears from x, y, z (the eyes of the player) and faces

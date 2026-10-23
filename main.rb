@@ -162,7 +162,6 @@ class Game
     @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
     @was_swimming = false
-    @last_sound = -1
     @sfx = Sfx.new
     @particles = Particles.new(@seed)
     @arrows = []
@@ -390,19 +389,16 @@ class Game
     @riding = -1
   end
 
-  # The self-test runs with no sound, so it reads @last_sound.
-  def play(id, volume)
-    @last_sound = id
-    Gfx.au_play(id, volume * @options.volume, 0.0) if @sound
-  end
-
-  # Plays a sound that comes from x, y, z and reaches Sfx::RANGES[id] blocks.
-  def play_at(id, x, y, z, gain)
-    return unless @sound
-
-    # to_f: Spinel cannot type the positions of the mobs and the items.
-    volume = @sfx.near_volume(x.to_f, y.to_f, z.to_f, gain, Sfx::RANGES[id])
-    Gfx.au_play(id, volume * @options.volume, @sfx.pan_to(x.to_f, y.to_f, z.to_f))
+  # Plays the sounds that @sfx queued, at the volume of the options, and
+  # empties the queue. Without sound, it only empties the queue.
+  def send_sounds
+    if @sound
+      ids = @sfx.ids
+      volumes = @sfx.volumes
+      pans = @sfx.pans
+      ids.size.times { |sound| Gfx.au_play(ids[sound], volumes[sound] * @options.volume, pans[sound]) }
+    end
+    @sfx.clear
   end
 
   # Starts a track when Music says so, and feeds the track that plays. The
@@ -475,10 +471,10 @@ class Game
       if @step_dist > Player::STEP
         @step_dist = 0.0
         ground = MATERIAL_STEP[material(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))]
-        play(swimming ? Sfx::STEP_WATER : ground, 0.35)
+        @sfx.play(swimming ? Sfx::STEP_WATER : ground, 0.35)
       end
     end
-    play(Sfx::SPLASH, 0.6) if swimming && !@was_swimming && !@player.flying
+    @sfx.play(Sfx::SPLASH, 0.6) if swimming && !@was_swimming && !@player.flying
     @was_swimming = swimming
     @particles.update(@world, dt)
     @particles.sample_fire(@world, @player.x, @player.y, @player.z, dt)
@@ -564,7 +560,7 @@ class Game
     # Water and rain put the fire out.
     if !in_lava && @vitals.burning? && (under_water || Block.water?(feet) || (@weather.wet? && @world.under_sky?(p.x, p.eye_y, p.z)))
       @vitals.douse
-      play(Sfx::FIZZ, 0.6)
+      @sfx.play(Sfx::FIZZ, 0.6)
     end
     on_cactus = @world.cactus_in_box?(p.x, p.y, p.z, Player::HALF, Player::TALL)
     felt_hurt(Sfx::HURT) if @vitals.update_vitals(dt, in_lava, on_cactus, under_water)
@@ -595,7 +591,7 @@ class Game
     return if @cave_fear < 300.0
 
     @cave_fear = 0.0
-    play(Sfx::CAVE + (@rng.rand01 * Sfx::CAVES).to_i, 0.6)
+    @sfx.play(Sfx::CAVE + (@rng.rand01 * Sfx::CAVES).to_i, 0.6)
   end
 
   # Looks at random blocks near the player, and plays the sound of each one
@@ -617,7 +613,7 @@ class Game
       next if k < 0 || @ambient_wait[k] > 0.0 || @rng.rand01 >= AMBIENT_CHANCE[k] * MC_AMBIENT_SAMPLES / AMBIENT_SAMPLES
 
       @ambient_wait[k] = Gfx.au_seconds(AMBIENT[k])
-      play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k])
+      @sfx.play_at(AMBIENT[k], x + 0.5, y + 0.5, z + 0.5, AMBIENT_VOLUME[k])
     end
   end
 
@@ -681,6 +677,7 @@ class Game
       handle_input(dt) unless @scripted
       demo(frames) if @demo
       update_game(dt)
+      send_sounds
       update_music(dt)
       t_stream = Gfx.gfx_ns
       @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)

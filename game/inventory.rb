@@ -18,7 +18,7 @@ class Game
     @inv.take(@slot, n < @inv.count(@slot) ? n : @inv.count(@slot))
     return unless @inv.empty?(@slot)
 
-    play(Sfx::TOOL_BREAK, 0.8)
+    @sfx.play(Sfx::TOOL_BREAK, 0.8)
     @particles.shatter(@player, block)
     say("#{Block::NAMES[block]} BROKE")
   end
@@ -49,7 +49,7 @@ class Game
       return
     end
     say("CRAFTED #{n} #{Block::NAMES[recipe.result]}")
-    play(Sfx::PLACE, 0.6)
+    @sfx.play(Sfx::PLACE, 0.6)
   end
 
   # What a Shift-click on a recipe asks for: all that the inventory holds.
@@ -73,7 +73,7 @@ class Game
 
     @inv.remove(block, n)
     slots.set(Furnace::INPUT, block, slots.count(Furnace::INPUT) + n)
-    play(Sfx::PLACE, 0.4)
+    @sfx.play(Sfx::PLACE, 0.4)
   end
 
   # Ticks the furnaces, and lights or puts out the furnace blocks.
@@ -317,7 +317,7 @@ class Game
   # Opens the chest at x, y, z (see Chests#open_at).
   def open_chest(x, y, z)
     @chests.open_at(@world, x, y, z)
-    play(Sfx::CHEST_OPEN, 0.5)
+    @sfx.play(Sfx::CHEST_OPEN, 0.5)
     toggle_inventory
   end
 
@@ -356,7 +356,7 @@ class Game
       end
     end
     if @inventory_open && @chests.open?
-      play(Sfx::CHEST_CLOSE, 0.5)
+      @sfx.play(Sfx::CHEST_CLOSE, 0.5)
       @chests.close
     end
     @station = Recipe::BY_HAND if @inventory_open
@@ -419,7 +419,7 @@ class Game
       if hover >= 0
         @hotbar[@slot] = CREATIVE_ITEMS[hover]
         say(Block::NAMES[CREATIVE_ITEMS[hover]])
-        play(Sfx::PLACE, 0.4)
+        @sfx.play(Sfx::PLACE, 0.4)
       end
     end
   end
