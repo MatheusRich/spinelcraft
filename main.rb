@@ -81,6 +81,9 @@ class Game
     # A run with FRAMES set ignores the mouse and the keys, so the person at
     # the computer does not move the camera in a screenshot or a benchmark.
     @scripted = @max_frames > 0
+    # RECORD=path writes each frame to path. Each frame then moves the game
+    # on by 1 / RECORD_FPS seconds, however long it takes to draw and save.
+    @record = ENV["RECORD"] || ""
     @autopilot = !ENV["AUTOPILOT"].nil?
     # AUTOPILOT=far flies in a straight line, so new chunks stream in.
     @autopilot_far = ENV["AUTOPILOT"] == "far"
@@ -255,6 +258,7 @@ class Game
     Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
+    abort "cannot record to #{@record}" if @record != "" && !Gfx.gfx_record(@record)
     Gfx.gfx_fullscreen(1) if @options.fullscreen
     px = Tex.build
     abort "texture upload failed" unless Gfx.gfx_textures(px, Tex::LAYERS)
@@ -674,6 +678,7 @@ class Game
       now = Gfx.gfx_ns
       dt = (now - last) / 1.0e9
       dt = 0.05 if dt > 0.05
+      dt = 1.0 / RECORD_FPS if @record != ""
       last = now
       handle_input(dt) unless @scripted
       demo(frames) if @demo

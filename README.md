@@ -151,6 +151,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `AUTOPILOT=1` | Fly in a circle (for benchmarks) |
 | `AUTOPILOT=far` | Fly in a straight line, so chunks stream in all the time |
 | `DEMO=1` | Dig and place blocks in front of the player |
+| `RECORD=file` | Write each frame to the end of file as a PPM image. Each frame moves the game on by 1/30 second, however long it takes to draw |
 | `GPUTIME=1` | Wait for the GPU each frame and print the GPU time |
 | `MODE=survival` | Start in survival |
 | `TIME=0.75` | Start at that time of day (0.75 is midnight) |

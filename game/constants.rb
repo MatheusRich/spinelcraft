@@ -92,6 +92,8 @@ class Game
   # the rest stream in.
   SYNC_R = 8
   STREAM_BUDGET_NS = 2_500_000
+  # The frame rate of a recording (RECORD).
+  RECORD_FPS = 30
 
   # GPU slots after the chunks' opaque and water slots, FarTerrain::TILE_SLOTS
   # per level.

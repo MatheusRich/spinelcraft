@@ -37,6 +37,8 @@ module Gfx
     #define STR(x) STR2(x)
     static float uni[UNIFORMS];
     static char shot_path[1024];
+    /* The file that gfx_record opened, or NULL. Each frame goes on its end. */
+    static FILE *record_out;
     static Uint64 gpu_wait_ns, gpu_frames;
     /* Time that this frame waited for the swapchain or the GPU, not CPU work. */
     static Uint64 frame_wait_ns;
@@ -906,7 +908,7 @@ module Gfx
         depth_w = swap_w; depth_h = swap_h;
       }
       SDL_GPUTexture *target = swap_tex;
-      if (shot_path[0]) {
+      if (shot_path[0] || record_out) {
         swap_fmt = SDL_GetGPUSwapchainTextureFormat(dev, win);
         SDL_GPUTextureCreateInfo sti = {.type = SDL_GPU_TEXTURETYPE_2D, .format = swap_fmt,
           .usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, .width = swap_w, .height = swap_h,
@@ -1012,6 +1014,24 @@ module Gfx
       return 0;
     }
 
+    /* Writes the frame px, in the swapchain format, to out as a PPM image.
+       Each row goes out in one write, so a recording keeps up. */
+    static void write_ppm(FILE *out, const Uint8 *px) {
+      int bgra = swap_fmt == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM || swap_fmt == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB;
+      fprintf(out, "P6\n%u %u\n255\n", swap_w, swap_h);
+      Uint8 *row = SDL_malloc(swap_w * 3);
+      for (Uint32 y = 0; y < swap_h; y++) {
+        const Uint8 *src = px + y * swap_w * 4;
+        for (Uint32 x = 0; x < swap_w; x++) {
+          row[x * 3] = src[x * 4 + (bgra ? 2 : 0)];
+          row[x * 3 + 1] = src[x * 4 + 1];
+          row[x * 3 + 2] = src[x * 4 + (bgra ? 0 : 2)];
+        }
+        fwrite(row, 1, swap_w * 3, out);
+      }
+      SDL_free(row);
+    }
+
     long gfx_end(void) {
       if (!cmd) return 0;
       if (pass) {
@@ -1039,16 +1059,14 @@ module Gfx
         SDL_WaitForGPUFences(dev, true, &fence, 1);
         SDL_ReleaseGPUFence(dev, fence);
         const Uint8 *px = SDL_MapGPUTransferBuffer(dev, tb, false);
-        FILE *out = fopen(shot_path, "wb");
-        if (out) {
-          int bgra = swap_fmt == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM || swap_fmt == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB;
-          fprintf(out, "P6\n%u %u\n255\n", swap_w, swap_h);
-          for (Uint32 i = 0; i < swap_w * swap_h; i++) {
-            Uint8 rgb[3] = {px[i * 4 + (bgra ? 2 : 0)], px[i * 4 + 1], px[i * 4 + (bgra ? 0 : 2)]};
-            fwrite(rgb, 1, 3, out);
+        if (shot_path[0]) {
+          FILE *out = fopen(shot_path, "wb");
+          if (out) {
+            write_ppm(out, px);
+            fclose(out);
           }
-          fclose(out);
         }
+        if (record_out) write_ppm(record_out, px);
         SDL_UnmapGPUTransferBuffer(dev, tb);
         SDL_ReleaseGPUTransferBuffer(dev, tb);
         SDL_ReleaseGPUTexture(dev, shot_tex);
@@ -1077,6 +1095,14 @@ module Gfx
     double gfx_gpu_ms(void) { return gpu_frames ? gpu_wait_ns / 1e6 / gpu_frames : 0.0; }
 
     void gfx_screenshot(const char *path) { SDL_strlcpy(shot_path, path, sizeof shot_path); }
+
+    /* Writes each frame from now on to the end of the file at path, as a
+       PPM image. A named pipe at path lets ffmpeg read the frames as they
+       come. Returns false when the file does not open. */
+    bool gfx_record(const char *path) {
+      record_out = fopen(path, "wb");
+      return record_out != NULL;
+    }
 
     /* Audio: a few stereo voices bound to one device; SDL mixes them. The
        sounds are mono, and au_play pans each one into the two channels. */
@@ -1287,7 +1313,11 @@ module Gfx
     long gfx_width(void) { return swap_w; }
     long gfx_height(void) { return swap_h; }
     long gfx_ns(void) { return (long)SDL_GetTicksNS(); }
-    void gfx_quit(void) { SDL_WaitForGPUIdle(dev); SDL_Quit(); }
+    void gfx_quit(void) {
+      SDL_WaitForGPUIdle(dev);
+      if (record_out) fclose(record_out);
+      SDL_Quit();
+    }
 
     /* Input. Edges (pressed this frame) compare against the previous poll. */
     bool in_poll(void) {
@@ -1384,6 +1414,7 @@ module Gfx
   ffi_func :gfx_draw_clouds, [], :long
   ffi_func :gfx_end, [], :long
   ffi_func :gfx_screenshot, [:str], :void
+  ffi_func :gfx_record, [:str], :bool
   ffi_func :gfx_gpu_ms, [], :double
   ffi_func :gfx_wait_ns, [], :long
   ffi_func :au_init, [], :bool
