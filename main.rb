@@ -298,10 +298,13 @@ class Game
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
   end
 
-  # NEW WORLD on the title screen: a fresh world from a new seed, same game mode.
+  # A seed from the clock, for a new world.
+  def clock_seed = (Gfx.gfx_ns / 1000) % 1000000
+
+  # NEW WORLD on the title screen: a fresh world from seed, same game mode.
   # The player starts again with an empty inventory.
-  def new_world
-    @seed = (Gfx.gfx_ns / 1000) % 1000000
+  def new_world(seed)
+    @seed = seed
     reset_world
     @inv.clear
     @hotbar = HOTBAR_START.dup

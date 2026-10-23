@@ -78,7 +78,7 @@ class Game
       resume
     elsif i == T_NEW_WORLD
       if confirm
-        new_world
+        new_world(clock_seed)
         @title_open = false
         resume
       else

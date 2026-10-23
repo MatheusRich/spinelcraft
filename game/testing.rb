@@ -4378,7 +4378,7 @@ class Game
     @inv.add(Block::DIAMOND)
     @hotbar[0] = Block::GLASS
     @mobs << Monster.new(Mob::ZOMBIE, @player.x, @player.y, @player.z, 1)
-    new_world
+    new_world(clock_seed)
     h = @world.height_at(@player.x.floor, @player.z.floor)
     # A new world can start on sand with no grass in reach, which Java
     # Edition allows (minecraft.wiki/w/World_spawn). Then no animal spawns,
