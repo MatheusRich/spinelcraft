@@ -2151,8 +2151,28 @@ class Game
     check("a looted treasure chest has no guards", @mobs.empty?)
     teleport(x + 0.5, y + 0.01, z + 20.5)
     check("BEACONS=1 draws no beam over a looted treasure chest", beacon_faces < lit)
+    test_treasure_large_chest(x, y, z)
     @survival = was_survival
     teleport(back_x, back_y, back_z)
+  end
+
+  # A chest beside the treasure chest at x, y, z joins it into a large
+  # chest. Opening the other half fills the treasure half.
+  def test_treasure_large_chest(x, y, z)
+    right = Block::CHEST_RIGHT
+    dir = Block.chest_partner_dir(right)
+    other_x = x + Block::DIR_DX[dir]
+    other_z = z + Block::DIR_DZ[dir]
+    @chests.remove_at(World.key(x, y, z))
+    set_block(x, y, z, right)
+    set_block(other_x, y, other_z, Block::CHEST_LEFT)
+    @treasure = Treasure.new(@world.treasure_map, @seed)
+    open_chest(other_x, y, other_z)
+    chest = @chests.current
+    ore = chest.slots_for(0).total(Block::SPINEL_ORE) + chest.slots_for(Chest::SLOTS).total(Block::SPINEL_ORE)
+    large = chest.large?
+    toggle_inventory
+    check("opening the other half of a large chest fills the treasure half", large && ore == 1)
   end
 
   # The faces that BEACONS=1 adds to the frame of the player now.
