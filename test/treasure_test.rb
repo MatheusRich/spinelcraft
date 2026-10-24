@@ -59,6 +59,15 @@ class TreasureTest < Minitest::Test
     assert_in_delta 0.167, swords / 200.0, 0.06
   end
 
+  def test_two_chests_that_differ_only_in_x_get_other_loot
+    loot = lambda do |x|
+      chests = Chests.new
+      Treasure.new(OneSiteMap.new(TreasureSite.new(x, Y, Z)), 1337).stock(chests, x, Y, Z)
+      chests.remove_at(World.key(x, Y, Z)).to_a
+    end
+    refute_equal loot.call(X), loot.call(X + 400)
+  end
+
   def test_a_chest_fills_once
     key = World.key(X, Y, Z)
     @treasure.stock(@chests, X, Y, Z)

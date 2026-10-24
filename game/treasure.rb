@@ -58,7 +58,9 @@ class Treasure
 
     key = World.key(x, y, z)
     @looted << key
-    rng = Rng.new(key ^ @seed)
+    # Rng keeps 31 bits of its seed, and World.key holds x above them, so
+    # the seed comes from a hash of x, y and z.
+    rng = Rng.new((Noise.hash3(x, y, z, 42) << 15) ^ @seed)
     slots = Slots.new(Chest::SLOTS)
     LOOT.each { |pool| pool.fill_slots(rng, slots) }
     chests.keep(key, slots)
