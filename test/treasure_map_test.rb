@@ -94,8 +94,8 @@ class TreasureMapTest < Minitest::Test
 
   def test_the_site_of_a_peak_is_its_highest_column_near_the_highest_sampled_one
     terrain = FakeTerrain.new
-    [[S, S], [M, M], [M + 3, M - 2], [M + S / 2 + 1, M]].each { |column| terrain.coast << column }
-    terrain.heights[[S, S]] = TreasureMap::CLOUD_TOP + 2
+    [[2 * S, 2 * S], [M, M], [M + 3, M - 2], [M + S / 2 + 1, M]].each { |column| terrain.coast << column }
+    terrain.heights[[2 * S, 2 * S]] = TreasureMap::CLOUD_TOP + 2
     terrain.heights[[M, M]] = TreasureMap::CLOUD_TOP + 5
     terrain.heights[[M + 3, M - 2]] = TreasureMap::CLOUD_TOP + 8
     terrain.heights[[M + S / 2 + 1, M]] = TreasureMap::CLOUD_TOP + 20
@@ -105,32 +105,25 @@ class TreasureMapTest < Minitest::Test
 
   def test_a_lower_peak_after_the_highest_one_is_no_island
     terrain = FakeTerrain.new
-    [[S, S], [8 * S, 8 * S]].each { |column| terrain.coast << column }
-    terrain.heights[[S, S]] = TreasureMap::CLOUD_TOP + 9
+    [[2 * S, 2 * S], [8 * S, 8 * S]].each { |column| terrain.coast << column }
+    terrain.heights[[2 * S, 2 * S]] = TreasureMap::CLOUD_TOP + 9
     terrain.heights[[8 * S, 8 * S]] = TreasureMap::CLOUD_TOP + 4
-    assert_equal S, TreasureMap.new(terrain).site(0, 0).chest_x
+    assert_equal 2 * S, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
   def test_of_two_peaks_of_one_height_the_first_one_found_wins
     terrain = FakeTerrain.new
-    [[S, S], [8 * S, 8 * S]].each { |column| terrain.coast << column }
-    terrain.heights[[S, S]] = TreasureMap::CLOUD_TOP + 4
+    [[2 * S, 2 * S], [8 * S, 8 * S]].each { |column| terrain.coast << column }
+    terrain.heights[[2 * S, 2 * S]] = TreasureMap::CLOUD_TOP + 4
     terrain.heights[[8 * S, 8 * S]] = TreasureMap::CLOUD_TOP + 4
-    assert_equal S, TreasureMap.new(terrain).site(0, 0).chest_x
+    assert_equal 2 * S, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
-  # As test_a_cell_with_no_sampled_column_higher_than_rise_has_no_site,
-  # with a peak between the columns of the grid.
   def test_a_cell_with_no_sampled_peak_has_no_peak_site
     terrain = FakeTerrain.new
-    terrain.coast << [1, 1]
-    terrain.heights[[1, 1]] = TreasureMap::CLOUD_TOP + 20
-    TreasureMap::BEFORE_X.size.times do |before|
-      cell_x = 5 + TreasureMap::BEFORE_X[before]
-      cell_z = 5 + TreasureMap::BEFORE_Z[before]
-      terrain.heights[[cell_x * TreasureMap::CELL + S, cell_z * TreasureMap::CELL + S]] = SEA + 10
-    end
-    refute TreasureMap.new(terrain).site(5, 5).found?
+    terrain.coast << [M + 1, M + 1]
+    terrain.heights[[M + 1, M + 1]] = TreasureMap::CLOUD_TOP + 20
+    refute TreasureMap.new(terrain).site(0, 0).found?
   end
 
   def test_the_window_of_a_peak_holds_no_site_below_the_clouds
@@ -167,29 +160,16 @@ class TreasureMapTest < Minitest::Test
     end
   end
 
-  def test_no_two_sites_are_closer_than_the_gap
+  def test_no_two_sites_are_closer_than_twice_the_margin
+    gap = TreasureMap::MARGIN * 2
     sites.combination(2) do |one, other|
-      refute one.near?(other, TreasureMap::GAP), "#{one.chest_x} #{one.chest_z} and #{other.chest_x} #{other.chest_z}"
+      refute((one.chest_x - other.chest_x).abs < gap && (one.chest_z - other.chest_z).abs < gap)
     end
-  end
-
-  def test_a_site_too_close_to_the_site_of_a_cell_before_it_is_no_site
-    map = TreasureMap.new(terrain)
-    before = TreasureSite.new(1000, 70, 1000)
-    map.define_singleton_method(:found) { |_cell_x, _cell_z| before }
-    gap = TreasureMap::GAP
-    refute map.apart(TreasureSite.new(1000 + gap - 1, 70, 1000 - gap + 1), 1, 1).found?
-    assert map.apart(TreasureSite.new(1000 + gap, 70, 1000), 1, 1).found?
-    assert map.apart(TreasureSite.new(1000, 70, 1000 - gap), 1, 1).found?
-  end
-
-  def test_a_site_is_not_near_no_site
-    refute TreasureSite.new(0, 70, 0).near?(TreasureSite.none, TreasureMap::GAP)
   end
 
   def test_the_site_is_the_highest_column_near_the_highest_sampled_column
     terrain = FakeTerrain.new
-    terrain.heights[[S, 2 * S]] = SEA + 10
+    terrain.heights[[2 * S, 4 * S]] = SEA + 10
     terrain.heights[[M, M]] = SEA + 12
     terrain.heights[[M + S / 2, M - S / 2]] = SEA + 14
     terrain.heights[[M + S / 2 + 1, M]] = SEA + 20
@@ -239,22 +219,15 @@ class TreasureMapTest < Minitest::Test
     refute TreasureMap.new(terrain).site(2, 2).found?
   end
 
-  # The cells before the cell 5, 5 have sites, so the GAP test cannot
-  # hide a site in it.
   def test_a_cell_with_no_sampled_column_higher_than_rise_has_no_site
     terrain = FakeTerrain.new
-    terrain.heights[[1, 1]] = SEA + 20
-    TreasureMap::BEFORE_X.size.times do |before|
-      cell_x = 5 + TreasureMap::BEFORE_X[before]
-      cell_z = 5 + TreasureMap::BEFORE_Z[before]
-      terrain.heights[[cell_x * TreasureMap::CELL + S, cell_z * TreasureMap::CELL + S]] = SEA + 10
-    end
-    refute TreasureMap.new(terrain).site(5, 5).found?
+    terrain.heights[[M + 1, M + 1]] = SEA + 20
+    refute TreasureMap.new(terrain).site(0, 0).found?
   end
 
-  def test_the_window_stays_in_the_cell
+  def test_the_window_stays_inside_the_margin
     terrain = FakeTerrain.new
-    corner = TreasureMap::CELL
+    corner = TreasureMap::CELL + TreasureMap::MARGIN
     terrain.heights[[corner, corner]] = SEA + 10
     terrain.heights[[corner - 1, corner]] = SEA + 20
     terrain.heights[[corner, corner - 1]] = SEA + 20
@@ -262,34 +235,58 @@ class TreasureMapTest < Minitest::Test
     assert_equal [corner, corner], [site.chest_x, site.chest_z]
   end
 
-  def test_the_search_reads_the_corner_of_its_cell_but_not_the_next_cell
+  def test_a_block_is_inside_when_it_is_at_least_the_margin_from_the_edges_of_its_cell
+    margin = TreasureMap::MARGIN
+    cell = TreasureMap::CELL
+    assert TreasureMap.inside?(margin)
+    refute TreasureMap.inside?(margin - 1)
+    assert TreasureMap.inside?(cell - margin - 1)
+    refute TreasureMap.inside?(cell - margin)
+    assert TreasureMap.inside?(-cell + margin)
+    refute TreasureMap.inside?(-1)
+  end
+
+  # Higher columns of the grid of the search, but in the margin on each
+  # side of the cell, hold no site.
+  def test_the_search_reads_no_column_of_the_margin
+    margin = TreasureMap::MARGIN
+    cell = TreasureMap::CELL
+    [[margin - S, M], [cell - margin, M], [M, margin - S], [M, cell - margin]].each do |column|
+      terrain = FakeTerrain.new
+      terrain.heights[[M, M]] = SEA + 10
+      terrain.heights[column] = SEA + 20
+      assert_equal [M, M], [TreasureMap.new(terrain).site(0, 0).chest_x, TreasureMap.new(terrain).site(0, 0).chest_z], column.inspect
+    end
+  end
+
+  def test_the_search_reads_its_cell_from_the_margin_on
     terrain = FakeTerrain.new
-    terrain.heights[[0, 0]] = SEA + 10
-    terrain.heights[[TreasureMap::CELL, 0]] = SEA + 20
-    terrain.heights[[0, TreasureMap::CELL]] = SEA + 20
+    margin = TreasureMap::MARGIN
+    terrain.heights[[margin, margin]] = SEA + 10
     site = TreasureMap.new(terrain).site(0, 0)
-    assert_equal [0, 0], [site.chest_x, site.chest_z]
+    assert_equal [margin, margin], [site.chest_x, site.chest_z]
+    assert site.found?
   end
 
   def test_of_two_columns_of_one_height_the_first_one_found_wins
     terrain = FakeTerrain.new
-    terrain.heights[[S, S]] = SEA + 10
+    terrain.heights[[2 * S, 2 * S]] = SEA + 10
     terrain.heights[[12 * S, 12 * S]] = SEA + 10
-    assert_equal S, TreasureMap.new(terrain).site(0, 0).chest_x
+    assert_equal 2 * S, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
   def test_a_site_stands_more_than_rise_above_the_sea
     terrain = FakeTerrain.new
-    terrain.heights[[S, S]] = SEA + TreasureMap::RISE
+    terrain.heights[[2 * S, 2 * S]] = SEA + TreasureMap::RISE
     refute TreasureMap.new(terrain).site(0, 0).found?
-    terrain.heights[[S, S]] = SEA + TreasureMap::RISE + 1
+    terrain.heights[[2 * S, 2 * S]] = SEA + TreasureMap::RISE + 1
     assert TreasureMap.new(terrain).site(0, 0).found?
   end
 
   def test_a_column_off_the_coast_is_no_site
     terrain = FakeTerrain.new
-    terrain.heights[[S, S]] = SEA + 20
-    terrain.coast << [S, S]
+    terrain.heights[[2 * S, 2 * S]] = SEA + 20
+    terrain.coast << [2 * S, 2 * S]
     terrain.heights[[64, 64]] = SEA + 10
     assert_equal 64, TreasureMap.new(terrain).site(0, 0).chest_x
   end
@@ -331,7 +328,7 @@ class TreasureMapTest < Minitest::Test
     assert_same map.site(0, -1), map.site_at(TreasureMap::CELL - 1, -1)
   end
 
-  def test_the_search_reads_each_cell_once
+  def test_the_search_reads_each_cell_once_and_no_other
     map = TreasureMap.new(FakeTerrain.new)
     cells = []
     search = map.method(:find)
@@ -339,29 +336,10 @@ class TreasureMapTest < Minitest::Test
       cells << [x0 / TreasureMap::CELL, z0 / TreasureMap::CELL]
       search.call(x0, z0)
     end
-    map.site(0, 0)
-    map.site(0, 0)
-    assert_equal [[0, 0]], cells
-    map.define_singleton_method(:find) do |x0, z0|
-      cells << [x0 / TreasureMap::CELL, z0 / TreasureMap::CELL]
-      TreasureSite.new(x0 + 8, SEA + 10, z0 + 8)
-    end
-    cells.clear
     map.site(1, 1)
     map.site(1, 1)
-    # The cell 0, 0 is one of them, and the search read it before.
-    assert_equal [[1, 1], [0, 1], [1, 0], [2, 0]], cells
-  end
-
-  def test_only_the_cells_before_a_cell_can_drop_its_site
-    gap = TreasureMap::GAP
-    site = TreasureSite.new(1000, 70, 1000)
-    close = TreasureSite.new(1000 + gap - 1, 70, 1000 - gap + 1)
-    [[-1, 0, true], [-1, -1, true], [0, -1, true], [1, -1, true], [1, 0, false], [-1, 1, false], [0, 1, false], [1, 1, false]].each do |dx, dz, drops|
-      map = TreasureMap.new(FakeTerrain.new)
-      map.define_singleton_method(:found) { |cell_x, cell_z| [cell_x, cell_z] == [1 + dx, 1 + dz] ? close : TreasureSite.none }
-      assert_equal !drops, map.apart(site, 1, 1).found?, "the cell #{dx} #{dz} from it"
-    end
+    map.site(0, 1)
+    assert_equal [[1, 1], [0, 1]], cells
   end
 
   def test_a_cell_of_land_has_no_site

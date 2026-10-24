@@ -1,12 +1,12 @@
 # The sites of the treasure chests: on the islands in open ocean and on
 # the peaks above the clouds, one at most in each cell of CELL x CELL
-# blocks. Like Terrain, it reads only the
-# noise, so it gives the same sites each time. ChunkGenerator puts a chest
+# blocks. Like Terrain, it reads only the noise, so it gives the same
+# sites each time. ChunkGenerator puts a chest
 # on each site, and tools/map.rb draws them.
 class TreasureMap
   # The size of a cell in blocks: 1 << CELL_BITS. With 1024, a world of
-  # 8000 x 8000 blocks has 21 to 29 chests (seeds 1337, 42 and 7): 11 to
-  # 20 on islands and 9 or 10 on peaks. This is not a Minecraft value.
+  # 8000 x 8000 blocks has 19 to 32 chests (seeds 1337, 42 and 7): 11 to
+  # 22 on islands and 8 to 10 on peaks. This is not a Minecraft value.
   CELL_BITS = 10
   CELL = 1 << CELL_BITS
   # The search reads one column in STEP on x and on z. Then it reads each
@@ -22,43 +22,23 @@ class TreasureMap
   CLOUD_TOP = 196
   # The top blocks that a chest can stand on.
   GROUND = [Block::GRASS, Block::SNOW_GRASS, Block::SAND, Block::SNOW]
-  # An island near the edge of a cell can get the sites of two cells. So a
-  # site closer than GAP blocks (on x and on z) to the site that the
-  # search found in a cell before it is no site, also when the GAP test
-  # drops that site in its turn. The cells before a cell are the 4 cells
-  # next to it that come first when the cells go in rows along x, one row
-  # of z after another (BEFORE_X, BEFORE_Z).
-  GAP = 64
-  BEFORE_X = [-1, -1, 0, 1]
-  BEFORE_Z = [0, -1, -1, -1]
+  # A site is at least MARGIN blocks inside its cell, so the sites of two
+  # cells are at least 2 * MARGIN apart, and a large island at the edge of
+  # a cell does not get two chests next to each other.
+  MARGIN = 32
 
   def initialize(terrain)
     @terrain = terrain
-    # The site that the search found in each cell, before the GAP test,
-    # by World.chunk_key.
-    @found = {}
+    # The site of each cell, by World.chunk_key.
+    @sites = {}
     nil
   end
 
   # The site of the cell cell_x, cell_z. The search reads each cell once.
-  def site(cell_x, cell_z) = apart(found(cell_x, cell_z), cell_x, cell_z)
-
-  # The site that the search finds in the cell, before the GAP test.
-  def found(cell_x, cell_z)
+  def site(cell_x, cell_z)
     key = World.chunk_key(cell_x, cell_z)
-    @found[key] = find(cell_x * CELL, cell_z * CELL) unless @found.key?(key)
-    @found[key]
-  end
-
-  # site, or no site when it is too close to the site of a cell before
-  # the cell cell_x, cell_z.
-  def apart(site, cell_x, cell_z)
-    return site unless site.found?
-
-    BEFORE_X.size.times do |before|
-      return TreasureSite.none if site.near?(found(cell_x + BEFORE_X[before], cell_z + BEFORE_Z[before]), GAP)
-    end
-    site
+    @sites[key] = find(cell_x * CELL, cell_z * CELL) unless @sites.key?(key)
+    @sites[key]
   end
 
   # The site of the cell around the block x, z (Integers).
@@ -71,8 +51,8 @@ class TreasureMap
   def find(x0, z0)
     island = TreasureSite.new(0, SEA + RISE, 0)
     peak = TreasureSite.new(0, CLOUD_TOP, 0)
-    (x0...x0 + CELL).step(STEP) do |x|
-      (z0...z0 + CELL).step(STEP) do |z|
+    (x0 + MARGIN...x0 + CELL - MARGIN).step(STEP) do |x|
+      (z0 + MARGIN...z0 + CELL - MARGIN).step(STEP) do |z|
         height = site_height(x, z)
         if height > peak.chest_y
           peak = TreasureSite.new(x, height, z)
@@ -99,15 +79,15 @@ class TreasureMap
     0
   end
 
-  # The highest column higher than floor, within STEP / 2 of x, z and in
-  # its cell, where a chest can stand. The cell of a site is the one cell
-  # whose chunks put its chest (ChunkGenerator#treasure_chest).
+  # The highest column higher than floor, within STEP / 2 of x, z and
+  # MARGIN inside its cell, where a chest can stand. The cell of a site is
+  # the one cell whose chunks put its chest (ChunkGenerator#treasure_chest).
   def refine(x, z, floor)
     best = floor
     site = TreasureSite.none
     (-STEP / 2..STEP / 2).each do |dx|
       (-STEP / 2..STEP / 2).each do |dz|
-        next unless (x + dx) >> CELL_BITS == x >> CELL_BITS && (z + dz) >> CELL_BITS == z >> CELL_BITS
+        next unless TreasureMap.inside?(x + dx) && TreasureMap.inside?(z + dz)
 
         height = site_height(x + dx, z + dz)
         next if height <= best || !holds_chest?(x + dx, z + dz, height)
@@ -118,6 +98,9 @@ class TreasureMap
     end
     site
   end
+
+  # True when the block x (or z) is at least MARGIN blocks inside its cell.
+  def self.inside?(x) = (x & (CELL - 1)).between?(MARGIN, CELL - MARGIN - 1)
 
   # True when a chest can stand on column x, z of height: no tree grows
   # there, and no cave opens its top block.
@@ -152,8 +135,4 @@ class TreasureSite
     dz = @chest_z + 0.5 - z
     Math.sqrt(dx * dx + dz * dz)
   end
-
-  # True when other is a site and is less than reach blocks away on x and
-  # on z.
-  def near?(other, reach) = other.found? && (other.chest_x - @chest_x).abs < reach && (other.chest_z - @chest_z).abs < reach
 end
