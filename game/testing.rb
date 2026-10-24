@@ -2189,6 +2189,11 @@ class Game
     teleport(x + 0.5, y + 0.01, z + 10.5)
     guard_treasure
     check("the guards come back after the player goes far away", @mobs.size == NaturalSpawner::GUARDS)
+    teleport(x + 0.5, y + 0.01, z + 200.5)
+    guard_treasure
+    teleport(x + 0.5, y + 0.01, z + 10.5)
+    guard_treasure
+    check("the guards that still live count toward the next pack", @mobs.size == NaturalSpawner::GUARDS)
     @mobs.clear
   end
 

@@ -142,24 +142,40 @@ class NaturalSpawner
     Block.solid?(ground) && !Block.leaves?(ground) && @world.get(x, y, z) == Block::AIR && @world.get(x, y + 1, z) == Block::AIR
   end
 
-  # The guards of the treasure chest at x, z: a pack of GUARDS monsters of
-  # random kinds, by GUARD_WEIGHTS, on the columns around the chest that
-  # have room for them on top. Light does not stop them. Returns how many
-  # spawned.
-  def spawn_guards(mobs, x, z)
+  # The guards of the treasure chest at x, z: wanted monsters of random
+  # kinds, by GUARD_WEIGHTS, on the columns around the chest that have
+  # room for them on the ground. Light does not stop them. No guard
+  # spawns within 1 column of player, so none spawns in the body of the
+  # player. Returns how many spawned.
+  def spawn_guards(mobs, x, z, wanted, player)
+    player_x = player.x.floor.to_i
+    player_z = player.z.floor.to_i
     spawned = 0
     tries = 0
-    while spawned < GUARDS && tries < GUARD_TRIES
+    while spawned < wanted && tries < GUARD_TRIES
       tries += 1
       cell_x = x + @rng.between(-GUARD_RANGE, GUARD_RANGE)
       cell_z = z + @rng.between(-GUARD_RANGE, GUARD_RANGE)
-      cell_y = @world.height_at(cell_x, cell_z)
-      if room?(cell_x, cell_y, cell_z)
+      cell_y = ground_under(cell_x, cell_z)
+      if room?(cell_x, cell_y, cell_z) && ((cell_x - player_x).abs > 1 || (cell_z - player_z).abs > 1)
         add_monster(mobs, pick_kind(GUARD_KINDS, GUARD_WEIGHTS), cell_x, cell_y, cell_z).guard = true
         spawned += 1
       end
     end
     spawned
+  end
+
+  # The y of the cell on the ground of column x, z: on its top block, or
+  # under the leaves of a tree, as a guard can stand under a tree.
+  def ground_under(x, z)
+    y = @world.height_at(x, z)
+    while y > 1
+      above = @world.get(x, y - 1, z)
+      break unless above == Block::AIR || Block.leaves?(above)
+
+      y -= 1
+    end
+    y
   end
 
   # Adds a new monster of kind at the cell x, y, z to mobs, and gives it.

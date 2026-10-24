@@ -53,13 +53,18 @@ class Game
   end
 
   # A treasure chest sends its guards when the player comes near it (see
-  # Treasure#call_guards), while the chest is there.
+  # Treasure#call_guards), while the chest is there. The guards of its
+  # last visit that still live, also those that chased the player, count
+  # toward the pack, so it has NaturalSpawner::GUARDS guards at most.
   def guard_treasure
     site = @treasure.call_guards(@player.x.to_f, @player.y.to_f, @player.z.to_f)
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
-    @spawner.spawn_guards(@mobs, x, z) if site.found? && Block::BASE[@world.get(x, y, z)] == Block::CHEST
+    return unless site.found? && Block::BASE[@world.get(x, y, z)] == Block::CHEST
+
+    living = @mobs.count { |mob| mob.guard && mob.alive && site.distance(mob.x.to_f, mob.z.to_f) <= Treasure::REARM }
+    @spawner.spawn_guards(@mobs, x, z, NaturalSpawner::GUARDS - living, @player)
     nil
   end
 

@@ -109,7 +109,7 @@ class NaturalSpawnerTest < Minitest::Test
   def test_the_guards_of_a_chest_are_4_monsters_around_it
     guard_floor
     mobs = []
-    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z)
+    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player)
     assert_equal NaturalSpawner::GUARDS, mobs.size
     mobs.each do |monster|
       assert monster.guard
@@ -121,7 +121,7 @@ class NaturalSpawnerTest < Minitest::Test
 
   def test_guards_are_zombies_and_skeletons_and_never_creepers
     guard_floor
-    kinds = Array.new(100) { [].tap { |mobs| @spawner.spawn_guards(mobs, X, Z) } }.flatten.map(&:kind)
+    kinds = Array.new(100) { [].tap { |mobs| @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player) } }.flatten.map(&:kind)
     assert_equal [Mob::ZOMBIE, Mob::SKELETON].sort, kinds.uniq.sort
   end
 
@@ -130,7 +130,7 @@ class NaturalSpawnerTest < Minitest::Test
     cells = []
     200.times do
       mobs = []
-      @spawner.spawn_guards(mobs, X, Z)
+      @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player)
       mobs.each { |monster| cells << [monster.x.floor - X, monster.z.floor - Z] }
     end
     assert_equal (-NaturalSpawner::GUARD_RANGE..NaturalSpawner::GUARD_RANGE).to_a, cells.map(&:first).uniq.sort
@@ -149,27 +149,71 @@ class NaturalSpawnerTest < Minitest::Test
     end
     @world.set(X, Y, Z, Block::CHEST)
     mobs = []
-    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z)
+    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player)
     mobs.each do |monster|
       away = [(monster.x.floor - X).abs, (monster.z.floor - Z).abs].max
       assert_equal away == 0 ? Y + 1 : Y - away * 2, monster.y.floor
     end
   end
 
+  def test_a_guard_stands_on_the_ground_under_the_leaves_of_a_tree
+    guard_floor
+    (X - 6..X + 6).each { |x| (Z - 6..Z + 6).each { |z| @world.set(x, Y + 4, z, Block::OAK_LEAVES) unless x == X && z == Z } }
+    mobs = []
+    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player)
+    mobs.each { |monster| assert_equal Y, monster.y.floor }
+  end
+
+  # The columns, from the player, of the guards of 100 packs around a
+  # chest at chest_x, chest_z, with the player at player_x, player_z.
+  def guard_columns(chest_x, chest_z, player_x, player_z)
+    (chest_x - 6..chest_x + 6).each { |x| (chest_z - 6..chest_z + 6).each { |z| @world.set(x, Y - 1, z, Block::STONE) } }
+    @world.set(chest_x, Y, chest_z, Block::CHEST)
+    player = Player.new(player_x, Y.to_f, player_z)
+    columns = []
+    100.times do
+      mobs = []
+      @spawner.spawn_guards(mobs, chest_x, chest_z, NaturalSpawner::GUARDS, player)
+      mobs.each { |monster| columns << [monster.x.floor - player_x.floor, monster.z.floor - player_z.floor] }
+    end
+    columns
+  end
+
+  def test_no_guard_spawns_within_1_column_of_the_player
+    columns = guard_columns(X, Z, X + 2.5, Z + 0.5)
+    refute(columns.any? { |dx, dz| dx.abs <= 1 && dz.abs <= 1 })
+    assert(columns.any? { |dx, dz| dx.abs == 2 && dz.abs <= 1 })
+    assert(columns.any? { |dx, dz| dz.abs == 2 && dx.abs <= 1 })
+  end
+
+  # A player at -6.5 stands in column -7.
+  def test_the_column_of_the_player_rounds_down
+    refute(guard_columns(-8, Z, -6.5, Z + 0.5).any? { |dx, dz| dx.abs <= 1 && dz.abs <= 1 })
+    refute(guard_columns(X, -8, X + 0.5, -6.5).any? { |dx, dz| dx.abs <= 1 && dz.abs <= 1 })
+  end
+
+  def test_a_pack_spawns_the_guards_that_it_wants
+    guard_floor
+    mobs = []
+    assert_equal 2, @spawner.spawn_guards(mobs, X, Z, 2, @player)
+    assert_equal 0, @spawner.spawn_guards(mobs, X, Z, 0, @player)
+    assert_equal 2, mobs.size
+  end
+
   def test_guards_spawn_in_the_light_of_day_and_of_a_torch
     guard_floor
     @world.set(X + 1, Y, Z, Block::TORCH)
     mobs = []
-    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z)
+    assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player)
   end
 
   def test_guards_need_room_and_stop_after_their_tries
-    (X - 6..X + 6).each { |x| (Z - 6..Z + 6).each { |z| @world.set(x, Y - 1, z, Block::OAK_LEAVES) } }
+    (X - 6..X + 6).each { |x| (Z - 6..Z + 6).each { |z| @world.set(x, Y - 1, z, Block::WATER) } }
     mobs = []
-    assert_equal 0, @spawner.spawn_guards(mobs, X, Z)
+    assert_equal 0, @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player)
     assert_empty mobs
     @world.set(X + 2, Y - 1, Z + 2, Block::STONE)
-    spawned = Array.new(20) { @spawner.spawn_guards(mobs, X, Z) }
+    spawned = Array.new(20) { @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player) }
     assert_operator spawned.max, :<, NaturalSpawner::GUARDS
     assert_operator spawned.sum, :>, 0
   end

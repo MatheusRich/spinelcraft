@@ -1,6 +1,7 @@
 # Zombies, skeletons and creepers: they walk to the player and attack,
 # burn in the sun (but a creeper does not), and despawn far from the
-# player. A guard of a treasure chest (Treasure) waits by its chest.
+# player. A guard of a treasure chest (Treasure) does not despawn while
+# the player is near (see despawn?).
 class Monster < Mob
   # Seconds of a creeper's fuse. minecraft.wiki/w/Creeper
   FUSE = 1.5
@@ -66,8 +67,7 @@ class Monster < Mob
 
   # True when the monster despawns after dt seconds more, with player
   # where it is now. A guard despawns only farther than DESPAWN_FAR, so it
-  # waits by its chest while the player is near. This is not a Minecraft
-  # rule.
+  # stays while the player is near. This is not a Minecraft rule.
   def despawn?(player, dt)
     dx = @x - player.x
     dy = @y - player.y

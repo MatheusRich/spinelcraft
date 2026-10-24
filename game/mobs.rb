@@ -180,6 +180,8 @@ class Mob
   def baby? = false
   def food?(_block) = false
   def shearable? = false
+  # Only a Monster can be a guard of a treasure chest.
+  def guard = false
 
   def passive? = PASSIVE[@kind] == 1
 
