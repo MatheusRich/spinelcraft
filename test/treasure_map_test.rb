@@ -83,6 +83,15 @@ class TreasureMapTest < Minitest::Test
     assert_equal 8 * S, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
+  def test_a_peak_holds_the_site_when_no_column_of_the_island_holds_a_chest
+    terrain = FakeTerrain.new
+    terrain.coast << [M, M]
+    terrain.heights[[M, M]] = TreasureMap::CLOUD_TOP + 10
+    terrain.heights[[8 * S, 8 * S]] = SEA + 10
+    terrain.trees << [8 * S, 8 * S]
+    assert_equal M, TreasureMap.new(terrain).site(0, 0).chest_x
+  end
+
   def test_the_site_of_a_peak_is_its_highest_column_near_the_highest_sampled_one
     terrain = FakeTerrain.new
     [[S, S], [M, M], [M + 3, M - 2], [M + S / 2 + 1, M]].each { |column| terrain.coast << column }

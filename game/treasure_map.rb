@@ -66,30 +66,26 @@ class TreasureMap
 
   # The site of the cell with its corner at x0, z0: near its highest dry
   # column in open ocean, or else near its highest peak above the clouds
-  # (see refine).
+  # (see refine). When no column near the island holds a chest, the peak
+  # can still hold one.
   def find(x0, z0)
-    island = SEA + RISE
-    island_x = 0
-    island_z = 0
-    peak = CLOUD_TOP
-    peak_x = 0
-    peak_z = 0
-    (0...CELL).step(STEP) do |dx|
-      (0...CELL).step(STEP) do |dz|
-        height = site_height(x0 + dx, z0 + dz)
-        if height > peak
-          peak = height
-          peak_x = x0 + dx
-          peak_z = z0 + dz
-        elsif height > island && height <= CLOUD_TOP
-          island = height
-          island_x = x0 + dx
-          island_z = z0 + dz
+    island = TreasureSite.new(0, SEA + RISE, 0)
+    peak = TreasureSite.new(0, CLOUD_TOP, 0)
+    (x0...x0 + CELL).step(STEP) do |x|
+      (z0...z0 + CELL).step(STEP) do |z|
+        height = site_height(x, z)
+        if height > peak.chest_y
+          peak = TreasureSite.new(x, height, z)
+        elsif height > island.chest_y && height <= CLOUD_TOP
+          island = TreasureSite.new(x, height, z)
         end
       end
     end
-    return refine(island_x, island_z, SEA + RISE) if island > SEA + RISE
-    return refine(peak_x, peak_z, CLOUD_TOP) if peak > CLOUD_TOP
+    if island.chest_y > SEA + RISE
+      site = refine(island.chest_x, island.chest_z, SEA + RISE)
+      return site if site.found?
+    end
+    return refine(peak.chest_x, peak.chest_z, CLOUD_TOP) if peak.chest_y > CLOUD_TOP
 
     TreasureSite.none
   end
