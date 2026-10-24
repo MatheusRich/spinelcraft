@@ -115,6 +115,9 @@ class Terrain
     @warp_nz = SHIFT
     @wx = warp_x(SHIFT, SHIFT)
     @wz = warp_z(SHIFT, SHIFT)
+    # The continent noise of the last column, once continent reads it.
+    @continent = 0.0
+    @continent_read = false
     # The 8 grid points around a block (carved?) and the 4 edges of a cell (trilinear).
     @corner_a = Array.new(8, 0.0)
     @corner_b = Array.new(8, 0.0)
@@ -137,15 +140,22 @@ class Terrain
     @warp_nz = nz
     @wx = warp_x(nx, nz)
     @wz = warp_z(nx, nz)
+    @continent_read = false
+    nil
   end
 
   def warp_z(x, z) = z + @noise4.noise2(x / 160.0 + 70.0, z / 160.0).to_f * WARP
 
   # The continent noise of column x, z (see CONTINENT). It leaves the
-  # warp of the column in @wx and @wz.
+  # warp of the column in @wx and @wz. The last column is kept, as
+  # TreasureMap#site_height reads it after surface_height.
   def continent(x, z)
     warp(x + SHIFT, z + SHIFT)
-    @noise.fbm2(@wx / CONTINENT_SCALE, @wz / CONTINENT_SCALE, 4)
+    unless @continent_read
+      @continent = @noise.fbm2(@wx / CONTINENT_SCALE, @wz / CONTINENT_SCALE, 4)
+      @continent_read = true
+    end
+    @continent
   end
 
   # The height of the column's top block plus one, after Minecraft 1.18.
