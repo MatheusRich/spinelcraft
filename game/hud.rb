@@ -156,7 +156,8 @@ class Game
     per = [(w * 0.5 / (4.0 * ts)).to_i, 20].max
     y = y0 - 120.0 * s
     (@chat.lines.size - 1).downto(0) do |i|
-      a = @chat.opacity(i)
+      # All lines show while the player types.
+      a = current_screen.typing? ? 1.0 : @chat.fade(i)
       if a > 0.0
         line = @chat.lines[i]
         rows = (line.size + per - 1) / per

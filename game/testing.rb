@@ -582,7 +582,7 @@ class Game
     open_chat("")
     @vitals.hurt(1000)
     felt_hurt(Sfx::HURT)
-    dead = current_screen.death_screen? && !@chat.open?
+    dead = current_screen.death_screen?
     respawn
     resume
     check("a death opens the death screen, and a respawn plays again", dead && current_screen.playing? && !@vitals.dead?)
@@ -1317,7 +1317,13 @@ class Game
     @inv.clear
     open_chat("")
     hurt(30, Sfx::HURT)
-    check("death closes the chat", @vitals.dead? && !@chat.open?)
+    Gfx.in_test_frame
+    Gfx.in_test_key(Key::R, 1)
+    handle_input(0.05)
+    Gfx.in_test_key(Key::R, 0)
+    Gfx.in_test_frame
+    check("a death while the player types opens the death screen, and R respawns", !@vitals.dead? && current_screen.playing?)
+    Gfx.in_capture(0)
     @items.clear
     @inv = kept
     respawn

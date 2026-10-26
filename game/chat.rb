@@ -18,7 +18,6 @@ class Chat
   attr_reader :text, :lines
 
   def initialize
-    @open = false
     # The line that the player types, the lines typed before, and the
     # place in them that Up and Down reached.
     @text = ""
@@ -38,20 +37,11 @@ class Chat
     @tab_base = ""
   end
 
-  def open? = @open
-
-  # Opens the chat with text on the line, after the newest line of the
-  # history.
-  def open(text)
-    @open = true
+  # Starts a line with text on it, after the newest line of the history.
+  def start(text)
     @text = text
     @back = @history.size
     @tab_matches.clear
-    nil
-  end
-
-  def close
-    @open = false
     nil
   end
 
@@ -145,13 +135,9 @@ class Chat
 
   def error?(i) = @errors[i] == 1
 
-  # How much line i shows: all lines while the chat is open, and else a
-  # line fades out in the last second of SHOW seconds.
-  def opacity(i)
-    return 1.0 if @open
-
-    (SHOW - @ages[i]).clamp(0.0, 1.0)
-  end
+  # How much line i shows: a line fades out in the last second of SHOW
+  # seconds.
+  def fade(index) = (SHOW - @ages[index]).clamp(0.0, 1.0)
 
   def age(dt)
     @ages.size.times { |i| @ages[i] += dt }

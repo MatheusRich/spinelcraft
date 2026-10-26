@@ -135,7 +135,6 @@ detectors:
     - "/\\ACamera\\#project\\z/"
     - "/\\ACamera\\#project_direction\\z/"
     - "/\\AChat\\#error\\?\\z/"
-    - "/\\AChat\\#opacity\\z/"
     - "/\\AChat\\#type\\z/"
     - "/\\AChunkGenerator\\#cave_cell\\z/"
     - "/\\AChunkGenerator\\#tunnel\\?\\z/"

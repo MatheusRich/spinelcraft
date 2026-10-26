@@ -15,14 +15,13 @@ class Game
   # The chat frees the mouse, as in Minecraft, and takes it again when it
   # closes.
   def open_chat(text)
-    @chat.open(text)
+    @chat.start(text)
     show_screen(Screen::CHAT)
     Gfx.in_text(1)
     Gfx.in_capture(0)
   end
 
   def close_chat
-    @chat.close
     show_screen(Screen::PLAYING)
     Gfx.in_text(0)
     Gfx.in_capture(1)

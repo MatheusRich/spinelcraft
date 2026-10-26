@@ -2,19 +2,15 @@ require_relative "test_helper"
 
 # The chat line: typing, the history, Tab completion and the lines shown.
 class ChatTest < Minitest::Test
-  def test_the_chat_opens_with_its_text_on_the_line_and_closes
+  def test_a_line_starts_with_its_text
     chat = Chat.new
-    refute chat.open?
-    chat.open("/")
-    assert chat.open?
+    chat.start("/")
     assert_equal "/", chat.text
-    chat.close
-    refute chat.open?
   end
 
   def test_typing_adds_to_the_end_of_the_line_up_to_the_longest_line
     chat = Chat.new
-    chat.open("")
+    chat.start("")
     (Chat::MAX - 1).times { chat.type("a") }
     chat.type("b")
     chat.type("c")
@@ -23,7 +19,7 @@ class ChatTest < Minitest::Test
 
   def test_backspace_takes_the_last_character_and_does_nothing_on_an_empty_line
     chat = Chat.new
-    chat.open("ab")
+    chat.start("ab")
     chat.backspace
     assert_equal "a", chat.text
     chat.backspace
@@ -33,7 +29,7 @@ class ChatTest < Minitest::Test
 
   def test_a_paste_goes_to_the_end_of_the_line_up_to_the_longest_line
     chat = Chat.new
-    chat.open("/tp ")
+    chat.start("/tp ")
     chat.paste("1 2\n3")
     assert_equal "/tp 1 23", chat.text
     chat.paste("x" * Chat::MAX)
@@ -44,7 +40,7 @@ class ChatTest < Minitest::Test
     chat = Chat.new
     chat.remember("one")
     chat.remember("two")
-    chat.open("")
+    chat.start("")
     chat.recall(-1)
     assert_equal "two", chat.text
     chat.recall(-1)
@@ -59,14 +55,13 @@ class ChatTest < Minitest::Test
     assert_equal "", chat.text
   end
 
-  def test_the_chat_opens_after_the_newest_line_of_the_history
+  def test_a_line_starts_after_the_newest_line_of_the_history
     chat = Chat.new
     chat.remember("one")
-    chat.open("")
+    chat.start("")
     chat.recall(-1)
-    chat.close
     chat.remember("two")
-    chat.open("")
+    chat.start("")
     chat.recall(-1)
     assert_equal "two", chat.text
   end
@@ -74,7 +69,7 @@ class ChatTest < Minitest::Test
   def test_the_history_keeps_the_newest_lines
     chat = Chat.new
     (Chat::HISTORY + 1).times { |i| chat.remember("line #{i}") }
-    chat.open("")
+    chat.start("")
     Chat::HISTORY.times { chat.recall(-1) }
     assert_equal "line 1", chat.text
     chat.recall(-1)
@@ -83,7 +78,7 @@ class ChatTest < Minitest::Test
 
   def test_each_tab_puts_the_next_name_on_the_line_and_the_last_goes_back_to_the_first
     chat = Chat.new
-    chat.open("/t")
+    chat.start("/t")
     chat.tab
     assert_equal "/teleport", chat.text
     chat.tab
@@ -96,10 +91,10 @@ class ChatTest < Minitest::Test
 
   def test_tab_replaces_only_the_last_word
     chat = Chat.new
-    chat.open("/summon c")
+    chat.start("/summon c")
     chat.tab
     assert_equal "/summon creeper", chat.text
-    chat.open("/summon ")
+    chat.start("/summon ")
     chat.tab
     assert_equal "/summon pig", chat.text
     chat.tab
@@ -108,7 +103,7 @@ class ChatTest < Minitest::Test
 
   def test_tab_with_no_name_leaves_the_line
     chat = Chat.new
-    chat.open("/fly")
+    chat.start("/fly")
     chat.tab
     assert_equal "/fly", chat.text
     assert_empty chat.matches
@@ -116,7 +111,7 @@ class ChatTest < Minitest::Test
 
   def test_a_key_after_tab_completes_the_new_word
     chat = Chat.new
-    chat.open("/t")
+    chat.start("/t")
     chat.tab
     chat.backspace
     assert_equal ["teleport"], chat.matches
@@ -126,7 +121,7 @@ class ChatTest < Minitest::Test
 
   def test_tab_after_a_typed_word_completes_the_next_word
     chat = Chat.new
-    chat.open("/tim")
+    chat.start("/tim")
     chat.tab
     chat.type(" ")
     chat.tab
@@ -135,7 +130,7 @@ class ChatTest < Minitest::Test
 
   def test_tab_after_a_paste_completes_the_pasted_word
     chat = Chat.new
-    chat.open("/tim")
+    chat.start("/tim")
     chat.tab
     chat.paste(" q")
     chat.tab
@@ -145,7 +140,7 @@ class ChatTest < Minitest::Test
   def test_tab_after_up_completes_the_line_from_the_history
     chat = Chat.new
     chat.remember("/weathe")
-    chat.open("/t")
+    chat.start("/t")
     chat.tab
     chat.recall(-1)
     chat.tab
@@ -154,31 +149,30 @@ class ChatTest < Minitest::Test
 
   def test_a_new_chat_line_has_new_matches
     chat = Chat.new
-    chat.open("/t")
+    chat.start("/t")
     chat.tab
-    chat.close
-    chat.open("/w")
+    chat.start("/w")
     assert_equal ["weather"], chat.matches
   end
 
   def test_the_matches_are_the_names_that_complete_the_last_word
     chat = Chat.new
-    chat.open("/t")
+    chat.start("/t")
     assert_equal ["teleport", "time", "tp"], chat.matches
     assert_equal(-1, chat.current_match)
   end
 
   def test_no_match_shows_when_the_only_name_is_on_the_line_already
     chat = Chat.new
-    chat.open("/weather")
+    chat.start("/weather")
     assert_empty chat.matches
-    chat.open("/weathe")
+    chat.start("/weathe")
     assert_equal ["weather"], chat.matches
   end
 
   def test_while_tab_cycles_the_matches_stay_and_the_current_one_is_on_the_line
     chat = Chat.new
-    chat.open("/t")
+    chat.start("/t")
     chat.tab
     assert_equal ["teleport", "time", "tp"], chat.matches
     assert_equal 0, chat.current_match
@@ -207,25 +201,17 @@ class ChatTest < Minitest::Test
     refute chat.error?(0)
   end
 
-  def test_a_line_shows_for_a_while_and_then_fades_out_while_the_chat_is_closed
+  def test_a_line_shows_for_a_while_and_then_fades_out
     chat = Chat.new
     chat.post("old")
     chat.age(Chat::SHOW - 0.75)
     chat.post("new")
-    assert_equal 0.75, chat.opacity(0)
-    assert_equal 1.0, chat.opacity(1)
+    assert_equal 0.75, chat.fade(0)
+    assert_equal 1.0, chat.fade(1)
     chat.age(1.0)
-    assert_equal 0.0, chat.opacity(0)
-    assert_equal 1.0, chat.opacity(1)
+    assert_equal 0.0, chat.fade(0)
+    assert_equal 1.0, chat.fade(1)
     chat.age(Chat::SHOW)
-    assert_equal 0.0, chat.opacity(1)
-  end
-
-  def test_all_lines_show_while_the_chat_is_open
-    chat = Chat.new
-    chat.post("old")
-    chat.age(Chat::SHOW * 2.0)
-    chat.open("")
-    assert_equal 1.0, chat.opacity(0)
+    assert_equal 0.0, chat.fade(1)
   end
 end
