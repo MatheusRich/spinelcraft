@@ -168,6 +168,7 @@ class Game
     @max_cpu = 0.0
     @max_frame = 0.0
     @slow_frames = 0
+    @stamps = Array.new(4, 0)
     @faces_drawn = 0
     @cpu_end = 0
     @survival = ENV["MODE"] == "survival"
@@ -751,30 +752,50 @@ class Game
 
   # One frame of the game. Returns the milliseconds of CPU that it took.
   def frame(dt, now, frames)
+    advance(dt)
+    stamp(STAMP_STREAM)
+    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
+    stamp(STAMP_FAR)
+    build_far_tiles
+    stamp(STAMP_FLUSH)
+    @chunk_meshes.flush
+    stamp(STAMP_RENDER)
+    render
+    cpu = (@cpu_end - now) / 1.0e6
+    log_slow_frame(frames, cpu, now) if cpu > Log::SLOW_MS
+    cpu
+  end
+
+  def advance(dt)
     handle_input(dt) unless @scripted
     demo(dt) if @demo
     update_game(dt)
     send_sounds
     Gfx.au_record_mix(dt)
     update_music(dt)
-    t_stream = Gfx.gfx_ns
-    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
-    t_lod = Gfx.gfx_ns
-    left = STREAM_BUDGET_NS - (t_lod - t_stream)
-    @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, left > 500_000 ? left : 500_000)
-    t_flush = Gfx.gfx_ns
-    @chunk_meshes.flush
-    t_render = Gfx.gfx_ns
-    render
-    cpu = (@cpu_end - now) / 1.0e6
-    if cpu > Log::SLOW_MS
-      Log.debug(Log::FRAME) do
-        "frame #{frames}: #{cpu.round(2)} ms of CPU. update #{((t_stream - now) / 1.0e6).round(2)}, chunks #{((t_lod - t_stream) / 1.0e6).round(2)}, " \
-          "far tiles #{((t_flush - t_lod) / 1.0e6).round(2)}, remesh #{((t_render - t_flush) / 1.0e6).round(2)}, render #{((@cpu_end - t_render) / 1.0e6).round(2)}"
-      end
-    end
-    cpu
   end
+
+  # The far tiles use the part of the time budget that the chunks left.
+  def build_far_tiles
+    left = STREAM_BUDGET_NS - (@stamps[STAMP_FAR] - @stamps[STAMP_STREAM])
+    @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, left > 500_000 ? left : 500_000)
+  end
+
+  # Writes the time of this moment in the frame, in nanoseconds, for the
+  # frame topic of the log.
+  def stamp(index)
+    @stamps[index] = Gfx.gfx_ns
+  end
+
+  def log_slow_frame(frames, cpu, now)
+    Log.debug(Log::FRAME) do
+      "frame #{frames}: #{cpu.round(2)} ms of CPU. update #{step_ms(now, @stamps[STAMP_STREAM])}, " \
+        "chunks #{step_ms(@stamps[STAMP_STREAM], @stamps[STAMP_FAR])}, far tiles #{step_ms(@stamps[STAMP_FAR], @stamps[STAMP_FLUSH])}, " \
+        "remesh #{step_ms(@stamps[STAMP_FLUSH], @stamps[STAMP_RENDER])}, render #{step_ms(@stamps[STAMP_RENDER], @cpu_end)}"
+    end
+  end
+
+  def step_ms(from, to) = ((to - from) / 1.0e6).round(2)
 
   # The first frames are not counted in the maximum values: they load the
   # world.

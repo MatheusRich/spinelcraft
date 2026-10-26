@@ -95,6 +95,12 @@ class Game
   # the rest stream in.
   SYNC_R = 8
   STREAM_BUDGET_NS = 2_500_000
+  # The moments of a frame that `stamp` records, as indexes in @stamps. Each
+  # one is the start of the step with its name.
+  STAMP_STREAM = 0
+  STAMP_FAR = 1
+  STAMP_FLUSH = 2
+  STAMP_RENDER = 3
   # The frame rate of a recording (RECORD).
   RECORD_FPS = 30
 
