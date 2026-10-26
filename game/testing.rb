@@ -187,6 +187,7 @@ class Game
     test_lambs
     test_graze_rate
     test_breeding
+    test_right_click_boat
     test_push
     test_far_items
     test_treasure
@@ -4009,6 +4010,27 @@ class Game
     find_target_mob
     @action_cooldown = 0.0
     right_button(0.05, true)
+  end
+
+  # A boat in view takes the right click: the player gets in once the
+  # cooldown is over, and a click on the boat stops the eating and the
+  # drawing of the bow.
+  def test_right_click_boat
+    @boats.clear
+    @riding = -1
+    @boats << Boat.new(Block::OAK_BOAT, @player.x.to_f + 1.0, @player.y.to_f, @player.z.to_f, 0.0)
+    @target_boat = 0
+    @eat_time = 0.5
+    @draw_time = 0.5
+    @action_cooldown = 0.1
+    right_button(0.05, true)
+    waited = !riding? && @eat_time < 0.0 && @draw_time < 0.0
+    @action_cooldown = 0.0
+    right_button(0.05, true)
+    check("the right click gets the player in a boat in view after the cooldown", waited && @riding == 0)
+    @riding = -1
+    @boats.clear
+    @target_boat = -1
   end
 
   # Puts the mob m back on the floor at x, z.

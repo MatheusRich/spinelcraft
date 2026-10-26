@@ -162,83 +162,131 @@ class Game
 
   # The right button gets in a boat, feeds an animal, draws the bow, opens
   # a chest, uses a bed, eats, carves a pumpkin, or places a block or a boat.
-  def right_button(dt, held) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
-    if @target_boat >= 0 && !riding?
+  def right_button(dt, held)
+    ready = held && @action_cooldown <= 0.0
+    if target_click?
       @eat_time = -1.0
       @draw_time = -1.0
-      if held && @action_cooldown <= 0.0
-        board_boat(@target_boat)
-        @action_cooldown = 0.22
-      end
+      click_target if ready
       return
     end
-    if current_block == Block::SHEARS && @target_mob >= 0 && @mobs[@target_mob].shearable?
-      @eat_time = -1.0
-      @draw_time = -1.0
-      if held && @action_cooldown <= 0.0
-        shear(@mobs[@target_mob])
-        @action_cooldown = 0.22
-      end
-      return
-    end
-    if @target_mob >= 0 && @mobs[@target_mob].food?(current_block.to_i)
-      @eat_time = -1.0
-      @draw_time = -1.0
-      if held && @action_cooldown <= 0.0
-        feed_animal(@mobs[@target_mob])
-        @action_cooldown = 0.22
-      end
-      return
-    end
-    target = block_in_view? ? @world.get(@target_block.x, @target_block.y, @target_block.z) : Block::AIR
+    target = viewed_block
     if edible? && !usable?(target)
-      if held
-        chew(dt)
-      else
-        @eat_time = -1.0
-      end
+      chew(dt) if held
+      @eat_time = -1.0 unless held
       return
     end
     @eat_time = -1.0
-    if current_block == Block::BOW && !usable?(target)
+    if bow_click?(target)
       if held
-        @draw_time = 0.0 if @draw_time < 0.0
-        @draw_time += dt
-      elsif @draw_time >= 0.0
-        shoot_bow(@draw_time)
-        @draw_time = -1.0
+        draw_bow(dt)
+      else
+        release_bow
       end
       return
     end
     @draw_time = -1.0
-    if held && @action_cooldown <= 0.0
-      if @survival && block_in_view? && Block::BASE[target] == Block::CHEST
-        open_chest(@target_block.x, @target_block.y, @target_block.z)
-        return
-      elsif @survival && Block::BASE[target] == Block::CRAFTING_TABLE
-        open_station(@target_block.x, @target_block.y, @target_block.z, Recipe::AT_TABLE)
-        return
-      elsif @survival && Block::BASE[target] == Block::FURNACE
-        open_station(@target_block.x, @target_block.y, @target_block.z, Recipe::AT_FURNACE)
-        return
-      elsif Block.bed?(target)
-        use_bed(@target_block.x, @target_block.y, @target_block.z)
-      elsif Block.door?(target)
-        toggle_door(@target_block.x, @target_block.y, @target_block.z)
-      elsif @survival && Block.bucket?(current_block.to_i)
-        use_bucket
-      elsif Block.boat?(current_block.to_i)
-        place_boat
-      elsif current_block == Block::SHEARS && target == Block::PUMPKIN
-        carve_pumpkin(@target_block.x, @target_block.y, @target_block.z)
-      elsif current_block == Block::BONE_MEAL && block_in_view?
-        use_bone_meal
-      elsif current_block == Block::EGG && (!@survival || !@inv.empty?(@slot))
-        throw_egg
-      elsif block_in_view?
-        place
-      end
-      @action_cooldown = 0.22
+    use_block(target) if ready
+  end
+
+  # The block in view, or air when a mob stands in front of it.
+  def viewed_block
+    return Block::AIR unless block_in_view?
+
+    @world.get(@target_block.x, @target_block.y, @target_block.z)
+  end
+
+  # True when a boat or a mob in view takes the click.
+  def target_click? = boat_click? || shear_click? || feed_click?
+
+  # True when a boat is in view and the player is not in one.
+  def boat_click? = @target_boat >= 0 && !riding?
+
+  # True when the player holds shears and a sheep with wool is in view.
+  def shear_click? = current_block == Block::SHEARS && @target_mob >= 0 && @mobs[@target_mob].shearable?
+
+  # True when the mob in view eats the item in the hand.
+  def feed_click? = @target_mob >= 0 && @mobs[@target_mob].food?(current_block.to_i)
+
+  # The click acts on the boat or the mob in view. The checks keep the
+  # order of target_click?.
+  def click_target
+    if boat_click?
+      board_boat(@target_boat)
+    elsif shear_click?
+      shear(@mobs[@target_mob])
+    else
+      feed_animal(@mobs[@target_mob])
+    end
+    @action_cooldown = 0.22
+  end
+
+  # True when the click draws the bow, not when it uses the block in view.
+  def bow_click?(target) = current_block == Block::BOW && !usable?(target)
+
+  # Adds dt seconds to the draw time of the bow.
+  def draw_bow(dt)
+    @draw_time = 0.0 if @draw_time < 0.0
+    @draw_time += dt
+  end
+
+  # Shoots the arrow when the player lets the button go and the bow is drawn.
+  def release_bow
+    return if @draw_time < 0.0
+
+    shoot_bow(@draw_time)
+    @draw_time = -1.0
+  end
+
+  # The click acts on the block in view, or on the item in the hand.
+  # A chest, a crafting table and a furnace open at once, with no cooldown.
+  def use_block(target)
+    return if open_container(target)
+
+    if Block.bed?(target)
+      use_bed(@target_block.x, @target_block.y, @target_block.z)
+    elsif Block.door?(target)
+      toggle_door(@target_block.x, @target_block.y, @target_block.z)
+    else
+      use_held
+    end
+    @action_cooldown = 0.22
+  end
+
+  # Opens the chest or the station at the block in view. True when it opens.
+  def open_container(target)
+    return false unless @survival
+
+    x = @target_block.x
+    y = @target_block.y
+    z = @target_block.z
+    base = Block::BASE[target]
+    if block_in_view? && base == Block::CHEST
+      open_chest(x, y, z)
+    elsif base == Block::CRAFTING_TABLE
+      open_station(x, y, z, Recipe::AT_TABLE)
+    elsif base == Block::FURNACE
+      open_station(x, y, z, Recipe::AT_FURNACE)
+    else
+      return false
+    end
+    true
+  end
+
+  # The item in the hand acts on the block in view, or on the air.
+  def use_held
+    if @survival && Block.bucket?(current_block.to_i)
+      use_bucket
+    elsif Block.boat?(current_block.to_i)
+      place_boat
+    elsif current_block == Block::SHEARS && viewed_block == Block::PUMPKIN
+      carve_pumpkin(@target_block.x, @target_block.y, @target_block.z)
+    elsif current_block == Block::BONE_MEAL && block_in_view?
+      use_bone_meal
+    elsif current_block == Block::EGG && (!@survival || !@inv.empty?(@slot))
+      throw_egg
+    elsif block_in_view?
+      place
     end
   end
 
