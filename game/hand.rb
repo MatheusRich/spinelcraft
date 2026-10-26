@@ -164,8 +164,25 @@ class Game
       # forward from below the view.
       @dyn.frame_skin_box(-0.5, -2.5, -0.5, 0.5, 0.5, 0.5, Tex::SKINS + Tex::SKIN_PLAYER, 40.0, 16.0, 4.0, 12.0, 4.0, false, 1.0, 1.0, 1.0, 1.0)
     else
-      @dyn.item_model(block)
+      draw_hand_item(block)
     end
+  end
+
+  # The model of the held item. A bow that the player draws shows its stage.
+  def draw_hand_item(block)
+    return @dyn.item_model(block) unless block == Block::BOW && @draw_time >= 0.0
+
+    @dyn.sprite_model(Tex::BOW_PULLING + bow_stage)
+  end
+
+  # The image of the bow that the draw time shows: 0, then 1 at 0.65 seconds
+  # and 2 at 0.9 seconds. As in Minecraft (the bow model, minecraft.wiki/w/Bow
+  # does not give the times).
+  def bow_stage
+    return 2 if @draw_time >= 0.9
+    return 1 if @draw_time >= 0.65
+
+    0
   end
 
   # Swings @hand_frame. The swing copies the game code

@@ -19,6 +19,7 @@ These files are copies with no changes.
 | `wood_shovel.png`, `stone_shovel.png`, `iron_shovel.png`, `diamond_shovel.png` | `default_tool_woodshovel.png`, `default_tool_stoneshovel.png`, `default_tool_steelshovel.png`, `default_tool_diamondshovel.png` |
 | `wood_sword.png`, `stone_sword.png`, `iron_sword.png`, `diamond_sword.png` | `default_tool_woodsword.png`, `default_tool_stonesword.png`, `default_tool_steelsword.png`, `default_tool_diamondsword.png` |
 | `bow.png` | `mcl_bows_bow.png` |
+| `bow_pulling_0.png`, `bow_pulling_1.png`, `bow_pulling_2.png` | `mcl_bows_bow_0.png`, `mcl_bows_bow_1.png`, `mcl_bows_bow_2.png` |
 | `arrow.png` | `mcl_bows_arrow_inv.png` |
 | `dirt.png`, `stone.png`, `sand.png`, `gravel.png` | `default_dirt.png`, `default_stone.png`, `default_sand.png`, `default_gravel.png` |
 | `sandstone_top.png`, `sandstone_side.png`, `sandstone_bottom.png` | `mcl_core_sandstone_top.png`, `mcl_core_sandstone_normal.png`, `mcl_core_sandstone_bottom.png` |

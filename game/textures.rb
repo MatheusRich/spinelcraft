@@ -77,6 +77,8 @@ module Tex
   IRON_PICK = image("iron_pick")
   DIAMOND_PICK = image("diamond_pick")
   BOW = image("bow")
+  # The bow at three stages of the draw (see Game#draw_hand).
+  BOW_PULLING = image_series(%w[bow_pulling_0 bow_pulling_1 bow_pulling_2])
   ARROW = image("arrow")
   LAVA = image("lava")
   WOOL = image("wool")

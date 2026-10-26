@@ -212,11 +212,7 @@ class Mesh3
   # The texture goes along -x on both faces.
   def item_model(block)
     if Block.flat?(block)
-      layer = Block::SIDE[block]
-      frame_corners(-0.5, -0.5, -ITEM_T, 0.5, 0.5, ITEM_T)
-      face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
-      face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
-      item_edges(layer)
+      sprite_model(Block::SIDE[block])
     elsif Block::SHAPE[block] > 0
       shape_model(block)
     elsif Block::FACING[block] >= 0
@@ -226,6 +222,14 @@ class Mesh3
     else
       frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], 1.0, 1.0, 1.0, 1.0)
     end
+  end
+
+  # A flat item with the image of texture layer layer.
+  def sprite_model(layer)
+    frame_corners(-0.5, -0.5, -ITEM_T, 0.5, 0.5, ITEM_T)
+    face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+    item_edges(layer)
   end
 
   # Half the thickness of a flat item: one pixel of 16 is 1/16 of the model.

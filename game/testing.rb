@@ -200,6 +200,7 @@ class Game
     test_swim_out
     test_hand_sway
     test_swing_at_air
+    test_bow_draw_image
     test_pause
     test_menu
     test_fullscreen_follows_window
@@ -1086,6 +1087,27 @@ class Game
     @captured = captured
     @player.pitch = 0.0
     @survival = survival
+  end
+
+  # The bow in the hand shows the arrow and a pulled string while the
+  # player draws it.
+  def test_bow_draw_image
+    hand = @hand_block
+    draw = @draw_time
+    captured = @captured
+    @captured = true
+    @hand_block = Block::BOW
+    layers = [-1.0, 0.0, 0.7, 0.95].map do |time|
+      @draw_time = time
+      hand_corner
+      @dyn.v[5].to_i
+    end
+    check("the held bow shows a pulled string and an arrow as the draw grows",
+          layers[0] == Tex::BOW && layers[1] == Tex::BOW_PULLING && layers[2] == Tex::BOW_PULLING + 1 && layers[3] == Tex::BOW_PULLING + 2)
+    @dyn.clear
+    @captured = captured
+    @draw_time = draw
+    @hand_block = hand
   end
 
   # The sum of the coordinates of the first vertex of the held model.
