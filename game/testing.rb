@@ -203,6 +203,7 @@ class Game
     test_bow_draw_image
     test_pause
     test_screen
+    test_screen_input
     test_menu
     test_fullscreen_follows_window
     test_commands
@@ -584,6 +585,23 @@ class Game
     paused = screen.on_pause_menu?
     @captured = true
     check("the screen follows the title, death, inventory, chat and pause flags", typing && in_inventory && dead && title && paused && screen.playing?)
+  end
+
+  # Esc pauses the game, and R on the death screen respawns the player.
+  def test_screen_input
+    Gfx.in_test_frame
+    Gfx.in_test_key(Key::ESCAPE, 1)
+    handle_input(0.05)
+    Gfx.in_test_key(Key::ESCAPE, 0)
+    Gfx.in_test_frame
+    paused = screen.on_pause_menu?
+    @vitals.health = 0.0
+    Gfx.in_test_key(Key::R, 1)
+    handle_input(0.05)
+    Gfx.in_test_key(Key::R, 0)
+    Gfx.in_test_frame
+    check("Esc opens the pause menu, and R on the death screen respawns the player", paused && screen.playing?)
+    Gfx.in_capture(0)
   end
 
   # A click on BACK TO GAME takes the mouse while the button is still down.

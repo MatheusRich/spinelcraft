@@ -1,42 +1,55 @@
 # Player input: keys, the mouse, mining, placing, beds, and food.
 class Game
-  def handle_input(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def handle_input(dt)
     follow_fullscreen
-    if @title_open
+    current = screen
+    if current.on_title?
       handle_title
-      return
-    end
-    if @inventory_open
+    elsif current.in_inventory?
       handle_inventory
-      return
-    end
-    if @chat.open?
-      unless Gfx.in_focus_lost
-        handle_chat
-        return
-      end
+    elsif current.typing? && !Gfx.in_focus_lost
+      handle_chat
+    else
       # The game pauses below, as with a closed chat.
-      close_chat
+      close_chat if current.typing?
+      handle_world(dt, current)
     end
+  end
+
+  # The pause, the death screen, the pause menu and the play. Esc or a
+  # window that loses the focus pauses the game first.
+  def handle_world(dt, current)
     escape = Gfx.in_key_pressed(Key::ESCAPE)
     if (escape && @captured) || Gfx.in_focus_lost
-      # Saving takes tens of milliseconds, so it happens when the game pauses, not mid-play.
-      save if @captured && @changed && @save_on_quit
-      @captured = false
-      Gfx.in_capture(0)
-      return
-    end
-    if @vitals.dead?
-      if Gfx.in_button_pressed(1) || Gfx.in_key_pressed(Key::R)
-        respawn
-        resume
-      end
-      return
-    end
-    if !@captured
+      pause_game
+    elsif current.on_death_screen?
+      handle_death
+    elsif current.on_pause_menu?
       handle_menu(escape)
-      return
+    else
+      handle_play(dt)
     end
+  end
+
+  # Opens the pause menu, and saves the world if it changed.
+  def pause_game
+    # Saving takes tens of milliseconds, so it happens when the game pauses,
+    # not mid-play.
+    save if @captured && @changed && @save_on_quit
+    @captured = false
+    Gfx.in_capture(0)
+  end
+
+  # A click or R on the death screen respawns the player.
+  def handle_death
+    return unless Gfx.in_button_pressed(1) || Gfx.in_key_pressed(Key::R)
+
+    respawn
+    resume
+  end
+
+  # The look, the keys and the two buttons of a player who plays.
+  def handle_play(dt)
     @player.look(Gfx.in_mouse_dx, Gfx.in_mouse_dy)
     select_slot
     if Gfx.in_key_pressed(Key::E)
