@@ -269,7 +269,17 @@ class Game
     abort "Mesher::SHAPE_BITS is too narrow for Block::SHAPE_BOX" if Block::SHAPE_BOX.size / 6 > Mesher::TORCH_SHAPE
   end
 
-  def setup # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def setup
+    init_graphics
+    init_audio
+    start_world
+    show_debug_scenes
+    @spawner.spawn_animals(@mobs, @player)
+    open_first_screen
+    say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
+  end
+
+  def init_graphics
     vsync = ENV["NOVSYNC"] ? 0 : 1
     Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
@@ -281,13 +291,31 @@ class Game
     @dyn.opaque = Tex.opaque(px)
     abort "skin upload failed" unless Gfx.gfx_skins(Tex.skins, Tex::SKIN_FILES.size)
     upload_clouds
+  end
+
+  def init_audio
     # RECORD_SOUND=file writes the sounds to file as a WAV, in step with
     # the frames of RECORD, and plays none. The music stays out of it.
     sound_path = ENV["RECORD_SOUND"] || ""
     abort "cannot record the sound to #{sound_path}" if sound_path != "" && !Gfx.au_record(sound_path)
     @sound = ENV["MUTE"].nil? && Sfx.init
     puts "audio #{@sound ? "on" : "off"}"
-    t0 = Gfx.gfx_ns
+  end
+
+  def start_world
+    began = Gfx.gfx_ns
+    loaded = enter_world
+    apply_cam
+    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
+    ended = Gfx.gfx_ns
+    # Collect the world generation garbage now, not in the first minute of play.
+    GC.start
+    puts "world: #{loaded ? "load" : "generate"} and mesh the nearest #{(SYNC_R * 2 + 1) * (SYNC_R * 2 + 1)} chunks in #{((ended - began) / 1.0e6).round} ms"
+  end
+
+  # Loads the saved world, or makes a new one. Returns true when it loads
+  # the save.
+  def enter_world
     # The demo reel always plays in a new world, so each run looks the same.
     fresh = !ENV["NEW"].nil? || @demo
     loaded = !fresh && load
@@ -300,16 +328,16 @@ class Game
     else
       spawn
     end
-    apply_cam
-    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
-    t1 = Gfx.gfx_ns
-    # Collect the world generation garbage now, not in the first minute of play.
-    GC.start
-    puts "world: #{loaded ? "load" : "generate"} and mesh the nearest #{(SYNC_R * 2 + 1) * (SYNC_R * 2 + 1)} chunks in #{((t1 - t0) / 1.0e6).round} ms"
+    loaded
+  end
+
+  def show_debug_scenes
     show_mobs if ENV["SHOWMOBS"]
     show_items if ENV["SHOWITEMS"]
     show_boats if ENV["SHOWBOATS"]
-    @spawner.spawn_animals(@mobs, @player)
+  end
+
+  def open_first_screen
     # A screenshot, a benchmark or the self-test starts in the world.
     if !@scripted && !@autopilot && ENV["SELFTEST"].nil?
       open_title
@@ -318,7 +346,6 @@ class Game
       show_screen(Screen::PLAYING)
       show_screen(Screen::INVENTORY) if ENV["INVENTORY"]
     end
-    say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
   end
 
   # A seed from the clock, for a new world.

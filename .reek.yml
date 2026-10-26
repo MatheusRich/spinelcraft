@@ -445,7 +445,6 @@ detectors:
     - "/\\AGame\\#seat_player\\z/"
     - "/\\AGame\\#select_slot\\z/"
     - "/\\AGame\\#set_block\\z/"
-    - "/\\AGame\\#setup\\z/"
     - "/\\AGame\\#shoot_arrow\\z/"
     - "/\\AGame\\#spawn\\z/"
     - "/\\AGame\\#split_chest\\z/"
