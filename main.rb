@@ -59,7 +59,7 @@ require_relative "game/recipe_book"
 require_relative "game/inventory"
 require_relative "game/items"
 require_relative "game/boats"
-require_relative "game/hand"
+require_relative "game/held_item"
 require_relative "game/particles"
 require_relative "game/weather"
 require_relative "game/clock"
@@ -222,19 +222,10 @@ class Game
     @sky = Sky.new(@clock, @weather, @camera)
     @target_mob = -1
     @swing = 0.0
-    # The axes and the move of the held model (see turn_hand).
-    @hand_frame = Array.new(12, 0.0)
     # Seconds since the last attack, broken block or new item in the hand
     # (see attack_charge).
     @attack_time = 0.0
-    # The block in the hand model, and how far down the model still is after
-    # the selection changed (1 to 0).
-    @hand_block = 0
-    @equip = 0.0
-    # The sway of the held item while the player walks (game/hand.rb).
-    @hand_dx = 0.0
-    @hand_dy = 0.0
-    @hand_walk = 0.0
+    @held_item = HeldItem.new
     # Where the held model starts in @dyn (see gfx_dyn).
     @hand_at = 0
   end
@@ -666,6 +657,18 @@ class Game
 
   # True while the player eats or draws the bow.
   def using_item? = @eat_time >= 0.0 || @draw_time >= 0.0
+
+  # A new item in the hand starts a new attack cooldown and ends a meal. The
+  # sway of the held item follows the walk speed.
+  def update_hand(dt)
+    if @held_item.change(current_block.to_i)
+      @attack_time = 0.0
+      @eat_time = -1.0
+    end
+    p = @player
+    walk = p.on_ground && !p.flying ? (Math.sqrt(p.vx * p.vx + p.vz * p.vz) / 4.3).clamp(0.0, 1.0) : 0.0
+    @held_item.ease(dt, walk, @bob)
+  end
 
   # The self-test writes and deletes its files in the temporary folder, so
   # that it never changes the save or the options of the player.

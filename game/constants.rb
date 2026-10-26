@@ -58,6 +58,9 @@ class Game
                    Sfx::CLOTH, Sfx::SNOW]
   MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE,
                     Sfx::CLOTH, Sfx::PLACE]
+  # Seconds that one swing takes (see @swing): 6 ticks, as in the game code
+  # (LivingEntity.getCurrentSwingDuration). The wiki does not say.
+  SWING = 0.3
   # Eating takes 32 ticks. minecraft.wiki/w/Food
   EAT_TIME = 1.6
   # Two presses of jump this close start or stop flying in creative. The

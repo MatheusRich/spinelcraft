@@ -131,6 +131,13 @@ class Game
     draw_hand(ex, ey, ez)
   end
 
+  # Adds the held item to @dyn, in the frame of the eye at ex, ey, ez.
+  def draw_hand(ex, ey, ez)
+    return if !@captured || @vitals.dead?
+
+    @held_item.place(@dyn, @player, ex, ey, ez, @fov, @swing / SWING, @draw_time, @eat_time)
+  end
+
   # A beam of gold light from the top of each treasure chest that is not
   # looted up past the clouds, within reach of the eye x, z (BEACONS=1).
   # Minecraft has no such beam: it is for playtests.

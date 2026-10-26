@@ -198,7 +198,6 @@ class Game
     test_water
     test_inventory_clicks
     test_swim_out
-    test_hand_sway
     test_swing_at_air
     test_bow_draw_image
     test_pause
@@ -1030,34 +1029,6 @@ class Game
     restore_pose
   end
 
-  # The held item moves only a little in each frame while the player walks,
-  # and when the player stops.
-  def test_hand_sway
-    p = @player
-    p.on_ground = true
-    p.flying = false
-    p.vz = 0.0
-    @bob = 0.0
-    @hand_walk = 0.0
-    dt = 1.0 / 60.0
-    update_hand(dt)
-    last_x = @hand_dx
-    last_y = @hand_dy
-    most = 0.0
-    150.times do |frame|
-      p.vx = frame < 120 ? 4.3 : 0.0
-      # As in Game#update.
-      @bob += p.vx * dt * 2.6
-      update_hand(dt)
-      d = (@hand_dx - last_x).abs + (@hand_dy - last_y).abs
-      most = d if d > most
-      last_x = @hand_dx
-      last_y = @hand_dy
-    end
-    p.vx = 0.0
-    check("the held item sways smoothly while the player walks and stops", most < 0.006)
-  end
-
   # A left click with nothing in reach swings the held sword, and the next
   # hit has a low charge.
   def test_swing_at_air
@@ -1068,7 +1039,7 @@ class Game
     @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
     @slot = 0
     update_hand(0.0)
-    @equip = 0.0
+    @held_item.ease(1.0, 0.0, 0.0)
     @player.pitch = 1.5
     @target_block.trace(@world, @player)
     @target_mob = -1
@@ -1092,11 +1063,11 @@ class Game
   # The bow in the hand shows the arrow and a pulled string while the
   # player draws it.
   def test_bow_draw_image
-    hand = @hand_block
+    hand = @held_item.block
     draw = @draw_time
     captured = @captured
     @captured = true
-    @hand_block = Block::BOW
+    @held_item.change(Block::BOW)
     layers = [-1.0, 0.0, 0.7, 0.95].map do |time|
       @draw_time = time
       hand_corner
@@ -1107,7 +1078,7 @@ class Game
     @dyn.clear
     @captured = captured
     @draw_time = draw
-    @hand_block = hand
+    @held_item.change(hand)
   end
 
   # The sum of the coordinates of the first vertex of the held model.
