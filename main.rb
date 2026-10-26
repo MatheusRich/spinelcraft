@@ -161,6 +161,13 @@ class Game
     @chat = Chat.new
     @fps = 0.0
     @cpu_ms = 0.0
+    @fps_frames = 0
+    @fps_time = 0.0
+    @cpu_sum = 0.0
+    @total_cpu = 0.0
+    @max_cpu = 0.0
+    @max_frame = 0.0
+    @slow_frames = 0
     @faces_drawn = 0
     @cpu_end = 0
     @survival = ENV["MODE"] == "survival"
@@ -714,78 +721,94 @@ class Game
 
   def detail_view = @options.view < FarTerrain::DETAIL_VIEW ? @options.view : FarTerrain::DETAIL_VIEW
 
-  def run # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def run
     setup
-    if ENV["SELFTEST"]
-      ok = self_test
-      Gfx.gfx_quit
-      exit(1) unless ok
-      return
-    end
+    return run_selftest if ENV["SELFTEST"]
+
     last = Gfx.gfx_ns
-    frames = 0
-    fps_frames = 0
-    fps_time = 0.0
-    cpu_sum = 0.0
-    total_cpu = 0.0
-    max_cpu = 0.0
-    max_frame = 0.0
-    slow_frames = 0
     started = last
+    frames = 0
     until Gfx.in_poll || @quit
       now = Gfx.gfx_ns
       dt = (now - last) / 1.0e9
       dt = 0.05 if dt > 0.05
       dt = 1.0 / RECORD_FPS if @record != ""
       last = now
-      handle_input(dt) unless @scripted
-      demo(dt) if @demo
-      update_game(dt)
-      send_sounds
-      Gfx.au_record_mix(dt)
-      update_music(dt)
-      t_stream = Gfx.gfx_ns
-      @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
-      t_lod = Gfx.gfx_ns
-      left = STREAM_BUDGET_NS - (t_lod - t_stream)
-      @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, left > 500_000 ? left : 500_000)
-      t_flush = Gfx.gfx_ns
-      @chunk_meshes.flush
-      t_render = Gfx.gfx_ns
-      render
-      cpu = (@cpu_end - now) / 1.0e6
-      if cpu > Log::SLOW_MS
-        Log.debug(Log::FRAME) do
-          "frame #{frames}: #{cpu.round(2)} ms of CPU. update #{((t_stream - now) / 1.0e6).round(2)}, chunks #{((t_lod - t_stream) / 1.0e6).round(2)}, " \
-            "far tiles #{((t_flush - t_lod) / 1.0e6).round(2)}, remesh #{((t_render - t_flush) / 1.0e6).round(2)}, render #{((@cpu_end - t_render) / 1.0e6).round(2)}"
-        end
-      end
-      max_cpu = cpu if cpu > max_cpu && frames > 10
-      frame_ms = dt * 1000.0
-      max_frame = frame_ms if frame_ms > max_frame && frames > 10
-      slow_frames += 1 if frame_ms > 12.0 && frames > 10
-      cpu_sum += cpu
-      total_cpu += cpu
-      fps_frames += 1
-      fps_time += dt
-      if fps_time >= 0.5
-        @fps = fps_frames / fps_time
-        @cpu_ms = cpu_sum / fps_frames
-        fps_frames = 0
-        fps_time = 0.0
-        cpu_sum = 0.0
-      end
+      cpu = frame(dt, now, frames)
+      record_frame(frames, dt, cpu)
       frames += 1
       Gfx.gfx_screenshot(@shot) if @shot != "" && frames == @max_frames - 1
       break if @max_frames > 0 && frames >= @max_frames
     end
+    shutdown(started, frames)
+  end
+
+  def run_selftest
+    ok = self_test
+    Gfx.gfx_quit
+    exit(1) unless ok
+  end
+
+  # One frame of the game. Returns the milliseconds of CPU that it took.
+  def frame(dt, now, frames)
+    handle_input(dt) unless @scripted
+    demo(dt) if @demo
+    update_game(dt)
+    send_sounds
+    Gfx.au_record_mix(dt)
+    update_music(dt)
+    t_stream = Gfx.gfx_ns
+    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
+    t_lod = Gfx.gfx_ns
+    left = STREAM_BUDGET_NS - (t_lod - t_stream)
+    @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, left > 500_000 ? left : 500_000)
+    t_flush = Gfx.gfx_ns
+    @chunk_meshes.flush
+    t_render = Gfx.gfx_ns
+    render
+    cpu = (@cpu_end - now) / 1.0e6
+    if cpu > Log::SLOW_MS
+      Log.debug(Log::FRAME) do
+        "frame #{frames}: #{cpu.round(2)} ms of CPU. update #{((t_stream - now) / 1.0e6).round(2)}, chunks #{((t_lod - t_stream) / 1.0e6).round(2)}, " \
+          "far tiles #{((t_flush - t_lod) / 1.0e6).round(2)}, remesh #{((t_render - t_flush) / 1.0e6).round(2)}, render #{((@cpu_end - t_render) / 1.0e6).round(2)}"
+      end
+    end
+    cpu
+  end
+
+  # The first frames are not counted in the maximum values: they load the
+  # world.
+  def record_frame(frames, dt, cpu)
+    warm = frames > 10
+    @max_cpu = cpu if cpu > @max_cpu && warm
+    frame_ms = dt * 1000.0
+    @max_frame = frame_ms if frame_ms > @max_frame && warm
+    @slow_frames += 1 if frame_ms > 12.0 && warm
+    @cpu_sum += cpu
+    @total_cpu += cpu
+    @fps_frames += 1
+    @fps_time += dt
+    update_fps if @fps_time >= 0.5
+  end
+
+  # The fps and the CPU time that the HUD shows are the mean of the last
+  # half second.
+  def update_fps
+    @fps = @fps_frames / @fps_time
+    @cpu_ms = @cpu_sum / @fps_frames
+    @fps_frames = 0
+    @fps_time = 0.0
+    @cpu_sum = 0.0
+  end
+
+  def shutdown(started, frames)
     if @save_on_quit
       save
       @options.write_file
     end
     elapsed = (Gfx.gfx_ns - started) / 1.0e9
     puts "gpu_wait_ms=#{Gfx.gfx_gpu_ms.round(2)}" if ENV["GPUTIME"]
-    puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(total_cpu / frames).round(3)} max_cpu_ms=#{max_cpu.round(2)} max_frame_ms=#{max_frame.round(1)} slow_frames=#{slow_frames} health=#{@vitals.health} dead=#{@vitals.dead?} mobs=#{@mobs.size}"
+    puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(@total_cpu / frames).round(3)} max_cpu_ms=#{@max_cpu.round(2)} max_frame_ms=#{@max_frame.round(1)} slow_frames=#{@slow_frames} health=#{@vitals.health} dead=#{@vitals.dead?} mobs=#{@mobs.size}"
     Gfx.gfx_quit
   end
 end
