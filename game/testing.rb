@@ -202,6 +202,7 @@ class Game
     test_swing_at_air
     test_bow_draw_image
     test_pause
+    test_screen
     test_menu
     test_fullscreen_follows_window
     test_commands
@@ -553,10 +554,36 @@ class Game
     inventory = @clock.time_of_day != time
     @inventory_open = false
     @vitals.health = 0.0
-    dead = paused?
+    dead = screen.stops_world?
     @vitals.health = Vitals::MAX_HEALTH
     @captured = true
-    check("only the pause screen stops the world", stopped && inventory && !dead)
+    @title_open = true
+    time = @clock.time_of_day
+    update_game(0.05)
+    title = @clock.time_of_day == time
+    @title_open = false
+    check("the title and the pause screen stop the world, but not the inventory or the death screen", stopped && title && inventory && !dead)
+  end
+
+  # The screen is the first that holds of the title, the death screen, the
+  # inventory, the chat and the pause menu.
+  def test_screen
+    @chat.open("")
+    typing = screen.typing?
+    @chat.close
+    @inventory_open = true
+    in_inventory = screen.in_inventory?
+    @vitals.health = 0.0
+    dead = screen.on_death_screen?
+    @title_open = true
+    title = screen.on_title?
+    @title_open = false
+    @vitals.health = Vitals::MAX_HEALTH
+    @inventory_open = false
+    @captured = false
+    paused = screen.on_pause_menu?
+    @captured = true
+    check("the screen follows the title, death, inventory, chat and pause flags", typing && in_inventory && dead && title && paused && screen.playing?)
   end
 
   # A click on BACK TO GAME takes the mouse while the button is still down.

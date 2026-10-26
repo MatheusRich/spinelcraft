@@ -12,7 +12,7 @@ class Game
   def build_ui(w, h)
     @ui.clear
     s = ui_scale(h)
-    if @title_open
+    if screen.on_title?
       draw_title_screen(w, h, s)
       return
     end
@@ -33,13 +33,14 @@ class Game
 
   # The screen over the game: death, the inventory or the pause menu.
   def draw_open_screen(w, h, s)
-    if @vitals.dead?
+    current = screen
+    if current.on_death_screen?
       draw_death_screen(w, h, s)
-    elsif @inventory_open && @survival
+    elsif current.in_inventory? && @survival
       draw_backpack(w, h, inventory_scale(w, h))
-    elsif @inventory_open
+    elsif current.in_inventory?
       draw_block_picker(w, h, creative_scale(h))
-    elsif paused?
+    elsif current.on_pause_menu?
       draw_pause_screen(w, h, menu_scale(h))
     end
   end

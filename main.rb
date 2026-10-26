@@ -21,6 +21,7 @@ require_relative "game/player"
 require_relative "game/voxel_walk"
 require_relative "game/block_target"
 require_relative "game/vitals"
+require_relative "game/screen"
 require_relative "game/camera"
 require_relative "game/ui"
 require_relative "game/mesh3"
@@ -453,11 +454,12 @@ class Game
   def update_game(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # to_f: Spinel cannot type the position of the player.
     @sfx.listen(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.yaw.to_f)
-    if @title_open
+    current = screen
+    if current.on_title?
       @player.yaw += TITLE_TURN * dt
       @confirm_wait -= dt
     end
-    return if paused?
+    return if current.stops_world?
 
     read_move_keys
     if @autopilot
@@ -590,9 +592,17 @@ class Game
     @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @vitals.hunger_effect?
   end
 
-  # The pause screen is open. The world stops, as in Minecraft, but not on
-  # the death screen or in the inventory.
-  def paused? = !@captured && !@inventory_open && !@vitals.dead?
+  # The screen that the player sees now. The first one that holds wins: the
+  # title, the death screen, the inventory, the chat and the pause menu.
+  def screen
+    return Screen.new(Screen::TITLE) if @title_open
+    return Screen.new(Screen::DEAD) if @vitals.dead?
+    return Screen.new(Screen::INVENTORY) if @inventory_open
+    return Screen.new(Screen::CHAT) if @chat.open?
+    return Screen.new(Screen::PAUSED) unless @captured
+
+    Screen.new(Screen::PLAYING)
+  end
 
   # A cave sound now and then below the sea level, as in VoxeLibre
   # (vl_cavesounds). Each 3 seconds the fear grows by 3 * (15 - light) / 15,

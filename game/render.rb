@@ -34,7 +34,7 @@ class Game
       water = @chunk_meshes.water_visible
       @faces_drawn += Gfx.gfx_chunks(water, water.size / 2, 1)
       Gfx.gfx_draw_rain
-      Gfx.gfx_draw_hand unless @title_open
+      Gfx.gfx_draw_hand unless screen.on_title?
     end
     Gfx.gfx_end
     # The frame's CPU time includes the draw calls, but not the waits.
