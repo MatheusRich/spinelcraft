@@ -164,29 +164,29 @@ class Game
   # a chest, uses a bed, eats, carves a pumpkin, or places a block or a boat.
   def right_button(dt, held)
     ready = held && @action_cooldown <= 0.0
+    target = viewed_block
     if target_click?
       @eat_time = -1.0
       @draw_time = -1.0
       click_target if ready
-      return
-    end
-    target = viewed_block
-    if edible? && !usable?(target)
-      chew(dt) if held
-      @eat_time = -1.0 unless held
-      return
-    end
-    @eat_time = -1.0
-    if bow_click?(target)
+    elsif edible? && !usable?(target)
+      if held
+        chew(dt)
+      else
+        @eat_time = -1.0
+      end
+    elsif bow_click?(target)
+      @eat_time = -1.0
       if held
         draw_bow(dt)
       else
         release_bow
       end
-      return
+    else
+      @eat_time = -1.0
+      @draw_time = -1.0
+      use_block(target) if ready
     end
-    @draw_time = -1.0
-    use_block(target) if ready
   end
 
   # The block in view, or air when a mob stands in front of it.
