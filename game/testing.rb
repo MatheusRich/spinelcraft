@@ -151,6 +151,7 @@ class Game
     test_menu_layout
     test_seen_recipes
     test_recipe_scroll
+    test_creative_layout
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
     test_split_and_quick_move(cx, cz)
@@ -2021,6 +2022,18 @@ class Game
       fits = false if last[0] + last[2] + pad > w || last[1] + last[3] + pad > h - 82.0 * ui_scale(h)
     end
     check("the inventory screen fits the frame above the hotbar", fits)
+  end
+
+  # The creative inventory screen fits the frame height, for common frame
+  # sizes, with its title above the grid and its label below.
+  def test_creative_layout
+    fits = [[1280.0, 720.0], [1920.0, 1080.0], [2560.0, 1440.0], [3840.0, 2160.0]].all? do |w, h|
+      s = creative_scale(h)
+      first = inventory_cell(0, w, h, s)
+      last = inventory_cell(CREATIVE_ITEMS.size - 1, w, h, s)
+      first[1] - 58.0 * s >= 0.0 && last[1] + last[2] + 44.0 * s <= h
+    end
+    check("the creative inventory screen fits the frame height", fits)
   end
 
   # The pause screen fits the frame above the hotbar, for common frame

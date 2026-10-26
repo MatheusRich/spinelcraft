@@ -38,7 +38,7 @@ class Game
     elsif @inventory_open && @survival
       draw_backpack(w, h, inventory_scale(w, h))
     elsif @inventory_open
-      draw_block_picker(w, h, s)
+      draw_block_picker(w, h, creative_scale(h))
     elsif paused?
       draw_pause_screen(w, h, menu_scale(h))
     end

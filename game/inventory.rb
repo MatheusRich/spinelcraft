@@ -144,6 +144,14 @@ class Game
     toggle_inventory
   end
 
+  # The scale of the creative inventory screen: the HUD scale, or less when
+  # the grid with its title and its label does not fit in the frame height.
+  def creative_scale(height)
+    rows = (CREATIVE_ITEMS.size + INV_COLS - 1) / INV_COLS
+    needed = rows * 64.0 + 112.0
+    [ui_scale(height), height / needed].min
+  end
+
   # Pixel rectangle of inventory cell i: x, y, size.
   def inventory_cell(i, w, h, s)
     size = 56.0 * s
@@ -424,7 +432,7 @@ class Game
         craft_recipe(recipe, shift ? CRAFT_ALL : 1) if recipe >= 0 && @held.empty?(0)
       end
     elsif Gfx.in_button_pressed(1)
-      hover = inventory_hover(w, h, ui_scale(h))
+      hover = inventory_hover(w, h, creative_scale(h))
       if hover >= 0
         @hotbar[@slot] = CREATIVE_ITEMS[hover]
         say(Block::NAMES[CREATIVE_ITEMS[hover]])
