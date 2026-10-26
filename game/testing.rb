@@ -1265,6 +1265,14 @@ class Game
     @inv = kept
     respawn
     check("respawn restores health", @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead?)
+    kept = @inv.copy
+    @inv.clear
+    open_chat("")
+    hurt(30, Sfx::HURT)
+    check("death closes the chat", @vitals.dead? && !@chat.open?)
+    @items.clear
+    @inv = kept
+    respawn
     @player.x = x + 0.5
     @player.y = ground + 1.0
     @player.z = z + 0.5

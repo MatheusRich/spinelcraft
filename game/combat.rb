@@ -32,6 +32,7 @@ class Game
     return unless @vitals.dead?
 
     toggle_inventory if @inventory_open
+    close_chat if @chat.open?
     drop_inventory
     @captured = false
     Gfx.in_capture(0)
