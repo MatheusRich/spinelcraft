@@ -34,7 +34,7 @@ class Game
       water = @chunk_meshes.water_visible
       @faces_drawn += Gfx.gfx_chunks(water, water.size / 2, 1)
       Gfx.gfx_draw_rain
-      Gfx.gfx_draw_hand unless screen.on_title?
+      Gfx.gfx_draw_hand unless current_screen.title?
     end
     Gfx.gfx_end
     # The frame's CPU time includes the draw calls, but not the waits.
@@ -106,7 +106,7 @@ class Game
     rx = Math.cos(@player.yaw)
     rz = Math.sin(@player.yaw)
     @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
-    if @target_block.hit? && @captured && @target_mob < 0 && @target_boat < 0
+    if @target_block.hit? && current_screen.in_game? && @target_mob < 0 && @target_boat < 0
       aimed = @world.get(@target_block.x, @target_block.y, @target_block.z)
       # The outline lines are max(2.5, width / 1920 * 2.5) pixels wide, as
       # in the game code of Minecraft Java (LevelRenderer); the wiki does
@@ -133,7 +133,7 @@ class Game
 
   # Adds the held item to @dyn, in the frame of the eye at ex, ey, ez.
   def draw_hand(ex, ey, ez)
-    return if !@captured || @vitals.dead?
+    return unless current_screen.in_game?
 
     @held_item.place(@dyn, @player, ex, ey, ez, @fov, @swing / SWING, @draw_time, @eat_time)
   end

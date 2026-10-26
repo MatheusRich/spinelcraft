@@ -344,8 +344,7 @@ class Game
     if @chests.open? && @chests.current.shows?(key)
       return_held
       @chests.close
-      @inventory_open = false
-      @captured = true
+      show_screen(Screen::PLAYING)
       Gfx.in_capture(1)
     end
     chest = @chests.remove_at(key)
@@ -362,25 +361,35 @@ class Game
   end
 
   def toggle_inventory
-    # The player saw the NEW tags in the recipe list.
-    @recipe_book.close_list(active_station) if @inventory_open && !@chests.open?
-    if @inventory_open
-      return_held
-      # What does not fit falls to the ground.
-      unless @held.empty?(0)
-        throw_stack(@held.block(0), @held.count(0))
-        @held.clear
-      end
+    if current_screen.inventory?
+      close_inventory
+    else
+      open_inventory
     end
-    if @inventory_open && @chests.open?
+  end
+
+  def open_inventory
+    show_screen(Screen::INVENTORY)
+    @recipe_book.open_list
+    Gfx.in_capture(0)
+  end
+
+  def close_inventory
+    # The player saw the NEW tags in the recipe list.
+    @recipe_book.close_list(active_station) unless @chests.open?
+    return_held
+    # What does not fit falls to the ground.
+    unless @held.empty?(0)
+      throw_stack(@held.block(0), @held.count(0))
+      @held.clear
+    end
+    if @chests.open?
       @sfx.play(Sfx::CHEST_CLOSE, 0.5)
       @chests.close
     end
-    @station = Recipe::BY_HAND if @inventory_open
-    @inventory_open = !@inventory_open
-    @recipe_book.open_list if @inventory_open
-    @captured = !@inventory_open
-    Gfx.in_capture(@inventory_open ? 0 : 1)
+    @station = Recipe::BY_HAND
+    show_screen(Screen::PLAYING)
+    Gfx.in_capture(1)
   end
 
   def handle_inventory # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength

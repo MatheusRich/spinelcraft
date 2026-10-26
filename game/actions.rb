@@ -2,29 +2,30 @@
 class Game
   def handle_input(dt)
     follow_fullscreen
-    current = screen
-    if current.on_title?
+    current = current_screen
+    if current.title?
       handle_title
-    elsif current.in_inventory?
+    elsif current.inventory?
       handle_inventory
     elsif current.typing? && !Gfx.in_focus_lost
       handle_chat
     else
       # The game pauses below, as with a closed chat.
       close_chat if current.typing?
-      handle_world(dt, current)
+      handle_world(dt)
     end
   end
 
   # The pause, the death screen, the pause menu and the play. Esc or a
   # window that loses the focus pauses the game first.
-  def handle_world(dt, current)
+  def handle_world(dt)
+    current = current_screen
     escape = Gfx.in_key_pressed(Key::ESCAPE)
-    if (escape && @captured) || Gfx.in_focus_lost
+    if (escape && current.playing?) || Gfx.in_focus_lost
       pause_game
-    elsif current.on_death_screen?
+    elsif current.death_screen?
       handle_death
-    elsif current.on_pause_menu?
+    elsif current.pause_menu?
       handle_menu(escape)
     else
       handle_play(dt)
@@ -33,10 +34,12 @@ class Game
 
   # Opens the pause menu, and saves the world if it changed.
   def pause_game
+    return unless current_screen.playing?
+
     # Saving takes tens of milliseconds, so it happens when the game pauses,
     # not mid-play.
-    save if @captured && @changed && @save_on_quit
-    @captured = false
+    save if @changed && @save_on_quit
+    show_screen(Screen::PAUSED)
     Gfx.in_capture(0)
   end
 

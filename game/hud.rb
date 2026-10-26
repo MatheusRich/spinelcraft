@@ -12,7 +12,7 @@ class Game
   def build_ui(w, h)
     @ui.clear
     s = ui_scale(h)
-    if screen.on_title?
+    if current_screen.title?
       draw_title_screen(w, h, s)
       return
     end
@@ -26,21 +26,21 @@ class Game
     draw_survival_bars(x0, y0, total, s) if @survival
     draw_messages(w, y0, s)
     draw_chat_lines(w, y0, s)
-    draw_chat_line(w, h, s) if @chat.open?
+    draw_chat_line(w, h, s) if current_screen.typing?
     draw_debug(s) if @options.debug
     draw_open_screen(w, h, s)
   end
 
   # The screen over the game: death, the inventory or the pause menu.
   def draw_open_screen(w, h, s)
-    current = screen
-    if current.on_death_screen?
+    current = current_screen
+    if current.death_screen?
       draw_death_screen(w, h, s)
-    elsif current.in_inventory? && @survival
+    elsif current.inventory? && @survival
       draw_backpack(w, h, inventory_scale(w, h))
-    elsif current.in_inventory?
+    elsif current.inventory?
       draw_block_picker(w, h, creative_scale(h))
-    elsif current.on_pause_menu?
+    elsif current.pause_menu?
       draw_pause_screen(w, h, menu_scale(h))
     end
   end
@@ -137,7 +137,7 @@ class Game
 
   # The first-steps hint for an empty survival inventory, and the last message.
   def draw_messages(w, y0, s)
-    if @survival && !@vitals.dead? && !@inventory_open && @inv.room_for(Block::DIRT) == INV * Slots::STACK
+    if @survival && !@vitals.dead? && !current_screen.inventory? && @inv.room_for(Block::DIRT) == INV * Slots::STACK
       hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
       @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, 1.0, 1.0, 0.7, 0.9)
     end

@@ -202,7 +202,7 @@ class Game
     test_swing_at_air
     test_bow_draw_image
     test_pause
-    test_screen
+    test_screens
     test_screen_input
     test_menu
     test_fullscreen_follows_window
@@ -543,48 +543,51 @@ class Game
           Command.complete("/kill x").empty?)
   end
 
-  # The pause screen stops the world, but the inventory and the death
-  # screen do not.
+  # The title and the pause screen stop the world, but the inventory and
+  # the death screen do not.
   def test_pause
     time = @clock.time_of_day
-    @captured = false
+    show_screen(Screen::PAUSED)
     update_game(0.05)
     stopped = @clock.time_of_day == time
-    @inventory_open = true
+    show_screen(Screen::INVENTORY)
     update_game(0.05)
     inventory = @clock.time_of_day != time
-    @inventory_open = false
-    @vitals.health = 0.0
-    dead = screen.stops_world?
-    @vitals.health = Vitals::MAX_HEALTH
-    @captured = true
-    @title_open = true
+    show_screen(Screen::DEAD)
+    time = @clock.time_of_day
+    update_game(0.05)
+    dead = @clock.time_of_day != time
+    show_screen(Screen::TITLE)
     time = @clock.time_of_day
     update_game(0.05)
     title = @clock.time_of_day == time
-    @title_open = false
-    check("the title and the pause screen stop the world, but not the inventory or the death screen", stopped && title && inventory && !dead)
+    show_screen(Screen::PLAYING)
+    check("the title and the pause screen stop the world, but not the inventory or the death screen", stopped && title && inventory && dead)
   end
 
-  # The screen is the first that holds of the title, the death screen, the
-  # inventory, the chat and the pause menu.
-  def test_screen
-    @chat.open("")
-    typing = screen.typing?
-    @chat.close
-    @inventory_open = true
-    in_inventory = screen.in_inventory?
-    @vitals.health = 0.0
-    dead = screen.on_death_screen?
-    @title_open = true
-    title = screen.on_title?
-    @title_open = false
-    @vitals.health = Vitals::MAX_HEALTH
-    @inventory_open = false
-    @captured = false
-    paused = screen.on_pause_menu?
-    @captured = true
-    check("the screen follows the title, death, inventory, chat and pause flags", typing && in_inventory && dead && title && paused && screen.playing?)
+  # The inventory, the chat and a death open their screens, and closing the
+  # inventory or the chat goes back to playing.
+  def test_screens
+    toggle_inventory
+    opened = current_screen.inventory?
+    toggle_inventory
+    open_chat("")
+    typing = current_screen.typing?
+    close_chat
+    check("the inventory and the chat open their screens and give the game back", opened && typing && current_screen.playing?)
+    survival = @survival
+    @survival = true
+    @inv.clear
+    toggle_inventory
+    open_chat("")
+    @vitals.hurt(1000)
+    felt_hurt(Sfx::HURT)
+    dead = current_screen.death_screen? && !@chat.open?
+    respawn
+    resume
+    check("a death opens the death screen, and a respawn plays again", dead && current_screen.playing? && !@vitals.dead?)
+    @survival = survival
+    Gfx.in_capture(0)
   end
 
   # Esc pauses the game, and R on the death screen respawns the player.
@@ -594,13 +597,13 @@ class Game
     handle_input(0.05)
     Gfx.in_test_key(Key::ESCAPE, 0)
     Gfx.in_test_frame
-    paused = screen.on_pause_menu?
-    @vitals.health = 0.0
+    paused = current_screen.pause_menu?
+    show_screen(Screen::DEAD)
     Gfx.in_test_key(Key::R, 1)
     handle_input(0.05)
     Gfx.in_test_key(Key::R, 0)
     Gfx.in_test_frame
-    check("Esc opens the pause menu, and R on the death screen respawns the player", paused && screen.playing?)
+    check("Esc opens the pause menu, and R on the death screen respawns the player", paused && current_screen.playing?)
     Gfx.in_capture(0)
   end
 
@@ -625,7 +628,7 @@ class Game
     @player.flying = true
     @player.pitch = -1.55
     @target_block.trace(@world, @player)
-    @captured = false
+    show_screen(Screen::PAUSED)
     Gfx.in_test_button(1, 1)
     click_menu(M_RESUME)
     Gfx.in_test_frame
@@ -654,9 +657,9 @@ class Game
   # mouse, as a click on Back to game does, so the check gives it back.
   def test_title
     File.delete(@save_path) if File.exist?(@save_path)
-    @captured = false
+    show_screen(Screen::PAUSED)
     click_menu(M_QUIT)
-    check("save and quit to title saves the world and opens the title screen", File.exist?(@save_path) && @title_open && !@quit)
+    check("save and quit to title saves the world and opens the title screen", File.exist?(@save_path) && current_screen.title? && !@quit)
     time = @clock.time_of_day
     yaw = @player.yaw
     update_game(0.5)
@@ -668,22 +671,22 @@ class Game
     check("QUIT on the title screen quits the game", quit)
     seed = @seed
     click_title(T_NEW_WORLD)
-    asks = @title_open && !@captured && title_label(T_NEW_WORLD) == "LOSE THIS WORLD? CLICK AGAIN"
+    asks = current_screen.title? && title_label(T_NEW_WORLD) == "LOSE THIS WORLD? CLICK AGAIN"
     click_title(T_PLAY)
     Gfx.in_capture(0)
     check("PLAY on the title screen starts the game in the same world, and ends the question of NEW WORLD",
-          asks && !@title_open && @captured && @seed == seed && title_label(T_NEW_WORLD) == "NEW WORLD")
-    @captured = false
+          asks && current_screen.playing? && @seed == seed && title_label(T_NEW_WORLD) == "NEW WORLD")
+    show_screen(Screen::PAUSED)
     open_title
     click_title(T_NEW_WORLD)
     update_game(0.2)
     click_title(T_NEW_WORLD)
     check("a double-click on NEW WORLD keeps the world and asks again",
-          @title_open && @seed == seed && title_label(T_NEW_WORLD) == "LOSE THIS WORLD? CLICK AGAIN")
+          current_screen.title? && @seed == seed && title_label(T_NEW_WORLD) == "LOSE THIS WORLD? CLICK AGAIN")
     update_game(CONFIRM_WAIT)
     click_title(T_NEW_WORLD)
     Gfx.in_capture(0)
-    check("a second click on NEW WORLD on the title screen starts a new world", !@title_open && @captured && @seed != seed)
+    check("a second click on NEW WORLD on the title screen starts a new world", current_screen.playing? && @seed != seed)
   end
 
   # The window can leave or enter fullscreen without the menu or F11, as
@@ -1079,9 +1082,9 @@ class Game
   # hit has a low charge.
   def test_swing_at_air
     survival = @survival
-    captured = @captured
+    shown = @screen
     @survival = true
-    @captured = true
+    show_screen(Screen::PLAYING)
     @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
     @slot = 0
     update_hand(0.0)
@@ -1101,7 +1104,7 @@ class Game
     @swing = 0.0
     @dyn.clear
     @inv.clear
-    @captured = captured
+    @screen = shown
     @player.pitch = 0.0
     @survival = survival
   end
@@ -1111,8 +1114,8 @@ class Game
   def test_bow_draw_image
     hand = @held_item.block
     draw = @draw_time
-    captured = @captured
-    @captured = true
+    shown = @screen
+    show_screen(Screen::PLAYING)
     @held_item.change(Block::BOW)
     layers = [-1.0, 0.0, 0.7, 0.95].map do |time|
       @draw_time = time
@@ -1122,7 +1125,7 @@ class Game
     check("the held bow shows a pulled string and an arrow as the draw grows",
           layers[0] == Tex::BOW && layers[1] == Tex::BOW_PULLING && layers[2] == Tex::BOW_PULLING + 1 && layers[3] == Tex::BOW_PULLING + 2)
     @dyn.clear
-    @captured = captured
+    @screen = shown
     @draw_time = draw
     @held_item.change(hand)
   end
@@ -1304,7 +1307,7 @@ class Game
     @items.clear
     toggle_inventory
     hurt(30, Sfx::HURT)
-    check("death at zero health, and it closes the inventory", @vitals.health == 0.0 && @vitals.dead? && !@inventory_open)
+    check("death at zero health, and it closes the inventory", @vitals.health == 0.0 && @vitals.dead? && !current_screen.inventory?)
     check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::OAK_PLANKS) == 4)
     @items.clear
     @inv = kept
@@ -2318,7 +2321,7 @@ class Game
     open_chest(cx, SKY_Y, cz)
     @chests.current.slots_for(0).set(0, Block::DIAMOND, 7)
     set_block(cx, SKY_Y, cz, Block::AIR)
-    check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !@inventory_open && @chests.size == 0)
+    check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !current_screen.inventory? && @chests.size == 0)
     @items.clear
     test_chest_screen
   end
@@ -2936,8 +2939,8 @@ class Game
       @action_cooldown = 0.0
       @draw_time = -1.0
       right_button(0.05, true)
-      open = @inventory_open && @station != Recipe::BY_HAND && @draw_time < 0.0
-      toggle_inventory if @inventory_open
+      open = current_screen.inventory? && @station != Recipe::BY_HAND && @draw_time < 0.0
+      toggle_inventory if current_screen.inventory?
       open
     end
     set_block(x, y, z, Block::AIR)
@@ -3378,7 +3381,7 @@ class Game
     open_chest(x, g, z + 1)
     INV.times { |i| @inv.set(i, Block::DIRT, 64) }
     INV.times { |i| quick_move_slot(i) }
-    check("a large chest takes more than 27 stacks", @inventory_open && @chests.current.cells == Chest::SLOTS * 2 && @inv.total(Block::DIRT) == 0)
+    check("a large chest takes more than 27 stacks", current_screen.inventory? && @chests.current.cells == Chest::SLOTS * 2 && @inv.total(Block::DIRT) == 0)
     toggle_inventory
     set_block(x, g, z + 1, Block::AIR)
     kept = @chests.remove_at(World.key(x, g, z))
@@ -3394,7 +3397,7 @@ class Game
     place
     open_chest(x, g, z)
     set_block(x, g, z + 1, Block::AIR)
-    check("a large chest closes when a half breaks while it is open", !@inventory_open && !@chests.open?)
+    check("a large chest closes when a half breaks while it is open", !current_screen.inventory? && !@chests.open?)
     set_block(x, g, z, Block::AIR)
     @items.clear
     @inv.clear
@@ -3889,7 +3892,7 @@ class Game
     check("a click on a sheared sheep in front of a chest does not open the chest", @target_mob == 0 && @target_block.hit? && !@chests.open?)
     set_block(bx + 2, y + 1, bz, Block::AIR)
     @chests.close
-    @inventory_open = false
+    show_screen(Screen::PLAYING)
     @mobs.clear
     @items.clear
     @inv.clear

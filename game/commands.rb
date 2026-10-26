@@ -16,12 +16,14 @@ class Game
   # closes.
   def open_chat(text)
     @chat.open(text)
+    show_screen(Screen::CHAT)
     Gfx.in_text(1)
     Gfx.in_capture(0)
   end
 
   def close_chat
     @chat.close
+    show_screen(Screen::PLAYING)
     Gfx.in_text(0)
     Gfx.in_capture(1)
   end

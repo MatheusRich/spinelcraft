@@ -74,12 +74,10 @@ class Game
     confirm = @menu_confirm
     @menu_confirm = false
     if i == T_PLAY
-      @title_open = false
       resume
     elsif i == T_NEW_WORLD
       if confirm
         new_world(clock_seed)
-        @title_open = false
         resume
       else
         @menu_confirm = true
@@ -92,12 +90,12 @@ class Game
 
   # The title shows the horizon behind it.
   def open_title
-    @title_open = true
+    show_screen(Screen::TITLE)
     @player.pitch = 0.0
   end
 
   def resume
-    @captured = true
+    show_screen(Screen::PLAYING)
     Gfx.in_capture(1)
     @menu_drag = -1
     @menu_confirm = false

@@ -31,10 +31,10 @@ class Game
     @damage_flash = 0.35
     return unless @vitals.dead?
 
-    toggle_inventory if @inventory_open
-    close_chat if @chat.open?
+    toggle_inventory if current_screen.inventory?
+    close_chat if current_screen.typing?
     drop_inventory
-    @captured = false
+    show_screen(Screen::DEAD)
     Gfx.in_capture(0)
   end
 

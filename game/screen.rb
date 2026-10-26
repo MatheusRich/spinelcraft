@@ -1,6 +1,5 @@
-# What the player sees over the game, and what the input acts on. Game#screen
-# works it out from the flags of the game, and each question below names one
-# screen.
+# What the player sees over the game, and what the input acts on. Game keeps
+# one Screen in @screen, and each question below names one screen.
 class Screen
   TITLE = 0
   DEAD = 1
@@ -13,19 +12,22 @@ class Screen
     @id = id
   end
 
-  def on_title? = @id == TITLE
+  def title? = @id == TITLE
 
-  def on_death_screen? = @id == DEAD
+  def death_screen? = @id == DEAD
 
-  def in_inventory? = @id == INVENTORY
+  def inventory? = @id == INVENTORY
 
   def typing? = @id == CHAT
 
-  def on_pause_menu? = @id == PAUSED
+  def pause_menu? = @id == PAUSED
 
   def playing? = @id == PLAYING
 
+  # The player is in the game, not in a menu: playing, or typing in the chat.
+  def in_game? = playing? || typing?
+
   # The title and the pause menu stop the world, as in Minecraft, but not
   # the death screen, the inventory or the chat.
-  def stops_world? = on_title? || on_pause_menu?
+  def stops_world? = title? || pause_menu?
 end

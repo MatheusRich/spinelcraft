@@ -143,13 +143,12 @@ class Game
     # Seconds until a second click on NEW WORLD counts.
     @confirm_wait = 0.0
     @quit = false
-    # The title screen is open (game/menu.rb).
-    @title_open = false
     # When jump was last pressed, for a double press that starts or stops
     # flying (FLY_TAP).
     @last_jump = -1.0
     @slot = 0
-    @captured = false
+    # The screen that the player sees (game/screen.rb).
+    @screen = Screen.new(Screen::PAUSED)
     @clock = Clock.new((ENV["TIME"] || "0.3").to_f, (ENV["DAY"] || "0").to_i)
     now = Time.now
     @halloween = ENV["HALLOWEEN"] == "1" || (now.month == 10 && now.day == 31)
@@ -182,7 +181,6 @@ class Game
     @bob = 0.0
     # The half angle of the view in radians. It follows the option and widens in a sprint.
     @fov = @options.half_fov
-    @inventory_open = !ENV["INVENTORY"].nil?
     @step_dist = 0.0
     @was_swimming = false
     @sfx = Sfx.new
@@ -309,7 +307,8 @@ class Game
       open_title
     else
       Gfx.in_capture(1) unless @scripted
-      @captured = true
+      show_screen(Screen::PLAYING)
+      show_screen(Screen::INVENTORY) if ENV["INVENTORY"]
     end
     say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
   end
@@ -454,8 +453,8 @@ class Game
   def update_game(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     # to_f: Spinel cannot type the position of the player.
     @sfx.listen(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.yaw.to_f)
-    current = screen
-    if current.on_title?
+    current = current_screen
+    if current.title?
       @player.yaw += TITLE_TURN * dt
       @confirm_wait -= dt
     end
@@ -541,7 +540,7 @@ class Game
   # counts when the mouse is free, the player is dead or the chat is open.
   def read_move_keys
     controls = @player.controls
-    if !@captured || @vitals.dead? || @chat.open?
+    unless current_screen.playing?
       controls.release_keys
       return
     end
@@ -592,16 +591,11 @@ class Game
     @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @vitals.hunger_effect?
   end
 
-  # The screen that the player sees now. The first one that holds wins: the
-  # title, the death screen, the inventory, the chat and the pause menu.
-  def screen
-    return Screen.new(Screen::TITLE) if @title_open
-    return Screen.new(Screen::DEAD) if @vitals.dead?
-    return Screen.new(Screen::INVENTORY) if @inventory_open
-    return Screen.new(Screen::CHAT) if @chat.open?
-    return Screen.new(Screen::PAUSED) unless @captured
+  # The screen that the player sees now.
+  def current_screen = @screen
 
-    Screen.new(Screen::PLAYING)
+  def show_screen(id)
+    @screen = Screen.new(id)
   end
 
   # A cave sound now and then below the sea level, as in VoxeLibre
