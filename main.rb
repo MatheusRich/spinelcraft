@@ -450,24 +450,46 @@ class Game
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
-  def update_game(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def update_game(dt)
     # to_f: Spinel cannot type the position of the player.
     @sfx.listen(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.yaw.to_f)
     current = current_screen
-    if current.title?
-      @player.yaw += TITLE_TURN * dt
-      @confirm_wait -= dt
-    end
+    turn_title(dt) if current.title?
     return if current.stops_world?
 
     read_move_keys
-    if @autopilot
-      @player.flying = true
-      @player.yaw += dt * 0.25 unless @autopilot_far
-      @player.pitch = -0.25
-      @player.controls.cruise
-      @player.y = 72.0
-    end
+    fly_autopilot(dt) if @autopilot
+    move_player(dt)
+    update_boats(dt)
+    @target_block.trace(@world, @player)
+    play_move_sounds(dt)
+    update_surroundings(dt)
+    update_weather_effects(dt)
+    update_timers(dt)
+    update_hand(dt)
+    update_cave_sound(dt)
+    update_block_sounds(dt)
+    update_survival(dt)
+    update_mobs(dt)
+    update_fluids(dt)
+    find_target_boat
+    find_target_mob
+  end
+
+  def turn_title(dt)
+    @player.yaw += TITLE_TURN * dt
+    @confirm_wait -= dt
+  end
+
+  def fly_autopilot(dt)
+    @player.flying = true
+    @player.yaw += dt * 0.25 unless @autopilot_far
+    @player.pitch = -0.25
+    @player.controls.cruise
+    @player.y = 72.0
+  end
+
+  def move_player(dt)
     @player.slowed = using_item?
     # Shift gets out of a boat. minecraft.wiki/w/Boat
     leave_boat if riding? && @player.controls.sneak
@@ -485,8 +507,9 @@ class Game
     # A flying player who comes down onto a block stops flying, as in Java
     # Edition. minecraft.wiki/w/Flying
     @player.flying = false if @player.on_ground && !@autopilot
-    update_boats(dt)
-    @target_block.trace(@world, @player)
+  end
+
+  def play_move_sounds(dt)
     # Water splashes and swishes, but lava makes no sound when the player
     # enters it or moves in it. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
     swimming = @player.in_water && !@player.in_lava
@@ -500,6 +523,9 @@ class Game
     end
     @sfx.play(Sfx::SPLASH, 0.6) if swimming && !@was_swimming && !@player.flying
     @was_swimming = swimming
+  end
+
+  def update_surroundings(dt)
     @particles.update(@world, dt)
     @particles.sample_fire(@world, @player.x, @player.y, @player.z, dt)
     grow_plants(dt)
@@ -510,10 +536,16 @@ class Game
     update_items(dt)
     update_falling(dt)
     note_seen if @survival
+  end
+
+  def update_weather_effects(dt)
     @weather.update_weather(dt)
     @weather.splash(@particles, @world, @player, dt)
     Gfx.au_loop(Sfx::RAIN, @weather.sound(@world, @player) * @options.volume) if @sound
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
+  end
+
+  def update_timers(dt)
     @cloud_drift = (@cloud_drift + dt * 1.2) % Clouds::PERIOD
     @anim_time = (@anim_time + dt) % 1000.0
     speed = @player.speed
@@ -526,14 +558,6 @@ class Game
     @damage_flash -= dt
     @swing -= dt
     @attack_time += dt
-    update_hand(dt)
-    update_cave_sound(dt)
-    update_block_sounds(dt)
-    update_survival(dt)
-    update_mobs(dt)
-    update_fluids(dt)
-    find_target_boat
-    find_target_mob
   end
 
   # The movement keys of this frame, in the controls of the player. No key
