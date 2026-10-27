@@ -123,22 +123,20 @@ class Game
     end
   end
 
-  # The boat in the crosshair, nearer than the block in view and within
-  # the reach for mobs, in @target_boat (or -1), and its distance.
-  def find_target_boat
+  # Sets @target_boat to the nearest boat that is closer than best, or to -1.
+  # Returns the distance of that boat, or best when there is none.
+  def scan_boats(best)
     @target_boat = -1
-    hit_t = @target_block.distance.to_f
-    best = @target_block.hit? && hit_t < Player::MOB_REACH ? hit_t : Player::MOB_REACH
-    @boats.size.times do |i|
-      if i != @riding
-        t = @boats[i].hit_distance(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
-        if t >= 0.0 && t < best
-          best = t
-          @target_boat = i
+    @boats.size.times do |index|
+      if index != @riding
+        distance = @boats[index].hit_distance(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
+        if distance >= 0.0 && distance < best
+          best = distance
+          @target_boat = index
         end
       end
     end
-    @target_boat_t = best
+    best
   end
 
   # A hit on boat i, with the damage of a hit on a mob. In creative one hit

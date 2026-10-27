@@ -3504,7 +3504,7 @@ class Game
     @player.yaw = 0.0
     @player.pitch = -0.2
     @target_block.trace(@world, @player)
-    find_target_mob
+    find_targets
     @inv.clear
     @inv.add(Block::BUCKET)
     use_bucket
@@ -3883,8 +3883,7 @@ class Game
     60.times do
       @action_cooldown -= 1.0 / 60.0
       @target_block.trace(@world, @player)
-      find_target_boat
-      find_target_mob
+      find_targets
       right_button(1.0 / 60.0, true)
     end
     aimed = @target_mob == 0 && @target_block.hit? && @target_block.x == bx + 2
@@ -3893,7 +3892,7 @@ class Game
     set_block(bx + 2, y + 1, bz, Block.facing_id(Block::CHEST, 1))
     @action_cooldown = 0.0
     @target_block.trace(@world, @player)
-    find_target_mob
+    find_targets
     right_button(1.0 / 60.0, true)
     check("a click on a sheared sheep in front of a chest does not open the chest", @target_mob == 0 && @target_block.hit? && !@chests.open?)
     set_block(bx + 2, y + 1, bz, Block::AIR)
@@ -3975,7 +3974,7 @@ class Game
     @slot = 0
     @items.clear
     @target_block.trace(@world, @player)
-    find_target_mob
+    find_targets
     aimed = @target_mob == 0
     left_button(1.0 / 60.0, true, true)
     update_mobs(1.0 / 60.0)
@@ -3990,7 +3989,7 @@ class Game
     sheep.z = bz + 0.5
     @attack_time = 1.0
     @target_block.trace(@world, @player)
-    find_target_mob
+    find_targets
     left_button(1.0 / 60.0, true, true)
     update_mobs(1.0 / 60.0)
     check("a hit stops a sheep from eating, so a sheared sheep killed while it grazes drops no wool",
@@ -4069,7 +4068,7 @@ class Game
     @player.flying = false
     @target_block.trace(@world, @player)
     @target_boat = -1
-    find_target_mob
+    find_targets
     @action_cooldown = 0.0
     right_button(0.05, true)
   end

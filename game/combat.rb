@@ -467,32 +467,39 @@ class Game
   # minecraft.wiki/w/Egg
   def chicks(r1, r2) = r1 < 1.0 / 8.0 ? (r2 < 1.0 / 32.0 ? 4 : 1) : 0
 
-  def find_target_mob
+  # The boat or the mob in the crosshair, whichever is nearer than the block
+  # in view and within the reach for mobs, in @target_boat or @target_mob
+  # (the other is -1).
+  def find_targets
+    best = @target_block.hit? ? @target_block.distance.to_f : Player::MOB_REACH
+    best = Player::MOB_REACH if best > Player::MOB_REACH
+    best = scan_boats(best)
+    scan_mobs(best)
+  end
+
+  # Sets @target_mob to the nearest mob that is closer than best, or to -1.
+  def scan_mobs(best)
     @target_mob = -1
     return if @mobs.empty?
 
-    best = @target_block.hit? ? @target_block.distance : Player::MOB_REACH
-    best = Player::MOB_REACH if best > Player::MOB_REACH
-    # A boat in front of the mobs hides them.
-    best = @target_boat_t if @target_boat >= 0 && @target_boat_t < best
     ox = @player.x
     oy = @player.eye_y
     oz = @player.z
     dx = @player.fx
     dy = @player.fy
     dz = @player.fz
-    i = 0
-    while i < @mobs.size
-      m = @mobs[i]
+    index = 0
+    while index < @mobs.size
+      mob = @mobs[index]
       # Skip the mobs that are out of reach, and the dying mobs.
-      if !m.dying? && (m.x - ox) ** 2 + (m.z - oz) ** 2 < 25.0
-        t = m.ray(ox, oy, oz, dx, dy, dz)
-        if t >= 0.0 && t < best
-          best = t
-          @target_mob = i
+      if !mob.dying? && (mob.x - ox) ** 2 + (mob.z - oz) ** 2 < 25.0
+        distance = mob.ray(ox, oy, oz, dx, dy, dz)
+        if distance >= 0.0 && distance < best
+          best = distance
+          @target_mob = index
         end
       end
-      i += 1
+      index += 1
     end
     @target_boat = -1 if @target_mob >= 0
   end

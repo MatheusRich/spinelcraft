@@ -200,9 +200,8 @@ class Game
     @boats = []
     # The index in @boats of the boat that the player rides, or -1.
     @riding = -1
-    # The boat in the crosshair (Game#find_target_boat), or -1, and its distance.
+    # The boat in the crosshair (Game#find_targets), or -1.
     @target_boat = -1
-    @target_boat_t = 0.0
     @draw_time = -1.0
     @eat_time = -1.0
     @vitals = Vitals.new
@@ -463,8 +462,7 @@ class Game
     update_survival(dt)
     update_mobs(dt)
     update_fluids(dt)
-    find_target_boat
-    find_target_mob
+    find_targets
   end
 
   def turn_title(dt)
