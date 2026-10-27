@@ -12,4 +12,10 @@ if [ $status -ne 0 ] && ! echo "$out" | grep -q "FAILED$"; then
   echo "the self-test stopped with status $status:"
   echo "$out" | tail -20
 fi
+# A run that exits 0 without the totals line did not finish.
+if [ $status -eq 0 ] && ! echo "$out" | grep -q "^ALL [0-9]* PASS$"; then
+  echo "the self-test printed no ALL n PASS line:"
+  echo "$out" | tail -20
+  exit 1
+fi
 exit $status

@@ -128,6 +128,9 @@ class Game
   # half a tick. minecraft.wiki/w/Melee_attack
   def attack_charge = ((@attack_time + 0.025) * Block.attack_speed(current_block.to_i)).clamp(0.0, 1.0)
 
+  # The damage of a hit with the item in the hand at the given charge.
+  def melee_damage(charge) = Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge)
+
   # The left button hits the mob in the crosshair, or else breaks the block:
   # at once in creative, over time in survival.
   def left_button(dt, held, pressed)
@@ -148,7 +151,7 @@ class Game
   # Hits the mob with the item in the hand.
   def attack_mob(mob)
     charge = attack_charge
-    damage = @survival ? Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge) : 10.0
+    damage = @survival ? melee_damage(charge) : 10.0
     # A falling attack with the cooldown at 84.8% or more is a critical
     # hit: 1.5 times the damage. minecraft.wiki/w/Damage
     crit = charge >= 0.848 && @player.falling_attack?

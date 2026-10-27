@@ -149,7 +149,7 @@ class Game
     y = boat.y.to_f
     z = boat.z.to_f
     charge = attack_charge
-    damage = Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge)
+    damage = melee_damage(charge)
     @attack_time = 0.0
     @swing = SWING
     if @survival && !boat.hit(damage)
