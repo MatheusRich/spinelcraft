@@ -104,6 +104,49 @@ class Game
     open_chat("/") if Gfx.in_key_pressed(Key::SLASH)
   end
 
+  # The chat frees the mouse, as in Minecraft, and takes it again when it
+  # closes.
+  def open_chat(text)
+    @chat.start(text)
+    show_screen(Screen::CHAT)
+    Gfx.in_text(1)
+    Gfx.in_capture(0)
+  end
+
+  def close_chat
+    show_screen(Screen::PLAYING)
+    Gfx.in_text(0)
+    Gfx.in_capture(1)
+  end
+
+  # The keys typed since the last frame edit the line. Enter runs it, Esc
+  # closes the chat, Tab completes the last word, and Cmd+V (Ctrl+V on
+  # other systems) pastes the clipboard.
+  def handle_chat
+    n = Gfx.in_typed_count
+    n.times do |i|
+      c = Gfx.in_typed(i)
+      if c == Key::TYPED_ESCAPE
+        close_chat
+        break
+      elsif c == Key::TYPED_ENTER
+        close_chat
+        @console.submit(@chat.text)
+        break
+      elsif c == Key::TYPED_TAB
+        @chat.tab
+      elsif c == Key::TYPED_BACKSPACE
+        @chat.backspace
+      elsif c == Key::TYPED_UP || c == Key::TYPED_DOWN
+        @chat.recall(c == Key::TYPED_UP ? -1 : 1)
+      elsif c == Key::TYPED_PASTE
+        @chat.paste(Gfx.in_clipboard)
+      else
+        @chat.type(c.chr)
+      end
+    end
+  end
+
   def set_mode(survival)
     @survival = survival
     @player.flying = false if @survival

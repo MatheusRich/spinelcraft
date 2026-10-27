@@ -29,11 +29,6 @@ Lint/NonAtomicFileOperation:
   Exclude:
     - 'game/testing.rb'
 
-# Offense count: 2
-Lint/NonLocalExitFromIterator:
-  Exclude:
-    - 'game/commands.rb'
-
 # Offense count: 6
 # Configuration parameters: CountComments, Max, CountAsOne.
 Metrics/ClassLength:

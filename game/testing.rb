@@ -321,13 +321,14 @@ class Game
     survival = @survival
     day = @clock.day
     @chat = Chat.new
-    run_chat("/time set midnight")
+    @console = Console.new(self, @chat, @clock, @weather)
+    @console.submit("/time set midnight")
     midnight = @clock.ticks == 18000
-    run_chat("/time add 6000")
+    @console.submit("/time add 6000")
     added = @clock.ticks == 0 && @clock.day == day + 1
     check("/time set and /time add move the clock, and a new day starts at 6:00", midnight && added)
-    run_chat("/time set 0")
-    run_chat("/time add 2147483647")
+    @console.submit("/time set 0")
+    @console.submit("/time add 2147483647")
     check("/time add of many days counts them at once",
           @clock.day == day + 1 + 2147483647 / Clock::DAY_TICKS && @clock.ticks == 2147483647 % Clock::DAY_TICKS)
     @clock.time_of_day = 0.3
@@ -335,50 +336,50 @@ class Game
     set_mode(true)
     kept = @inv.copy
     @inv.clear
-    run_chat("/give diamond_pickaxe")
-    run_chat("/give @s torch 70")
+    @console.submit("/give diamond_pickaxe")
+    @console.submit("/give @s torch 70")
     check("/give puts items in the inventory, with a count",
           @inv.block(0) == Block::DIAMOND_PICK && @inv.count(0) == Block.uses(Block::DIAMOND_PICK) &&
           @inv.total(Block::TORCH) == 70 && !last_chat_error?)
-    run_chat("/give dirtt")
+    @console.submit("/give dirtt")
     bad_item = last_chat_error?
-    run_chat("/give dirt 0")
+    @console.submit("/give dirt 0")
     bad_count = last_chat_error?
-    run_chat("/fly")
+    @console.submit("/fly")
     unknown = last_chat_error? && @chat.lines.last == "UNKNOWN COMMAND: FLY"
     check("a bad item, count or command prints an error line", bad_item && bad_count && unknown)
     @inv = kept
-    run_chat("/gamemode creative")
+    @console.submit("/gamemode creative")
     creative = !@survival
-    run_chat("/gamemode s")
+    @console.submit("/gamemode s")
     check("/gamemode switches survival and creative", creative && @survival)
     set_mode(survival)
     x = @player.x
     y = @player.y
     z = @player.z
-    run_chat("/tp ~ ~2 ~-3")
+    @console.submit("/tp ~ ~2 ~-3")
     relative = @player.x == x && @player.y == y + 2.0 && @player.z == z - 3.0
     tx = @spawn_x.floor + 1
     tz = @spawn_z.floor - 1
-    run_chat("/tp #{tx} 150 #{tz}")
+    @console.submit("/tp #{tx} 150 #{tz}")
     whole = @player.x == tx + 0.5 && @player.y == 150.0 && @player.z == tz + 0.5
     check("/tp moves the player, with ~ for a place relative to the player", relative && whole)
     site = @treasure.nearest(@player.x.to_f, @player.z.to_f)
-    run_chat("/locate treasure")
+    @console.submit("/locate treasure")
     found = @chat.lines.last.start_with?("THE NEAREST TREASURE IS AT [#{site.chest_x}, #{site.chest_y}, #{site.chest_z}] (")
-    run_chat("/locate village")
+    @console.submit("/locate village")
     check("/locate treasure gives the place of the nearest treasure chest", site.found? && found && last_chat_error?)
     mobs = @mobs.size
-    run_chat("/summon creeper ~ ~ ~5")
+    @console.submit("/summon creeper ~ ~ ~5")
     m = @mobs.last
     check("/summon puts a mob of the kind at the place",
           @mobs.size == mobs + 1 && m.kind == Mob::CREEPER && m.x == @player.x && m.z == @player.z + 5.0 && m.hp == Mob::HP[Mob::CREEPER])
     @mobs.pop
-    run_chat("/tp 99999999 100 -99999999")
+    @console.submit("/tp 99999999 100 -99999999")
     check("/tp stops at the farthest x and z that the world holds",
-          @player.x == TP_LIMIT && @player.z == -TP_LIMIT && @player.y == 100.0)
-    run_chat("/tp ~3000 ~ ~3000")
-    run_chat("/spawn")
+          @player.x == Console::TP_LIMIT && @player.z == -Console::TP_LIMIT && @player.y == 100.0)
+    @console.submit("/tp ~3000 ~ ~3000")
+    @console.submit("/spawn")
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
     check("/spawn goes to the ground at the spawn point, also from far away",
           @player.x == @spawn_x && @player.z == @spawn_z && @player.y == h + 0.01 &&
@@ -386,7 +387,7 @@ class Game
     @player.x = x
     @player.y = y
     @player.z = z
-    run_chat("/time set noon")
+    @console.submit("/time set noon")
     open_chat("")
     @chat.recall(-1)
     back = @chat.text == "/time set noon"
@@ -1730,11 +1731,11 @@ class Game
     @world.set(px, SKY_Y + 2, pz, Block::AIR)
     check("lightning does not strike the player under a glass roof",
           @player.vitals.health == Vitals::MAX_HEALTH && !@player.vitals.burning?)
-    run_chat("/weather thunder")
+    @console.submit("/weather thunder")
     thunder = @weather.thunderstorm?
-    run_chat("/weather rain")
+    @console.submit("/weather rain")
     rain = @weather.rain.on? && !@weather.thunder.on?
-    run_chat("/weather clear")
+    @console.submit("/weather clear")
     check("/weather thunder starts a storm, /weather rain ends the thunder, and /weather clear ends both",
           thunder && rain && !@weather.rain.on? && !@weather.thunder.on?)
     @survival = survival
@@ -1916,7 +1917,7 @@ class Game
     @player.move_to(@spawn_x.floor + 0.5, SKY_Y - 1.0, @spawn_z.floor + 0.5)
     @player.flying = true
     @weather.rain.start.settle
-    run_chat("/weather clear")
+    @console.submit("/weather clear")
     follows = true
     99.times do
       @weather.update_weather(0.05)
@@ -1924,7 +1925,7 @@ class Game
     end
     @weather.update_weather(0.05)
     clear = @weather.rain.strength == 0.0 && @weather.sound(@world, @player) == 0.0
-    run_chat("/weather rain")
+    @console.submit("/weather rain")
     99.times do
       @weather.update_weather(0.05)
       follows = false if @weather.sound(@world, @player) != 0.3 * @weather.rain.strength || @weather.rain.strength <= 0.0 || @weather.rain.strength >= 1.0
@@ -2280,13 +2281,13 @@ class Game
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
-    teleport(x + 0.5, y + 0.01, z + 20.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 20.5)
     chest = @world.get(x, y, z)
     check("the treasure site has a chest", Block::BASE[chest] == Block::CHEST)
     lit = beacon_faces
     check("BEACONS=1 draws a beam over a treasure chest that is not looted", lit > 0)
     test_treasure_guards(x, y, z)
-    teleport(x + 0.5, y + 0.01, z + 2.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 2.5)
     @items.clear
     set_block(x, y, z, Block::AIR)
     check("an unopened treasure chest drops its loot when it breaks", ground_count(Block::SPINEL_ORE) == 1 && ground_count(Block::IRON_INGOT) > 0)
@@ -2310,16 +2311,16 @@ class Game
     toggle_inventory
     check("a looted treasure chest stays looted after a save", ok && kept == 1 && !@treasure.unlooted?(x, y, z))
     @mobs.clear
-    teleport(x + 0.5, y + 0.01, z + 200.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 200.5)
     guard_treasure
-    teleport(x + 0.5, y + 0.01, z + 10.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 10.5)
     guard_treasure
     check("a looted treasure chest has no guards", @mobs.empty?)
-    teleport(x + 0.5, y + 0.01, z + 20.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 20.5)
     check("BEACONS=1 draws no beam over a looted treasure chest", beacon_faces < lit)
     test_treasure_large_chest(x, y, z)
     @survival = was_survival
-    teleport(back_x, back_y, back_z)
+    @console.teleport(back_x, back_y, back_z)
   end
 
   # A chest beside the treasure chest at x, y, z joins it into a large
@@ -2363,21 +2364,21 @@ class Game
     @mobs.clear
     guard_treasure
     check("a treasure chest sends no guards to a player 20 blocks away", @mobs.empty?)
-    teleport(x + 0.5, y + 0.01, z + 10.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 10.5)
     update_mobs(1.0 / 60.0)
     near = @mobs.count { |mob| !mob.passive? && (mob.x - x - 0.5).abs <= 5.0 && (mob.z - z - 0.5).abs <= 5.0 }
     check("4 monsters guard a treasure chest when the player comes near", near == NaturalSpawner::GUARDS)
     @mobs.clear
     guard_treasure
     check("the guards that the player kills do not come back while the player stays", @mobs.empty?)
-    teleport(x + 0.5, y + 0.01, z + 200.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 200.5)
     guard_treasure
-    teleport(x + 0.5, y + 0.01, z + 10.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 10.5)
     guard_treasure
     check("the guards come back after the player goes far away", @mobs.size == NaturalSpawner::GUARDS)
-    teleport(x + 0.5, y + 0.01, z + 200.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 200.5)
     guard_treasure
-    teleport(x + 0.5, y + 0.01, z + 10.5)
+    @console.teleport(x + 0.5, y + 0.01, z + 10.5)
     guard_treasure
     check("the guards that still live count toward the next pack", @mobs.size == NaturalSpawner::GUARDS)
     @mobs.clear
@@ -2659,7 +2660,7 @@ class Game
     collect_items
     picked = @inv.count(0) == 16 && @inv.block(1) == Block::EGG && @inv.count(1) == 4
     @inv.clear
-    run_chat("/give egg 20")
+    @console.submit("/give egg 20")
     check("eggs stack to 16 when the player picks them up and from /give",
           picked && @inv.count(0) == 16 && @inv.block(1) == Block::EGG && @inv.count(1) == 4 && !last_chat_error?)
     @items.clear
@@ -3589,11 +3590,11 @@ class Game
     was = @survival
     @survival = true
     @inv.clear
-    run_chat("/give bucket 20")
+    @console.submit("/give bucket 20")
     given = @inv.count(0) == 16 && @inv.count(1) == 4
     @inv.clear
-    run_chat("/give milk_bucket 2")
-    run_chat("/give bed 2")
+    @console.submit("/give milk_bucket 2")
+    @console.submit("/give bed 2")
     check("empty buckets stack to 16, and full buckets and beds do not stack",
           filled && given && @inv.count(1) == 1 && @inv.block(1) == Block::MILK_BUCKET &&
           @inv.count(3) == 1 && @inv.block(3) == Block::BED && !last_chat_error?)

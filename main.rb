@@ -78,12 +78,17 @@ require_relative "game/options"
 require_relative "game/menu"
 require_relative "game/command"
 require_relative "game/chat"
-require_relative "game/commands"
+require_relative "game/console"
 require_relative "game/testing"
 require_relative "game/house"
 require_relative "game/demo"
 
 class Game
+  # What Console reads and changes. A new world replaces some of it.
+  attr_reader :player, :treasure, :seed, :chunk_meshes, :inv, :hotbar, :slot, :mobs, :rng
+
+  def survival? = @survival
+
   def initialize # rubocop:todo Metrics/MethodLength
     Log.setup(ENV["LOG"] || "")
     @seed = (ENV["SEED"] || "1337").to_i
@@ -228,6 +233,7 @@ class Game
     # mixes the seconds first.
     @music = Music.new(Noise.hash3(Time.now.to_i, 0, 0, 60))
     @weather = Weather.new(@seed * 3 + 2)
+    @console = Console.new(self, @chat, @clock, @weather)
     start_weather_switch
     # STRIKE=1 makes lightning strike in front of the player near the last frame.
     @strike_shot = !ENV["STRIKE"].nil?
@@ -403,6 +409,14 @@ class Game
     Log.debug(Log::WORLD) { "respawn at #{@spawn_x.floor} #{h} #{@spawn_z.floor}" }
     @alive_time = 0.0
     @riding = -1
+  end
+
+  # Moves the player to the spawn point. The chunks there load first, as in
+  # respawn: before they load, height_at reads the chunk that fills their
+  # slot of the ring.
+  def teleport_to_spawn
+    @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
+    @player.move_to(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
   end
 
   # Plays the sounds that @sfx queued, at the volume of the options, and
