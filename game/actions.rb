@@ -130,50 +130,59 @@ class Game
 
   # The left button hits the mob in the crosshair, or else breaks the block:
   # at once in creative, over time in survival.
-  def left_button(dt, held, pressed) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def left_button(dt, held, pressed)
     if held && @target_mob >= 0
-      if pressed
-        mob = @mobs[@target_mob]
-        charge = attack_charge
-        damage = @survival ? Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge) : 10.0
-        # A falling attack with the cooldown at 84.8% or more is a critical
-        # hit: 1.5 times the damage. minecraft.wiki/w/Damage
-        crit = charge >= 0.848 && @player.falling_attack?
-        damage *= 1.5 if crit
-        mob.hit(damage, @player.x, @player.z)
-        @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if crit
-        @attack_time = 0.0
-        wear_tool(Block.wear(current_block.to_i, true))
-        @vitals.exhaust(Vitals::ATTACK_COST) if @survival
-        mob.by_player = true
-        @sfx.play(Sfx::HIT, 0.8)
-        @swing = SWING
-      end
+      attack_mob(@mobs[@target_mob]) if pressed
       @mining = false
     elsif held && @target_boat >= 0
       hit_boat(@target_boat) if pressed
       @mining = false
     elsif held && @target_block.hit?
-      if @survival
-        mine(dt)
-      elsif @action_cooldown <= 0.0
-        broken = @world.get(@target_block.x, @target_block.y, @target_block.z)
-        @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
-        @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
-        set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
-        @attack_time = 0.0
-        @action_cooldown = 0.22
-        @swing = SWING
-      end
+      break_block(dt)
     else
-      # A click at the air swings the arm and starts the cooldown again. The
-      # wiki does not say so; the game code does (Minecraft.startAttack).
-      if pressed
-        @attack_time = 0.0
-        @swing = SWING
-      end
+      swing_at_air if pressed
       @mining = false
     end
+  end
+
+  # Hits the mob with the item in the hand.
+  def attack_mob(mob)
+    charge = attack_charge
+    damage = @survival ? Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge) : 10.0
+    # A falling attack with the cooldown at 84.8% or more is a critical
+    # hit: 1.5 times the damage. minecraft.wiki/w/Damage
+    crit = charge >= 0.848 && @player.falling_attack?
+    damage *= 1.5 if crit
+    mob.hit(damage, @player.x, @player.z)
+    @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if crit
+    @attack_time = 0.0
+    wear_tool(Block.wear(current_block.to_i, true))
+    @vitals.exhaust(Vitals::ATTACK_COST) if @survival
+    mob.by_player = true
+    @sfx.play(Sfx::HIT, 0.8)
+    @swing = SWING
+  end
+
+  # Mines the block in view over time in survival, and breaks it at once in
+  # creative.
+  def break_block(dt)
+    return mine(dt) if @survival
+    return unless @action_cooldown <= 0.0
+
+    broken = @world.get(@target_block.x, @target_block.y, @target_block.z)
+    @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
+    @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
+    set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
+    @attack_time = 0.0
+    @action_cooldown = 0.22
+    @swing = SWING
+  end
+
+  # A click at the air swings the arm and starts the cooldown again. The
+  # wiki does not say so; the game code does (Minecraft.startAttack).
+  def swing_at_air
+    @attack_time = 0.0
+    @swing = SWING
   end
 
   # The right button gets in a boat, feeds an animal, draws the bow, opens
