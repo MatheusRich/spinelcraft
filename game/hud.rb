@@ -48,7 +48,7 @@ class Game
   # Tints for water, lava and damage, flames while the player burns, the
   # crosshair, and the bow pull or the attack cooldown.
   def draw_view_overlays(w, h, s) # rubocop:todo Metrics/MethodLength
-    eye_block = @world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor)
+    eye_block = @player.at_eyes(@world)
     if Block.water?(eye_block)
       @ui.rect(0.0, 0.0, w, h, 0.1, 0.25, 0.6, 0.25)
     elsif Block.lava?(eye_block)

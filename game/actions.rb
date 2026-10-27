@@ -502,7 +502,7 @@ class Game
 
     tool = current_block.to_i
     speed = Block.dig_speed(tool, block)
-    speed /= 5.0 if Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
+    speed /= 5.0 if Block.water?(@player.at_eyes(@world))
     speed /= 5.0 unless @player.on_ground
     seconds = hardness * (harvests?(tool, block) ? 1.5 : 5.0)
     dt * speed / seconds

@@ -591,7 +591,7 @@ class Game
     @alive_time += dt
     p = @player
     feet = @world.get(p.x.floor, (p.y + 0.2).floor, p.z.floor)
-    eyes = @world.get(p.x.floor, p.eye_y.floor, p.z.floor)
+    eyes = p.at_eyes(@world)
     in_lava = Block.lava?(feet) || Block.lava?(eyes)
     under_water = Block.water?(eyes)
     # Water and rain put the fire out.
