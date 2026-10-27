@@ -88,6 +88,8 @@ class Vitals
     exhaust(HURT_COST)
   end
 
+  def kill = hurt(@health)
+
   def heal(amount)
     @health = [@health + amount, MAX_HEALTH].min
   end

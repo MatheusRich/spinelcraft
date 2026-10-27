@@ -29,6 +29,15 @@ class VitalsTest < Minitest::Test
     assert_in_delta Vitals::HURT_COST, vitals.exhaustion
   end
 
+  def test_a_kill_takes_all_health_and_adds_exhaustion
+    vitals = Vitals.new
+    vitals.hurt(7)
+    vitals.kill
+    assert_equal 0.0, vitals.health
+    assert vitals.dead?
+    assert_in_delta Vitals::HURT_COST * 2, vitals.exhaustion
+  end
+
   def test_a_dead_player_takes_no_more_hits
     vitals = Vitals.new
     vitals.hurt(20)
