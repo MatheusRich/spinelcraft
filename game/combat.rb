@@ -480,15 +480,12 @@ class Game
   # Sets @target_mob to the nearest mob that is closer than best, or to -1.
   def scan_mobs(best)
     @target_mob = -1
-    index = 0
-    while index < @mobs.size
-      mob = @mobs[index]
+    @mobs.each_with_index do |mob, index|
       distance = mob.dying? ? -1.0 : mob_distance(mob)
-      if distance >= 0.0 && distance < best
-        best = distance
-        @target_mob = index
-      end
-      index += 1
+      next unless distance >= 0.0 && distance < best
+
+      best = distance
+      @target_mob = index
     end
     @target_boat = -1 if @target_mob >= 0
   end

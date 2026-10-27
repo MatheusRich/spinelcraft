@@ -127,14 +127,14 @@ class Game
   # Returns the distance of that boat, or best when there is none.
   def scan_boats(best)
     @target_boat = -1
-    @boats.size.times do |index|
-      if index != @riding
-        distance = @boats[index].hit_distance(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
-        if distance >= 0.0 && distance < best
-          best = distance
-          @target_boat = index
-        end
-      end
+    @boats.each_with_index do |boat, index|
+      next if index == @riding
+
+      distance = boat.hit_distance(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @player.fx, @player.fy, @player.fz).to_f
+      next unless distance >= 0.0 && distance < best
+
+      best = distance
+      @target_boat = index
     end
     best
   end
