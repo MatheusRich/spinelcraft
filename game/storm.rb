@@ -62,7 +62,8 @@ class Storm
     end
     @lightning.strike(x, y, z, player.x.to_f, player.eye_y.to_f, player.z.to_f)
     particles.smoke(x + 0.5, y + 0.5, z + 0.5, SMOKE_PUFFS, 1.0)
-    burn(x + 0.5, y.to_f, z + 0.5, player)
+    burn_mobs(x + 0.5, y.to_f, z + 0.5)
+    struck?(player, x + 0.5, y.to_f, z + 0.5)
   end
 
   # The cell of each mob and the player that draws a strike at x, y, z.
@@ -82,14 +83,12 @@ class Storm
   # fluid, as a glass roof does. A body with its feet in water is exposed.
   def exposed?(body) = @world.motion_top(body.x, body.z) <= (body.y + body.tall).floor
 
-  # Hurts and burns the mobs near the strike at x, y, z. Returns true when
-  # the strike hit the player, and the game hurts and burns the player.
-  def burn(x, y, z, player)
+  # Hurts and burns the mobs near the strike at x, y, z.
+  def burn_mobs(x, y, z)
     @mobs.select { |mob| struck?(mob, x, y, z) }.each do |mob|
       mob.wound(STRIKE_DAMAGE)
       mob.ignite(STRIKE_FIRE)
     end
-    struck?(player, x, y, z)
   end
 
   def struck?(body, x, y, z)

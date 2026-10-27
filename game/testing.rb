@@ -18,8 +18,8 @@ class Game
   def start_weather_switch
     return if ENV["RAIN"].nil?
 
-    @weather.start_rain
-    @weather.start_thunder if ENV["RAIN"] == "thunder"
+    @weather.rain.start
+    @weather.thunder.start if ENV["RAIN"] == "thunder"
     @weather.settle
   end
 
@@ -536,7 +536,7 @@ class Game
     20.times { key_frame(Key::LSHIFT, true, 0.05) }
     key_frame(Key::LSHIFT, false, 0.05)
     check("a flying player who comes down onto a block stops flying", aloft && !@player.flying && @player.on_ground)
-    rain = @weather.raining?
+    rain = @weather.rain.on?
     Gfx.in_test_key(Key::R, 1)
     Gfx.in_test_key(KEY_G, 1)
     handle_keys
@@ -544,7 +544,7 @@ class Game
     Gfx.in_test_key(Key::R, 0)
     Gfx.in_test_key(KEY_G, 0)
     Gfx.in_test_frame
-    check("R and G no longer change the rain or the game mode", @weather.raining? == rain && !@survival)
+    check("R and G no longer change the rain or the game mode", @weather.rain.on? == rain && !@survival)
     set_mode(survival)
   end
 
@@ -1649,14 +1649,13 @@ class Game
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
-    @weather.start_rain
+    @weather.rain.start
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie burns in the sun until the rain is strong enough to wet it", zombie.fire > 0.0)
     @mobs.clear
-    @weather.start_rain
-    @weather.settle
+    @weather.rain.start.settle
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     @player.x = px + 0.5
@@ -1672,8 +1671,7 @@ class Game
     roofed = rain_bottom(px + 3, pz)
     @world.set(px + 3, SKY_Y + 5, pz, Block::AIR)
     check("the rain in a column stops at the highest block", open < SKY_Y + 6.0 && roofed == SKY_Y + 6.0)
-    @weather.stop_rain
-    @weather.settle
+    @weather.rain.stop.settle
     @clock.time_of_day = 0.3
   end
 
@@ -1685,24 +1683,21 @@ class Game
     px = @spawn_x.floor
     pz = @spawn_z.floor
     survival = @survival
-    @weather.stop_rain
-    @weather.settle
-    @weather.start_thunder
-    on = @weather.thunder_timer
-    @weather.stop_thunder
-    off = @weather.thunder_timer
+    @weather.rain.stop.settle
+    @weather.thunder.start
+    on = @weather.thunder.timer
+    @weather.thunder.stop
+    off = @weather.thunder.timer
     check("the thunder flag stays on for 3 to 13 minutes, and off for 10 to 150 minutes",
           on >= 180.0 && on <= 780.0 && off >= 600.0 && off <= 9000.0)
-    @weather.start_thunder
-    @weather.settle
-    dry = !@weather.storm? && @weather.thunder == 0.0
-    @weather.start_rain
+    @weather.thunder.start.settle
+    dry = !@weather.thunderstorm? && @weather.thunderstorm_strength == 0.0
+    @weather.rain.start
     600.times { @weather.update_weather(1.0 / 60.0) }
-    check("a thunderstorm is rain while the thunder flag is on", dry && @weather.storm? && @weather.striking?)
+    check("a thunderstorm is rain while the thunder flag is on", dry && @weather.thunderstorm? && @weather.striking?)
     @clock.time_of_day = 0.25
     stormy = @sky.spawn_light
-    @weather.stop_thunder
-    @weather.settle
+    @weather.thunder.stop.settle
     check("monsters spawn by day in a thunderstorm", stormy == 5 && @sky.spawn_light > NaturalSpawner::SPAWN_LIGHT)
     @mobs.clear
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
@@ -1736,12 +1731,12 @@ class Game
     check("lightning does not strike the player under a glass roof",
           @player.vitals.health == Vitals::MAX_HEALTH && !@player.vitals.burning?)
     run_chat("/weather thunder")
-    thunder = @weather.storm?
+    thunder = @weather.thunderstorm?
     run_chat("/weather rain")
-    rain = @weather.raining? && !@weather.thundering?
+    rain = @weather.rain.on? && !@weather.thunder.on?
     run_chat("/weather clear")
     check("/weather thunder starts a storm, /weather rain ends the thunder, and /weather clear ends both",
-          thunder && rain && !@weather.raining? && !@weather.thundering?)
+          thunder && rain && !@weather.rain.on? && !@weather.thunder.on?)
     @survival = survival
     @weather.clear
     @weather.settle
@@ -1920,27 +1915,25 @@ class Game
     keep_pose
     @player.move_to(@spawn_x.floor + 0.5, SKY_Y - 1.0, @spawn_z.floor + 0.5)
     @player.flying = true
-    @weather.start_rain
-    @weather.settle
+    @weather.rain.start.settle
     run_chat("/weather clear")
     follows = true
     99.times do
       @weather.update_weather(0.05)
-      follows = false if @weather.sound(@world, @player) != 0.3 * @weather.rain || @weather.rain <= 0.0
+      follows = false if @weather.sound(@world, @player) != 0.3 * @weather.rain.strength || @weather.rain.strength <= 0.0
     end
     @weather.update_weather(0.05)
-    clear = @weather.rain == 0.0 && @weather.sound(@world, @player) == 0.0
+    clear = @weather.rain.strength == 0.0 && @weather.sound(@world, @player) == 0.0
     run_chat("/weather rain")
     99.times do
       @weather.update_weather(0.05)
-      follows = false if @weather.sound(@world, @player) != 0.3 * @weather.rain || @weather.rain <= 0.0 || @weather.rain >= 1.0
+      follows = false if @weather.sound(@world, @player) != 0.3 * @weather.rain.strength || @weather.rain.strength <= 0.0 || @weather.rain.strength >= 1.0
     end
     @weather.update_weather(0.05)
-    rain = @weather.rain == 1.0 && @weather.sound(@world, @player) == 0.3
+    rain = @weather.rain.strength == 1.0 && @weather.sound(@world, @player) == 0.3
     check("/weather clear and /weather rain change the rain in 100 ticks, and the rain sound follows the rain on each tick",
           follows && clear && rain)
-    @weather.stop_rain
-    @weather.settle
+    @weather.rain.stop.settle
     restore_pose
   end
 
@@ -1963,10 +1956,10 @@ class Game
     kept_count = @inv.count(1)
     @items.clear
     drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
-    @weather.start_rain
-    @weather.timer = 77.5
-    @weather.start_thunder
-    @weather.thunder_timer = 55.5
+    @weather.rain.start
+    @weather.rain.timer = 77.5
+    @weather.thunder.start
+    @weather.thunder.timer = 55.5
     @recipe_book = RecipeBook.new
     @recipe_book.learn(Block::DIAMOND)
     @furnaces.clear
@@ -2002,8 +1995,8 @@ class Game
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
-          @weather.raining? && @weather.rain == 1.0 && @weather.timer == 77.5 &&
-          @weather.storm? && @weather.thunder == 1.0 && @weather.thunder_timer == 55.5)
+          @weather.rain.on? && @weather.rain.strength == 1.0 && @weather.rain.timer == 77.5 &&
+          @weather.thunderstorm? && @weather.thunderstorm_strength == 1.0 && @weather.thunder.timer == 55.5)
     boat = @boats[0]
     check("the save keeps the boats and the boat that the player rides",
           @boats.size == 1 && boat.item == Block::SPRUCE_BOAT && boat.x == x + 0.5 && boat.y == ground + 1.25 && boat.z == z + 0.5 && boat.yaw == 1.5 && @riding == 0)
@@ -3082,11 +3075,9 @@ class Game
     evening = @clock.time_of_day
     use_bed(bx + 6, SKY_Y - 1, bz)
     dusk = @clock.time_of_day == evening
-    @weather.start_rain
-    @weather.settle
+    @weather.rain.start.settle
     use_bed(bx + 6, SKY_Y - 1, bz)
-    @weather.stop_rain
-    @weather.settle
+    @weather.rain.stop.settle
     check("a bed works earlier in the evening in rain", dusk && @clock.time_of_day == Clock::MORNING)
     awake = [[3.0, 0.0], [0.0, 6.0], [9.0, 0.0]].map do |(across, up)|
       @mobs.clear

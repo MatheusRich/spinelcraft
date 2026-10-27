@@ -3,49 +3,34 @@
 # splashes on the ground. The rain itself is streaks on crossed quads in
 # the columns around the player; the vrain shader moves them down.
 #
-# The thunder flag turns on and off on its own timer, as in Minecraft. Rain
-# while the flag is on is a thunderstorm. minecraft.wiki/w/Weather
+# The thunder spell turns on and off on its own timer, as in Minecraft. Rain
+# while the thunder spell is on is a thunderstorm. minecraft.wiki/w/Weather
 class Weather
   # Rain falls in the columns within R blocks of the player.
   R = 10
-  # Seconds that the rain takes to start or to stop. In Java Edition the
-  # rain level moves 0.01 each tick toward its target, so a full change takes
-  # 100 ticks. The wiki does not give this value: minecraft.wiki/w/Rain and
-  # minecraft.wiki/w/Commands/weather do not describe the change.
-  FADE = 5.0
+  # Seconds that a spell of rain lasts, and that the sky stays dry.
+  RAIN_LASTS = 120.0..360.0
+  RAIN_PAUSES = 300.0..900.0
+  # Thunder stays on for 3600 to 15600 ticks, and off for 12000 to 180000
+  # ticks. minecraft.wiki/w/Weather
+  THUNDER_LASTS = 180.0..780.0
+  THUNDER_PAUSES = 600.0..9000.0
   # The strength at which the rain wets: it puts out fires, and the sun
   # does not burn undead mobs. The wiki does not give it.
   WET = 0.5
-  # The thunder flag stays on for 3600 to 15600 ticks, and off for 12000 to
-  # 180000 ticks. minecraft.wiki/w/Weather
-  THUNDER_ON = 180.0
-  THUNDER_ON_SPAN = 600.0
-  THUNDER_OFF = 600.0
-  THUNDER_OFF_SPAN = 8400.0
   # Minecraft strikes lightning when the strength of the storm is above 0.9.
   # The wiki does not confirm this value (Level#isThundering in the code).
   STRIKING = 0.9
 
-  # The strength of the rain, from 0 (none) to 1.
-  attr_reader :rain
-  # Seconds until the rain starts or stops.
-  attr_accessor :timer
-  # The strength of the thunderstorm, from 0 (none) to 1. It is never more
-  # than the strength of the rain.
-  attr_reader :thunder
-  # Seconds until the thunder flag turns on or off.
-  attr_accessor :thunder_timer
+  # The spells of rain and of thunder.
+  attr_reader :rain, :thunder
   # The rain quads.
   attr_reader :mesh
 
   def initialize(seed)
     @rng = Rng.new(seed)
-    @raining = false
-    @rain = 0.0
-    @timer = 0.0
-    @thundering = false
-    @thunder = 0.0
-    @thunder_timer = 0.0
+    @rain = Spell.new(@rng, RAIN_LASTS, RAIN_PAUSES)
+    @thunder = Spell.new(@rng, THUNDER_LASTS, THUNDER_PAUSES)
     @mesh = Mesh3.new
     # The block that the rain quads are for, and their age in seconds.
     @x = World::NONE
@@ -56,83 +41,48 @@ class Weather
     settle
   end
 
-  def raining? = @raining
-  def thundering? = @thundering
+  # True when rain falls while the thunder spell is on.
+  def thunderstorm? = @rain.on? && @thunder.on?
 
-  # True when rain falls while the thunder flag is on.
-  def storm? = @raining && @thundering
+  # The strength of the thunderstorm: the thunder times the rain, as in
+  # Java Edition (Level#getThunderLevel).
+  def thunderstorm_strength = @rain.strength * @thunder.strength
 
   # True when the storm is strong enough for lightning.
-  def striking? = @thunder > STRIKING
+  def striking? = thunderstorm_strength > STRIKING
 
   # True when the rain is strong enough to wet.
-  def wet? = @rain > WET
-
-  # Each of these sets how long the new weather lasts. The strength of the
-  # rain and of the storm follows over FADE seconds.
-  def start_rain
-    @raining = true
-    @timer = 120.0 + @rng.rand01 * 240.0
-  end
-
-  def stop_rain
-    @raining = false
-    @timer = 300.0 + @rng.rand01 * 600.0
-  end
-
-  def start_thunder
-    @thundering = true
-    @thunder_timer = THUNDER_ON + @rng.rand01 * THUNDER_ON_SPAN
-  end
-
-  def stop_thunder
-    @thundering = false
-    @thunder_timer = THUNDER_OFF + @rng.rand01 * THUNDER_OFF_SPAN
-  end
+  def wet? = @rain.strength > WET
 
   # Stops the rain and the thunder.
   def clear
-    stop_rain
-    stop_thunder
+    @rain.stop
+    @thunder.stop
   end
 
-  # Starts the rain and the thunder.
-  def start_storm
-    start_rain
-    start_thunder
-  end
-
-  # Moves the rain and the storm to their full strength, or to none, at once.
+  # Moves the strength of each spell to its flag at once.
   def settle
-    @rain = @raining ? 1.0 : 0.0
-    @thunder = storm? ? @rain : 0.0
+    @rain.settle
+    @thunder.settle
   end
 
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
   def update_weather(dt)
-    @timer -= dt
-    toggle_rain if @timer <= 0.0
-    @thunder_timer -= dt
-    toggle_thunder if @thunder_timer <= 0.0
-    step = dt / FADE
-    @rain = (@raining ? @rain + step : @rain - step).clamp(0.0, 1.0)
-    @thunder = (storm? ? @thunder + step : @thunder - step).clamp(0.0, @rain)
+    @rain.advance(dt)
+    @thunder.advance(dt)
   end
 
-  # The rain and the thunder flag each turn over when their timer ends.
-  def toggle_rain
-    @raining ? stop_rain : start_rain
-  end
+  # The spells for the save: Spell#to_a of the rain, then of the thunder.
+  def to_a = @rain.to_a + @thunder.to_a
 
-  def toggle_thunder
-    @thundering ? stop_thunder : start_thunder
-  end
+  # Reads what to_a wrote from fields at at, and returns the place after it.
+  def load(fields, at) = @thunder.load(fields, @rain.load(fields, at))
 
   # Drops that splash on the ground around the player.
   def splash(particles, world, player, dt)
-    n = (dt * 90.0 * @rain + @rng.rand01).to_i
+    n = (dt * 90.0 * @rain.strength + @rng.rand01).to_i
     n.times do
       x = player.x + (@rng.rand01 * 2.0 - 1.0) * 8.0
       z = player.z + (@rng.rand01 * 2.0 - 1.0) * 8.0
@@ -146,17 +96,17 @@ class Weather
   # The volume of the rain sound now. It follows the strength of the rain.
   # Under a roof it is quieter, and 10 blocks under the ground it stops.
   def sound(world, player)
-    return 0.0 if @rain <= 0.0
+    return 0.0 if @rain.strength <= 0.0
 
     cover = world.height_at(player.x.floor, player.z.floor) - player.eye_y
-    (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain
+    (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain.strength
   end
 
   # Makes the rain quads again when the player moves to another block, and
   # every second for the blocks that change. Returns true when it did.
   def build_quads(world, player, dt) # rubocop:todo Metrics/MethodLength
     @age += dt
-    return false if @rain <= 0.0
+    return false if @rain.strength <= 0.0
 
     cx = player.x.floor
     cy = player.y.floor

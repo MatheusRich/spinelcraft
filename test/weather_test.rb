@@ -1,109 +1,86 @@
 require_relative "test_helper"
 
 class WeatherTest < Minitest::Test
+  def setup
+    @weather = Weather.new(1)
+  end
+
   def test_the_rain_wets_once_it_is_stronger_than_half
-    weather = Weather.new(1)
-    weather.start_rain
-    weather.update_weather(Weather::FADE * 0.5)
-    assert weather.raining?
-    refute weather.wet?
-    weather.update_weather(Weather::FADE * 0.1)
-    assert weather.wet?
+    @weather.rain.start
+    @weather.update_weather(Spell::FADE * 0.5)
+    assert @weather.rain.on?
+    refute @weather.wet?
+    @weather.update_weather(Spell::FADE * 0.1)
+    assert @weather.wet?
   end
 
   def test_drops_splash_around_the_player_in_rain_and_not_when_dry
     world = world_with_one_chunk
     player = Player.new(8.5, world.height_at(8, 8).to_f, 8.5)
     dry = Particles.new(1)
-    Weather.new(1).splash(dry, world, player, 1.0)
+    @weather.splash(dry, world, player, 1.0)
     wet = Particles.new(1)
     rainy = Weather.new(1)
-    rainy.start_rain
-    rainy.settle
+    rainy.rain.start.settle
     rainy.splash(wet, world, player, 1.0)
     assert_equal 0, dry.count(Particle::DROP)
     assert_operator wet.count(Particle::DROP), :>, 0
   end
 
-  def test_rain_while_the_thunder_flag_is_on_is_a_storm_that_strikes_once_it_is_strong
-    weather = Weather.new(1)
-    weather.start_thunder
-    refute weather.storm?
-    weather.start_rain
-    assert weather.storm?
-    weather.update_weather(Weather::FADE * 0.5)
-    refute weather.striking?
-    weather.update_weather(Weather::FADE * 0.5)
-    assert weather.striking?
+  def test_rain_while_the_thunder_spell_is_on_is_a_storm_that_strikes_once_it_is_strong
+    @weather.thunder.start.settle
+    refute @weather.thunderstorm?
+    @weather.rain.start
+    assert @weather.thunderstorm?
+    @weather.update_weather(Spell::FADE * 0.5)
+    refute @weather.striking?
+    @weather.update_weather(Spell::FADE * 0.5)
+    assert @weather.striking?
   end
 
   def test_the_storm_is_never_stronger_than_the_rain
-    weather = Weather.new(1)
-    weather.start_rain
-    weather.settle
-    weather.start_thunder
-    weather.settle
-    weather.stop_rain
-    weather.update_weather(Weather::FADE * 0.5)
-    assert_in_delta 0.5, weather.thunder, 0.001
-    assert_in_delta 0.5, weather.rain, 0.001
+    @weather.rain.start.settle
+    @weather.thunder.start.settle
+    @weather.rain.stop
+    @weather.update_weather(Spell::FADE * 0.5)
+    assert_in_delta 0.5, @weather.rain.strength, 0.001
+    assert_in_delta 0.5, @weather.thunderstorm_strength, 0.001
   end
 
-  def test_the_thunder_flag_times_follow_the_wiki
-    weather = Weather.new(1)
-    weather.start_thunder
-    assert_operator weather.thunder_timer, :>=, Weather::THUNDER_ON
-    assert_operator weather.thunder_timer, :<=, Weather::THUNDER_ON + Weather::THUNDER_ON_SPAN
-    weather.stop_thunder
-    assert_operator weather.thunder_timer, :>=, Weather::THUNDER_OFF
-    assert_operator weather.thunder_timer, :<=, Weather::THUNDER_OFF + Weather::THUNDER_OFF_SPAN
-  end
-
-  def test_the_thunder_flag_turns_over_when_its_timer_ends
-    weather = Weather.new(1)
-    weather.thunder_timer = 1.0
-    weather.update_weather(1.5)
-    assert weather.thundering?
-  end
-
-  def test_a_thunderstorm_set_now_is_at_full_strength
-    weather = Weather.new(1)
-    weather.start_rain
-    weather.settle
-    weather.start_thunder
-    weather.settle
-    assert_equal 1.0, weather.thunder
+  def test_the_spells_last_for_the_times_of_the_wiki
+    @weather.thunder.start
+    assert Weather::THUNDER_LASTS.cover?(@weather.thunder.timer)
+    @weather.thunder.stop
+    assert Weather::THUNDER_PAUSES.cover?(@weather.thunder.timer)
+    @weather.rain.start
+    assert Weather::RAIN_LASTS.cover?(@weather.rain.timer)
+    @weather.rain.stop
+    assert Weather::RAIN_PAUSES.cover?(@weather.rain.timer)
   end
 
   def test_clear_stops_the_rain_and_the_thunder_and_settle_makes_it_so_at_once
-    weather = Weather.new(1)
-    weather.start_rain
-    weather.settle
-    weather.start_thunder
-    weather.settle
-    assert weather.striking?
-    weather.clear
-    refute weather.raining?
-    refute weather.thundering?
-    assert_equal 1.0, weather.rain
-    weather.settle
-    assert_equal 0.0, weather.rain
-    assert_equal 0.0, weather.thunder
+    @weather.rain.start.settle
+    @weather.thunder.start.settle
+    assert @weather.striking?
+    @weather.clear
+    refute @weather.rain.on?
+    refute @weather.thunder.on?
+    assert_equal 1.0, @weather.rain.strength
+    @weather.settle
+    assert_equal 0.0, @weather.rain.strength
+    assert_equal 0.0, @weather.thunderstorm_strength
   end
 
-  def test_each_change_sets_the_time_that_the_new_weather_lasts
-    weather = Weather.new(1)
-    weather.start_rain
-    assert_operator weather.timer, :>=, 120.0
-    assert_operator weather.timer, :<=, 360.0
-    weather.stop_rain
-    assert_operator weather.timer, :>=, 300.0
-    assert_operator weather.timer, :<=, 900.0
-  end
-
-  def test_start_storm_starts_the_rain_and_the_thunder
-    weather = Weather.new(1)
-    weather.start_storm
-    assert weather.storm?
+  def test_the_save_fields_keep_both_spells
+    @weather.rain.start
+    @weather.rain.timer = 77.5
+    @weather.thunder.start
+    @weather.thunder.timer = 55.5
+    other = Weather.new(2)
+    assert_equal 4, other.load(@weather.to_a.map(&:to_s), 0)
+    assert other.thunderstorm?
+    assert_equal 77.5, other.rain.timer
+    assert_equal 55.5, other.thunder.timer
+    assert_equal 1.0, other.thunderstorm_strength
   end
 end

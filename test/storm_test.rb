@@ -5,9 +5,8 @@ class StormTest < Minitest::Test
     @world = world_with_one_chunk
     16.times { |x| 16.times { |z| @world.set(x, SKY_Y - 2, z, Block::STONE) } }
     @weather = Weather.new(1)
-    @weather.start_rain
-    @weather.start_thunder
-    @weather.settle
+    @weather.rain.start.settle
+    @weather.thunder.start.settle
     @mobs = []
     @storm = Storm.new(7, @world, @weather, @mobs)
     @particles = Particles.new(1)
@@ -76,7 +75,7 @@ class StormTest < Minitest::Test
 
       assert_includes 0...CHUNK, @storm.lightning.x
       assert_includes 0...CHUNK, @storm.lightning.z
-      @storm.lightning.update_lightning(Lightning::LIFE + Lightning::FADE)
+      @storm.lightning.update_lightning(Lightning::LIFE + Lightning::FLASH_FADE)
     end
   end
 
@@ -88,8 +87,7 @@ class StormTest < Minitest::Test
   end
 
   def test_a_clear_sky_has_no_strikes
-    @weather.stop_thunder
-    @weather.settle
+    @weather.thunder.stop.settle
     100_000.times { refute @storm.advance(1.0, @player, @particles) }
     refute @storm.lightning.visible?
   end

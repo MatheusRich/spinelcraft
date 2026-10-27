@@ -50,7 +50,7 @@ class Sky
   # that the tick of the day has passed.
   def light
     tick = @clock.ticks
-    raining = @weather.raining?
+    raining = @weather.rain.on?
     dawn = raining ? DAWN_RAIN : DAWN_CLEAR
     return 4 + passed(dawn, tick) if tick >= dawn[0]
     return TOP_RAIN - passed(DUSK_RAIN, tick) if raining
@@ -74,7 +74,7 @@ class Sky
   # lightning flash (from 0 to 1) lights the sky.
   def write_uniforms(uniforms, at, view, flash)
     day = @clock.daylight
-    rain = @weather.rain
+    rain = @weather.rain.strength
     red = 0.03 + 0.50 * day
     green = 0.04 + 0.68 * day
     blue = 0.10 + 0.88 * day
@@ -85,7 +85,7 @@ class Sky
       green += (0.55 - green) * dusk
       blue += (0.25 - blue) * dusk
     end
-    gray = 0.06 + 0.4 * day * (1.0 - STORM_GRAY * @weather.thunder)
+    gray = 0.06 + 0.4 * day * (1.0 - STORM_GRAY * @weather.thunderstorm_strength)
     fog = view * (1.0 - 0.6 * rain)
     red += (gray - red) * rain * 0.85
     green += (gray - green) * rain * 0.85
@@ -94,7 +94,7 @@ class Sky
     uniforms[at + 1] = green + (FLASH_GREEN - green) * flash
     uniforms[at + 2] = blue + (FLASH_BLUE - blue) * flash
     uniforms[at + 3] = fog
-    light = day * (1.0 - 0.35 * rain) * (1.0 - STORM_DAYLIGHT * @weather.thunder)
+    light = day * (1.0 - 0.35 * rain) * (1.0 - STORM_DAYLIGHT * @weather.thunderstorm_strength)
     uniforms[at + 4] = light + (FLASH_LIGHT - light) * flash
     # Fog at the view's end starts 65 blocks before it, or a quarter of the
     # view before it for long views, so it blends with the haze.
@@ -129,7 +129,7 @@ class Sky
 
   # The stars at night. Rain hides them.
   def draw_stars(w, h, s)
-    night = @clock.starlight * (1.0 - @weather.rain)
+    night = @clock.starlight * (1.0 - @weather.rain.strength)
     return if night <= 0.0
 
     a = @clock.sun_angle
@@ -167,7 +167,7 @@ class Sky
     sx = @camera.sx
     sy = @camera.sy
     # Rain hides the sun and the moon.
-    clear = 1.0 - @weather.rain
+    clear = 1.0 - @weather.rain.strength
     return if clear <= 0.0
 
     @mesh.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18 * clear * lit)

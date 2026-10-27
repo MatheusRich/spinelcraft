@@ -6,7 +6,7 @@ class Lightning
   # Seconds that the bolt shows. The wiki does not give the time.
   LIFE = 0.4
   # Seconds that the flash takes to fade after the bolt.
-  FADE = 0.25
+  FLASH_FADE = 0.25
   # The flash while the bolt shows, when it is lit and when it flickers
   # dark, and the share of the flash that is left when the bolt ends.
   FLASH_LIT = 1.0
@@ -65,11 +65,11 @@ class Lightning
     @rng = Rng.new(seed)
     # The lines of the bolt: x0, y0, z0, x1, y1, z1 and the width scale.
     @lines = []
-    @age = LIFE + FADE
+    @age = LIFE + FLASH_FADE
     @flash = 0.0
-    # The thunder on its way: the seconds until it arrives and the bolt's
+    # The thunderclaps on their way: the seconds until it arrives and the bolt's
     # x, y and z, for each strike.
-    @thunder = []
+    @thunderclaps = []
     @heard_x = 0.0
     @heard_y = 0.0
     @heard_z = 0.0
@@ -97,7 +97,7 @@ class Lightning
     away_x = ground_x - eye_x
     away_y = ground_y - eye_y
     away_z = ground_z - eye_z
-    @thunder << Math.sqrt(away_x * away_x + away_y * away_y + away_z * away_z) / SOUND_SPEED << ground_x << ground_y << ground_z
+    @thunderclaps << Math.sqrt(away_x * away_x + away_y * away_y + away_z * away_z) / SOUND_SPEED << ground_x << ground_y << ground_z
   end
 
   # The main channel from the top to the ground: steps of about STEP blocks,
@@ -155,7 +155,7 @@ class Lightning
   # dims in the others. After its life, the flash fades.
   def update_lightning(dt)
     @age += dt
-    @flash = visible? ? (lit? ? FLASH_LIT : FLASH_DARK) : (1.0 - (@age - LIFE) / FADE).clamp(0.0, 1.0) * FLASH_AFTER
+    @flash = visible? ? (lit? ? FLASH_LIT : FLASH_DARK) : (1.0 - (@age - LIFE) / FLASH_FADE).clamp(0.0, 1.0) * FLASH_AFTER
   end
 
   def lit? = (@age * TICKS_PER_SECOND).to_i % FLICKER_TICKS != FLICKER_DARK_TICK
@@ -163,11 +163,11 @@ class Lightning
   # Counts down the thunder on its way. Returns true when a thunder reaches
   # the player now; heard_x, heard_y and heard_z then hold its bolt.
   def thunder_arrived?(dt)
-    return false if @thunder.empty?
+    return false if @thunderclaps.empty?
 
     arrived = false
     waiting = []
-    @thunder.each_slice(THUNDER_FIELDS) do |seconds, x, y, z|
+    @thunderclaps.each_slice(THUNDER_FIELDS) do |seconds, x, y, z|
       seconds -= dt
       if seconds <= 0.0 && !arrived
         arrived = true
@@ -178,7 +178,7 @@ class Lightning
         waiting << seconds << x << y << z
       end
     end
-    @thunder = waiting
+    @thunderclaps = waiting
     arrived
   end
 

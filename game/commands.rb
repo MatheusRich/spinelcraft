@@ -123,11 +123,12 @@ class Game
       @weather.clear
       @chat.post("CHANGING TO CLEAR WEATHER")
     elsif args[0] == "RAIN"
-      @weather.start_rain
-      @weather.stop_thunder
+      @weather.rain.start
+      @weather.thunder.stop
       @chat.post("CHANGING TO RAIN")
     elsif args[0] == "THUNDER"
-      @weather.start_storm
+      @weather.rain.start
+      @weather.thunder.start
       @chat.post("CHANGING TO RAIN AND THUNDER")
     else
       @chat.post_error("UNKNOWN WEATHER: #{args[0]}")

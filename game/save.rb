@@ -46,8 +46,8 @@ class Game
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv.to_a + @hotbar + [@player.vitals.hunger, @player.vitals.saturation, @player.vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer,
-                                                                                                                      @weather.thundering? ? 1 : 0, @weather.thunder_timer] + chest_fields +
+    vitals = @player.vitals
+    inv = (@inv.to_a + @hotbar + [vitals.hunger, vitals.saturation, vitals.exhaustion] + @weather.to_a + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + boat_fields + looted_fields + chunk_fields).map(&:to_s).join(" ")
     line = "#{SAVE_VERSION} #{header} #{inv}\n"
     File.open(@save_path, "wb") do |f|
@@ -151,12 +151,7 @@ class Game
     @player.vitals.hunger = f[F_HUNGER].to_i
     @player.vitals.saturation = f[F_HUNGER + 1].to_f
     @player.vitals.exhaustion = f[F_HUNGER + 2].to_f
-    @weather.clear
-    @weather.start_rain if f[F_WEATHER] == "1"
-    @weather.timer = f[F_WEATHER + 1].to_f
-    @weather.start_thunder if f[F_WEATHER + 2] == "1"
-    @weather.thunder_timer = f[F_WEATHER + 3].to_f
-    @weather.settle
+    @weather.load(f, F_WEATHER)
     at = @chests.load(f, F_CHESTS)
     @items.clear
     items = f[at].to_i

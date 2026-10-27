@@ -41,11 +41,11 @@ class LightningTest < Minitest::Test
 
   def test_the_flash_fades_after_the_bolt
     strike
-    @lightning.update_lightning(Lightning::LIFE + Lightning::FADE / 2.0)
+    @lightning.update_lightning(Lightning::LIFE + Lightning::FLASH_FADE / 2.0)
     refute @lightning.visible?
     assert_operator @lightning.flash, :>, 0.0
     assert_operator @lightning.flash, :<, Lightning::FLASH_AFTER
-    @lightning.update_lightning(Lightning::FADE)
+    @lightning.update_lightning(Lightning::FLASH_FADE)
     assert_equal 0.0, @lightning.flash
   end
 

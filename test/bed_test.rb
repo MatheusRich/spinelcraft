@@ -34,8 +34,7 @@ class BedTest < Minitest::Test
     weather = Weather.new(1)
     sky = Sky.new(evening, weather, Camera.new)
     assert_equal "SPAWN SET: YOU CAN ONLY SLEEP AT NIGHT", Bed.use(X, Y, Z, sky.light, [], @clock)
-    weather.start_rain
-    weather.settle
+    weather.rain.start.settle
     assert_equal "GOOD MORNING", Bed.use(X, Y, Z, sky.light, [], @clock)
   end
 

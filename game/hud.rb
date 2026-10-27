@@ -224,8 +224,8 @@ class Game
   end
 
   def weather_label
-    return "  THUNDERSTORM" if @weather.storm?
-    return "  RAIN" if @weather.raining?
+    return "  THUNDERSTORM" if @weather.thunderstorm?
+    return "  RAIN" if @weather.rain.on?
 
     ""
   end
