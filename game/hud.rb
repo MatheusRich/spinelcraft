@@ -54,7 +54,7 @@ class Game
     elsif Block.lava?(eye_block)
       @ui.rect(0.0, 0.0, w, h, 0.9, 0.3, 0.05, 0.75)
     end
-    if @vitals.burning? && @survival && !@vitals.dead?
+    if @player.vitals.burning? && @survival && !@player.vitals.dead?
       # Two flames at the bottom corners that flicker.
       size = h * 0.42
       2.times do |k|
@@ -73,8 +73,8 @@ class Game
       pull = @draw_time > 1.0 ? 1.0 : @draw_time
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s, 4.0 * s, 0.0, 0.0, 0.0, 0.5)
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s * pull, 4.0 * s, 1.0, pull, 0.2, 0.9)
-    elsif @survival && @melee_attack.charge(current_block.to_i) < 1.0
-      charge = @melee_attack.charge(current_block.to_i)
+    elsif @survival && @player.melee_attack.charge(current_block.to_i) < 1.0
+      charge = @player.melee_attack.charge(current_block.to_i)
       @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s, 3.0 * s, 0.0, 0.0, 0.0, 0.5)
       @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s * charge, 3.0 * s, 1.0, 1.0, 1.0, 0.8)
     end
@@ -108,7 +108,7 @@ class Game
       @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART_EMPTY, p, p, 1.0, 1.0, 1.0, 1.0)
       # A part of a half heart shows as a half heart, as in Minecraft. A half
       # heart is the left 5 of the 9 columns.
-      hp = @vitals.health.ceil - i * 2
+      hp = @player.vitals.health.ceil - i * 2
       if hp >= 2
         @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART, p, p, 1.0, 1.0, 1.0, 1.0)
       elsif hp == 1
@@ -117,17 +117,17 @@ class Game
       i += 1
     end
     # The Hunger effect turns the food yellow-green. minecraft.wiki/w/Hunger_(effect)
-    full = @vitals.hunger_effect? ? Tex::HUNGER_EFFECT : Tex::HUNGER
+    full = @player.vitals.hunger_effect? ? Tex::HUNGER_EFFECT : Tex::HUNGER
     10.times do |i|
       fx = x0 + total - (i + 1) * 20.0 * s
       p = Tex::ICON_PART
       @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::HUNGER_EMPTY, p, p, 1.0, 1.0, 1.0, 1.0)
-      if @vitals.hunger - i * 2 >= 1
+      if @player.vitals.hunger - i * 2 >= 1
         @ui.quad(fx, hy, 18.0 * s, 18.0 * s, full, p, p, 1.0, 1.0, 1.0, 1.0)
       end
     end
-    if @vitals.air < Vitals::MAX_AIR
-      bubbles = (@vitals.air / Vitals::MAX_AIR * 10.0).ceil
+    if @player.vitals.air < Vitals::MAX_AIR
+      bubbles = (@player.vitals.air / Vitals::MAX_AIR * 10.0).ceil
       bubbles.times do |i|
         bx = x0 + total - (i + 1) * 20.0 * s
         @ui.rect(bx + 3.0 * s, hy - 22.0 * s + 3.0 * s, 13.0 * s, 13.0 * s, 0.6, 0.85, 1.0, 0.9)
@@ -137,7 +137,7 @@ class Game
 
   # The first-steps hint for an empty survival inventory, and the last message.
   def draw_messages(w, y0, s)
-    if @survival && !@vitals.dead? && !current_screen.inventory? && @inv.room_for(Block::DIRT) == INV * Slots::STACK
+    if @survival && !@player.vitals.dead? && !current_screen.inventory? && @inv.room_for(Block::DIRT) == INV * Slots::STACK
       hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
       @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, 1.0, 1.0, 0.7, 0.9)
     end

@@ -66,7 +66,7 @@ class Game
       elsif @world.cactus_in_box?(item.x, item.y, item.z, Item::HALF, Item::TALL)
         # A cactus destroys an item that touches it. minecraft.wiki/w/Cactus
         item.count = 0
-      elsif item.ready? && !@vitals.dead? && item.near?(@player)
+      elsif item.ready? && !@player.vitals.dead? && item.near?(@player)
         pick_up(item)
       end
     end

@@ -18,9 +18,9 @@ class Game
   # Takes amount of health and plays sound: Sfx::HURT, or Sfx::FALL for a
   # fall, as in Minecraft.
   def hurt(amount, sound)
-    return if !@survival || @vitals.dead? || amount <= 0
+    return if !@survival || @player.vitals.dead? || amount <= 0
 
-    @vitals.hurt(amount)
+    @player.vitals.hurt(amount)
     felt_hurt(sound)
   end
 
@@ -29,7 +29,7 @@ class Game
   def felt_hurt(sound)
     @sfx.play(sound, 0.8)
     @damage_flash = 0.35
-    return unless @vitals.dead?
+    return unless @player.vitals.dead?
 
     toggle_inventory if current_screen.inventory?
     close_chat if current_screen.typing?

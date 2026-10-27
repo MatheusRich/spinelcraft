@@ -146,12 +146,12 @@ class Game
   # Hits the mob with the item in the hand.
   def attack_mob(mob)
     item_in_hand = current_block.to_i
-    damage = @survival ? @melee_attack.damage(item_in_hand, @player) : @melee_attack.creative_damage
+    damage = @survival ? @player.melee_attack.damage(item_in_hand, @player) : @player.melee_attack.creative_damage
     mob.hit(damage, @player.x, @player.z)
-    @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if @melee_attack.critical?(item_in_hand, @player)
-    @melee_attack.restart
+    @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if @player.melee_attack.critical?(item_in_hand, @player)
+    @player.melee_attack.restart
     wear_tool(Block.wear(current_block.to_i, true))
-    @vitals.exhaust(Vitals::ATTACK_COST) if @survival
+    @player.vitals.exhaust(Vitals::ATTACK_COST) if @survival
     mob.by_player = true
     @sfx.play(Sfx::HIT, 0.8)
     @swing = SWING
@@ -167,7 +167,7 @@ class Game
     @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
     @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
     set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
-    @melee_attack.restart
+    @player.melee_attack.restart
     @action_cooldown = ACTION_COOLDOWN
     @swing = SWING
   end
@@ -175,7 +175,7 @@ class Game
   # A click at the air swings the arm and starts the cooldown again. The
   # wiki does not say so; the game code does (Minecraft.startAttack).
   def swing_at_air
-    @melee_attack.restart
+    @player.melee_attack.restart
     @swing = SWING
   end
 
@@ -511,13 +511,13 @@ class Game
     @particles.burst(x, y, z, block)
     @sfx.play(MATERIAL_BREAK[material(block)], 0.7)
     set_block(x, y, z, Block::AIR)
-    @melee_attack.restart
+    @player.melee_attack.restart
     drop_broken(block, x, y, z, tool) if harvests?(tool, block)
     if Block::HARDNESS[block] > 0.0
       wear_tool(Block.wear(tool, false))
       @mine_delay = MINE_DELAY
     end
-    @vitals.exhaust(Vitals::MINE_COST)
+    @player.vitals.exhaust(Vitals::MINE_COST)
     @mining = false
   end
 
@@ -626,7 +626,7 @@ class Game
     return false if !@survival || @inv.empty?(@slot)
 
     block = current_block.to_i
-    block == Block::MILK_BUCKET || (@vitals.hungry? && Block.food(block) > 0)
+    block == Block::MILK_BUCKET || (@player.vitals.hungry? && Block.food(block) > 0)
   end
 
   # True for a block that the right button opens or uses.
@@ -656,8 +656,8 @@ class Game
     block = current_block.to_i
     return drink_milk if block == Block::MILK_BUCKET
 
-    @vitals.eat(Block.food(block), Block.saturation(block))
-    @vitals.give_hunger_effect if @rng.rand01 < Block.hunger_chance(block)
+    @player.vitals.eat(Block.food(block), Block.saturation(block))
+    @player.vitals.give_hunger_effect if @rng.rand01 < Block.hunger_chance(block)
     @inv.take(@slot, 1)
     @sfx.play(Sfx::EAT, 0.6)
   end
@@ -665,7 +665,7 @@ class Game
   # Milk ends the effects and leaves the empty bucket.
   # minecraft.wiki/w/Milk_Bucket
   def drink_milk
-    @vitals.clear_effects
+    @player.vitals.clear_effects
     swap_bucket(Block::BUCKET)
     @sfx.play(Sfx::DRINK, 0.6)
   end

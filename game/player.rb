@@ -1,5 +1,6 @@
-# The physics of the player: how it walks, swims, climbs, flies and falls.
-# BlockTarget finds the block in view.
+# The player: how it walks, swims, climbs, flies and falls, and the health
+# (Vitals) and the melee attack (MeleeAttack) that it owns. BlockTarget finds
+# the block in view.
 class Player
   HALF = 0.3
   TALL = 1.8
@@ -35,6 +36,7 @@ class Player
   attr_reader :jumped
   # The keys that move the player (Controls).
   attr_reader :controls
+  attr_reader :vitals, :melee_attack
 
   def initialize(x, y, z)
     @x = x
@@ -58,7 +60,15 @@ class Player
     @sprinting = false
     @eye = EYE
     @controls = Controls.new
+    @vitals = Vitals.new
+    @melee_attack = MeleeAttack.new
     @fall_start = y
+  end
+
+  # Gives the player full health and hunger again.
+  def revive
+    @vitals = Vitals.new
+    nil
   end
 
   # Puts the player at rest at x, y, z. A fall starts again from there.

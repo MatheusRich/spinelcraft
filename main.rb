@@ -205,7 +205,6 @@ class Game
     @target_boat = -1
     @draw_time = -1.0
     @eat_time = -1.0
-    @vitals = Vitals.new
     @damage_flash = 0.0
     @mining = false
     @mine_x = 0
@@ -229,7 +228,6 @@ class Game
     @sky = Sky.new(@clock, @weather, @camera)
     @target_mob = -1
     @swing = 0.0
-    @melee_attack = MeleeAttack.new
     @held_item = HeldItem.new
     # Where the held model starts in @dyn (see gfx_dyn).
     @hand_at = 0
@@ -395,8 +393,8 @@ class Game
     @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
     @player.move_to(@spawn_x, h + 0.01, @spawn_z)
+    @player.revive
     Log.debug(Log::WORLD) { "respawn at #{@spawn_x.floor} #{h} #{@spawn_z.floor}" }
-    @vitals = Vitals.new
     @alive_time = 0.0
     @riding = -1
   end
@@ -488,7 +486,7 @@ class Game
       hurt((fell - 3.0).ceil, Sfx::FALL) if fell > 3.5
       if @survival
         moved = @player.speed * step
-        @vitals.move(moved, @player.controls.sprint && @player.on_ground, @player.in_water, @player.jumped)
+        @player.vitals.move(moved, @player.controls.sprint && @player.on_ground, @player.in_water, @player.jumped)
       end
       remaining -= step
     end
@@ -545,7 +543,7 @@ class Game
     @chat.age(dt)
     @damage_flash -= dt
     @swing -= dt
-    @melee_attack.advance(dt)
+    @player.melee_attack.advance(dt)
   end
 
   # The movement keys of this frame, in the controls of the player. No key
@@ -570,7 +568,7 @@ class Game
 
   # A hungry player cannot sprint in survival, nor a player who eats or
   # draws the bow.
-  def may_sprint? = (!@survival || @vitals.can_sprint?) && !using_item?
+  def may_sprint? = (!@survival || @player.vitals.can_sprint?) && !using_item?
 
   # A second press of jump within FLY_TAP starts or stops flying in
   # creative, as in Minecraft. A third press starts a new double press.
@@ -585,7 +583,7 @@ class Game
   end
 
   def update_survival(dt)
-    return unless @survival && !@vitals.dead?
+    return unless @survival && !@player.vitals.dead?
 
     @alive_time += dt
     p = @player
@@ -594,13 +592,13 @@ class Game
     in_lava = Block.lava?(feet) || Block.lava?(eyes)
     under_water = Block.water?(eyes)
     # Water and rain put the fire out.
-    if !in_lava && @vitals.burning? && (under_water || Block.water?(feet) || (@weather.wet? && @world.under_sky?(p.x, p.eye_y, p.z)))
-      @vitals.douse
+    if !in_lava && @player.vitals.burning? && (under_water || Block.water?(feet) || (@weather.wet? && @world.under_sky?(p.x, p.eye_y, p.z)))
+      @player.vitals.douse
       @sfx.play(Sfx::FIZZ, 0.6)
     end
     on_cactus = @world.cactus_in_box?(p.x, p.y, p.z, Player::HALF, Player::TALL)
-    felt_hurt(Sfx::HURT) if @vitals.update_vitals(dt, in_lava, on_cactus, under_water)
-    @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @vitals.hunger_effect?
+    felt_hurt(Sfx::HURT) if @player.vitals.update_vitals(dt, in_lava, on_cactus, under_water)
+    @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @player.vitals.hunger_effect?
   end
 
   # The screen that the player sees now.
@@ -678,7 +676,7 @@ class Game
   # sway of the held item follows the walk speed.
   def update_hand(dt)
     if @held_item.change(current_block.to_i)
-      @melee_attack.restart
+      @player.melee_attack.restart
       @eat_time = -1.0
     end
     p = @player
@@ -809,7 +807,7 @@ class Game
     end
     elapsed = (Gfx.gfx_ns - started) / 1.0e9
     puts "gpu_wait_ms=#{Gfx.gfx_gpu_ms.round(2)}" if ENV["GPUTIME"]
-    puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(@total_cpu / frames).round(3)} max_cpu_ms=#{@max_cpu.round(2)} max_frame_ms=#{@max_frame.round(1)} slow_frames=#{@slow_frames} health=#{@vitals.health} dead=#{@vitals.dead?} mobs=#{@mobs.size}"
+    puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(@total_cpu / frames).round(3)} max_cpu_ms=#{@max_cpu.round(2)} max_frame_ms=#{@max_frame.round(1)} slow_frames=#{@slow_frames} health=#{@player.vitals.health} dead=#{@player.vitals.dead?} mobs=#{@mobs.size}"
     Gfx.gfx_quit
   end
 end

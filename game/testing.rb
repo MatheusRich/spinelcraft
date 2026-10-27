@@ -401,7 +401,7 @@ class Game
       mined = true if @demo_scene == 1 && mine_target < 0
       calf = true if @mobs.any? { |mob| mob.kind == Mob::COW && mob.baby? }
       wool = true if @mobs.any? { |mob| mob.kind == Mob::SHEEP && !mob.baby? && !mob.shearable? }
-      died = true if @vitals.dead?
+      died = true if @player.vitals.dead?
     end
     @quit = false
     check("the demo reel: the miner breaks each block of the mine", mined)
@@ -580,12 +580,12 @@ class Game
     @inv.clear
     toggle_inventory
     open_chat("")
-    @vitals.hurt(1000)
+    @player.vitals.hurt(1000)
     felt_hurt(Sfx::HURT)
     dead = current_screen.death_screen?
     respawn
     resume
-    check("a death opens the death screen, and a respawn plays again", dead && current_screen.playing? && !@vitals.dead?)
+    check("a death opens the death screen, and a respawn plays again", dead && current_screen.playing? && !@player.vitals.dead?)
     @survival = survival
     Gfx.in_capture(0)
   end
@@ -812,12 +812,12 @@ class Game
     # In survival 5 hits of a hand break a boat into its item; in creative
     # one hit breaks it and drops nothing.
     @items.clear
-    @melee_attack.restart
-    @melee_attack.advance(10.0)
+    @player.melee_attack.restart
+    @player.melee_attack.advance(10.0)
     4.times do
       hit_boat(0)
-      @melee_attack.restart
-      @melee_attack.advance(10.0)
+      @player.melee_attack.restart
+      @player.melee_attack.advance(10.0)
     end
     held = @boats.size == 1
     hit_boat(0)
@@ -1096,14 +1096,14 @@ class Game
     @target_mob = -1
     @target_boat = -1
     @swing = 0.0
-    @melee_attack.restart
-    @melee_attack.advance(1.0)
+    @player.melee_attack.restart
+    @player.melee_attack.advance(1.0)
     rest = hand_corner
     left_button(1.0 / 60.0, true, true)
     # Halfway through the swing, as Game#update counts it down.
     @swing -= SWING / 2.0
     moved = (hand_corner - rest).abs > 0.05
-    check("a click at the air swings the held sword and starts the cooldown again", !@target_block.hit? && moved && @melee_attack.charge(current_block.to_i) < 0.2)
+    check("a click at the air swings the held sword and starts the cooldown again", !@target_block.hit? && moved && @player.melee_attack.charge(current_block.to_i) < 0.2)
     @swing = 0.0
     @dyn.clear
     @inv.clear
@@ -1303,19 +1303,19 @@ class Game
     check("craft log into planks", @inv.block(0) == Block::OAK_LOG && @inv.count(0) == 2 && @inv.block(1) == Block::OAK_PLANKS && @inv.count(1) == 4)
     70.times { @inv.add(Block::DIRT) }
     check("stacks split at 64", @inv.count(2) == 64 && @inv.block(3) == Block::DIRT && @inv.count(3) == 6)
-    @vitals.health = Vitals::MAX_HEALTH
+    @player.vitals.health = Vitals::MAX_HEALTH
     hurt(5, Sfx::HURT)
-    check("hurt lowers health", @vitals.health == 15.0 && !@vitals.dead?)
+    check("hurt lowers health", @player.vitals.health == 15.0 && !@player.vitals.dead?)
     kept = @inv.copy
     @items.clear
     toggle_inventory
     hurt(30, Sfx::HURT)
-    check("death at zero health, and it closes the inventory", @vitals.health == 0.0 && @vitals.dead? && !current_screen.inventory?)
+    check("death at zero health, and it closes the inventory", @player.vitals.health == 0.0 && @player.vitals.dead? && !current_screen.inventory?)
     check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::OAK_PLANKS) == 4)
     @items.clear
     @inv = kept
     respawn
-    check("respawn restores health", @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead?)
+    check("respawn restores health", @player.vitals.health == Vitals::MAX_HEALTH && !@player.vitals.dead?)
     kept = @inv.copy
     @inv.clear
     open_chat("")
@@ -1325,7 +1325,7 @@ class Game
     handle_input(0.05)
     Gfx.in_test_key(Key::R, 0)
     Gfx.in_test_frame
-    check("a death while the player types opens the death screen, and R respawns", !@vitals.dead? && current_screen.playing?)
+    check("a death while the player types opens the death screen, and R respawns", !@player.vitals.dead? && current_screen.playing?)
     Gfx.in_capture(0)
     @items.clear
     @inv = kept
@@ -1455,34 +1455,34 @@ class Game
     @items.clear
     @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
-    @vitals.hunger = 5
+    @player.vitals.hunger = 5
     # Eating takes 1.6 seconds of holding the button, and a release starts
     # it over.
     20.times { right_button(0.05, true) }
     right_button(0.05, false)
     31.times { right_button(0.05, true) }
-    early = @vitals.hunger == 5 && @inv.count(5) == 2
+    early = @player.vitals.hunger == 5 && @inv.count(5) == 2
     2.times { right_button(0.05, true) }
-    check("holding the button for 1.6 seconds eats the food", early && @vitals.hunger == 13 && @inv.count(5) == 1)
+    check("holding the button for 1.6 seconds eats the food", early && @player.vitals.hunger == 13 && @inv.count(5) == 1)
     # Rotten flesh gives 4 hunger and 0.8 saturation. The Hunger effect
     # adds 3 exhaustion in its 30 seconds, and then no more.
-    @vitals = Vitals.new
-    @vitals.hunger = 10
-    @vitals.saturation = 0.0
+    @player.revive
+    @player.vitals.hunger = 10
+    @player.vitals.saturation = 0.0
     @inv.set(5, Block::ROTTEN_FLESH, 1)
     @slot = 5
     eat
-    fed = @vitals.hunger == 14 && @vitals.saturation == 0.8
-    @vitals.give_hunger_effect
-    601.times { @vitals.update_vitals(0.05, false, false, false) }
-    drained = !@vitals.hunger_effect? && (@vitals.exhaustion - 3.0).abs < 0.01
-    20.times { @vitals.update_vitals(0.05, false, false, false) }
-    check("rotten flesh feeds, and its Hunger effect adds exhaustion for 30 seconds", fed && drained && (@vitals.exhaustion - 3.0).abs < 0.01)
+    fed = @player.vitals.hunger == 14 && @player.vitals.saturation == 0.8
+    @player.vitals.give_hunger_effect
+    601.times { @player.vitals.update_vitals(0.05, false, false, false) }
+    drained = !@player.vitals.hunger_effect? && (@player.vitals.exhaustion - 3.0).abs < 0.01
+    20.times { @player.vitals.update_vitals(0.05, false, false, false) }
+    check("rotten flesh feeds, and its Hunger effect adds exhaustion for 30 seconds", fed && drained && (@player.vitals.exhaustion - 3.0).abs < 0.01)
     before = @particles.count(Particle::EFFECT)
-    @vitals.give_hunger_effect
+    @player.vitals.give_hunger_effect
     update_survival(0.5)
     check("the Hunger effect makes green specks around the player", @particles.count(Particle::EFFECT) > before)
-    @vitals = Vitals.new
+    @player.revive
   end
 
   # Frames of 0.05 seconds that it takes to break block at x, y, z (which
@@ -1512,29 +1512,29 @@ class Game
     @chunk_meshes.flush
     @mobs.clear
     @clock.time_of_day = 0.75
-    @vitals.health = Vitals::MAX_HEALTH
+    @player.vitals.health = Vitals::MAX_HEALTH
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     @mobs << Monster.new(Mob::SKELETON, px + 12.5, SKY_Y - 1.0, pz + 0.5, 7)
     frames = 0
-    while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
+    while frames < 400 && @player.vitals.health == Vitals::MAX_HEALTH
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("skeleton arrow hurts the player", @vitals.health < Vitals::MAX_HEALTH)
+    check("skeleton arrow hurts the player", @player.vitals.health < Vitals::MAX_HEALTH)
     @mobs.clear
     @mobs << Monster.new(Mob::ZOMBIE, px + 1.5, SKY_Y - 1.0, pz + 0.5, 9)
-    @vitals.health = Vitals::MAX_HEALTH
+    @player.vitals.health = Vitals::MAX_HEALTH
     @player.vx = 0.0
     @player.vy = 0.0
     @player.vz = 0.0
     frames = 0
-    while frames < 400 && @vitals.health == Vitals::MAX_HEALTH
+    while frames < 400 && @player.vitals.health == Vitals::MAX_HEALTH
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("zombie hit hurts the player", @vitals.health < Vitals::MAX_HEALTH)
+    check("zombie hit hurts the player", @player.vitals.health < Vitals::MAX_HEALTH)
     check("a zombie hit throws the player away from the zombie and up", @player.vx < 0.0 && @player.vy > 0.0)
     @mobs.clear
     # Each block that the blast breaks drops by chance, so the blast gets
@@ -1548,14 +1548,14 @@ class Game
     @mobs << Monster.new(Mob::CREEPER, px + 2.5, SKY_Y - 1.0, pz + 0.5, 11)
     # A blast this near kills a player with full health, so the player
     # gets more health for the test.
-    @vitals.health = 100.0
+    @player.vitals.health = 100.0
     @items.clear
     frames = 0
     while frames < 300 && @world.get(px + 2, SKY_Y - 2, pz) == Block::STONE
       update_mobs(1.0 / 60.0)
       frames += 1
     end
-    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, SKY_Y - 2, pz) == Block::AIR && @vitals.health < 100.0 && frames > 60)
+    check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, SKY_Y - 2, pz) == Block::AIR && @player.vitals.health < 100.0 && frames > 60)
     check("a creeper explosion makes a cloud", @particles.count(Particle::BLAST) > 0)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
     # A block that a blast breaks drops its extras too, so ripe wheat drops
@@ -1573,7 +1573,7 @@ class Game
     @items.clear
     @mobs.clear
     @clock.time_of_day = 0.3
-    @vitals.health = Vitals::MAX_HEALTH
+    @player.vitals.health = Vitals::MAX_HEALTH
   end
 
   # On the sky platform from test_monsters: a zombie in the sun burns with
@@ -1602,20 +1602,20 @@ class Game
     check("a zombie burns in the sun at dawn", zombie.fire > 0.0)
     @mobs.clear
     @survival = true
-    @vitals.health = Vitals::MAX_HEALTH
+    @player.vitals.health = Vitals::MAX_HEALTH
     @world.set(px + 1, SKY_Y - 1, pz, Block::LAVA)
     @player.x = px + 1.5
     update_survival(0.1)
     @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
-    @vitals.health = Vitals::MAX_HEALTH
+    @player.vitals.health = Vitals::MAX_HEALTH
     150.times { update_survival(1.0 / 60.0) }
-    burned = @vitals.fire > 0.0 && @vitals.health < Vitals::MAX_HEALTH
+    burned = @player.vitals.fire > 0.0 && @player.vitals.health < Vitals::MAX_HEALTH
     @world.set(px + 1, SKY_Y - 1, pz, Block::WATER)
     update_survival(1.0 / 60.0)
     @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
-    check("the player burns on after lava, and water puts the fire out", burned && @vitals.fire == 0.0)
+    check("the player burns on after lava, and water puts the fire out", burned && @player.vitals.fire == 0.0)
     @clock.time_of_day = 0.3
-    @vitals.health = Vitals::MAX_HEALTH
+    @player.vitals.health = Vitals::MAX_HEALTH
   end
 
   # On the sky platform from test_monsters: rain stops the sun from burning a
@@ -1663,28 +1663,28 @@ class Game
     @mobs.clear
     @survival = true
     # With hunger under 18 and no saturation, the player does not heal.
-    @vitals = Vitals.new
-    @vitals.hunger = 17
-    @vitals.saturation = 0.0
+    @player.revive
+    @player.vitals.hunger = 17
+    @player.vitals.saturation = 0.0
     set_block(px + 1, SKY_Y - 1, pz, Block::CACTUS)
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     update_survival(1.0 / 60.0)
-    apart = @vitals.health == Vitals::MAX_HEALTH
+    apart = @player.vitals.health == Vitals::MAX_HEALTH
     # The player stops 1/16 into the cell of the cactus.
     @player.x = px + 0.76
     update_survival(1.0 / 60.0)
-    first = @vitals.health == Vitals::MAX_HEALTH - 1.0
+    first = @player.vitals.health == Vitals::MAX_HEALTH - 1.0
     20.times { update_survival(1.0 / 60.0) }
-    immune = @vitals.health == Vitals::MAX_HEALTH - 1.0
+    immune = @player.vitals.health == Vitals::MAX_HEALTH - 1.0
     15.times { update_survival(1.0 / 60.0) }
-    second = @vitals.health == Vitals::MAX_HEALTH - 2.0
+    second = @player.vitals.health == Vitals::MAX_HEALTH - 2.0
     check("a cactus hurts the player who leans on it, 1 each half second", apart && first && immune && second)
     @player.x = px + 1.5
     @player.y = SKY_Y.to_f
     40.times { update_survival(1.0 / 60.0) }
-    check("a cactus hurts the player who stands on it", @vitals.health < Vitals::MAX_HEALTH - 2.0)
+    check("a cactus hurts the player who stands on it", @player.vitals.health < Vitals::MAX_HEALTH - 2.0)
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
     pig = Animal.new(Mob::PIG, px + 1.95 + Mob::HALF[Mob::PIG], SKY_Y - 1.0, pz + 0.5, 3)
@@ -1710,7 +1710,7 @@ class Game
     set_block(px + 3, SKY_Y - 1, pz, Block::AIR)
     set_block(px + 3, SKY_Y - 2, pz, Block::AIR)
     set_block(px + 3, SKY_Y - 3, pz, Block::AIR)
-    @vitals = Vitals.new
+    @player.revive
     # The player places a cactus on sand and on a cactus, but not on stone.
     survival = @survival
     @survival = false
@@ -1888,7 +1888,7 @@ class Game
     @boats.clear
     @riding = -1
     @world.set(x, ground + 1, z, Block::GLASS)
-    @vitals.health = 3.0
+    @player.vitals.health = 3.0
     @inv.set(1, Block::AIR, 0)
     @items.clear
     @weather.set_now(false)
@@ -1899,7 +1899,7 @@ class Game
     ok = load
     apply_loaded if ok
     check("the save keeps the day and the time alive", ok && @clock.day == 37 && @alive_time == 1500.0)
-    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
+    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @player.vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
@@ -1932,11 +1932,11 @@ class Game
     end
     check("the sky shows the moon of the day of the loaded save", moon)
     @clock.time_of_day = time
-    @vitals.health = 0.0
+    @player.vitals.health = 0.0
     save
     ok = load
     apply_loaded if ok
-    check("loading a save made while dead respawns", ok && @vitals.health == Vitals::MAX_HEALTH && !@vitals.dead? && @alive_time == 0.0)
+    check("loading a save made while dead respawns", ok && @player.vitals.health == Vitals::MAX_HEALTH && !@player.vitals.dead? && @alive_time == 0.0)
     File.write(@save_path, "NOT A SAVE\n")
     ok = load
     keep_bad_save
@@ -2906,8 +2906,8 @@ class Game
     quick = Monster.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 4)
     @mobs << full
     @mobs << quick
-    @melee_attack.restart
-    @melee_attack.advance(1.0)
+    @player.melee_attack.restart
+    @player.melee_attack.advance(1.0)
     @target_mob = 0
     left_button(0.0, true, true)
     @target_mob = 1
@@ -2915,8 +2915,8 @@ class Game
     check("a hit right after an attack does less damage", full.hp == 16.0 && quick.hp > 19.0 && quick.hp < 19.2)
     falling = Monster.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 5)
     @mobs << falling
-    @melee_attack.restart
-    @melee_attack.advance(1.0)
+    @player.melee_attack.restart
+    @player.melee_attack.advance(1.0)
     @player.on_ground = false
     @player.in_water = false
     @player.vy = -2.0
@@ -3520,14 +3520,14 @@ class Game
     @target_mob = -1
     was = @survival
     @survival = true
-    @vitals = Vitals.new
-    @vitals.give_hunger_effect
+    @player.revive
+    @player.vitals.give_hunger_effect
     @eat_time = -1.0
     34.times { right_button(0.05, true) }
     right_button(0.05, false)
-    check("a bucket milks a cow, and the milk ends the Hunger effect", milked && !@vitals.hunger_effect? && @inv.block(0) == Block::BUCKET)
+    check("a bucket milks a cow, and the milk ends the Hunger effect", milked && !@player.vitals.hunger_effect? && @inv.block(0) == Block::BUCKET)
     @survival = was
-    @vitals = Vitals.new
+    @player.revive
     @inv.clear
   end
 
@@ -3992,8 +3992,8 @@ class Game
     sheep.x = bx + 0.5
     sheep.y = y + 1.0
     sheep.z = bz + 0.5
-    @melee_attack.restart
-    @melee_attack.advance(1.0)
+    @player.melee_attack.restart
+    @player.melee_attack.advance(1.0)
     @target_block.trace(@world, @player)
     find_targets
     left_button(1.0 / 60.0, true, true)

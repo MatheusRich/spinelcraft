@@ -148,8 +148,8 @@ class Game
     x = boat.x.to_f
     y = boat.y.to_f
     z = boat.z.to_f
-    damage = @melee_attack.scaled_damage(current_block.to_i)
-    @melee_attack.restart
+    damage = @player.melee_attack.scaled_damage(current_block.to_i)
+    @player.melee_attack.restart
     @swing = SWING
     if @survival && !boat.hit(damage)
       @sfx.play_at(Sfx::DIG_WOOD, x, y, z, 0.6)

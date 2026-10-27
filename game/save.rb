@@ -26,7 +26,7 @@ class Game
 
   def save # rubocop:todo Metrics/MethodLength
     header = [@seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
-              @clock.time_of_day, @clock.day, @survival ? 1 : 0, @vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
+              @clock.time_of_day, @clock.day, @survival ? 1 : 0, @player.vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
     @chests.close
     land_falling
@@ -44,7 +44,7 @@ class Game
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv.to_a + @hotbar + [@vitals.hunger, @vitals.saturation, @vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
+    inv = (@inv.to_a + @hotbar + [@player.vitals.hunger, @player.vitals.saturation, @player.vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + boat_fields + looted_fields + chunk_fields).map(&:to_s).join(" ")
     line = "#{SAVE_VERSION} #{header} #{inv}\n"
     File.open(@save_path, "wb") do |f|
@@ -138,15 +138,15 @@ class Game
     @clock.time_of_day = f[F_TIME].to_f
     @clock.day = f[F_DAY].to_i
     @survival = f[F_SURVIVAL] == "1"
-    @vitals.health = f[F_HEALTH].to_f
+    @player.vitals.health = f[F_HEALTH].to_f
     @alive_time = f[F_ALIVE].to_f
     @spawn_x = f[F_SPAWN].to_f
     @spawn_z = f[F_SPAWN + 1].to_f
     @inv.load(f, F_INV)
     HOTBAR.times { |i| @hotbar[i] = f[F_HOTBAR + i].to_i }
-    @vitals.hunger = f[F_HUNGER].to_i
-    @vitals.saturation = f[F_HUNGER + 1].to_f
-    @vitals.exhaustion = f[F_HUNGER + 2].to_f
+    @player.vitals.hunger = f[F_HUNGER].to_i
+    @player.vitals.saturation = f[F_HUNGER + 1].to_f
+    @player.vitals.exhaustion = f[F_HUNGER + 2].to_f
     @weather.set_now(f[F_WEATHER] == "1")
     @weather.timer = f[F_WEATHER + 1].to_f
     at = @chests.load(f, F_CHESTS)
@@ -176,6 +176,6 @@ class Game
     @riding = f[at].to_i
     @treasure.load(f, at + 1)
     @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
-    respawn if @vitals.dead?
+    respawn if @player.vitals.dead?
   end
 end

@@ -228,7 +228,7 @@ class Game
 
   # /kill takes all health, also in creative, as in Minecraft.
   def command_kill
-    @vitals.hurt(1000)
+    @player.vitals.hurt(1000)
     felt_hurt(Sfx::HURT)
     @chat.post("KILLED PLAYER")
   end
