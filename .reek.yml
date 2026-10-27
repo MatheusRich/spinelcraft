@@ -434,7 +434,6 @@ detectors:
     - "/\\AGame\\#note_seen\\z/"
     - "/\\AGame\\#pack_hover\\z/"
     - "/\\AGame\\#pick_up\\z/"
-    - "/\\AGame\\#place\\z/"
     - "/\\AGame\\#push_mobs\\z/"
     - "/\\AGame\\#recipe_hover\\z/"
     - "/\\AGame\\#render\\z/"

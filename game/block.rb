@@ -553,6 +553,7 @@ module Block
   def self.torch?(block) = BASE[block] == TORCH
   def self.wall_torch?(block) = torch?(block) && FACING[block] >= 0
   def self.bed?(block) = block >= BED_BLOCK && block < BED_BLOCK + 8
+  def self.wall_item?(block) = block == TORCH || block == LADDER
   def self.bed_id(facing, head) = BED_BLOCK + (head ? 4 : 0) + facing
   def self.chest_left?(block) = block >= CHEST_LEFT && block < CHEST_LEFT + 4
   def self.chest_right?(block) = block >= CHEST_RIGHT && block < CHEST_RIGHT + 4

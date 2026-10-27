@@ -379,7 +379,7 @@ class Game
 
   # An empty bucket takes the first water or lava source in view. A full
   # bucket pours its source into the cell where a block would go.
-  def use_bucket # rubocop:todo Metrics/MethodLength
+  def use_bucket
     block = current_block.to_i
     if block == Block::BUCKET && mob_in_view? && viewed_mob.kind == Mob::COW
       swap_bucket(Block::MILK_BUCKET)
@@ -394,14 +394,9 @@ class Game
     else
       return unless block_in_view?
 
-      x = @target_block.front_x
-      y = @target_block.front_y
-      z = @target_block.front_z
-      if Block.replaceable?(@world.get(@target_block.x, @target_block.y, @target_block.z))
-        x = @target_block.x
-        y = @target_block.y
-        z = @target_block.z
-      end
+      x = place_x
+      y = place_y
+      z = place_z
       return unless @world.inside?(x, y, z)
 
       current = @world.get(x, y, z)
@@ -677,71 +672,106 @@ class Game
     @sfx.play(Sfx::DRINK, 0.6)
   end
 
-  def place # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def place
     # Spinel types an Array read as Integer or nil. A plain Integer here keeps
     # the parameters of Block.solid?, plant? and emits? unboxed.
     block = current_block.to_i
     return if block == Block::AIR || Block.item?(block)
     return if @survival && @inv.empty?(@slot)
 
-    x = @target_block.front_x
-    y = @target_block.front_y
-    z = @target_block.front_z
-    # A block placed on grass (Block.replaceable?) takes its cell, as in Minecraft.
-    if Block.replaceable?(@world.get(@target_block.x, @target_block.y, @target_block.z))
-      x = @target_block.x
-      y = @target_block.y
-      z = @target_block.z
-    end
+    x = place_x
+    y = place_y
+    z = place_z
     return unless @world.inside?(x, y, z)
+    return if block == Block::LADDER && !hangs_on_wall?(block)
 
-    # A torch or a ladder on the side of a block hangs on that block, and
-    # faces away from it.
-    side = y == @target_block.y && (x != @target_block.x || z != @target_block.z)
-    if (block == Block::TORCH || block == Block::LADDER) && side
-      wall = @target_block.x > x ? 0 : (@target_block.x < x ? 1 : (@target_block.z > z ? 2 : 3))
-      block = Block.facing_id(block, wall ^ 1)
-    elsif block == Block::LADDER
-      return
-    elsif Block::FACING[block] >= 0
-      block = Block.facing_id(block, look_direction ^ 1)
-    elsif block == Block::DOOR
-      # A closed door stands on the edge of its cell next to the player.
-      block = Block.door_id(look_direction ^ 1, false, false)
-    elsif block == Block::BED
-      # The head goes the way that the player looks, and each half faces
-      # away from the other.
-      block = Block.bed_id(look_direction ^ 1, false)
-    elsif Block.leaves?(block)
-      block = Block::PLACED_LEAVES[Block.wood(block)]
-    end
-    return if Block.solid?(block) && @player.overlaps?(x, y, z)
-    return unless @world.can_hold?(block, x, y, z)
-    return if Block.plant?(block) && (Block.water?(@world.get(x, y, z)) || Block.lava?(@world.get(x, y, z)))
-    return if Block.solid?(block) && mob_in?(x, y, z, Block.door?(block) ? 2 : 1)
+    block = oriented_block(block, x, z)
+    return unless placeable?(block, x, y, z)
+    return unless place_other_half(block, x, y, z)
 
-    current = @world.get(x, y, z)
-    # The view ray can pass a flower, so a block only replaces grass.
-    # It passes water and lava, and a block replaces them, as in Minecraft.
-    return unless Block.replaceable?(current)
-
-    if Block.door?(block)
-      return unless @world.door_fits?(x, y, z)
-      return if @player.overlaps?(x, y + 1, z)
-
-      set_block(x, y + 1, z, Block.door_id(Block::FACING[block], true, false))
-    end
-    if Block.bed?(block)
-      d = Block::FACING[block] ^ 1
-      return unless bed_fits?(x, y, z, x + Block::DIR_DX[d], z + Block::DIR_DZ[d])
-
-      set_block(x + Block::DIR_DX[d], y, z + Block::DIR_DZ[d], Block.bed_id(d, true))
-    end
     block = join_chest(x, y, z, block) if Block::BASE[block] == Block::CHEST
     set_block(x, y, z, block)
     @sfx.play(MATERIAL_PLACE[material(block)], 0.7)
     @swing = SWING
     @inv.take(@slot, 1) if @survival
+  end
+
+  # A block placed on grass (Block.replaceable?) takes its cell, as in
+  # Minecraft. Any other block goes in the cell in front of the block in view.
+  def place_in_target? = Block.replaceable?(@world.get(@target_block.x, @target_block.y, @target_block.z))
+
+  def place_x = place_in_target? ? @target_block.x : @target_block.front_x
+
+  def place_y = place_in_target? ? @target_block.y : @target_block.front_y
+
+  def place_z = place_in_target? ? @target_block.z : @target_block.front_z
+
+  # True when a torch or a ladder goes on the side of the block in view, and
+  # so hangs on that block.
+  def hangs_on_wall?(block) = Block.wall_item?(block) && !place_in_target? && @target_block.front_y == @target_block.y
+
+  # The block with the direction that it takes when the player places it.
+  def oriented_block(block, x, z)
+    return wall_facing_block(block, x, z) if hangs_on_wall?(block)
+    return Block.facing_id(block, look_direction ^ 1) if Block::FACING[block] >= 0
+    # A closed door stands on the edge of its cell next to the player.
+    return Block.door_id(look_direction ^ 1, false, false) if block == Block::DOOR
+    # The head goes the way that the player looks, and each half faces
+    # away from the other.
+    return Block.bed_id(look_direction ^ 1, false) if block == Block::BED
+    return Block::PLACED_LEAVES[Block.wood(block)] if Block.leaves?(block)
+
+    block
+  end
+
+  # A torch or a ladder on a wall faces away from the block in view.
+  def wall_facing_block(block, x, z)
+    return Block.facing_id(block, 1) if @target_block.x > x
+    return Block.facing_id(block, 0) if @target_block.x < x
+    return Block.facing_id(block, 3) if @target_block.z > z
+
+    Block.facing_id(block, 2)
+  end
+
+  # True when the block fits in the cell x, y, z: no solid block in the
+  # player or a mob, and nothing but grass, water or lava to replace. The
+  # view ray can pass a flower, so a block only replaces grass. It passes
+  # water and lava, and a block replaces them, as in Minecraft.
+  def placeable?(block, x, y, z)
+    return false if Block.solid?(block) && @player.overlaps?(x, y, z)
+    return false unless @world.can_hold?(block, x, y, z)
+
+    current = @world.get(x, y, z)
+    return false if Block.plant?(block) && (Block.water?(current) || Block.lava?(current))
+    return false if Block.solid?(block) && mob_in?(x, y, z, Block.door?(block) ? 2 : 1)
+
+    Block.replaceable?(current)
+  end
+
+  # Places the second block of a door or a bed. False when it does not fit.
+  def place_other_half(block, x, y, z)
+    return place_door_top(block, x, y, z) if Block.door?(block)
+    return place_bed_foot(block, x, y, z) if Block.bed?(block)
+
+    true
+  end
+
+  def place_door_top(block, x, y, z)
+    return false unless @world.door_fits?(x, y, z)
+    return false if @player.overlaps?(x, y + 1, z)
+
+    set_block(x, y + 1, z, Block.door_id(Block::FACING[block], true, false))
+    true
+  end
+
+  def place_bed_foot(block, x, y, z)
+    direction = Block::FACING[block] ^ 1
+    foot_x = x + Block::DIR_DX[direction]
+    foot_z = z + Block::DIR_DZ[direction]
+    return false unless bed_fits?(x, y, z, foot_x, foot_z)
+
+    set_block(foot_x, y, foot_z, Block.bed_id(direction, true))
+    true
   end
 
   # A chest block placed at x, y, z next to a chest of one block that faces the
