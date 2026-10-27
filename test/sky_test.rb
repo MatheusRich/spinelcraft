@@ -8,7 +8,7 @@ class SkyTest < Minitest::Test
 
   def setup
     @clock = Clock.new(0.0, 0)
-    @weather = Weather.new(1, false)
+    @weather = Weather.new(1)
     @camera = Camera.new
     @sky = Sky.new(@clock, @weather, @camera)
   end
@@ -371,6 +371,17 @@ class SkyTest < Minitest::Test
     assert_equal Sky::TOP_CLEAR - Sky::STORM_DARKEN, @sky.spawn_light
     assert_operator @sky.spawn_light, :<=, NaturalSpawner::SPAWN_LIGHT
     assert_equal Sky::TOP_RAIN, @sky.light
+  end
+
+  def test_a_thunderstorm_does_not_make_a_dark_night_lighter_for_spawns
+    @clock.set_ticks(18_000)
+    @weather.start_rain
+    @weather.settle
+    rain_light = @sky.spawn_light
+    @weather.start_thunder
+    @weather.settle
+    assert_equal rain_light, @sky.spawn_light
+    assert_operator @sky.spawn_light, :<, Sky::TOP_CLEAR - Sky::STORM_DARKEN
   end
 
   def test_the_uniforms_go_at_their_place

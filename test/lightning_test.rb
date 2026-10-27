@@ -6,7 +6,7 @@ class LightningTest < Minitest::Test
   end
 
   def strike
-    @lightning.strike(10, 60, 20, Clouds::HEIGHT, 10.5, 61.0, 20.5)
+    @lightning.strike(10, 60, 20, 10.5, 61.0, 20.5)
   end
 
   def test_a_new_lightning_shows_nothing
@@ -30,6 +30,15 @@ class LightningTest < Minitest::Test
     assert_in_delta 60.0, ys.min, Lightning::GLOW
   end
 
+  def test_a_bolt_that_ends_above_the_clouds_still_comes_from_above
+    @lightning.strike(5, 201, 5, 5.5, 202.0, 5.5)
+    mesh = Mesh3.new
+    @lightning.draw(mesh, 0.0, 230.0, 0.0)
+    ys = mesh.v.each_slice(11).map { |vertex| vertex[1] }
+    assert_in_delta 201.0, ys.min, Lightning::GLOW
+    assert_in_delta 201.0 + Lightning::MIN_HEIGHT, ys.max, Lightning::GLOW
+  end
+
   def test_the_flash_fades_after_the_bolt
     strike
     @lightning.update_lightning(Lightning::LIFE + Lightning::FADE / 2.0)
@@ -50,7 +59,7 @@ class LightningTest < Minitest::Test
   end
 
   def test_the_thunder_takes_the_distance_over_the_speed_of_sound
-    @lightning.strike(10, 60, 20, Clouds::HEIGHT, 10.5 + Lightning::SOUND_SPEED, 60.0, 20.5)
+    @lightning.strike(10, 60, 20, 10.5 + Lightning::SOUND_SPEED, 60.0, 20.5)
     refute @lightning.thunder_arrived?(0.99)
     assert @lightning.thunder_arrived?(0.02)
     assert_equal 10.5, @lightning.heard_x

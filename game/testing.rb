@@ -14,6 +14,15 @@ class Game
     lightning_hit_player if @storm.strike(x.floor, z.floor, @player, @particles)
   end
 
+  # RAIN=1 starts in the rain, and RAIN=thunder in a thunderstorm.
+  def start_weather_switch
+    return if ENV["RAIN"].nil?
+
+    @weather.start_rain
+    @weather.start_thunder if ENV["RAIN"] == "thunder"
+    @weather.settle
+  end
+
   # SHOWMOBS=1 lines up one mob of each kind on a stone floor in front of the player.
   def show_mobs
     @mobs.clear
@@ -1726,8 +1735,15 @@ class Game
     @world.set(px, SKY_Y + 2, pz, Block::AIR)
     check("lightning does not strike the player under a glass roof",
           @player.vitals.health == Vitals::MAX_HEALTH && !@player.vitals.burning?)
+    run_chat("/weather thunder")
+    thunder = @weather.storm?
+    run_chat("/weather rain")
+    rain = @weather.raining? && !@weather.thundering?
+    run_chat("/weather clear")
+    check("/weather thunder starts a storm, /weather rain ends the thunder, and /weather clear ends both",
+          thunder && rain && !@weather.raining? && !@weather.thundering?)
     @survival = survival
-    @weather.stop_rain
+    @weather.clear
     @weather.settle
     @clock.time_of_day = 0.3
   end

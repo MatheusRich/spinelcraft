@@ -226,9 +226,8 @@ class Game
     # in Minecraft. Near seeds give near first numbers in Rng, so a hash
     # mixes the seconds first.
     @music = Music.new(Noise.hash3(Time.now.to_i, 0, 0, 60))
-    @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
-    @weather.start_storm if ENV["RAIN"] == "thunder"
-    @weather.settle
+    @weather = Weather.new(@seed * 3 + 2)
+    start_weather_switch
     # STRIKE=1 makes lightning strike in front of the player near the last frame.
     @strike_shot = !ENV["STRIKE"].nil?
     @sky = Sky.new(@clock, @weather, @camera)

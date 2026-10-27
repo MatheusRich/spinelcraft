@@ -24,6 +24,8 @@ class Sky
   STORM_DAYLIGHT = 5.0 / 16.0
   # The sky color that a lightning flash pulls the sky toward, a little
   # above full daylight. minecraft.wiki/w/Lightning
+  # A thunderstorm makes the gray of rain darker by this share.
+  STORM_GRAY = 0.5
   FLASH_RED = 0.85
   FLASH_GREEN = 0.88
   FLASH_BLUE = 1.0
@@ -57,8 +59,9 @@ class Sky
   end
 
   # The sky light under the open sky for the spawn of monsters. In a
-  # thunderstorm it is the clear sky light of a day less STORM_DARKEN.
-  def spawn_light = @weather.striking? ? TOP_CLEAR - STORM_DARKEN : light
+  # thunderstorm it is at most the clear sky light of a day less
+  # STORM_DARKEN, so the storm darkens the day and not the night.
+  def spawn_light = @weather.striking? ? [light, TOP_CLEAR - STORM_DARKEN].min : light
 
   # How many ticks of ticks the tick has reached.
   def passed(ticks, tick) = ticks.count { |start| tick >= start }
@@ -82,7 +85,7 @@ class Sky
       green += (0.55 - green) * dusk
       blue += (0.25 - blue) * dusk
     end
-    gray = 0.06 + 0.4 * day * (1.0 - 0.5 * @weather.thunder)
+    gray = 0.06 + 0.4 * day * (1.0 - STORM_GRAY * @weather.thunder)
     fog = view * (1.0 - 0.6 * rain)
     red += (gray - red) * rain * 0.85
     green += (gray - green) * rain * 0.85

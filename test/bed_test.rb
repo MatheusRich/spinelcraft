@@ -31,7 +31,7 @@ class BedTest < Minitest::Test
   def test_in_rain_the_player_sleeps_earlier
     evening = Clock.new(0.0, 0)
     evening.set_ticks(12200)
-    weather = Weather.new(1, false)
+    weather = Weather.new(1)
     sky = Sky.new(evening, weather, Camera.new)
     assert_equal "SPAWN SET: YOU CAN ONLY SLEEP AT NIGHT", Bed.use(X, Y, Z, sky.light, [], @clock)
     weather.start_rain

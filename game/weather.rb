@@ -38,7 +38,7 @@ class Weather
   # The rain quads.
   attr_reader :mesh
 
-  def initialize(seed, raining)
+  def initialize(seed)
     @rng = Rng.new(seed)
     @raining = false
     @rain = 0.0
@@ -53,7 +53,6 @@ class Weather
     @z = World::NONE
     @age = 0.0
     clear
-    @raining = raining
     settle
   end
 
