@@ -260,6 +260,18 @@ class WorldTest < Minitest::Test
     end
   end
 
+  def test_a_box_fits_dry_on_a_solid_block_with_room_and_no_water
+    world = world_with_one_chunk
+    world.set(8, SKY_Y - 1, 8, Block::STONE)
+    assert world.fits_dry?(8.5, SKY_Y, 8.5, Player::HALF, Player::TALL)
+    refute world.fits_dry?(8.5, SKY_Y + 1, 8.5, Player::HALF, Player::TALL)
+    world.set(8, SKY_Y + 1, 8, Block::STONE)
+    refute world.fits_dry?(8.5, SKY_Y, 8.5, Player::HALF, Player::TALL)
+    world.set(8, SKY_Y + 1, 8, Block::AIR)
+    world.set(8, SKY_Y, 8, Block::WATER)
+    refute world.fits_dry?(8.5, SKY_Y, 8.5, Player::HALF, Player::TALL)
+  end
+
   # A world where only these columns are dry land.
   def world_with_dry_land(*columns)
     world = World.new(1337)

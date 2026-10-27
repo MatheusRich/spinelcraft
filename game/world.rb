@@ -220,6 +220,13 @@ class World
     block(World.index(ix, iy, iz))
   end
 
+  # True when a box of half width half and height tall fits at x, y, z, out
+  # of the water, and stands on a solid block.
+  def fits_dry?(x, y, z, half, tall)
+    !solid_in_box?(x, y.to_f, z, half, tall) && solid_in_box?(x, y - 0.1, z, half, 0.05) &&
+      !Block.water?(get(x.floor, y, z.floor))
+  end
+
   # True when a solid block overlaps the box of half width half and height
   # tall that stands on x, y, z.
   def solid_in_box?(x, y, z, half, tall)

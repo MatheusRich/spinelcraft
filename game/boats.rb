@@ -32,74 +32,15 @@ class Game
     @riding = i
     @player.flying = false
     boat = @boats[i]
-    seat_player(boat.x.to_f, boat.y.to_f, boat.z.to_f)
+    @player.seat_in(boat)
     say("PRESS SHIFT TO DISMOUNT")
   end
 
-  # The rider sits in the boat, and does not fall or swim.
-  def seat_player(x, y, z)
-    p = @player
-    p.x = x
-    p.y = y + Boat::SEAT
-    p.z = z
-    p.vx = 0.0
-    p.vy = 0.0
-    p.vz = 0.0
-    p.fall_start = p.y
-    p.on_ground = false
-    p.in_water = false
-  end
-
   # The player gets out on the side of the boat that they face, or else on
-  # another side, on land when there is land. With no room on any side,
-  # the player stands on the boat. minecraft.wiki/w/Boat
-  def leave_boat # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
-    boat = @boats[@riding]
-    bx = boat.x.to_f
-    by = boat.y.to_f
-    bz = boat.z.to_f
+  # another side (Player#leave).
+  def leave_boat
+    @player.leave(@boats[@riding], @world)
     @riding = -1
-    p = @player
-    yaw = p.yaw.to_f
-    fx = Math.sin(yaw)
-    fz = -Math.cos(yaw)
-    out = Boat::HALF + Player::HALF + 0.1
-    sx = bx
-    sy = by + Boat::TALL
-    sz = bz
-    base = by.floor
-    found = false
-    side = 0
-    while side < 4 && !found
-      # Ahead, to the right, to the left, then behind.
-      dx = side == 0 ? fx : (side == 1 ? -fz : (side == 2 ? fz : -fx))
-      dz = side == 0 ? fz : (side == 1 ? fx : (side == 2 ? -fx : -fz))
-      # Right beside the boat, then half a block further.
-      far = 0
-      while far < 2 && !found
-        x = bx + dx * (out + far * 0.6)
-        z = bz + dz * (out + far * 0.6)
-        # A bank one block above the boat's cell first, then the cell of
-        # the boat, then two blocks up.
-        up = 0
-        while up < 3 && !found
-          y = base + (up == 0 ? 1 : (up == 1 ? 0 : 2))
-          found = p.fits_dry?(@world, x, y, z)
-          if found
-            sx = x
-            sy = y.to_f
-            sz = z
-          end
-          up += 1
-        end
-        far += 1
-      end
-      side += 1
-    end
-    p.x = sx
-    p.y = sy
-    p.z = sz
-    p.fall_start = sy
   end
 
   # Moves each boat in a loaded chunk. The boat that the player rides takes
@@ -116,7 +57,7 @@ class Game
         boat.move_boat(@world, dt, ridden ? fwd : 0.0, ridden ? turn : 0.0)
         if ridden
           @player.yaw += boat.yaw.to_f - yaw
-          seat_player(boat.x.to_f, boat.y.to_f, boat.z.to_f)
+          @player.seat_in(boat)
           @sfx.play(boat.afloat ? Sfx::STEP_WATER : Sfx::STEP_WOOD, 0.3) if boat.strokes.to_i != strokes
         end
       end

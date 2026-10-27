@@ -17,6 +17,14 @@ class Player
   # gives the player in survival. The wiki does not give these values.
   KNOCK_SPEED = 8.0
   KNOCK_LIFT = 5.0
+  # The places where the player gets out of a vehicle (Player#leave), in the
+  # order of the search: the turn from the view (ahead, right, left, then
+  # behind), the extra distance from the vehicle, and the cells above the
+  # base of the vehicle (a bank first, then its own cell, then two up).
+  LEAVE_GAP = 0.1
+  LEAVE_SIDE_TURNS = [0.0, Math::PI / 2.0, -Math::PI / 2.0, Math::PI]
+  LEAVE_EXTRA_DISTANCES = [0.0, 0.6]
+  LEAVE_HEIGHT_OFFSETS = [1, 0, 2]
   # The medium of the player (Player#medium_in), which decides how it
   # moves up and down, and whether a fall ends.
   FLYING = 0
@@ -80,6 +88,25 @@ class Player
     @vy = 0.0
     @vz = 0.0
     @fall_start = y
+  end
+
+  # The rider sits in the vehicle at its seat, and does not fall or swim.
+  # A vehicle has x, y, z, half, tall and seat_height.
+  def seat_in(vehicle)
+    move_to(vehicle.x.to_f, vehicle.y.to_f + vehicle.seat_height, vehicle.z.to_f)
+    @on_ground = false
+    @in_water = false
+    nil
+  end
+
+  # The player gets out on the side of the vehicle that they face, or else
+  # on another side, on land when there is land. With no room on any side,
+  # the player stands on the vehicle. minecraft.wiki/w/Boat
+  def leave(vehicle, world)
+    return nil if leave_on_side(vehicle, world)
+
+    move_to(vehicle.x.to_f, vehicle.y.to_f + vehicle.tall, vehicle.z.to_f)
+    nil
   end
 
   def eye_y = @y + @eye
@@ -385,16 +412,43 @@ class Player
     to
   end
 
+  # Tries each side of the vehicle in the order of LEAVE_SIDE_TURNS. True
+  # when the player got out.
+  def leave_on_side(vehicle, world)
+    LEAVE_SIDE_TURNS.each do |side_turn|
+      return true if leave_at_distance(vehicle, world, @yaw + side_turn)
+    end
+    false
+  end
+
+  # Tries each distance on one side, from the one beside the vehicle to the
+  # farthest. The direction is an angle of the view.
+  def leave_at_distance(vehicle, world, direction)
+    LEAVE_EXTRA_DISTANCES.each do |extra_distance|
+      distance = vehicle.half + HALF + LEAVE_GAP + extra_distance
+      x = vehicle.x.to_f + Math.sin(direction) * distance
+      z = vehicle.z.to_f - Math.cos(direction) * distance
+      return true if leave_at_height(vehicle, world, x, z)
+    end
+    false
+  end
+
+  # Tries each height at one spot, in the order of LEAVE_HEIGHT_OFFSETS from
+  # the base of the vehicle. The player stands at the first height with room.
+  def leave_at_height(vehicle, world, x, z)
+    LEAVE_HEIGHT_OFFSETS.each do |height_offset|
+      y = vehicle.y.to_f.floor + height_offset
+      next unless world.fits_dry?(x, y, z, HALF, TALL)
+
+      move_to(x, y.to_f, z)
+      return true
+    end
+    false
+  end
+
   # True when the box of a solid block lies under any part of the feet of
   # a player at x, z.
   def ground_below?(world, x, z) = world.solid_in_box?(x, @y - 0.05, z, HALF, 0.05)
-
-  # True when the player fits at x, y, z, out of the water, and stands on
-  # a solid block.
-  def fits_dry?(world, x, y, z)
-    !world.solid_in_box?(x, y.to_f, z, HALF, TALL) && world.solid_in_box?(x, y - 0.1, z, HALF, 0.05) &&
-      !Block.water?(world.get(x.floor, y, z.floor))
-  end
 
   # True when the block cell at x, y, z overlaps the player's box.
   def overlaps?(bx, by, bz)

@@ -65,6 +65,12 @@ class Boat
 
   def speed = Math.sqrt(@vx * @vx + @vz * @vz)
 
+  # The size of the box and the seat height, which Player#seat_in and
+  # Player#leave read from any vehicle.
+  def half = HALF
+  def tall = TALL
+  def seat_height = SEAT
+
   # The number of paddle strokes so far, for the paddle sound.
   def strokes = @strokes
 

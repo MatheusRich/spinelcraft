@@ -45,16 +45,100 @@ class PlayerTest < Minitest::Test
     assert_equal Player::KNOCK_LIFT, player.vy
   end
 
-  def test_the_player_fits_dry_on_a_solid_block_with_room_and_no_water
-    world = world_with_one_chunk
-    world.set(8, SKY_Y - 1, 8, Block::STONE)
+  def test_a_rider_sits_at_the_seat_of_the_vehicle_and_does_not_fall_or_swim
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 9.5, 0.0)
     player = Player.new(0.5, SKY_Y.to_f, 0.5)
-    assert player.fits_dry?(world, 8.5, SKY_Y, 8.5)
-    refute player.fits_dry?(world, 8.5, SKY_Y + 1, 8.5)
-    world.set(8, SKY_Y + 1, 8, Block::STONE)
-    refute player.fits_dry?(world, 8.5, SKY_Y, 8.5)
-    world.set(8, SKY_Y + 1, 8, Block::AIR)
-    world.set(8, SKY_Y, 8, Block::WATER)
-    refute player.fits_dry?(world, 8.5, SKY_Y, 8.5)
+    player.vy = -5.0
+    player.on_ground = true
+    player.in_water = true
+    player.seat_in(boat)
+    assert_equal [8.5, SKY_Y + Boat::SEAT, 9.5], [player.x, player.y, player.z]
+    assert_equal 0.0, player.vy
+    refute player.on_ground
+    refute player.in_water
+  end
+
+  def test_the_player_leaves_a_vehicle_on_the_side_that_they_face
+    world = boat_world
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0)
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    player.yaw = Math::PI / 2.0
+    player.leave(boat, world)
+    assert_in_delta 8.5 + Boat::HALF + Player::HALF + Player::LEAVE_GAP, player.x, 0.0001
+    assert_in_delta 8.5, player.z, 0.0001
+    assert_equal SKY_Y.to_f, player.y
+  end
+
+  def test_the_player_leaves_to_the_right_when_the_way_ahead_is_blocked
+    world = boat_world
+    [9, 10].each { |x| 16.times { |z| 3.times { |up| world.set(x, SKY_Y + up, z, Block::STONE) } } }
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0)
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    player.yaw = Math::PI / 2.0
+    player.leave(boat, world)
+    assert_in_delta 8.5, player.x, 0.0001
+    assert_in_delta 8.5 + Boat::HALF + Player::HALF + Player::LEAVE_GAP, player.z, 0.0001
+  end
+
+  def test_the_player_leaves_to_the_far_spot_when_the_near_one_has_no_ground
+    world = boat_world
+    world.set(9, SKY_Y - 1, 8, Block::AIR)
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0)
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    player.yaw = Math::PI / 2.0
+    player.leave(boat, world)
+    assert_in_delta 8.5 + Boat::HALF + Player::HALF + Player::LEAVE_GAP + 0.6, player.x, 0.0001
+  end
+
+  def test_the_player_facing_north_leaves_to_the_far_spot_ahead_and_then_to_the_right
+    world = boat_world
+    world.set(8, SKY_Y - 1, 7, Block::AIR)
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0)
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    reach = Boat::HALF + Player::HALF + Player::LEAVE_GAP
+    player.leave(boat, world)
+    assert_in_delta 8.5, player.x, 0.0001
+    assert_in_delta 8.5 - reach - 0.6, player.z, 0.0001
+    [6, 7].each { |z| 16.times { |x| 3.times { |up| world.set(x, SKY_Y + up, z, Block::STONE) } } }
+    player.leave(boat, world)
+    assert_in_delta 8.5 + reach, player.x, 0.0001
+    assert_in_delta 8.5, player.z, 0.0001
+  end
+
+  def test_the_player_leaves_up_onto_a_bank_above_the_vehicle
+    world = boat_world
+    16.times { |z| world.set(9, SKY_Y, z, Block::STONE) }
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0)
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    player.yaw = Math::PI / 2.0
+    player.leave(boat, world)
+    assert_equal SKY_Y + 1.0, player.y
+  end
+
+  def test_the_player_leaves_to_the_sides_that_are_behind_the_view_last
+    world = boat_world
+    [9, 10].each { |x| 16.times { |z| 3.times { |up| world.set(x, SKY_Y + up, z, Block::STONE) } } }
+    [9, 10].each { |z| 16.times { |x| 3.times { |up| world.set(x, SKY_Y + up, z, Block::STONE) } } }
+    [6, 7].each { |z| 16.times { |x| 3.times { |up| world.set(x, SKY_Y + up, z, Block::STONE) } } }
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0)
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    player.yaw = Math::PI / 2.0
+    player.leave(boat, world)
+    assert_in_delta 8.5 - Boat::HALF - Player::HALF - Player::LEAVE_GAP, player.x, 0.0001
+  end
+
+  def test_the_player_stands_on_the_vehicle_when_no_side_has_room
+    world = world_with_one_chunk
+    boat = Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0)
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    player.leave(boat, world)
+    assert_equal [8.5, SKY_Y + Boat::TALL, 8.5], [player.x, player.y, player.z]
+  end
+
+  # A stone floor at SKY_Y - 1, so the player stands at SKY_Y.
+  def boat_world
+    world = world_with_one_chunk
+    16.times { |x| 16.times { |z| world.set(x, SKY_Y - 1, z, Block::STONE) } }
+    world
   end
 end
