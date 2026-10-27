@@ -130,7 +130,7 @@ class Game
     @boats.each_with_index do |boat, index|
       next if index == @riding
 
-      distance = boat.hit_distance(@player)
+      distance = boat.hit_distance(@target_block)
       next unless distance >= 0.0 && distance < best
 
       best = distance

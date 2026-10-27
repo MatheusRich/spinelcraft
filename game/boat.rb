@@ -158,11 +158,9 @@ class Boat
     @damage > BREAKS
   end
 
-  # Distance along the view ray of the player to this boat's box, or -1.0
-  # when the ray misses it.
-  def hit_distance(player)
-    Ray.box_distance(player.x.to_f, player.eye_y.to_f, player.z.to_f, player.fx, player.fy, player.fz, @x - HALF, @y, @z - HALF, @x + HALF, @y + TALL, @z + HALF)
-  end
+  # Distance along the view ray of the last trace of view to this boat's box,
+  # or -1.0 when the ray misses it.
+  def hit_distance(view) = view.box_distance(@x - HALF, @y, @z - HALF, @x + HALF, @y + TALL, @z + HALF)
 
   # The hull is a floor and four walls of the planks of the boat's wood,
   # with the sizes of the Minecraft model, and a paddle on each side. Local

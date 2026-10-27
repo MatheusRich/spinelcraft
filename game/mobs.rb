@@ -373,11 +373,9 @@ class Mob
     true
   end
 
-  # Distance along the view ray of the player to this mob's box, or -1.0
-  # when the ray misses it.
-  def hit_distance(player)
-    Ray.box_distance(player.x, player.eye_y, player.z, player.fx, player.fy, player.fz, @x - @half, @y, @z - @half, @x + @half, @y + @tall, @z + @half)
-  end
+  # Distance along the view ray of the last trace of view to this mob's box,
+  # or -1.0 when the ray misses it.
+  def hit_distance(view) = view.box_distance(@x - @half, @y, @z - @half, @x + @half, @y + @tall, @z + @half)
 
   # True when the point x, y, z is in this mob's box.
   def contains?(x, y, z)

@@ -22,6 +22,10 @@ class BlockTarget
 
   def hit? = @hit
 
+  # The distance along the view ray of the last trace to the box from x0, y0,
+  # z0 to x1, y1, z1, or -1.0 when the ray misses it.
+  def box_distance(x0, y0, z0, x1, y1, z1) = @walk.box_distance(x0, y0, z0, x1, y1, z1)
+
   # Walks the cells along the view ray of player, from its eyes, until a
   # block stops the ray (see stops_view?).
   def trace(world, player)

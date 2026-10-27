@@ -481,7 +481,7 @@ class Game
   def scan_mobs(best)
     @target_mob = -1
     @mobs.each_with_index do |mob, index|
-      distance = mob.dying? ? -1.0 : mob.hit_distance(@player)
+      distance = mob.dying? ? -1.0 : mob.hit_distance(@target_block)
       next unless distance >= 0.0 && distance < best
 
       best = distance
