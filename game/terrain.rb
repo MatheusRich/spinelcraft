@@ -88,6 +88,9 @@ class Terrain
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
   SHIFT = 5000.5
+  # land_near_origin looks at squares 64 blocks apart, up to 4096 blocks out.
+  LAND_STEP = 64
+  LAND_RADIUS = 4096
   # Land never reaches TOP, and heights above PEAK squeeze toward it.
   TOP = WY - 14.0
   PEAK = SEA + 100.0
@@ -126,6 +129,22 @@ class Terrain
 
   # Land well above the sea, from the noise alone.
   def land?(x, z) = surface_height(x, z) > SEA + 4
+
+  # The origin when it is land. Else the first land point on the squares
+  # around the origin, 64 blocks apart, or the origin when no land is near.
+  def land_near_origin
+    return [0, 0] if land?(0, 0)
+
+    (LAND_STEP..LAND_RADIUS).step(LAND_STEP) do |radius|
+      (-radius..radius).step(LAND_STEP) do |side|
+        return [side, -radius] if land?(side, -radius)
+        return [side, radius] if land?(side, radius)
+        return [-radius, side] if land?(-radius, side)
+        return [radius, side] if land?(radius, side)
+      end
+    end
+    [0, 0]
+  end
 
   # The large-scale noise fields read warped positions, so coasts and
   # biome edges bend instead of making round blobs. (Noise goes back into

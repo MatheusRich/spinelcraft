@@ -113,6 +113,47 @@ class WorldTest < Minitest::Test
     assert world.dry_land?(4, 4)
   end
 
+  def test_a_dry_spot_has_dry_land_3_blocks_away_to_each_side
+    around = [[10, 20], [13, 20], [7, 20], [10, 23], [10, 17]]
+    assert world_with_dry_land(*around).dry_spot?(10, 20)
+    around.each do |column|
+      refute world_with_dry_land(*(around - [column])).dry_spot?(10, 20), "no dry land at #{column}"
+    end
+  end
+
+  def test_the_dry_spot_near_a_column_is_the_column_when_it_is_a_dry_spot
+    assert_equal [5, 6], world_with_dry_spots([5, 6], [6, 6]).dry_spot_near(5, 6, 4)
+  end
+
+  def test_the_dry_spot_near_a_column_is_the_column_for_a_radius_of_1
+    assert_equal [5, 6], world_with_dry_spots([5, 6]).dry_spot_near(5, 6, 1)
+  end
+
+  def test_the_dry_spot_near_a_column_is_found_on_each_side_of_the_column
+    [[4, 5], [6, 5], [5, 4], [5, 6]].each do |spot|
+      assert_equal spot, world_with_dry_spots(spot).dry_spot_near(5, 5, 4), "spot at #{spot}"
+    end
+  end
+
+  def test_the_dry_spot_near_a_column_is_on_the_nearest_square
+    assert_equal [7, 5], world_with_dry_spots([7, 5], [9, 5]).dry_spot_near(5, 5, 4)
+  end
+
+  def test_the_dry_spot_near_a_column_is_the_first_one_by_x_then_by_z
+    assert_equal [5, 6], world_with_dry_spots([6, 4], [5, 6]).dry_spot_near(5, 5, 4)
+    assert_equal [5, 4], world_with_dry_spots([5, 6], [5, 4]).dry_spot_near(5, 5, 4)
+  end
+
+  # The squares stop before the radius: radius 4 reaches 3 blocks out.
+  def test_the_dry_spot_near_a_column_is_not_farther_than_the_radius
+    assert_equal [8, 5], world_with_dry_spots([8, 5]).dry_spot_near(5, 5, 4)
+    assert_equal [5, 5], world_with_dry_spots([9, 5]).dry_spot_near(5, 5, 4)
+  end
+
+  def test_the_dry_spot_near_a_column_is_the_column_when_no_spot_is_near
+    assert_equal [5, 5], world_with_dry_spots.dry_spot_near(5, 5, 4)
+  end
+
   def test_a_block_with_no_hold_needs_nothing_around_it
     world = world_with_one_chunk
     assert world.can_hold?(Block::STONE, 8, SKY_Y, 8)
@@ -217,5 +258,19 @@ class WorldTest < Minitest::Test
         world.set(8, SKY_Y - 1, 8, Block::AIR)
       end
     end
+  end
+
+  # A world where only these columns are dry land.
+  def world_with_dry_land(*columns)
+    world = World.new(1337)
+    world.define_singleton_method(:dry_land?) { |x, z| columns.include?([x, z]) }
+    world
+  end
+
+  # A world where only these columns are dry spots.
+  def world_with_dry_spots(*columns)
+    world = World.new(1337)
+    world.define_singleton_method(:dry_spot?) { |x, z| columns.include?([x, z]) }
+    world
   end
 end

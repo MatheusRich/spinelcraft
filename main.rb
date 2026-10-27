@@ -378,63 +378,19 @@ class Game
   end
 
   # Finds dry land near x = z = 0 and puts a new player there. The origin
-  # can be at sea, so the noise first finds land on squares around it, 64
-  # blocks apart. Then the loaded blocks give dry land near that point.
-  def spawn # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
-    ox = 0
-    oz = 0
-    r = 0
-    terrain = @world.terrain
-    while !terrain.land?(ox, oz) && r < 4096
-      r += 64
-      k = -r
-      while k <= r && !terrain.land?(ox, oz)
-        if terrain.land?(k, -r)
-          ox = k
-          oz = -r
-        elsif terrain.land?(k, r)
-          ox = k
-          oz = r
-        elsif terrain.land?(-r, k)
-          ox = -r
-          oz = k
-        elsif terrain.land?(r, k)
-          ox = r
-          oz = k
-        end
-        k += 64
-      end
-    end
-    @chunk_meshes.stream(ox >> 4, oz >> 4, -1, SYNC_R)
-    best_x = ox
-    best_z = oz
-    r = 0
-    found = false
-    while r < (SYNC_R - 1) * CHUNK && !found
-      dx = -r
-      while dx <= r && !found
-        dz = -r
-        while dz <= r && !found
-          x = ox + dx
-          z = oz + dz
-          if @world.dry_land?(x, z) && @world.dry_land?(x + 3, z) && @world.dry_land?(x - 3, z) && @world.dry_land?(x, z + 3) && @world.dry_land?(x, z - 3)
-            best_x = x
-            best_z = z
-            found = true
-          end
-          dz += 1
-        end
-        dx += 1
-      end
-      r += 1
-    end
-    h = @world.height_at(best_x, best_z)
-    @spawn_x = best_x + 0.5
-    @spawn_z = best_z + 0.5
+  # can be at sea, so the noise first finds land. Then the loaded blocks give
+  # dry land near that point.
+  def spawn
+    land_x, land_z = @world.terrain.land_near_origin
+    @chunk_meshes.stream(land_x >> 4, land_z >> 4, -1, SYNC_R)
+    start_x, start_z = @world.dry_spot_near(land_x, land_z, (SYNC_R - 1) * CHUNK)
+    h = @world.height_at(start_x, start_z)
+    @spawn_x = start_x + 0.5
+    @spawn_z = start_z + 0.5
     @player = Player.new(@spawn_x, h + 0.01, @spawn_z)
     # A new player has no block in the crosshair yet.
     @target_block = BlockTarget.new
-    Log.debug(Log::WORLD) { "spawn at #{best_x} #{h} #{best_z}#{found ? "" : ", but no dry land was near"}" }
+    Log.debug(Log::WORLD) { "spawn at #{start_x} #{h} #{start_z}#{@world.dry_spot?(start_x, start_z) ? "" : ", but no dry land was near"}" }
   end
 
   def respawn

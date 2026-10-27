@@ -117,6 +117,25 @@ class World
     h > SEA + 2 && !Block.leaves?(block) && !Block.water?(block)
   end
 
+  # Dry land at x, z and 3 blocks away to each side: a spot for a house or
+  # a player, not a strip of beach.
+  def dry_spot?(x, z)
+    dry_land?(x, z) && dry_land?(x + 3, z) && dry_land?(x - 3, z) && dry_land?(x, z + 3) && dry_land?(x, z - 3)
+  end
+
+  # The first dry spot in the squares around x, z that grow up to radius, or
+  # x, z when none is near. The chunks around x, z must be loaded.
+  def dry_spot_near(x, z, radius)
+    (0...radius).each do |ring|
+      (-ring..ring).each do |dx|
+        (-ring..ring).each do |dz|
+          return [x + dx, z + dz] if dry_spot?(x + dx, z + dz)
+        end
+      end
+    end
+    [x, z]
+  end
+
   # A door is two blocks tall. It stands on a solid block that is not a
   # door, and no door stands right above it, so each half has one partner.
   # The upper half takes the place of a block that Block.replaceable?

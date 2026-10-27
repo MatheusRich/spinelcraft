@@ -16,6 +16,40 @@ class TerrainTest < Minitest::Test
     end
   end
 
+  def test_the_land_near_the_origin_is_the_origin_when_it_is_land
+    assert_equal [0, 0], terrain_with_land([0, 0], [64, 0]).land_near_origin
+  end
+
+  # Each side of the square has one land point. The point is the only land.
+  def test_the_land_near_the_origin_is_found_on_each_side_of_the_square
+    [[0, -64], [0, 64], [-64, 0], [64, 0]].each do |point|
+      assert_equal point, terrain_with_land(point).land_near_origin, "land at #{point}"
+    end
+  end
+
+  def test_the_land_near_the_origin_is_found_in_each_corner_of_the_square
+    [[-64, -64], [64, -64], [-64, 64], [64, 64]].each do |point|
+      assert_equal point, terrain_with_land(point).land_near_origin, "land at #{point}"
+    end
+  end
+
+  def test_the_land_near_the_origin_is_found_along_a_side_of_a_larger_square
+    [[64, -128], [-128, 64], [-64, 128], [128, -64]].each do |point|
+      assert_equal point, terrain_with_land(point).land_near_origin, "land at #{point}"
+    end
+  end
+
+  def test_the_land_near_the_origin_is_on_the_nearest_square
+    assert_equal [0, 64], terrain_with_land([128, 0], [0, 64], [0, 192]).land_near_origin
+  end
+
+  # The squares are 64 blocks apart and reach 4096 blocks from the origin.
+  def test_the_land_near_the_origin_is_on_the_grid_up_to_4096_blocks_out
+    assert_equal [4096, 0], terrain_with_land([4096, 0]).land_near_origin
+    assert_equal [0, 0], terrain_with_land([4160, 0]).land_near_origin
+    assert_equal [0, 0], terrain_with_land([32, 0], [0, 65], [32, -32], [-65, -65]).land_near_origin
+  end
+
   # surface_height and biome keep the warp of the last column. The biome of
   # a column must not take the warp of a column that shares its x or its z.
   def test_the_biome_of_a_column_is_the_same_after_the_height_of_another_column
@@ -169,6 +203,13 @@ class TerrainTest < Minitest::Test
   end
 
   private
+
+  # A terrain where only these points are land.
+  def terrain_with_land(*points)
+    terrain = Terrain.new(1337)
+    terrain.define_singleton_method(:land?) { |x, z| points.include?([x, z]) }
+    terrain
+  end
 
   # A terrain whose columns all have this height, biome, top block and
   # cave, for the rules of tree_top.
