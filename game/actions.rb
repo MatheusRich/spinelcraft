@@ -69,7 +69,7 @@ class Game
     left_pressed = Gfx.in_button_pressed(1)
     @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3)
     if Gfx.in_button_pressed(2) && @target_block.hit? && !@survival
-      picked = @world.get(@target_block.x, @target_block.y, @target_block.z)
+      picked = targeted_block
       picked = Block::BASE[picked]
       @hotbar[@slot] = picked if picked != Block::BEDROCK
       say(Block::NAMES[@hotbar[@slot]])
@@ -169,7 +169,7 @@ class Game
     return mine(dt) if @survival
     return unless @action_cooldown <= 0.0
 
-    broken = @world.get(@target_block.x, @target_block.y, @target_block.z)
+    broken = targeted_block
     @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
     @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
     set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
@@ -218,7 +218,7 @@ class Game
   def viewed_block
     return Block::AIR unless block_in_view?
 
-    @world.get(@target_block.x, @target_block.y, @target_block.z)
+    targeted_block
   end
 
   # True when a boat or a mob in view takes the click.
@@ -318,6 +318,10 @@ class Game
   # True when the view ray hits a block and no mob stands in front of it.
   # The ray stops at a mob, so a right-click never acts on the block behind.
   def block_in_view? = @target_block.hit? && !mob_in_view?
+
+  # The block that the view ray hits. Call it only when @target_block.hit? is
+  # true.
+  def targeted_block = @world.get(@target_block.x, @target_block.y, @target_block.z)
 
   # True when the view ray hits a mob before a block.
   def mob_in_view? = @target_mob >= 0
@@ -454,7 +458,7 @@ class Game
     return if @mine_delay > 0.0
 
     start_mining unless mining_target?
-    block = @world.get(@target_block.x, @target_block.y, @target_block.z)
+    block = targeted_block
     hardness = Block::HARDNESS[block]
     return if hardness < 0.0
 
@@ -698,7 +702,7 @@ class Game
 
   # A block placed on grass (Block.replaceable?) takes its cell, as in
   # Minecraft. Any other block goes in the cell in front of the block in view.
-  def place_in_target? = Block.replaceable?(@world.get(@target_block.x, @target_block.y, @target_block.z))
+  def place_in_target? = Block.replaceable?(targeted_block)
 
   def place_x = place_in_target? ? @target_block.x : @target_block.front_x
 
