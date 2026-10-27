@@ -480,27 +480,19 @@ class Game
   # Sets @target_mob to the nearest mob that is closer than best, or to -1.
   def scan_mobs(best)
     @target_mob = -1
-    return if @mobs.empty?
-
-    ox = @player.x
-    oy = @player.eye_y
-    oz = @player.z
-    dx = @player.fx
-    dy = @player.fy
-    dz = @player.fz
     index = 0
     while index < @mobs.size
       mob = @mobs[index]
-      # Skip the mobs that are out of reach, and the dying mobs.
-      if !mob.dying? && (mob.x - ox) ** 2 + (mob.z - oz) ** 2 < 25.0
-        distance = mob.ray(ox, oy, oz, dx, dy, dz)
-        if distance >= 0.0 && distance < best
-          best = distance
-          @target_mob = index
-        end
+      distance = mob.dying? ? -1.0 : mob_distance(mob)
+      if distance >= 0.0 && distance < best
+        best = distance
+        @target_mob = index
       end
       index += 1
     end
     @target_boat = -1 if @target_mob >= 0
   end
+
+  # Distance along the crosshair ray to the mob, or -1.0 when the ray misses.
+  def mob_distance(mob) = mob.ray(@player.x, @player.eye_y, @player.z, @player.fx, @player.fy, @player.fz)
 end
