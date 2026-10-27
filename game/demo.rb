@@ -185,7 +185,7 @@ class Game
   def demo_click(animal, slot, dt)
     demo_look_at(animal.x.to_f, animal.y + animal.tall * 0.6, animal.z.to_f, 6.0, dt)
     demo_walk(demo_distance(animal) > Player::MOB_REACH ? 1 : 0)
-    on_it = @target_mob >= 0 && @mobs[@target_mob] == animal
+    on_it = mob_in_view? && viewed_mob == animal
     @slot = slot if on_it
     demo_buttons(dt, left: false, right: on_it)
   end
@@ -280,7 +280,7 @@ class Game
 
     demo_walk(-1) if foe.kind == Mob::CREEPER && foe.fuse > 0.0 && best < 5.5
     demo_look_at(foe.x.to_f, foe.y + foe.tall * 0.7, foe.z.to_f, 8.0, dt)
-    hit = @target_mob >= 0 && @mobs[@target_mob] == foe && attack_charge >= 1.0 && !@demo_left
+    hit = mob_in_view? && viewed_mob == foe && attack_charge >= 1.0 && !@demo_left
     demo_buttons(dt, left: hit, right: false)
   end
 

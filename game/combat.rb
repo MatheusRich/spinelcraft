@@ -487,7 +487,7 @@ class Game
       best = distance
       @target_mob = index
     end
-    @target_boat = -1 if @target_mob >= 0
+    @target_boat = -1 if mob_in_view?
   end
 
   # Distance along the crosshair ray to the mob, or -1.0 when the ray misses.

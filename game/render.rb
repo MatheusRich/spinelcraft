@@ -106,7 +106,7 @@ class Game
     rx = Math.cos(@player.yaw)
     rz = Math.sin(@player.yaw)
     @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
-    if @target_block.hit? && current_screen.in_game? && @target_mob < 0 && @target_boat < 0
+    if @target_block.hit? && current_screen.in_game? && !mob_in_view? && !boat_in_view?
       aimed = @world.get(@target_block.x, @target_block.y, @target_block.z)
       # The outline lines are max(2.5, width / 1920 * 2.5) pixels wide, as
       # in the game code of Minecraft Java (LevelRenderer); the wiki does

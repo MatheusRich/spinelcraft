@@ -131,10 +131,10 @@ class Game
   # The left button hits the mob in the crosshair, or else breaks the block:
   # at once in creative, over time in survival.
   def left_button(dt, held, pressed)
-    if held && @target_mob >= 0
-      attack_mob(@mobs[@target_mob]) if pressed
+    if held && mob_in_view?
+      attack_mob(viewed_mob) if pressed
       @mining = false
-    elsif held && @target_boat >= 0
+    elsif held && boat_in_view?
       hit_boat(@target_boat) if pressed
       @mining = false
     elsif held && @target_block.hit?
@@ -225,13 +225,13 @@ class Game
   def target_click? = boat_click? || shear_click? || feed_click?
 
   # True when a boat is in view and the player is not in one.
-  def boat_click? = @target_boat >= 0 && !riding?
+  def boat_click? = boat_in_view? && !riding?
 
   # True when the player holds shears and a sheep with wool is in view.
-  def shear_click? = current_block == Block::SHEARS && @target_mob >= 0 && @mobs[@target_mob].shearable?
+  def shear_click? = current_block == Block::SHEARS && mob_in_view? && viewed_mob.shearable?
 
   # True when the mob in view eats the item in the hand.
-  def feed_click? = @target_mob >= 0 && @mobs[@target_mob].food?(current_block.to_i)
+  def feed_click? = mob_in_view? && viewed_mob.food?(current_block.to_i)
 
   # The click acts on the boat or the mob in view. The checks keep the
   # order of target_click?.
@@ -239,9 +239,9 @@ class Game
     if boat_click?
       board_boat(@target_boat)
     elsif shear_click?
-      shear(@mobs[@target_mob])
+      shear(viewed_mob)
     else
-      feed_animal(@mobs[@target_mob])
+      feed_animal(viewed_mob)
     end
     @action_cooldown = 0.22
   end
@@ -317,7 +317,16 @@ class Game
 
   # True when the view ray hits a block and no mob stands in front of it.
   # The ray stops at a mob, so a right-click never acts on the block behind.
-  def block_in_view? = @target_block.hit? && @target_mob < 0
+  def block_in_view? = @target_block.hit? && !mob_in_view?
+
+  # True when the view ray hits a mob before a block.
+  def mob_in_view? = @target_mob >= 0
+
+  # The mob that the view ray hits. Call it only when mob_in_view? is true.
+  def viewed_mob = @mobs[@target_mob]
+
+  # True when the view ray hits a boat before a block or a mob.
+  def boat_in_view? = @target_boat >= 0
 
   # Shears take the wool of a sheep without a hit: 1 to 3 wool
   # (minecraft.wiki/w/Sheep), for 1 use of the shears (minecraft.wiki/w/Shears).
@@ -372,9 +381,9 @@ class Game
   # bucket pours its source into the cell where a block would go.
   def use_bucket # rubocop:todo Metrics/MethodLength
     block = current_block.to_i
-    if block == Block::BUCKET && @target_mob >= 0 && @mobs[@target_mob].kind == Mob::COW
+    if block == Block::BUCKET && mob_in_view? && viewed_mob.kind == Mob::COW
       swap_bucket(Block::MILK_BUCKET)
-      play_from(@mobs[@target_mob], Sfx::MILK, 1.0)
+      play_from(viewed_mob, Sfx::MILK, 1.0)
     elsif block == Block::BUCKET
       return unless fluid_in_view
 
