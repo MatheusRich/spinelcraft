@@ -138,7 +138,7 @@ class Game
       hit_boat(@target_boat) if pressed
       @mining = false
     elsif held && @target_block.hit?
-      break_block(dt)
+      break_target(dt)
     else
       swing_at_air if pressed
       @mining = false
@@ -165,7 +165,7 @@ class Game
 
   # Mines the block in view over time in survival, and breaks it at once in
   # creative.
-  def break_block(dt)
+  def break_target(dt)
     return mine(dt) if @survival
     return unless @action_cooldown <= 0.0
 
