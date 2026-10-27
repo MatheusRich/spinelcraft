@@ -131,6 +131,10 @@ class Game
   # The damage of a hit with the item in the hand at the given charge.
   def melee_damage(charge) = Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge)
 
+  # Seconds before a held right button acts again, and before a held left
+  # button breaks the next block in creative.
+  ACTION_COOLDOWN = 0.22
+
   # The left button hits the mob in the crosshair, or else breaks the block:
   # at once in creative, over time in survival.
   def left_button(dt, held, pressed)
@@ -177,7 +181,7 @@ class Game
     @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
     set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
     @attack_time = 0.0
-    @action_cooldown = 0.22
+    @action_cooldown = ACTION_COOLDOWN
     @swing = SWING
   end
 
@@ -246,7 +250,7 @@ class Game
     else
       feed_animal(viewed_mob)
     end
-    @action_cooldown = 0.22
+    @action_cooldown = ACTION_COOLDOWN
   end
 
   # True when the click draws the bow, not when it uses the block in view.
@@ -278,7 +282,7 @@ class Game
     else
       use_held
     end
-    @action_cooldown = 0.22
+    @action_cooldown = ACTION_COOLDOWN
   end
 
   # Opens the chest or the station at the block in view. True when it opens.
