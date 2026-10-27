@@ -122,15 +122,6 @@ class Game
     Gfx.gfx_fullscreen(@options.fullscreen ? 1 : 0)
   end
 
-  # How full the attack cooldown is, from 0 to 1. A hit does 0.2 + 0.8 *
-  # charge * charge of its damage. An attack, a miss, a broken block and a
-  # new item in the hand start the cooldown again. The 0.025 seconds are
-  # half a tick. minecraft.wiki/w/Melee_attack
-  def attack_charge = ((@attack_time + 0.025) * Block.attack_speed(current_block.to_i)).clamp(0.0, 1.0)
-
-  # The damage of a hit with the item in the hand at the given charge.
-  def melee_damage(charge) = Block.damage(current_block.to_i) * (0.2 + 0.8 * charge * charge)
-
   # Seconds before a held right button acts again, and before a held left
   # button breaks the next block in creative.
   ACTION_COOLDOWN = 0.22
@@ -154,15 +145,11 @@ class Game
 
   # Hits the mob with the item in the hand.
   def attack_mob(mob)
-    charge = attack_charge
-    damage = @survival ? melee_damage(charge) : 10.0
-    # A falling attack with the cooldown at 84.8% or more is a critical
-    # hit: 1.5 times the damage. minecraft.wiki/w/Damage
-    crit = charge >= 0.848 && @player.falling_attack?
-    damage *= 1.5 if crit
+    item_in_hand = current_block.to_i
+    damage = @survival ? @melee_attack.damage(item_in_hand, @player) : @melee_attack.creative_damage
     mob.hit(damage, @player.x, @player.z)
-    @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if crit
-    @attack_time = 0.0
+    @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if @melee_attack.critical?(item_in_hand, @player)
+    @melee_attack.restart
     wear_tool(Block.wear(current_block.to_i, true))
     @vitals.exhaust(Vitals::ATTACK_COST) if @survival
     mob.by_player = true
@@ -180,7 +167,7 @@ class Game
     @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
     @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
     set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
-    @attack_time = 0.0
+    @melee_attack.restart
     @action_cooldown = ACTION_COOLDOWN
     @swing = SWING
   end
@@ -188,7 +175,7 @@ class Game
   # A click at the air swings the arm and starts the cooldown again. The
   # wiki does not say so; the game code does (Minecraft.startAttack).
   def swing_at_air
-    @attack_time = 0.0
+    @melee_attack.restart
     @swing = SWING
   end
 
@@ -524,7 +511,7 @@ class Game
     @particles.burst(x, y, z, block)
     @sfx.play(MATERIAL_BREAK[material(block)], 0.7)
     set_block(x, y, z, Block::AIR)
-    @attack_time = 0.0
+    @melee_attack.restart
     drop_broken(block, x, y, z, tool) if harvests?(tool, block)
     if Block::HARDNESS[block] > 0.0
       wear_tool(Block.wear(tool, false))

@@ -21,6 +21,7 @@ require_relative "game/player"
 require_relative "game/voxel_walk"
 require_relative "game/block_target"
 require_relative "game/vitals"
+require_relative "game/melee_attack"
 require_relative "game/screen"
 require_relative "game/camera"
 require_relative "game/ui"
@@ -228,9 +229,7 @@ class Game
     @sky = Sky.new(@clock, @weather, @camera)
     @target_mob = -1
     @swing = 0.0
-    # Seconds since the last attack, broken block or new item in the hand
-    # (see attack_charge).
-    @attack_time = 0.0
+    @melee_attack = MeleeAttack.new
     @held_item = HeldItem.new
     # Where the held model starts in @dyn (see gfx_dyn).
     @hand_at = 0
@@ -546,7 +545,7 @@ class Game
     @chat.age(dt)
     @damage_flash -= dt
     @swing -= dt
-    @attack_time += dt
+    @melee_attack.advance(dt)
   end
 
   # The movement keys of this frame, in the controls of the player. No key
@@ -679,7 +678,7 @@ class Game
   # sway of the held item follows the walk speed.
   def update_hand(dt)
     if @held_item.change(current_block.to_i)
-      @attack_time = 0.0
+      @melee_attack.restart
       @eat_time = -1.0
     end
     p = @player

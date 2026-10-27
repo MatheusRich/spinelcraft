@@ -280,7 +280,7 @@ class Game
 
     demo_walk(-1) if foe.kind == Mob::CREEPER && foe.fuse > 0.0 && best < 5.5
     demo_look_at(foe.x.to_f, foe.y + foe.tall * 0.7, foe.z.to_f, 8.0, dt)
-    hit = mob_in_view? && viewed_mob == foe && attack_charge >= 1.0 && !@demo_left
+    hit = mob_in_view? && viewed_mob == foe && @melee_attack.charge(current_block.to_i) >= 1.0 && !@demo_left
     demo_buttons(dt, left: hit, right: false)
   end
 

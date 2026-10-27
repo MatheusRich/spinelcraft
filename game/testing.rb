@@ -812,10 +812,12 @@ class Game
     # In survival 5 hits of a hand break a boat into its item; in creative
     # one hit breaks it and drops nothing.
     @items.clear
-    @attack_time = 10.0
+    @melee_attack.restart
+    @melee_attack.advance(10.0)
     4.times do
       hit_boat(0)
-      @attack_time = 10.0
+      @melee_attack.restart
+      @melee_attack.advance(10.0)
     end
     held = @boats.size == 1
     hit_boat(0)
@@ -1094,13 +1096,14 @@ class Game
     @target_mob = -1
     @target_boat = -1
     @swing = 0.0
-    @attack_time = 1.0
+    @melee_attack.restart
+    @melee_attack.advance(1.0)
     rest = hand_corner
     left_button(1.0 / 60.0, true, true)
     # Halfway through the swing, as Game#update counts it down.
     @swing -= SWING / 2.0
     moved = (hand_corner - rest).abs > 0.05
-    check("a click at the air swings the held sword and starts the cooldown again", !@target_block.hit? && moved && attack_charge < 0.2)
+    check("a click at the air swings the held sword and starts the cooldown again", !@target_block.hit? && moved && @melee_attack.charge(current_block.to_i) < 0.2)
     @swing = 0.0
     @dyn.clear
     @inv.clear
@@ -2903,7 +2906,8 @@ class Game
     quick = Monster.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 4)
     @mobs << full
     @mobs << quick
-    @attack_time = 1.0
+    @melee_attack.restart
+    @melee_attack.advance(1.0)
     @target_mob = 0
     left_button(0.0, true, true)
     @target_mob = 1
@@ -2911,7 +2915,8 @@ class Game
     check("a hit right after an attack does less damage", full.hp == 16.0 && quick.hp > 19.0 && quick.hp < 19.2)
     falling = Monster.new(Mob::ZOMBIE, bx + 2.5, SKY_Y - 1.0, bz + 0.5, 5)
     @mobs << falling
-    @attack_time = 1.0
+    @melee_attack.restart
+    @melee_attack.advance(1.0)
     @player.on_ground = false
     @player.in_water = false
     @player.vy = -2.0
@@ -3987,7 +3992,8 @@ class Game
     sheep.x = bx + 0.5
     sheep.y = y + 1.0
     sheep.z = bz + 0.5
-    @attack_time = 1.0
+    @melee_attack.restart
+    @melee_attack.advance(1.0)
     @target_block.trace(@world, @player)
     find_targets
     left_button(1.0 / 60.0, true, true)
