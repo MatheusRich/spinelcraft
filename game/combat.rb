@@ -481,7 +481,7 @@ class Game
   def scan_mobs(best)
     @target_mob = -1
     @mobs.each_with_index do |mob, index|
-      distance = mob.dying? ? -1.0 : mob_distance(mob)
+      distance = mob.dying? ? -1.0 : mob.hit_distance(@player)
       next unless distance >= 0.0 && distance < best
 
       best = distance
@@ -489,7 +489,4 @@ class Game
     end
     @target_boat = -1 if mob_in_view?
   end
-
-  # Distance along the crosshair ray to the mob, or -1.0 when the ray misses.
-  def mob_distance(mob) = mob.ray(@player.x, @player.eye_y, @player.z, @player.fx, @player.fy, @player.fz)
 end
