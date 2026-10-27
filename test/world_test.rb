@@ -272,6 +272,17 @@ class WorldTest < Minitest::Test
     refute world.fits_dry?(8.5, SKY_Y, 8.5, Player::HALF, Player::TALL)
   end
 
+  def test_the_motion_top_is_above_glass_and_water_but_the_height_is_not
+    world = world_with_dry_land
+    world.load_chunk(0, 0)
+    ground = world.motion_top(3, 3)
+    world.set(3, ground + 4, 3, Block::GLASS)
+    assert_equal ground + 5, world.motion_top(3, 3)
+    assert_operator world.height_at(3, 3), :<, world.motion_top(3, 3)
+    world.set(4, ground + 4, 4, Block::WATER)
+    assert_operator world.motion_top(4, 4), :>, ground + 4
+  end
+
   # A world where only these columns are dry land.
   def world_with_dry_land(*columns)
     world = World.new(1337)

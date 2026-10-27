@@ -1,8 +1,19 @@
-# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS and SHOWBOATS.
+# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, SHOWBOATS and STRIKE.
 class Game
   # A height above the land and the trees, where the tests and the
   # screenshot scenes build in open air.
   SKY_Y = WY - 6
+  # STRIKE=1 strikes this far in front of the player, and this far to the side.
+  STRIKE_AHEAD = 40.0
+  STRIKE_ASIDE = 8.0
+
+  # STRIKE=1: lightning strikes in front of the player, a little to the side.
+  def strike_ahead
+    x = @player.x + Math.sin(@player.yaw) * STRIKE_AHEAD + Math.cos(@player.yaw) * STRIKE_ASIDE
+    z = @player.z - Math.cos(@player.yaw) * STRIKE_AHEAD + Math.sin(@player.yaw) * STRIKE_ASIDE
+    lightning_hit_player if @storm.strike(x.floor, z.floor, @player, @particles)
+  end
+
   # SHOWMOBS=1 lines up one mob of each kind on a stone floor in front of the player.
   def show_mobs
     @mobs.clear
@@ -143,6 +154,7 @@ class Game
     test_monsters
     test_fire
     test_rain
+    test_thunder
     test_weather_fade
     test_cactus
     test_save(x, z, ground)
@@ -1628,13 +1640,14 @@ class Game
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
-    @weather.set(true)
+    @weather.start_rain
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie burns in the sun until the rain is strong enough to wet it", zombie.fire > 0.0)
     @mobs.clear
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     @player.x = px + 0.5
@@ -1650,7 +1663,72 @@ class Game
     roofed = rain_bottom(px + 3, pz)
     @world.set(px + 3, SKY_Y + 5, pz, Block::AIR)
     check("the rain in a column stops at the highest block", open < SKY_Y + 6.0 && roofed == SKY_Y + 6.0)
-    @weather.set_now(false)
+    @weather.stop_rain
+    @weather.settle
+    @clock.time_of_day = 0.3
+  end
+
+  # On the sky platform from test_monsters: the thunder flag keeps the times
+  # of the wiki, a thunderstorm is rain while the flag is on, monsters spawn
+  # in it by day, and a strike draws itself to a mob near it, hurts and
+  # burns what it hits, and its thunder comes later.
+  def test_thunder
+    px = @spawn_x.floor
+    pz = @spawn_z.floor
+    survival = @survival
+    @weather.stop_rain
+    @weather.settle
+    @weather.start_thunder
+    on = @weather.thunder_timer
+    @weather.stop_thunder
+    off = @weather.thunder_timer
+    check("the thunder flag stays on for 3 to 13 minutes, and off for 10 to 150 minutes",
+          on >= 180.0 && on <= 780.0 && off >= 600.0 && off <= 9000.0)
+    @weather.start_thunder
+    @weather.settle
+    dry = !@weather.storm? && @weather.thunder == 0.0
+    @weather.start_rain
+    600.times { @weather.update_weather(1.0 / 60.0) }
+    check("a thunderstorm is rain while the thunder flag is on", dry && @weather.storm? && @weather.striking?)
+    @clock.time_of_day = 0.25
+    stormy = @sky.spawn_light
+    @weather.stop_thunder
+    @weather.settle
+    check("monsters spawn by day in a thunderstorm", stormy == 5 && @sky.spawn_light > NaturalSpawner::SPAWN_LIGHT)
+    @mobs.clear
+    zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
+    @mobs << zombie
+    @survival = true
+    @player.vitals.health = Vitals::MAX_HEALTH
+    @player.x = px + 0.5
+    @player.y = SKY_Y - 1.0
+    @player.z = pz + 0.5
+    @storm.strike(px + 9, pz + 1, @player, @particles)
+    lightning = @storm.lightning
+    check("lightning strikes a mob near it, for 5 damage, and sets it on fire",
+          lightning.x == px + 8 && lightning.z == pz && zombie.hp == Mob::HP[Mob::ZOMBIE] - Storm::STRIKE_DAMAGE &&
+          zombie.fire == Storm::STRIKE_FIRE && @player.vitals.health == Vitals::MAX_HEALTH)
+    dx = px + 8.5 - @player.x
+    dy = SKY_Y - 1.0 - @player.eye_y
+    delay = Math.sqrt(dx * dx + dy * dy) / Lightning::SOUND_SPEED
+    early = lightning.thunder_arrived?(delay - 0.001)
+    check("the thunder takes the distance over the speed of sound to arrive",
+          !early && lightning.thunder_arrived?(0.002) && lightning.heard_x == px + 8.5)
+    @mobs.clear
+    lightning_hit_player if @storm.strike(px, pz, @player, @particles)
+    check("lightning strikes the player for 5 damage and sets the player on fire",
+          @player.vitals.health == Vitals::MAX_HEALTH - Storm::STRIKE_DAMAGE && @player.vitals.fire == Storm::STRIKE_FIRE)
+    lightning.thunder_arrived?(1.0)
+    @player.vitals.douse
+    @player.vitals.health = Vitals::MAX_HEALTH
+    @world.set(px, SKY_Y + 2, pz, Block::GLASS)
+    lightning_hit_player if @storm.strike(px + 1, pz, @player, @particles)
+    @world.set(px, SKY_Y + 2, pz, Block::AIR)
+    check("lightning does not strike the player under a glass roof",
+          @player.vitals.health == Vitals::MAX_HEALTH && !@player.vitals.burning?)
+    @survival = survival
+    @weather.stop_rain
+    @weather.settle
     @clock.time_of_day = 0.3
   end
 
@@ -1826,7 +1904,8 @@ class Game
     keep_pose
     @player.move_to(@spawn_x.floor + 0.5, SKY_Y - 1.0, @spawn_z.floor + 0.5)
     @player.flying = true
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     run_chat("/weather clear")
     follows = true
     99.times do
@@ -1844,7 +1923,8 @@ class Game
     rain = @weather.rain == 1.0 && @weather.sound(@world, @player) == 0.3
     check("/weather clear and /weather rain change the rain in 100 ticks, and the rain sound follows the rain on each tick",
           follows && clear && rain)
-    @weather.set_now(false)
+    @weather.stop_rain
+    @weather.settle
     restore_pose
   end
 
@@ -1867,8 +1947,10 @@ class Game
     kept_count = @inv.count(1)
     @items.clear
     drop_item(Block::STONE_SWORD, 17, x + 0.25, ground + 1.0, z + 0.75, 0.0, 0.0, 0.0, 0.0)
-    @weather.set(true)
+    @weather.start_rain
     @weather.timer = 77.5
+    @weather.start_thunder
+    @weather.thunder_timer = 55.5
     @recipe_book = RecipeBook.new
     @recipe_book.learn(Block::DIAMOND)
     @furnaces.clear
@@ -1891,7 +1973,8 @@ class Game
     @player.vitals.health = 3.0
     @inv.set(1, Block::AIR, 0)
     @items.clear
-    @weather.set_now(false)
+    @weather.clear
+    @weather.settle
     @recipe_book = RecipeBook.new
     @furnaces.clear
     @clock.day = 0
@@ -1903,7 +1986,8 @@ class Game
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
-          @weather.raining? && @weather.rain == 1.0 && @weather.timer == 77.5)
+          @weather.raining? && @weather.rain == 1.0 && @weather.timer == 77.5 &&
+          @weather.storm? && @weather.thunder == 1.0 && @weather.thunder_timer == 55.5)
     boat = @boats[0]
     check("the save keeps the boats and the boat that the player rides",
           @boats.size == 1 && boat.item == Block::SPRUCE_BOAT && boat.x == x + 0.5 && boat.y == ground + 1.25 && boat.z == z + 0.5 && boat.yaw == 1.5 && @riding == 0)
@@ -1916,7 +2000,8 @@ class Game
           loaded.slots.block(Furnace::INPUT) == Block::SAND && loaded.slots.count(Furnace::INPUT) == 2 && loaded.slots.block(Furnace::FUEL) == Block::OAK_LOG && loaded.slots.count(Furnace::FUEL) == 3)
     @furnaces.clear
     @items.clear
-    @weather.set_now(false)
+    @weather.clear
+    @weather.settle
     # The sky shows the moon of the loaded day: day 37 has the phase
     # 37 % 8 = 5.
     time = @clock.time_of_day
@@ -2981,9 +3066,11 @@ class Game
     evening = @clock.time_of_day
     use_bed(bx + 6, SKY_Y - 1, bz)
     dusk = @clock.time_of_day == evening
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     use_bed(bx + 6, SKY_Y - 1, bz)
-    @weather.set_now(false)
+    @weather.stop_rain
+    @weather.settle
     check("a bed works earlier in the evening in rain", dusk && @clock.time_of_day == Clock::MORNING)
     awake = [[3.0, 0.0], [0.0, 6.0], [9.0, 0.0]].map do |(across, up)|
       @mobs.clear

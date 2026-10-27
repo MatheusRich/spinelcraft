@@ -53,6 +53,7 @@ In survival, start by punching a tree. The inventory shows a recipe after you ha
 
 - An endless generated world with continents, rivers, mountains and nine biomes, from snowy taiga to desert and jungle, plus caves, ores and trees.
 - A day and night cycle, rain, flowing water and lava, and torch light.
+- Thunderstorms: the sky goes dark enough for monsters by day, and lightning strikes near you. A strike hurts and burns what it hits, and its thunder comes later, as far behind as the sound needs to travel. `/weather thunder` starts a storm.
 - Creative and survival modes, with health, hunger, tools, crafting and smelting.
 - Animals, and monsters that come out in the dark. Shears take the wool of a sheep, but not of a baby sheep, and the sheep grows it back when it eats grass. A bucket milks a cow, and the milk ends the Hunger effect. A chicken lays an egg every 5 to 10 minutes. A thrown egg hatches a chick 1 time in 8. Wheat puts a cow, a sheep or a pig in love mode, and seeds put a chicken in love mode. Two animals of one kind in love mode make a baby, which grows up in 20 minutes. An animal follows a player who holds its food.
 - Boats of oak, spruce and birch. Put one on water, get in, and paddle with WASD.
@@ -72,7 +73,7 @@ T opens the chat line, and / opens it with a slash. The chat frees the mouse whi
 | `/time set day\|noon\|night\|midnight\|<time>` | Set the time of day. A time is in ticks, or has the unit `d` (days), `s` (seconds) or `t` (ticks) |
 | `/time add <time>` | Move the clock forward |
 | `/time query` | Show the time in ticks and the day |
-| `/weather clear\|rain` | Stop or start the rain. No key does this |
+| `/weather clear\|rain\|thunder` | Stop the rain, start the rain, or start a thunderstorm. No key does this |
 | `/gamemode survival\|creative` | Switch between survival and creative. No key does this |
 | `/tp <x> <y> <z>` | Go to a place, for example `/tp ~ ~10 ~` |
 | `/give <item> [count]` | Get an item, for example `/give diamond_pickaxe` |

@@ -220,7 +220,14 @@ class Game
     @ui.text(8.0 * s, 22.0 * s, "XYZ #{@player.x.floor} #{@player.y.floor} #{@player.z.floor}  FACES #{@faces_drawn}", ts, 1.0, 1.0, 1.0, 1.0)
     @ui.text(8.0 * s, 36.0 * s, "CHUNKS #{@chunk_meshes.visible.size / 2}  REMESH #{@chunk_meshes.mesh_ms.round(2)}MS  MOBS #{@mobs.size}", ts, 1.0, 1.0, 1.0, 1.0)
     mode = @survival ? "SURVIVAL" : "CREATIVE"
-    @ui.text(8.0 * s, 50.0 * s, "DAY #{@clock.day + 1}  TIME #{@clock.hour}:00  #{mode}#{@weather.raining? ? "  RAIN" : ""}", ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(8.0 * s, 50.0 * s, "DAY #{@clock.day + 1}  TIME #{@clock.hour}:00  #{mode}#{weather_label}", ts, 1.0, 1.0, 1.0, 1.0)
+  end
+
+  def weather_label
+    return "  THUNDERSTORM" if @weather.storm?
+    return "  RAIN" if @weather.raining?
+
+    ""
   end
 
   def draw_death_screen(w, h, s)

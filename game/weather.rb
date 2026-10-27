@@ -2,6 +2,9 @@
 # light, brings the fog nearer, puts out fires under the open sky, and
 # splashes on the ground. The rain itself is streaks on crossed quads in
 # the columns around the player; the vrain shader moves them down.
+#
+# The thunder flag turns on and off on its own timer, as in Minecraft. Rain
+# while the flag is on is a thunderstorm. minecraft.wiki/w/Weather
 class Weather
   # Rain falls in the columns within R blocks of the player.
   R = 10
@@ -13,11 +16,25 @@ class Weather
   # The strength at which the rain wets: it puts out fires, and the sun
   # does not burn undead mobs. The wiki does not give it.
   WET = 0.5
+  # The thunder flag stays on for 3600 to 15600 ticks, and off for 12000 to
+  # 180000 ticks. minecraft.wiki/w/Weather
+  THUNDER_ON = 180.0
+  THUNDER_ON_SPAN = 600.0
+  THUNDER_OFF = 600.0
+  THUNDER_OFF_SPAN = 8400.0
+  # Minecraft strikes lightning when the strength of the storm is above 0.9.
+  # The wiki does not confirm this value (Level#isThundering in the code).
+  STRIKING = 0.9
 
   # The strength of the rain, from 0 (none) to 1.
   attr_reader :rain
   # Seconds until the rain starts or stops.
   attr_accessor :timer
+  # The strength of the thunderstorm, from 0 (none) to 1. It is never more
+  # than the strength of the rain.
+  attr_reader :thunder
+  # Seconds until the thunder flag turns on or off.
+  attr_accessor :thunder_timer
   # The rain quads.
   attr_reader :mesh
 
@@ -26,31 +43,70 @@ class Weather
     @raining = false
     @rain = 0.0
     @timer = 0.0
+    @thundering = false
+    @thunder = 0.0
+    @thunder_timer = 0.0
     @mesh = Mesh3.new
     # The block that the rain quads are for, and their age in seconds.
     @x = World::NONE
     @y = 0
     @z = World::NONE
     @age = 0.0
-    set_now(raining)
+    clear
+    @raining = raining
+    settle
   end
 
   def raining? = @raining
+  def thundering? = @thundering
+
+  # True when rain falls while the thunder flag is on.
+  def storm? = @raining && @thundering
+
+  # True when the storm is strong enough for lightning.
+  def striking? = @thunder > STRIKING
 
   # True when the rain is strong enough to wet.
   def wet? = @rain > WET
 
-  # Starts or stops the rain, and sets how long the new weather lasts. The
-  # strength of the rain follows over FADE seconds.
-  def set(on)
-    @raining = on
-    @timer = on ? 120.0 + @rng.rand01 * 240.0 : 300.0 + @rng.rand01 * 600.0
+  # Each of these sets how long the new weather lasts. The strength of the
+  # rain and of the storm follows over FADE seconds.
+  def start_rain
+    @raining = true
+    @timer = 120.0 + @rng.rand01 * 240.0
   end
 
-  # Starts or stops the rain at full strength at once.
-  def set_now(on)
-    set(on)
-    @rain = on ? 1.0 : 0.0
+  def stop_rain
+    @raining = false
+    @timer = 300.0 + @rng.rand01 * 600.0
+  end
+
+  def start_thunder
+    @thundering = true
+    @thunder_timer = THUNDER_ON + @rng.rand01 * THUNDER_ON_SPAN
+  end
+
+  def stop_thunder
+    @thundering = false
+    @thunder_timer = THUNDER_OFF + @rng.rand01 * THUNDER_OFF_SPAN
+  end
+
+  # Stops the rain and the thunder.
+  def clear
+    stop_rain
+    stop_thunder
+  end
+
+  # Starts the rain and the thunder.
+  def start_storm
+    start_rain
+    start_thunder
+  end
+
+  # Moves the rain and the storm to their full strength, or to none, at once.
+  def settle
+    @rain = @raining ? 1.0 : 0.0
+    @thunder = storm? ? @rain : 0.0
   end
 
   # TODO: Rename back to update when Spinel types the parameters of each
@@ -58,9 +114,21 @@ class Weather
   # parameter, and this one made the others untyped.
   def update_weather(dt)
     @timer -= dt
-    set(!@raining) if @timer <= 0.0
+    toggle_rain if @timer <= 0.0
+    @thunder_timer -= dt
+    toggle_thunder if @thunder_timer <= 0.0
     step = dt / FADE
     @rain = (@raining ? @rain + step : @rain - step).clamp(0.0, 1.0)
+    @thunder = (storm? ? @thunder + step : @thunder - step).clamp(0.0, @rain)
+  end
+
+  # The rain and the thunder flag each turn over when their timer ends.
+  def toggle_rain
+    @raining ? stop_rain : start_rain
+  end
+
+  def toggle_thunder
+    @thundering ? stop_thunder : start_thunder
   end
 
   # Drops that splash on the ground around the player.

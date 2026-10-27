@@ -82,7 +82,8 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `BEACONS=1` | Draw a gold beam of light over each treasure chest that is not looted, to find the chests from far away |
 | `INVENTORY=1` | Start with the inventory open |
-| `RAIN=1` | Start in the rain |
+| `RAIN=1` | Start in the rain. `RAIN=thunder` starts in a thunderstorm |
+| `STRIKE=1` | Make lightning strike in front of the player near the last frame (use with `FRAMES`) |
 | `HALLOWEEN=1` | Play as on October 31: some zombies and skeletons wear a carved pumpkin or a jack o'lantern. With `SHOWMOBS=1`, the zombie and the skeleton wear one |
 | `SELFTEST=1` | Check the game rules and print PASS or FAIL for each, then the totals. The exit status is 1 when a rule fails |
 | `VIEW=200` | Start with that view distance |

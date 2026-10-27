@@ -13,14 +13,16 @@ class Game
   F_INV = 14 # INV blocks, then INV counts
   F_HOTBAR = F_INV + INV * 2
   F_HUNGER = F_HOTBAR + HOTBAR # hunger, saturation, exhaustion
-  F_WEATHER = F_HUNGER + 3 # raining (1 or 0), seconds to the next change
+  # Raining (1 or 0), seconds to the next change of the rain, the thunder
+  # flag (1 or 0), and seconds to the next change of the flag.
+  F_WEATHER = F_HUNGER + 3
   # The chest count, then the key and the contents of each chest. Then the
   # item count and ITEM_FIELDS for each item on the ground. Then the count
   # of seen blocks, and their ids. Then the furnaces (Furnaces#to_a). Then
   # the boat count, BOAT_FIELDS for each boat, and the index of the boat
   # that the player rides (or -1). Then the looted treasure chests
   # (Treasure#to_a).
-  F_CHESTS = F_WEATHER + 2
+  F_CHESTS = F_WEATHER + 4
   ITEM_FIELDS = 6 # block, count, x, y, z, age
   BOAT_FIELDS = 5 # item, x, y, z, yaw
 
@@ -44,7 +46,8 @@ class Game
     chunks = @world.edited_chunks
     keys = chunks.keys
     chunk_fields = [keys.size] + keys
-    inv = (@inv.to_a + @hotbar + [@player.vitals.hunger, @player.vitals.saturation, @player.vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer] + chest_fields +
+    inv = (@inv.to_a + @hotbar + [@player.vitals.hunger, @player.vitals.saturation, @player.vitals.exhaustion, @weather.raining? ? 1 : 0, @weather.timer,
+                                                                                                                      @weather.thundering? ? 1 : 0, @weather.thunder_timer] + chest_fields +
            item_fields + [seen.size] + seen + furnace_fields + boat_fields + looted_fields + chunk_fields).map(&:to_s).join(" ")
     line = "#{SAVE_VERSION} #{header} #{inv}\n"
     File.open(@save_path, "wb") do |f|
@@ -119,6 +122,7 @@ class Game
     @far = FarTerrain.new(@world.terrain, LOD_SLOT0)
     @chunk_meshes = ChunkMeshes.new(@world, @tint)
     @light = Light.new(@world)
+    @storm = Storm.new(@seed * 5 + 3, @world, @weather, @mobs)
     @spawner = NaturalSpawner.new(@world, @seed * 11 + 5, @halloween)
     @plants = Plants.new(@world, @seed * 13 + 3)
     @breeding = Breeding.new(@seed * 17 + 9)
@@ -147,8 +151,12 @@ class Game
     @player.vitals.hunger = f[F_HUNGER].to_i
     @player.vitals.saturation = f[F_HUNGER + 1].to_f
     @player.vitals.exhaustion = f[F_HUNGER + 2].to_f
-    @weather.set_now(f[F_WEATHER] == "1")
+    @weather.clear
+    @weather.start_rain if f[F_WEATHER] == "1"
     @weather.timer = f[F_WEATHER + 1].to_f
+    @weather.start_thunder if f[F_WEATHER + 2] == "1"
+    @weather.thunder_timer = f[F_WEATHER + 3].to_f
+    @weather.settle
     at = @chests.load(f, F_CHESTS)
     @items.clear
     items = f[at].to_i

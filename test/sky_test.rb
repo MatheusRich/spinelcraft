@@ -99,7 +99,8 @@ class SkyTest < Minitest::Test
 
   def test_rain_hides_the_sun
     @clock.time_of_day = 0.08
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     assert_empty build(EAST, 0.45)
   end
 
@@ -148,7 +149,8 @@ class SkyTest < Minitest::Test
 
   def test_rain_hides_the_moon_and_the_stars
     @clock.time_of_day = 0.75
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     assert_empty build(0.0, 1.3)
   end
 
@@ -187,7 +189,7 @@ class SkyTest < Minitest::Test
 
   def test_half_rain_dims_the_sun_and_its_glow_by_half
     @clock.time_of_day = 0.08
-    @weather.set(true)
+    @weather.start_rain
     @weather.update_weather(Weather::FADE / 2.0)
     glow, sun = build(EAST, 0.45)
     assert_in_delta 0.5, sun[:alpha], 1e-9
@@ -271,7 +273,8 @@ class SkyTest < Minitest::Test
   # The sky light at the tick of the day, in rain or not.
   def light_at(tick, raining: false)
     @clock.set_ticks(tick)
-    @weather.set_now(raining)
+    raining ? @weather.start_rain : @weather.clear
+    @weather.settle
     @sky.light
   end
 
@@ -298,7 +301,8 @@ class SkyTest < Minitest::Test
   end
 
   def test_rain_grays_the_sky_with_a_hint_of_blue
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     red, green, blue = colors(6000)
     assert_in_delta red, green, 0.05
     assert_operator blue - green, :>, 0.05
@@ -307,7 +311,8 @@ class SkyTest < Minitest::Test
   end
 
   def test_rain_keeps_the_night_sky_dark
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     colors(18000).each { |color| assert_operator color, :<, 0.3 }
   end
 
@@ -317,7 +322,8 @@ class SkyTest < Minitest::Test
 
   def test_rain_brings_the_fog_nearer_and_dims_the_daylight
     clear = sky_uniforms(6000, 160.0)
-    @weather.set_now(true)
+    @weather.start_rain
+    @weather.settle
     rain = sky_uniforms(6000, 160.0)
     assert_in_delta 0.4 * clear[3], rain[3], 0.001
     assert_in_delta 0.65 * clear[4], rain[4], 0.001
@@ -333,10 +339,44 @@ class SkyTest < Minitest::Test
     assert_in_delta 1200.0, long[5], 0.001
   end
 
+  def test_a_thunderstorm_darkens_the_sky_and_the_daylight_more_than_rain
+    @weather.start_rain
+    @weather.settle
+    rain = sky_uniforms(6000, 160.0)
+    @weather.start_thunder
+    @weather.settle
+    storm = sky_uniforms(6000, 160.0)
+    assert_operator storm[0], :<, rain[0]
+    assert_in_delta rain[4] * (1.0 - Sky::STORM_DAYLIGHT), storm[4], 1e-9
+  end
+
+  def test_a_lightning_flash_pulls_the_sky_and_the_daylight_up
+    @clock.set_ticks(18_000)
+    dark = Array.new(6, 0.0)
+    @sky.write_uniforms(dark, 0, 160.0, 0.0)
+    flash = Array.new(6, 0.0)
+    @sky.write_uniforms(flash, 0, 160.0, 1.0)
+    assert_equal [Sky::FLASH_RED, Sky::FLASH_GREEN, Sky::FLASH_BLUE], flash[0, 3]
+    assert_equal Sky::FLASH_LIGHT, flash[4]
+    assert_operator dark[4], :<, 0.5
+  end
+
+  def test_monsters_spawn_by_day_in_a_thunderstorm
+    @clock.set_ticks(6000)
+    @weather.start_rain
+    @weather.settle
+    assert_equal Sky::TOP_RAIN, @sky.spawn_light
+    @weather.start_thunder
+    @weather.settle
+    assert_equal Sky::TOP_CLEAR - Sky::STORM_DARKEN, @sky.spawn_light
+    assert_operator @sky.spawn_light, :<=, NaturalSpawner::SPAWN_LIGHT
+    assert_equal Sky::TOP_RAIN, @sky.light
+  end
+
   def test_the_uniforms_go_at_their_place
     u = Array.new(10, -1.0)
     @clock.set_ticks(6000)
-    @sky.write_uniforms(u, 3, 160.0)
+    @sky.write_uniforms(u, 3, 160.0, 0.0)
     assert_equal [-1.0, -1.0, -1.0], u[0, 3]
     assert_equal [-1.0], u[9, 1]
   end
@@ -345,7 +385,7 @@ class SkyTest < Minitest::Test
   def sky_uniforms(tick, view)
     @clock.set_ticks(tick)
     u = Array.new(6, 0.0)
-    @sky.write_uniforms(u, 0, view)
+    @sky.write_uniforms(u, 0, view, 0.0)
     u
   end
 

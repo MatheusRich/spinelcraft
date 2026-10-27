@@ -1,6 +1,6 @@
 # Sound credits
 
-The sounds come from [VoxeLibre](https://git.minetest.land/VoxeLibre/VoxeLibre). Many of them are also in Minetest Game. The files are the VoxeLibre files with no change. When the game loads a file, it changes the loudness so that the RMS of the loudest 0.1 seconds is -20 dBFS (-12 dBFS for the explosion). The gains are in `game/sounds.rb`.
+The sounds come from [VoxeLibre](https://git.minetest.land/VoxeLibre/VoxeLibre). Many of them are also in Minetest Game. The files are the VoxeLibre files with no change. When the game loads a file, it changes the loudness so that the RMS of the loudest 0.1 seconds is -20 dBFS (-12 dBFS for the explosion and the thunder). The gains are in `game/sounds.rb`.
 
 Each file keeps its license.
 
@@ -86,6 +86,9 @@ Each file keeps its license.
 | `tnt_explode.ogg` | Jose Ortiz "MindChamber" | CC0 1.0 | VoxeLibre `mcl_tnt` |
 | `tnt_ignite.ogg` | VoxeLibre contributors, from a sound by Ned Bouhalassa | CC0 1.0 | <https://freesound.org/people/Ned%20Bouhalassa/sounds/8320/> |
 | `weather_rain.ogg` | inchadney | CC BY-SA 3.0 | <http://freesound.org/people/inchadney/sounds/58835/> |
+| `lightning_thunder.1.ogg` | hantorio | CC BY-SA (no version given) | <http://www.freesound.org/people/hantorio/sounds/121945/>, VoxeLibre `lightning` |
+| `lightning_thunder.2.ogg` | juskiddink | CC BY-SA (no version given) | <http://www.freesound.org/people/juskiddink/sounds/101948/>, VoxeLibre `lightning` |
+| `lightning_thunder.3.ogg` | IllusiaProductions | CC BY-SA (no version given) | <http://www.freesound.org/people/IllusiaProductions/sounds/249950/>, VoxeLibre `lightning` |
 | `item_drop_pickup.ogg` | VoxeLibre contributors (no author listed) | Free license (VoxeLibre `LEGAL.md`) | VoxeLibre `mcl_item_entity` |
 | `mesecons_button_push.ogg` | junggle | CC BY 3.0 | <https://freesound.org/people/junggle/sounds/29301/> |
 | `mcl_potions_drinking.ogg` | VoxeLibre contributors (no author listed) | CC0 1.0 (VoxeLibre `mcl_potions/README.txt`) | VoxeLibre `mcl_potions` |

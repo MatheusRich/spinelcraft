@@ -114,7 +114,7 @@ class Game
   # of each name.
   SAVE_PATH = "world.sav"
   # The first word of a save. A save with another version does not load.
-  SAVE_VERSION = "SPINELCRAFT22"
+  SAVE_VERSION = "SPINELCRAFT23"
   # The options of the pause menu (see Options#write_file).
   OPTIONS_PATH = "options.txt"
   # Where a save that does not load goes, so that the next save does not replace it.

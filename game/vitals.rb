@@ -115,6 +115,11 @@ class Vitals
     @fire = 0.0
   end
 
+  # Sets the player on fire for seconds, unless the player burns for longer.
+  def ignite(seconds)
+    @fire = seconds if @fire < seconds
+  end
+
   # dt seconds of lava, fire, cactus, air, hunger and healing. in_lava is
   # true when the player touches lava, on_cactus when the player touches a
   # cactus, and under_water when the head is in water. Returns true when

@@ -228,6 +228,11 @@ class Mob
     @fire = 0.0
   end
 
+  # Sets the mob on fire for seconds, unless it burns for longer.
+  def ignite(seconds)
+    @fire = seconds if @fire < seconds
+  end
+
   def blocked?(world) = world.solid_in_box?(@x, @y, @z, @half, @tall)
 
   # Moves and returns true when a wall stopped the horizontal motion.

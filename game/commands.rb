@@ -2,7 +2,7 @@
 # starts with a slash runs a command (game/command.rb reads its words).
 # minecraft.wiki/w/Commands
 class Game
-  HELP = ["/TIME SET|ADD <TIME>  /TIME QUERY  /WEATHER CLEAR|RAIN", "/GAMEMODE SURVIVAL|CREATIVE  /TP <X> <Y> <Z>  /SPAWN",
+  HELP = ["/TIME SET|ADD <TIME>  /TIME QUERY  /WEATHER CLEAR|RAIN|THUNDER", "/GAMEMODE SURVIVAL|CREATIVE  /TP <X> <Y> <Z>  /SPAWN",
           "/GIVE <ITEM> [COUNT]  /SUMMON <MOB> [X Y Z]", "/LOCATE TREASURE  /KILL  /SEED  /HELP"]
 
   # The farthest x and z of /tp. Minecraft keeps them within 30,000,000,
@@ -115,15 +115,20 @@ class Game
     end
   end
 
+  # Rain turns the thunder flag off, and thunder turns it on, as in Minecraft.
   def command_weather(args)
-    return @chat.post_error("USE /WEATHER CLEAR OR /WEATHER RAIN") if args.size != 1
+    return @chat.post_error("USE /WEATHER CLEAR, RAIN OR THUNDER") if args.size != 1
 
     if args[0] == "CLEAR"
-      @weather.set(false)
+      @weather.clear
       @chat.post("CHANGING TO CLEAR WEATHER")
-    elsif args[0] == "RAIN" || args[0] == "THUNDER"
-      @weather.set(true)
+    elsif args[0] == "RAIN"
+      @weather.start_rain
+      @weather.stop_thunder
       @chat.post("CHANGING TO RAIN")
+    elsif args[0] == "THUNDER"
+      @weather.start_storm
+      @chat.post("CHANGING TO RAIN AND THUNDER")
     else
       @chat.post_error("UNKNOWN WEATHER: #{args[0]}")
     end

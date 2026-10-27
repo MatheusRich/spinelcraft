@@ -110,6 +110,8 @@ class Player
   end
 
   def eye_y = @y + @eye
+  def half = HALF
+  def tall = TALL
 
   # The speed along the ground: x and z, without the speed up or down.
   def speed = Math.sqrt(@vx * @vx + @vz * @vz)

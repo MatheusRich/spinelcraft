@@ -107,6 +107,19 @@ class World
   def loaded?(x, z) = chunk_loaded?(x >> 4, z >> 4)
   def inside?(x, y, z) = y >= 0 && y < WY && loaded?(x, z)
   def height_at(x, z) = @height[(x & LMASK) * WZ + (z & LMASK)]
+  # The y above the highest block in the column x, z that stops motion or
+  # holds a fluid, as the MOTION_BLOCKING heightmap of Minecraft. Glass lets
+  # light through, so height_at is below it, but this is above it.
+  # minecraft.wiki/w/Heightmap
+  def motion_top(x, z)
+    base = World.index(x.to_i, 0, z.to_i)
+    y = column_top(base)
+    y -= 1 while y >= 0 && !stops_motion?(block(base + y))
+    y + 1
+  end
+
+  def stops_motion?(id) = Block.solid?(id) || Block.water?(id) || Block.lava?(id)
+
   # True when nothing above x, y, z stops the rain.
   def under_sky?(x, y, z) = height_at(x.floor, z.floor) <= y.floor
 

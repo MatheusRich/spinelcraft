@@ -64,6 +64,8 @@ require_relative "game/boats"
 require_relative "game/held_item"
 require_relative "game/particles"
 require_relative "game/weather"
+require_relative "game/lightning"
+require_relative "game/storm"
 require_relative "game/clock"
 require_relative "game/sky"
 require_relative "game/bed"
@@ -225,6 +227,10 @@ class Game
     # mixes the seconds first.
     @music = Music.new(Noise.hash3(Time.now.to_i, 0, 0, 60))
     @weather = Weather.new(@seed * 3 + 2, !ENV["RAIN"].nil?)
+    @weather.start_storm if ENV["RAIN"] == "thunder"
+    @weather.settle
+    # STRIKE=1 makes lightning strike in front of the player near the last frame.
+    @strike_shot = !ENV["STRIKE"].nil?
     @sky = Sky.new(@clock, @weather, @camera)
     @target_mob = -1
     @swing = 0.0
@@ -452,6 +458,7 @@ class Game
     play_move_sounds(dt)
     update_surroundings(dt)
     update_weather_effects(dt)
+    update_storm(dt)
     update_timers(dt)
     update_hand(dt)
     update_cave_sound(dt)
@@ -529,6 +536,22 @@ class Game
     @weather.splash(@particles, @world, @player, dt)
     Gfx.au_loop(Sfx::RAIN, @weather.sound(@world, @player) * @options.volume) if @sound
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
+  end
+
+  # The strikes of a thunderstorm, and the thunder that reaches the player.
+  def update_storm(dt)
+    lightning_hit_player if @storm.advance(dt, @player, @particles)
+    return unless @storm.lightning.thunder_arrived?(dt)
+
+    lightning = @storm.lightning
+    @sfx.play_at(Sfx::THUNDER + (@rng.rand01 * Sfx::THUNDERS).to_i, lightning.heard_x, lightning.heard_y, lightning.heard_z, 1.0)
+  end
+
+  def lightning_hit_player
+    return unless @survival
+
+    @player.vitals.ignite(Storm::STRIKE_FIRE)
+    hurt(Storm::STRIKE_DAMAGE, Sfx::HURT)
   end
 
   def update_timers(dt)
@@ -730,6 +753,7 @@ class Game
 
   # One frame of the game. Returns the milliseconds of CPU that it took.
   def frame(dt, now, frames)
+    strike_ahead if @strike_shot && frames == @max_frames - 3
     advance(dt)
     stamp(STAMP_STREAM)
     @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)

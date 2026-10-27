@@ -68,10 +68,17 @@ class Sfx
   CHICKEN_HURT = 63
   LAY_EGG = 64
   CHICK = 65
+  # The thunder sounds are THUNDER to THUNDER + THUNDERS - 1.
+  THUNDER = 66
+  THUNDERS = 3
   # A sound from a point fades to silence at RANGE blocks, and an  # explosion at EXPLOSION_RANGE. The wiki gives 64 blocks for TNT. It does
   # not say if a creeper explosion carries as far. minecraft.wiki/w/Sound
   RANGE = 16.0
   EXPLOSION_RANGE = 64.0
+  # Thunder carries over the 17 x 17 chunks where lightning strikes. Minecraft
+  # plays thunder at full volume in the whole dimension, so this range is not
+  # a Minecraft value.
+  THUNDER_RANGE = 192.0
   # The file of each sound, in the order of the ids above.
   FILES = ["default_dug_node.1", "default_place_node.1", "default_place_node_hard.1", "player_damage",
            "default_grass_footstep.1", "default_dirt_footstep.1", "default_hard_footstep.1", "default_wood_footstep.1",
@@ -92,10 +99,10 @@ class Sfx
            "env_sounds_lava.1", "env_sounds_water.1", "fire_fire.1",
            "mesecons_button_push", "mobs_mc_cow", "mobs_mc_cow_hurt", "mobs_mc_cow_milk",
            "mcl_potions_drinking", "mobs_mc_chicken_buck.1", "mobs_mc_chicken_hurt", "mobs_mc_chicken_lay_egg",
-           "mobs_mc_chicken_child"]
+           "mobs_mc_chicken_child", "lightning_thunder.1", "lightning_thunder.2", "lightning_thunder.3"]
   # The gain of each file in dB, in the order of the ids above. It sets the
   # RMS of the loudest 0.1 seconds of each sound to -20 dBFS (-12 dBFS for
-  # the explosion), so that all sounds are equally loud.
+  # the explosion and the thunder), so that all sounds are equally loud.
   GAINS = [-4.1, 3.7, 0.0, 0.5, 2.4, 9.2, 3.3, 2.6,
            3.1, -1.2, -2.0, -4.4, -2.8, -9.0, 19.8, 1.1,
            7.4, 2.5, -6.1, -9.5, -4.3, 21.2, -11.5, -10.0,
@@ -103,11 +110,13 @@ class Sfx
            -10.0, -15.4, 1.0, -6.0, -5.4, -2.0, -8.0, -6.1,
            -1.5, 1.8, -0.6, 6.8, 2.7, -6.0, -1.3, -9.5,
            -10.4, -9.6, -15.5, 6.8, -8.5, 10.6, -6.0, 3.3, -9.7, 2.7,
-           -11.4, -8.4, -1.9, -0.6, 9.6, -2.7, -5.4, -2.7]
+           -11.4, -8.4, -1.9, -0.6, 9.6, -2.7, -5.4, -2.7,
+           -5.6, -2.7, -0.5]
   # The distance in blocks at which each sound from a point fades to
   # silence, in the order of the ids above.
   RANGES = Array.new(FILES.size, RANGE)
   RANGES[EXPLODE] = EXPLOSION_RANGE
+  THUNDERS.times { |index| RANGES[THUNDER + index] = THUNDER_RANGE }
 
   # The queue: the id, the volume and the pan of each sound to play.
   attr_reader :ids, :volumes, :pans

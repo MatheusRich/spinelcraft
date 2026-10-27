@@ -16,6 +16,18 @@ class Sky
   TOP_RAIN = 12
   DUSK_RAIN = [12010, 12256, 12497, 12734, 12969, 13203, 13436, 13670]
   DAWN_RAIN = [22331, 22566, 22799, 23032, 23267, 23505, 23746, 23992]
+  # A thunderstorm takes 10 from the sky light of a clear day for the spawn
+  # of monsters, so they spawn by day. minecraft.wiki/w/Thunderstorm
+  STORM_DARKEN = 10
+  # A thunderstorm takes away 5/16 more of the daylight, as in Minecraft's
+  # code (Level#getSkyDarken). The wiki does not give this value.
+  STORM_DAYLIGHT = 5.0 / 16.0
+  # The sky color that a lightning flash pulls the sky toward, a little
+  # above full daylight. minecraft.wiki/w/Lightning
+  FLASH_RED = 0.85
+  FLASH_GREEN = 0.88
+  FLASH_BLUE = 1.0
+  FLASH_LIGHT = 1.1
 
   # The quads of the sky, in pixels.
   attr_reader :mesh
@@ -44,6 +56,10 @@ class Sky
     TOP_CLEAR - passed(DUSK_CLEAR, tick)
   end
 
+  # The sky light under the open sky for the spawn of monsters. In a
+  # thunderstorm it is the clear sky light of a day less STORM_DARKEN.
+  def spawn_light = @weather.striking? ? TOP_CLEAR - STORM_DARKEN : light
+
   # How many ticks of ticks the tick has reached.
   def passed(ticks, tick) = ticks.count { |start| tick >= start }
 
@@ -51,8 +67,9 @@ class Sky
   # the end of the fog for a view of view blocks, the daylight, and the
   # start of the fog. The sky is blue by day and dark at night, and it
   # glows orange at dusk and dawn. Rain grays the sky, dims the daylight,
-  # and brings the fog nearer.
-  def write_uniforms(uniforms, at, view)
+  # and brings the fog nearer. A thunderstorm makes the gray darker, and a
+  # lightning flash (from 0 to 1) lights the sky.
+  def write_uniforms(uniforms, at, view, flash)
     day = @clock.daylight
     rain = @weather.rain
     red = 0.03 + 0.50 * day
@@ -65,13 +82,17 @@ class Sky
       green += (0.55 - green) * dusk
       blue += (0.25 - blue) * dusk
     end
-    gray = 0.06 + 0.4 * day
+    gray = 0.06 + 0.4 * day * (1.0 - 0.5 * @weather.thunder)
     fog = view * (1.0 - 0.6 * rain)
-    uniforms[at] = red + (gray - red) * rain * 0.85
-    uniforms[at + 1] = green + (gray - green) * rain * 0.85
-    uniforms[at + 2] = blue + (gray * 1.08 - blue) * rain * 0.85
+    red += (gray - red) * rain * 0.85
+    green += (gray - green) * rain * 0.85
+    blue += (gray * 1.08 - blue) * rain * 0.85
+    uniforms[at] = red + (FLASH_RED - red) * flash
+    uniforms[at + 1] = green + (FLASH_GREEN - green) * flash
+    uniforms[at + 2] = blue + (FLASH_BLUE - blue) * flash
     uniforms[at + 3] = fog
-    uniforms[at + 4] = day * (1.0 - 0.35 * rain)
+    light = day * (1.0 - 0.35 * rain) * (1.0 - STORM_DAYLIGHT * @weather.thunder)
+    uniforms[at + 4] = light + (FLASH_LIGHT - light) * flash
     # Fog at the view's end starts 65 blocks before it, or a quarter of the
     # view before it for long views, so it blends with the haze.
     uniforms[at + 5] = fog - (fog * 0.25 > 65.0 ? fog * 0.25 : 65.0)

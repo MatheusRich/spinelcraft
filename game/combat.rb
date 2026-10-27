@@ -39,7 +39,7 @@ class Game
   end
 
   def update_mobs(dt)
-    @spawner.spawn_monsters(@mobs, @player, @sky.light, dt)
+    @spawner.spawn_monsters(@mobs, @player, @sky.spawn_light, dt)
     guard_treasure
     @breeding.pair_lovers(@mobs, @particles)
     push_mobs(dt)

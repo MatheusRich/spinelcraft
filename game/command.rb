@@ -49,7 +49,7 @@ module Command
       return Mob::NAMES if cmd == "SUMMON"
       return ["SURVIVAL", "CREATIVE"] if cmd == "GAMEMODE"
       return ["SET", "ADD", "QUERY"] if cmd == "TIME"
-      return ["CLEAR", "RAIN"] if cmd == "WEATHER"
+      return ["CLEAR", "RAIN", "THUNDER"] if cmd == "WEATHER"
       return ["TREASURE"] if cmd == "LOCATE"
     elsif k == 1 && cmd == "TIME" && before[before.size - 1] == "SET"
       return TIME_NAMES

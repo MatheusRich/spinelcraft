@@ -50,7 +50,7 @@ class Game
     @uniforms[18] = ez
     # Seconds for texture animation; wraps before float precision suffers.
     @uniforms[19] = @anim_time
-    @sky.write_uniforms(@uniforms, SKY_UNIFORMS, @options.view)
+    @sky.write_uniforms(@uniforms, SKY_UNIFORMS, @options.view, @storm.lightning.flash)
     if Block.water?(@world.get(ex.floor, ey.floor, ez.floor))
       # Under water, the fog is blue and near.
       @uniforms[SKY_UNIFORMS] = 0.05
@@ -96,6 +96,7 @@ class Game
       item.draw(@dyn, i.to_f) if ddx * ddx + ddz * ddz < reach * reach
     end
     @falling.each { |f| f.draw(@dyn) }
+    @storm.lightning.draw(@dyn, ex, ey, ez)
     draw_beacons(ex, ez, reach) if @beacons
     # The paddles reach past the box of a boat.
     @boats.each { |boat| boat.draw_boat(@dyn) if entity_in_view?(boat.x.to_f, boat.y.to_f, boat.z.to_f, 1.0, ex, ez, reach) }
