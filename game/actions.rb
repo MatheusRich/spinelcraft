@@ -454,53 +454,78 @@ class Game
   # block needs, it takes 5 seconds for each point and drops nothing. It
   # takes 5 times as long with the head under water, and again 5 times as
   # long off the ground. minecraft.wiki/w/Breaking
-  def mine(dt) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def mine(dt)
     @mine_delay -= dt
     return if @mine_delay > 0.0
 
-    x = @target_block.x
-    y = @target_block.y
-    z = @target_block.z
-    if !@mining || x != @mine_x || y != @mine_y || z != @mine_z
-      @mining = true
-      @mine_x = x
-      @mine_y = y
-      @mine_z = z
-      @mine_progress = 0.0
-      @dig_wait = 0.0
-    end
-    block = @world.get(x, y, z)
+    start_mining unless mining_target?
+    block = @world.get(@target_block.x, @target_block.y, @target_block.z)
     hardness = Block::HARDNESS[block]
     return if hardness < 0.0
 
-    @dig_wait -= dt
-    if @dig_wait <= 0.0 && hardness > 0.0
-      @sfx.play(MATERIAL_DIG[material(block)], 0.55)
-      @dig_wait = 0.25
-    end
+    play_dig_sound(block, hardness, dt)
     # A held button swings again when the last swing ends.
     @swing = SWING if @swing <= 0.0
+    @mine_progress += mine_rate(block, hardness, dt)
+    finish_mining(block) if @mine_progress >= 1.0
+  end
+
+  # True when the player keeps on mining the block that the last step mined.
+  def mining_target?
+    @mining && @target_block.x == @mine_x && @target_block.y == @mine_y && @target_block.z == @mine_z
+  end
+
+  # Starts to mine the block in view, with no progress.
+  def start_mining
+    @mining = true
+    @mine_x = @target_block.x
+    @mine_y = @target_block.y
+    @mine_z = @target_block.z
+    @mine_progress = 0.0
+    @dig_wait = 0.0
+  end
+
+  # Plays the dig sound of block every 0.25 seconds while the player mines it.
+  def play_dig_sound(block, hardness, dt)
+    @dig_wait -= dt
+    return unless @dig_wait <= 0.0 && hardness > 0.0
+
+    @sfx.play(MATERIAL_DIG[material(block)], 0.55)
+    @dig_wait = 0.25
+  end
+
+  # The part of block that dt seconds of mining break.
+  def mine_rate(block, hardness, dt)
+    return 1.0 if hardness == 0.0
+
     tool = current_block.to_i
-    tier = Block.dig_tier(tool, block)
-    need = Block::NEEDS_PICK[block]
     speed = Block.dig_speed(tool, block)
     speed /= 5.0 if Block.water?(@world.get(@player.x.floor, @player.eye_y.floor, @player.z.floor))
     speed /= 5.0 unless @player.on_ground
-    seconds = hardness * (tier >= need ? 1.5 : 5.0)
-    @mine_progress += hardness == 0.0 ? 1.0 : dt * speed / seconds
-    if @mine_progress >= 1.0
-      @particles.burst(x, y, z, block)
-      @sfx.play(MATERIAL_BREAK[material(block)], 0.7)
-      set_block(x, y, z, Block::AIR)
-      @attack_time = 0.0
-      drop_broken(block, x, y, z, tool) if tier >= need
-      if hardness > 0.0
-        wear_tool(Block.wear(tool, false))
-        @mine_delay = MINE_DELAY
-      end
-      @vitals.exhaust(Vitals::MINE_COST)
-      @mining = false
+    seconds = hardness * (harvests?(tool, block) ? 1.5 : 5.0)
+    dt * speed / seconds
+  end
+
+  # True when the tool has the pickaxe tier that block needs to drop its item.
+  def harvests?(tool, block) = Block.dig_tier(tool, block) >= Block::NEEDS_PICK[block]
+
+  # Breaks the mined block, and drops its item when the tool harvests it.
+  def finish_mining(block)
+    x = @target_block.x
+    y = @target_block.y
+    z = @target_block.z
+    tool = current_block.to_i
+    @particles.burst(x, y, z, block)
+    @sfx.play(MATERIAL_BREAK[material(block)], 0.7)
+    set_block(x, y, z, Block::AIR)
+    @attack_time = 0.0
+    drop_broken(block, x, y, z, tool) if harvests?(tool, block)
+    if Block::HARDNESS[block] > 0.0
+      wear_tool(Block.wear(tool, false))
+      @mine_delay = MINE_DELAY
     end
+    @vitals.exhaust(Vitals::MINE_COST)
+    @mining = false
   end
 
   # The material of block for its sounds, as in VoxeLibre (mcl_sounds).

@@ -414,8 +414,6 @@ detectors:
     - "/\\AGame\\#drop_furnace\\z/"
     - "/\\AGame\\#drop_inventory\\z/"
     - "/\\AGame\\#explode\\z/"
-    - "/\\AGame\\#find_target_boat\\z/"
-    - "/\\AGame\\#find_target_mob\\z/"
     - "/\\AGame\\#furnace_hover\\z/"
     - "/\\AGame\\#handle_chat\\z/"
     - "/\\AGame\\#handle_inventory\\z/"
