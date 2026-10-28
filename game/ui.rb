@@ -1,5 +1,36 @@
 # Vertex builder for the HUD, in pixels (2D).
 class Ui
+  # The colors of the screens.
+  TITLE_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.25)
+  PAUSE_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.45)
+  HOTBAR_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.45)
+  SCREEN_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.55)
+  BAR_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.5)
+  CHAT_INPUT_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.6)
+  CHAT_MATCHES_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.75)
+  WATER_TINT = Color.new(0.1, 0.25, 0.6, 0.25)
+  LAVA_TINT = Color.new(0.9, 0.3, 0.05, 0.75)
+  DEATH_TINT = Color.new(0.5, 0.0, 0.0, 0.5)
+  FIRE_OVERLAY = Color.new(1.0, 1.0, 1.0, 0.85)
+  CROSSHAIR = Color.new(1.0, 1.0, 1.0, 0.8)
+  CHARGE_FILL = Color.new(1.0, 1.0, 1.0, 0.8)
+  HOTBAR_SELECTION = Color.new(1.0, 1.0, 1.0, 0.95)
+  HOTBAR_SLOT_BACK = Color.new(0.25, 0.25, 0.25, 0.9)
+  SLOT_SELECTION = Color.new(1.0, 1.0, 1.0, 0.9)
+  BUBBLE = Color.new(0.6, 0.85, 1.0, 0.9)
+  PANEL = Color.new(0.18, 0.18, 0.2, 0.95)
+  INSET = Color.new(0.1, 0.1, 0.12, 1.0)
+  SCROLL_THUMB = Color.new(0.6, 0.6, 0.65, 1.0)
+  MENU_KNOB = Color.new(0.9, 0.9, 0.9, 1.0)
+  MENU_HELP_TEXT = Color.new(0.9, 0.9, 0.9, 1.0)
+  HINT_TEXT = Color.new(1.0, 1.0, 0.7, 0.9)
+  LABEL_TEXT = Color.new(1.0, 1.0, 0.8, 1.0)
+  EMPTY_HINT_TEXT = Color.new(0.8, 0.8, 0.8, 1.0)
+  DEATH_LASTED_TEXT = Color.new(1.0, 0.85, 0.6, 1.0)
+  NEW_TAG = Color.new(1.0, 0.85, 0.2, 1.0)
+  MATCH_CURRENT = Color.new(1.0, 1.0, 0.3, 1.0)
+  MATCH_OTHER = Color.new(0.65, 0.65, 0.65, 1.0)
+
   attr_reader :v
 
   def initialize
@@ -16,22 +47,26 @@ class Ui
     @v << x << y << u << w << layer << r << g << b << a
   end
 
-  def quad(x, y, w, h, layer, u1, v1, r, g, b, a)
+  def quad(x, y, w, h, layer, u1, v1, color)
     l = layer.to_f
-    vert(x, y, 0.0, 0.0, l, r, g, b, a)
-    vert(x + w, y, u1, 0.0, l, r, g, b, a)
-    vert(x + w, y + h, u1, v1, l, r, g, b, a)
-    vert(x, y, 0.0, 0.0, l, r, g, b, a)
-    vert(x + w, y + h, u1, v1, l, r, g, b, a)
-    vert(x, y + h, 0.0, v1, l, r, g, b, a)
+    red = color.red
+    green = color.green
+    blue = color.blue
+    alpha = color.alpha
+    vert(x, y, 0.0, 0.0, l, red, green, blue, alpha)
+    vert(x + w, y, u1, 0.0, l, red, green, blue, alpha)
+    vert(x + w, y + h, u1, v1, l, red, green, blue, alpha)
+    vert(x, y, 0.0, 0.0, l, red, green, blue, alpha)
+    vert(x + w, y + h, u1, v1, l, red, green, blue, alpha)
+    vert(x, y + h, 0.0, v1, l, red, green, blue, alpha)
   end
 
-  def rect(x, y, w, h, r, g, b, a)
-    quad(x, y, w, h, Tex::WHITE, 1.0, 1.0, r, g, b, a)
+  def rect(x, y, w, h, color)
+    quad(x, y, w, h, Tex::WHITE, 1.0, 1.0, color)
   end
 
   def icon(x, y, size, layer, shade)
-    quad(x, y, size, size, layer, 1.0, 1.0, shade, shade, shade, 1.0)
+    quad(x, y, size, size, layer, 1.0, 1.0, Color.new(shade, shade, shade, 1.0))
   end
 
   # The item or block in the square at x, y with the side size, as in the inventory of
@@ -110,12 +145,13 @@ class Ui
     vert(x, y + size, 0.0, 1.0, l, 1.0, 1.0, 1.0, 1.0)
   end
 
-  def text(x, y, s, scale, r, g, b, a)
+  def text(x, y, s, scale, color)
+    shadow = Color.new(0.0, 0.0, 0.0, color.alpha * 0.6)
     cx = x
     s.each_char do |ch|
       glyph = Tex.glyph(ch)
-      quad(cx + scale, y + scale, 3.0 * scale, 5.0 * scale, glyph, 9.0 / 16.0, 15.0 / 16.0, 0.0, 0.0, 0.0, a * 0.6)
-      quad(cx, y, 3.0 * scale, 5.0 * scale, glyph, 9.0 / 16.0, 15.0 / 16.0, r, g, b, a)
+      quad(cx + scale, y + scale, 3.0 * scale, 5.0 * scale, glyph, 9.0 / 16.0, 15.0 / 16.0, shadow)
+      quad(cx, y, 3.0 * scale, 5.0 * scale, glyph, 9.0 / 16.0, 15.0 / 16.0, color)
       cx += 4.0 * scale
     end
   end
@@ -131,6 +167,7 @@ class Ui
     depth = (cell / 3.0).to_i
     depth.downto(0) do |d|
       light = d == 0 ? 1.0 : 0.25 + 0.2 * (1.0 - d.to_f / depth)
+      color = Color.new(light, light, light, 1.0)
       cx = x + d
       s.each_char do |ch|
         rows = Tex::GLYPHS[Tex.glyph(ch) - Tex::FONT].split(" ")
@@ -138,7 +175,7 @@ class Ui
           3.times do |col|
             next if rows[row][col] != "#"
 
-            quad(cx + col * cell, y + d + row * cell, cell, cell, layer, 1.0, 1.0, light, light, light, 1.0)
+            quad(cx + col * cell, y + d + row * cell, cell, cell, layer, 1.0, 1.0, color)
           end
         end
         cx += 4.0 * cell

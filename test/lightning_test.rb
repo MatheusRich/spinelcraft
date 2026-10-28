@@ -73,4 +73,43 @@ class LightningTest < Minitest::Test
     assert @lightning.thunder_arrived?(0.0)
     refute @lightning.thunder_arrived?(1.0)
   end
+
+  # The floats of one vertex in a Mesh3: x y z, u v, layer, red green blue alpha, glow.
+  def bolt_vertices(eye)
+    strike
+    mesh = Mesh3.new
+    @lightning.draw(mesh, *eye)
+    mesh.v.each_slice(11).to_a
+  end
+
+  def test_the_bolt_is_a_bright_white_core_in_a_wider_pale_glow
+    vertices = bolt_vertices([0.0, 70.0, 0.0])
+    core, glow = vertices.partition { |vertex| vertex[9] == 1.0 }
+    assert_equal vertices.size / 2, core.size
+    assert_equal [[1.0, 1.0, 1.0, 1.0]], core.map { |vertex| vertex[6, 4] }.uniq
+    red, green, blue, alpha = glow.first[6, 4]
+    assert_operator alpha, :<, 1.0
+    assert_operator blue, :>, red
+    assert_operator green, :>, red
+    width = ->(strip) { Math.sqrt(3.times.sum { |axis| (strip[1][axis] - strip[0][axis])**2 }) }
+    assert_in_delta Lightning::GLOW / Lightning::CORE, width.call(glow) / width.call(core), 1.0e-6
+  end
+
+  def test_a_strip_of_the_bolt_runs_along_its_line_and_turns_its_side_to_the_eye
+    eye = [0.0, 70.0, 0.0]
+    strip = bolt_vertices(eye).first(6).map { |vertex| vertex[0, 3] }
+    subtract = ->(a, b) { a.zip(b).map { |x, y| x - y } }
+    middle = ->(a, b) { a.zip(b).map { |x, y| (x + y) / 2.0 } }
+    dot = ->(a, b) { a.zip(b).sum { |x, y| x * y } }
+    start = middle.call(strip[0], strip[1])
+    finish = middle.call(strip[5], strip[2])
+    side = subtract.call(strip[1], strip[0])
+    assert_in_delta 0.0, dot.call(side, subtract.call(finish, start)), 1.0e-6
+    assert_in_delta 0.0, dot.call(side, subtract.call(middle.call(start, finish), eye)), 1.0e-6
+    assert_equal strip[0], strip[3]
+    assert_equal strip[2], strip[4]
+    side.zip(subtract.call(strip[2], strip[5])) { |one, other| assert_in_delta one, other, 1.0e-9 }
+    assert_equal([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+                 bolt_vertices(eye).first(6).map { |vertex| vertex[3, 2] })
+  end
 end

@@ -5,6 +5,7 @@
 # are uniforms (Sky#write_uniforms).
 class Sky
   STARS = 260
+  SUN_COLOR = Color.new(1.0, 0.95, 0.75, 1.0)
   # The sky light of Minecraft under the open sky by the time of day, in
   # clear weather and in rain. DUSK has the first tick of each level as it
   # goes down from the top level to 4, and DAWN the first tick of each level
@@ -106,8 +107,8 @@ class Sky
   # must have the view of the frame.
   def build_sky(w, h, s)
     @mesh.clear
-    draw_sky_body(w, h, s, 1.0, Tex::WHITE, 1.0, 0.95, 0.75, 70.0, 1.0)
-    draw_sky_body(w, h, s, -1.0, Tex::MOON + @clock.moon_phase, 1.0, 1.0, 1.0, 46.0, @clock.moon_lit)
+    draw_sky_body(w, h, s, 1.0, Tex::WHITE, SUN_COLOR, 70.0, 1.0)
+    draw_sky_body(w, h, s, -1.0, Tex::MOON + @clock.moon_phase, Color::SOLID_WHITE, 46.0, @clock.moon_lit)
     draw_stars(w, h, s)
     nil
   end
@@ -146,7 +147,7 @@ class Sky
         if @camera.project_direction(rx, ry, @stars[i + 2], w, h)
           size = 2.0 * s
           c = @stars[i + 3]
-          @mesh.rect(@camera.sx, @camera.sy, size, size, c, c, c * 1.05, night)
+          @mesh.rect(@camera.sx, @camera.sy, size, size, Color.new(c, c, c * 1.05, night))
         end
       end
       i += 4
@@ -155,8 +156,8 @@ class Sky
   end
 
   # The sun (side 1) or the moon (side -1): the texture layer with the color
-  # r, g, b, in a glow that is as bright as the lit part.
-  def draw_sky_body(w, h, s, side, layer, r, g, b, size, lit)
+  # color, in a glow that is as bright as the lit part.
+  def draw_sky_body(w, h, s, side, layer, color, size, lit)
     a = @clock.sun_angle
     dx = Math.cos(a) * side
     dy = Math.sin(a) * side
@@ -170,8 +171,8 @@ class Sky
     clear = 1.0 - @weather.rain.strength
     return if clear <= 0.0
 
-    @mesh.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, r, g, b, 0.18 * clear * lit)
-    @mesh.quad(sx - half, sy - half, half * 2.0, half * 2.0, layer, 1.0, 1.0, r, g, b, clear)
+    @mesh.rect(sx - half * 1.4, sy - half * 1.4, half * 2.8, half * 2.8, Color.new(color.red, color.green, color.blue, color.alpha * 0.18 * clear * lit))
+    @mesh.quad(sx - half, sy - half, half * 2.0, half * 2.0, layer, 1.0, 1.0, Color.new(color.red, color.green, color.blue, color.alpha * clear))
     nil
   end
 end

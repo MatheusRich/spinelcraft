@@ -50,9 +50,9 @@ class Game
   def draw_view_overlays(w, h, s) # rubocop:todo Metrics/MethodLength
     eye_block = @player.at_eyes(@world)
     if Block.water?(eye_block)
-      @ui.rect(0.0, 0.0, w, h, 0.1, 0.25, 0.6, 0.25)
+      @ui.rect(0.0, 0.0, w, h, Ui::WATER_TINT)
     elsif Block.lava?(eye_block)
-      @ui.rect(0.0, 0.0, w, h, 0.9, 0.3, 0.05, 0.75)
+      @ui.rect(0.0, 0.0, w, h, Ui::LAVA_TINT)
     end
     if @player.vitals.burning? && @survival && !@player.vitals.dead?
       # Two flames at the bottom corners that flicker.
@@ -60,35 +60,35 @@ class Game
       2.times do |k|
         flick = Math.sin(@anim_time * 23.0 + k * 2.0) * 0.04 * size
         x = k == 0 ? -size * 0.15 : w - size * 0.85
-        @ui.quad(x, h - size * 0.8 + flick, size, size, Tex::FIRE, 1.0, 1.0, 1.0, 1.0, 1.0, 0.85)
+        @ui.quad(x, h - size * 0.8 + flick, size, size, Tex::FIRE, 1.0, 1.0, Ui::FIRE_OVERLAY)
       end
     end
     if @damage_flash > 0.0
-      @ui.rect(0.0, 0.0, w, h, 0.8, 0.0, 0.0, @damage_flash)
+      @ui.rect(0.0, 0.0, w, h, Color.new(0.8, 0.0, 0.0, @damage_flash))
     end
     # crosshair
-    @ui.rect(w / 2.0 - 9.0 * s, h / 2.0 - 1.0 * s, 18.0 * s, 2.0 * s, 1.0, 1.0, 1.0, 0.8)
-    @ui.rect(w / 2.0 - 1.0 * s, h / 2.0 - 9.0 * s, 2.0 * s, 18.0 * s, 1.0, 1.0, 1.0, 0.8)
+    @ui.rect(w / 2.0 - 9.0 * s, h / 2.0 - 1.0 * s, 18.0 * s, 2.0 * s, Ui::CROSSHAIR)
+    @ui.rect(w / 2.0 - 1.0 * s, h / 2.0 - 9.0 * s, 2.0 * s, 18.0 * s, Ui::CROSSHAIR)
     if @draw_time >= 0.0
       pull = @draw_time > 1.0 ? 1.0 : @draw_time
-      @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s, 4.0 * s, 0.0, 0.0, 0.0, 0.5)
-      @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s * pull, 4.0 * s, 1.0, pull, 0.2, 0.9)
+      @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s, 4.0 * s, Ui::BAR_BACKDROP)
+      @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s * pull, 4.0 * s, Color.new(1.0, pull, 0.2, 0.9))
     elsif @survival && @player.melee_attack.charge(current_block.to_i) < 1.0
       charge = @player.melee_attack.charge(current_block.to_i)
-      @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s, 3.0 * s, 0.0, 0.0, 0.0, 0.5)
-      @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s * charge, 3.0 * s, 1.0, 1.0, 1.0, 0.8)
+      @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s, 3.0 * s, Ui::BAR_BACKDROP)
+      @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s * charge, 3.0 * s, Ui::CHARGE_FILL)
     end
   end
 
   def draw_hotbar(x0, y0, size, gap, s)
     total = size * HOTBAR + gap * (HOTBAR - 1)
-    @ui.rect(x0 - gap, y0 - gap, total + gap * 2.0, size + gap * 2.0, 0.0, 0.0, 0.0, 0.45)
+    @ui.rect(x0 - gap, y0 - gap, total + gap * 2.0, size + gap * 2.0, Ui::HOTBAR_BACKDROP)
     HOTBAR.times do |i|
       x = x0 + i * (size + gap)
       if i == @slot
-        @ui.rect(x - 3.0 * s, y0 - 3.0 * s, size + 6.0 * s, size + 6.0 * s, 1.0, 1.0, 1.0, 0.95)
+        @ui.rect(x - 3.0 * s, y0 - 3.0 * s, size + 6.0 * s, size + 6.0 * s, Ui::HOTBAR_SELECTION)
       end
-      @ui.rect(x, y0, size, size, 0.25, 0.25, 0.25, 0.9)
+      @ui.rect(x, y0, size, size, Ui::HOTBAR_SLOT_BACK)
       slot_block = @survival ? @inv.block(i) : @hotbar[i]
       if slot_block != Block::AIR
         @ui.item(x + 5.0 * s, y0 + 5.0 * s, size - 10.0 * s, slot_block, 1.0)
@@ -105,14 +105,14 @@ class Game
     while i < 10
       hx = x0 + i * 20.0 * s
       p = Tex::ICON_PART
-      @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART_EMPTY, p, p, 1.0, 1.0, 1.0, 1.0)
+      @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART_EMPTY, p, p, Color::SOLID_WHITE)
       # A part of a half heart shows as a half heart, as in Minecraft. A half
       # heart is the left 5 of the 9 columns.
       hp = @player.vitals.health.ceil - i * 2
       if hp >= 2
-        @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART, p, p, 1.0, 1.0, 1.0, 1.0)
+        @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART, p, p, Color::SOLID_WHITE)
       elsif hp == 1
-        @ui.quad(hx, hy, 10.0 * s, 18.0 * s, Tex::HEART, 5.0 / 16.0, p, 1.0, 1.0, 1.0, 1.0)
+        @ui.quad(hx, hy, 10.0 * s, 18.0 * s, Tex::HEART, 5.0 / 16.0, p, Color::SOLID_WHITE)
       end
       i += 1
     end
@@ -121,16 +121,16 @@ class Game
     10.times do |i|
       fx = x0 + total - (i + 1) * 20.0 * s
       p = Tex::ICON_PART
-      @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::HUNGER_EMPTY, p, p, 1.0, 1.0, 1.0, 1.0)
+      @ui.quad(fx, hy, 18.0 * s, 18.0 * s, Tex::HUNGER_EMPTY, p, p, Color::SOLID_WHITE)
       if @player.vitals.hunger - i * 2 >= 1
-        @ui.quad(fx, hy, 18.0 * s, 18.0 * s, full, p, p, 1.0, 1.0, 1.0, 1.0)
+        @ui.quad(fx, hy, 18.0 * s, 18.0 * s, full, p, p, Color::SOLID_WHITE)
       end
     end
     if @player.vitals.air < Vitals::MAX_AIR
       bubbles = (@player.vitals.air / Vitals::MAX_AIR * 10.0).ceil
       bubbles.times do |i|
         bx = x0 + total - (i + 1) * 20.0 * s
-        @ui.rect(bx + 3.0 * s, hy - 22.0 * s + 3.0 * s, 13.0 * s, 13.0 * s, 0.6, 0.85, 1.0, 0.9)
+        @ui.rect(bx + 3.0 * s, hy - 22.0 * s + 3.0 * s, 13.0 * s, 13.0 * s, Ui::BUBBLE)
       end
     end
   end
@@ -139,11 +139,11 @@ class Game
   def draw_messages(w, y0, s)
     if @survival && !@player.vitals.dead? && !current_screen.inventory? && @inv.room_for(Block::DIRT) == INV * Slots::STACK
       hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
-      @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, 1.0, 1.0, 0.7, 0.9)
+      @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, Ui::HINT_TEXT)
     end
     if @message_time > 0.0
       tw = @ui.text_width(@message, 3.0 * s)
-      @ui.text((w - tw) / 2.0, y0 - 64.0 * s, @message, 3.0 * s, 1.0, 1.0, 1.0, @message_time > 1.0 ? 1.0 : @message_time)
+      @ui.text((w - tw) / 2.0, y0 - 64.0 * s, @message, 3.0 * s, Color.new(1.0, 1.0, 1.0, @message_time > 1.0 ? 1.0 : @message_time))
     end
   end
 
@@ -163,11 +163,11 @@ class Game
         rows = (line.size + per - 1) / per
         (rows - 1).downto(0) do |k|
           part = line[k * per, per]
-          @ui.rect(4.0 * s, y - 2.0 * s, @ui.text_width(part, ts) + 6.0 * s, row, 0.0, 0.0, 0.0, 0.4 * a)
+          @ui.rect(4.0 * s, y - 2.0 * s, @ui.text_width(part, ts) + 6.0 * s, row, Color.new(0.0, 0.0, 0.0, 0.4 * a))
           if @chat.error?(i)
-            @ui.text(6.0 * s, y, part, ts, 1.0, 0.35, 0.3, a)
+            @ui.text(6.0 * s, y, part, ts, Color.new(1.0, 0.35, 0.3, a))
           else
-            @ui.text(6.0 * s, y, part, ts, 1.0, 1.0, 1.0, a)
+            @ui.text(6.0 * s, y, part, ts, Color.new(1.0, 1.0, 1.0, a))
           end
           y -= row
         end
@@ -179,13 +179,13 @@ class Game
   # names that Tab can complete above it.
   def draw_chat_line(w, h, s)
     ts = 2.0 * s
-    @ui.rect(4.0 * s, h - 18.0 * s, w - 8.0 * s, 14.0 * s, 0.0, 0.0, 0.0, 0.6)
+    @ui.rect(4.0 * s, h - 18.0 * s, w - 8.0 * s, 14.0 * s, Ui::CHAT_INPUT_BACKDROP)
     cursor = (@anim_time * 3.0).to_i % 2 == 0 ? "_" : ""
     shown = @chat.text.upcase + cursor
     # A line wider than the screen shows its end.
     fit = ((w - 16.0 * s) / (4.0 * ts)).to_i
     shown = shown[shown.size - fit, fit] if shown.size > fit
-    @ui.text(8.0 * s, h - 15.0 * s, shown, ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(8.0 * s, h - 15.0 * s, shown, ts, Color::SOLID_WHITE)
     draw_chat_matches(h, s, ts)
   end
 
@@ -202,25 +202,25 @@ class Game
     wide = 0.0
     names.each { |n| wide = @ui.text_width(n, ts) if @ui.text_width(n, ts) > wide }
     y = h - 18.0 * s - shown * 12.0 * s
-    @ui.rect(x - 2.0 * s, y - 2.0 * s, wide + 4.0 * s, shown * 12.0 * s, 0.0, 0.0, 0.0, 0.75)
+    @ui.rect(x - 2.0 * s, y - 2.0 * s, wide + 4.0 * s, shown * 12.0 * s, Ui::CHAT_MATCHES_BACKDROP)
     shown.times do |k|
       i = first + k
       name = names[i].upcase
       if i == current
-        @ui.text(x, y + k * 12.0 * s, name, ts, 1.0, 1.0, 0.3, 1.0)
+        @ui.text(x, y + k * 12.0 * s, name, ts, Ui::MATCH_CURRENT)
       else
-        @ui.text(x, y + k * 12.0 * s, name, ts, 0.65, 0.65, 0.65, 1.0)
+        @ui.text(x, y + k * 12.0 * s, name, ts, Ui::MATCH_OTHER)
       end
     end
   end
 
   def draw_debug(s)
     ts = 2.0 * s
-    @ui.text(8.0 * s, 8.0 * s, "FPS #{@fps.round}  CPU #{@cpu_ms.round(2)}MS", ts, 1.0, 1.0, 1.0, 1.0)
-    @ui.text(8.0 * s, 22.0 * s, "XYZ #{@player.x.floor} #{@player.y.floor} #{@player.z.floor}  FACES #{@faces_drawn}", ts, 1.0, 1.0, 1.0, 1.0)
-    @ui.text(8.0 * s, 36.0 * s, "CHUNKS #{@chunk_meshes.visible.size / 2}  REMESH #{@chunk_meshes.mesh_ms.round(2)}MS  MOBS #{@mobs.size}", ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(8.0 * s, 8.0 * s, "FPS #{@fps.round}  CPU #{@cpu_ms.round(2)}MS", ts, Color::SOLID_WHITE)
+    @ui.text(8.0 * s, 22.0 * s, "XYZ #{@player.x.floor} #{@player.y.floor} #{@player.z.floor}  FACES #{@faces_drawn}", ts, Color::SOLID_WHITE)
+    @ui.text(8.0 * s, 36.0 * s, "CHUNKS #{@chunk_meshes.visible.size / 2}  REMESH #{@chunk_meshes.mesh_ms.round(2)}MS  MOBS #{@mobs.size}", ts, Color::SOLID_WHITE)
     mode = @survival ? "SURVIVAL" : "CREATIVE"
-    @ui.text(8.0 * s, 50.0 * s, "DAY #{@clock.day + 1}  TIME #{@clock.hour}:00  #{mode}#{weather_label}", ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(8.0 * s, 50.0 * s, "DAY #{@clock.day + 1}  TIME #{@clock.hour}:00  #{mode}#{weather_label}", ts, Color::SOLID_WHITE)
   end
 
   def weather_label
@@ -231,30 +231,30 @@ class Game
   end
 
   def draw_death_screen(w, h, s)
-    @ui.rect(0.0, 0.0, w, h, 0.5, 0.0, 0.0, 0.5)
+    @ui.rect(0.0, 0.0, w, h, Ui::DEATH_TINT)
     msg = "YOU DIED"
-    @ui.text((w - @ui.text_width(msg, 8.0 * s)) / 2.0, h / 2.0 - 60.0 * s, msg, 8.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text((w - @ui.text_width(msg, 8.0 * s)) / 2.0, h / 2.0 - 60.0 * s, msg, 8.0 * s, Color::SOLID_WHITE)
     days = (@alive_time / Clock::DAY_SECONDS).floor
     lasted = "YOU LASTED #{days} #{days == 1 ? "DAY" : "DAYS"}"
-    @ui.text((w - @ui.text_width(lasted, 3.0 * s)) / 2.0, h / 2.0 + 50.0 * s, lasted, 3.0 * s, 1.0, 0.85, 0.6, 1.0)
+    @ui.text((w - @ui.text_width(lasted, 3.0 * s)) / 2.0, h / 2.0 + 50.0 * s, lasted, 3.0 * s, Ui::DEATH_LASTED_TEXT)
     sub = "CLICK OR PRESS R TO RESPAWN"
-    @ui.text((w - @ui.text_width(sub, 3.0 * s)) / 2.0, h / 2.0 + 10.0 * s, sub, 3.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text((w - @ui.text_width(sub, 3.0 * s)) / 2.0, h / 2.0 + 10.0 * s, sub, 3.0 * s, Color::SOLID_WHITE)
   end
 
   # The survival inventory screen: the 36 slots, the chest or the recipes on
   # the side, and the stack that the mouse holds.
   def draw_backpack(w, h, s) # rubocop:todo Metrics/MethodLength
-    @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.55)
+    @ui.rect(0.0, 0.0, w, h, Ui::SCREEN_BACKDROP)
     top = pack_cell(HOTBAR, w, h, s)
     bottom = pack_cell(8, w, h, s)
     pad = 18.0 * s
-    @ui.rect(top[0] - pad, top[1] - pad - 40.0 * s, bottom[0] + bottom[2] - top[0] + pad * 2.0, bottom[1] + bottom[2] - top[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(top[0], top[1] - 36.0 * s, "INVENTORY", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.rect(top[0] - pad, top[1] - pad - 40.0 * s, bottom[0] + bottom[2] - top[0] + pad * 2.0, bottom[1] + bottom[2] - top[1] + pad * 2.0 + 40.0 * s, Ui::PANEL)
+    @ui.text(top[0], top[1] - 36.0 * s, "INVENTORY", 4.0 * s, Color::SOLID_WHITE)
     hover = pack_hover(w, h, s)
     INV.times do |i|
       c = pack_cell(i, w, h, s)
       if i == @slot
-        @ui.rect(c[0] - 3.0 * s, c[1] - 3.0 * s, c[2] + 6.0 * s, c[2] + 6.0 * s, 1.0, 1.0, 1.0, 0.9)
+        @ui.rect(c[0] - 3.0 * s, c[1] - 3.0 * s, c[2] + 6.0 * s, c[2] + 6.0 * s, Ui::SLOT_SELECTION)
       end
       draw_slot(c, i == hover, @inv, i, 6.0 * s, 2.0 * s, s)
     end
@@ -266,7 +266,7 @@ class Game
     tip = @chests.open? ? "SHIFT-CLICK MOVES A STACK ACROSS  RIGHT-CLICK TAKES HALF" : "SHIFT-CLICK MOVES A STACK OR CRAFTS ALL  RIGHT-CLICK TAKES HALF"
     label = hover >= 0 && !@inv.empty?(hover) ? Block::NAMES[@inv.block(hover)] : tip
     mid = (top[0] + bottom[0] + bottom[2]) / 2.0
-    @ui.text(mid - @ui.text_width(label, 2.0 * s) / 2.0, bottom[1] + bottom[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
+    @ui.text(mid - @ui.text_width(label, 2.0 * s) / 2.0, bottom[1] + bottom[2] + pad + 12.0 * s, label, 2.0 * s, Ui::LABEL_TEXT)
     unless @held.empty?(0)
       mx = Gfx.in_mouse_x
       my = Gfx.in_mouse_y
@@ -279,8 +279,8 @@ class Game
     chest = @chests.current
     first = recipe_cell(0, w, h, s)
     last_c = chest_cell(chest.cells - 1, w, h, s)
-    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, last_c[0] + last_c[2] - first[0] + pad * 2.0, last_c[1] + last_c[2] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(first[0], first[1] - 36.0 * s, chest.large? ? "LARGE CHEST" : "CHEST", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, last_c[0] + last_c[2] - first[0] + pad * 2.0, last_c[1] + last_c[2] - first[1] + pad * 2.0 + 40.0 * s, Ui::PANEL)
+    @ui.text(first[0], first[1] - 36.0 * s, chest.large? ? "LARGE CHEST" : "CHEST", 4.0 * s, Color::SOLID_WHITE)
     chover = chest_hover(w, h, s)
     chest.cells.times do |k|
       c = chest_cell(k, w, h, s)
@@ -292,7 +292,7 @@ class Game
   # item is inset by margin, and its count has text of size ts.
   def draw_slot(c, hover, slots, i, margin, ts, s)
     shade = hover ? 0.55 : 0.32
-    @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
+    @ui.rect(c[0], c[1], c[2], c[2], Color.new(shade, shade, shade, 1.0))
     return if slots.empty?(i)
 
     @ui.item(c[0] + margin, c[1] + margin, c[2] - margin * 2.0, slots.block(i), 1.0)
@@ -307,12 +307,12 @@ class Game
       left = n.to_f / Block.uses(block)
       return if left >= 1.0
 
-      @ui.rect(x + 4.0 * s, y + size - 6.0 * s, size - 8.0 * s, 3.0 * s, 0.0, 0.0, 0.0, 1.0)
-      @ui.rect(x + 4.0 * s, y + size - 6.0 * s, (size - 8.0 * s) * left, 3.0 * s, 1.0 - left, left, 0.1, 1.0)
+      @ui.rect(x + 4.0 * s, y + size - 6.0 * s, size - 8.0 * s, 3.0 * s, Color::SOLID_BLACK)
+      @ui.rect(x + 4.0 * s, y + size - 6.0 * s, (size - 8.0 * s) * left, 3.0 * s, Color.new(1.0 - left, left, 0.1, 1.0))
       return
     end
     t = n.to_s
-    @ui.text(x + size - @ui.text_width(t, ts) - 1.0 * s, y + size - 6.0 * ts, t, ts, 1.0, 1.0, 1.0, 1.0)
+    @ui.text(x + size - @ui.text_width(t, ts) - 1.0 * s, y + size - 6.0 * ts, t, ts, Color::SOLID_WHITE)
   end
 
   # The panel grows with the shown recipes, up to RecipeBook::ROWS rows. A bar
@@ -327,18 +327,18 @@ class Game
     first = recipe_cell(0, w, h, s)
     bottom = recipe_cell(skip + (rows < 1 ? 0 : ((rows < RecipeBook::ROWS ? rows : RecipeBook::ROWS) - 1) * 2), w, h, s)
     right = recipe_cell(shown.size > 1 || furnace ? 1 : 0, w, h, s)
-    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, bottom[1] + bottom[3] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(first[0], first[1] - 36.0 * s, furnace ? "FURNACE" : "CRAFTING", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, bottom[1] + bottom[3] - first[1] + pad * 2.0 + 40.0 * s, Ui::PANEL)
+    @ui.text(first[0], first[1] - 36.0 * s, furnace ? "FURNACE" : "CRAFTING", 4.0 * s, Color::SOLID_WHITE)
     draw_furnace(w, h, s) if furnace
     rhover = recipe_hover(w, h, s)
     if shown.empty?
-      @ui.text(first[0], recipe_cell(skip, w, h, s)[1] + 4.0 * s, "PICK UP ITEMS TO FIND RECIPES", 2.0 * s, 0.8, 0.8, 0.8, 1.0)
+      @ui.text(first[0], recipe_cell(skip, w, h, s)[1] + 4.0 * s, "PICK UP ITEMS TO FIND RECIPES", 2.0 * s, Ui::EMPTY_HINT_TEXT)
     end
     if rows > RecipeBook::ROWS
       track = bottom[1] + bottom[3] - first[1]
       bx = right[0] + right[2] + 7.0 * s
-      @ui.rect(bx, first[1], 4.0 * s, track, 0.1, 0.1, 0.12, 1.0)
-      @ui.rect(bx, first[1] + track * @recipe_book.top.to_f / rows.to_f, 4.0 * s, track * RecipeBook::ROWS.to_f / rows.to_f, 0.6, 0.6, 0.65, 1.0)
+      @ui.rect(bx, first[1], 4.0 * s, track, Ui::INSET)
+      @ui.rect(bx, first[1] + track * @recipe_book.top.to_f / rows.to_f, 4.0 * s, track * RecipeBook::ROWS.to_f / rows.to_f, Ui::SCROLL_THUMB)
     end
     view.size.times do |place|
       index = view[place]
@@ -347,12 +347,12 @@ class Game
       can = recipe.craftable(@inv) > 0
       shade = index == rhover ? 0.5 : 0.28
       fresh = @recipe_book.fresh?(index)
-      @ui.rect(c[0], c[1], c[2], c[3], fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0)
-      @ui.text(c[0] + c[2] - @ui.text_width("NEW", 1.5 * s) - 8.0 * s, c[1] + 6.0 * s, "NEW", 1.5 * s, 1.0, 0.85, 0.2, 1.0) if fresh
+      @ui.rect(c[0], c[1], c[2], c[3], Color.new(fresh ? shade + 0.12 : shade, fresh ? shade + 0.08 : shade, shade, 1.0))
+      @ui.text(c[0] + c[2] - @ui.text_width("NEW", 1.5 * s) - 8.0 * s, c[1] + 6.0 * s, "NEW", 1.5 * s, Ui::NEW_TAG) if fresh
       @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, 28.0 * s, recipe.result, can ? 1.0 : 0.35)
       bright = can ? 1.0 : 0.45
-      @ui.text(c[0] + 42.0 * s, c[1] + 6.0 * s, "#{recipe.result_count} #{Block::NAMES[recipe.result]}", 2.5 * s, bright, bright, bright, 1.0)
-      @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, recipe.need, 2.0 * s, bright * 0.95, bright * 0.85, bright * 0.55, 1.0)
+      @ui.text(c[0] + 42.0 * s, c[1] + 6.0 * s, "#{recipe.result_count} #{Block::NAMES[recipe.result]}", 2.5 * s, Color.new(bright, bright, bright, 1.0))
+      @ui.text(c[0] + 42.0 * s, c[1] + 23.0 * s, recipe.need, 2.0 * s, Color.new(bright * 0.95, bright * 0.85, bright * 0.55, 1.0))
     end
   end
 
@@ -366,9 +366,9 @@ class Game
     3.times do |i|
       c = furnace_cell(i, w, h, s)
       if i == Furnace::FUEL
-        @ui.text(c[0] + c[2] + 16.0 * s, c[1] + 21.0 * s, "FUEL", 2.0 * s, 1.0, 1.0, 1.0, 1.0)
+        @ui.text(c[0] + c[2] + 16.0 * s, c[1] + 21.0 * s, "FUEL", 2.0 * s, Color::SOLID_WHITE)
       else
-        @ui.text(c[0], c[1] - 14.0 * s, i == Furnace::INPUT ? "IN" : "OUT", 2.0 * s, 1.0, 1.0, 1.0, 1.0)
+        @ui.text(c[0], c[1] - 14.0 * s, i == Furnace::INPUT ? "IN" : "OUT", 2.0 * s, Color::SOLID_WHITE)
       end
       draw_slot(c, i == hover, f.slots, i, 6.0 * s, 2.0 * s, s)
     end
@@ -386,27 +386,27 @@ class Game
     ax = input[0] + input[2] + 16.0 * s
     ay = out[1] + 18.0 * s
     aw = out[0] - 16.0 * s - ax
-    @ui.rect(ax, ay, aw, 16.0 * s, 0.1, 0.1, 0.12, 1.0)
-    @ui.rect(ax, ay, aw * f.progress.to_f / Furnace::SMELT_TICKS.to_f, 16.0 * s, 1.0, 1.0, 1.0, 1.0) if f.progress > 0
+    @ui.rect(ax, ay, aw, 16.0 * s, Ui::INSET)
+    @ui.rect(ax, ay, aw * f.progress.to_f / Furnace::SMELT_TICKS.to_f, 16.0 * s, Color::SOLID_WHITE) if f.progress > 0
   end
 
   # The creative inventory screen: every block and item (see CREATIVE_ITEMS).
   def draw_block_picker(w, h, s)
-    @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.55)
+    @ui.rect(0.0, 0.0, w, h, Ui::SCREEN_BACKDROP)
     first = inventory_cell(0, w, h, s)
     last = inventory_cell(CREATIVE_ITEMS.size - 1, w, h, s)
     pad = 18.0 * s
     right = inventory_cell(INV_COLS - 1, w, h, s)
-    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, last[1] + last[2] - first[1] + pad * 2.0 + 40.0 * s, 0.18, 0.18, 0.2, 0.95)
-    @ui.text(first[0], first[1] - 36.0 * s, "ITEMS", 4.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, last[1] + last[2] - first[1] + pad * 2.0 + 40.0 * s, Ui::PANEL)
+    @ui.text(first[0], first[1] - 36.0 * s, "ITEMS", 4.0 * s, Color::SOLID_WHITE)
     hover = inventory_hover(w, h, s)
     CREATIVE_ITEMS.size.times do |i|
       c = inventory_cell(i, w, h, s)
       shade = i == hover ? 0.55 : 0.32
-      @ui.rect(c[0], c[1], c[2], c[2], shade, shade, shade, 1.0)
+      @ui.rect(c[0], c[1], c[2], c[2], Color.new(shade, shade, shade, 1.0))
       @ui.item(c[0] + 6.0 * s, c[1] + 6.0 * s, c[2] - 12.0 * s, CREATIVE_ITEMS[i], 1.0)
     end
     label = hover >= 0 ? Block::NAMES[CREATIVE_ITEMS[hover]] : "CLICK AN ITEM TO PUT IT IN THE SELECTED SLOT"
-    @ui.text((w - @ui.text_width(label, 2.0 * s)) / 2.0, last[1] + last[2] + pad + 12.0 * s, label, 2.0 * s, 1.0, 1.0, 0.8, 1.0)
+    @ui.text((w - @ui.text_width(label, 2.0 * s)) / 2.0, last[1] + last[2] + pad + 12.0 * s, label, 2.0 * s, Ui::LABEL_TEXT)
   end
 end

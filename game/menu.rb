@@ -222,7 +222,7 @@ class Game
   # pixel is 16 pixels on a screen 720 pixels high, and less on a narrow
   # screen.
   def draw_title_screen(w, h, s)
-    @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.25)
+    @ui.rect(0.0, 0.0, w, h, Ui::TITLE_BACKDROP)
     cell = 16.0 * s
     fit = (w * 0.9 / (@ui.text_width("SPINELCRAFT", 1.0) - 1.0)).floor.to_f
     cell = fit if fit < cell
@@ -234,9 +234,9 @@ class Game
     TITLE_ITEMS.times do |i|
       c = title_cell(i, w, h, s)
       shade = i == hover ? 0.42 : 0.26
-      @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 0.95)
+      @ui.rect(c[0], c[1], c[2], c[3], Color.new(shade, shade, shade, 0.95))
       label = title_label(i)
-      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, 1.0, 1.0, 1.0, 1.0)
+      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, Color::SOLID_WHITE)
     end
   end
 
@@ -270,25 +270,25 @@ class Game
   end
 
   def draw_pause_screen(w, h, s)
-    @ui.rect(0.0, 0.0, w, h, 0.0, 0.0, 0.0, 0.45)
+    @ui.rect(0.0, 0.0, w, h, Ui::PAUSE_BACKDROP)
     title = "PAUSED"
-    @ui.text((w - @ui.text_width(title, 6.0 * s)) / 2.0, menu_title_y(h, s), title, 6.0 * s, 1.0, 1.0, 1.0, 1.0)
+    @ui.text((w - @ui.text_width(title, 6.0 * s)) / 2.0, menu_title_y(h, s), title, 6.0 * s, Color::SOLID_WHITE)
     hover = @menu_drag >= 0 ? @menu_drag : menu_hover(w, h, s)
     MENU_ITEMS.times do |i|
       c = menu_cell(i, w, h, s)
       shade = i == hover ? 0.42 : 0.26
-      @ui.rect(c[0], c[1], c[2], c[3], shade, shade, shade, 0.95)
+      @ui.rect(c[0], c[1], c[2], c[3], Color.new(shade, shade, shade, 0.95))
       if slider?(i)
         t = slider_value(i)
-        @ui.rect(c[0], c[1], c[2] * t, c[3], shade + 0.12, shade + 0.12, shade + 0.16, 0.95)
-        @ui.rect(c[0] + (c[2] - 6.0 * s) * t, c[1], 6.0 * s, c[3], 0.9, 0.9, 0.9, 1.0)
+        @ui.rect(c[0], c[1], c[2] * t, c[3], Color.new(shade + 0.12, shade + 0.12, shade + 0.16, 0.95))
+        @ui.rect(c[0] + (c[2] - 6.0 * s) * t, c[1], 6.0 * s, c[3], Ui::MENU_KNOB)
       end
       label = menu_label(i)
-      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, 1.0, 1.0, 1.0, 1.0)
+      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, Color::SOLID_WHITE)
     end
     MENU_HELP.size.times do |i|
       line = MENU_HELP[i]
-      @ui.text((w - @ui.text_width(line, 2.0 * s)) / 2.0, menu_help_y(i, h, s), line, 2.0 * s, 0.9, 0.9, 0.9, 1.0)
+      @ui.text((w - @ui.text_width(line, 2.0 * s)) / 2.0, menu_help_y(i, h, s), line, 2.0 * s, Ui::MENU_HELP_TEXT)
     end
   end
 end

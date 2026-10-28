@@ -46,10 +46,7 @@ class Lightning
   # A line shorter than this across the view has no side to draw.
   MIN_SIDE = 0.0001
   # The color of the pale glow around the bolt.
-  GLOW_RED = 0.65
-  GLOW_GREEN = 0.75
-  GLOW_BLUE = 1.0
-  GLOW_ALPHA = 0.25
+  GLOW_COLOR = Color.new(0.65, 0.75, 1.0, 0.25)
   # The width of the bright core, and of the pale glow around it.
   CORE = 0.5
   GLOW = 2.4
@@ -188,12 +185,12 @@ class Lightning
     return unless visible? && lit?
 
     mesh.glow = 1.0
-    line_quads(mesh, eye_x, eye_y, eye_z, CORE, 1.0, 1.0, 1.0, 1.0)
-    line_quads(mesh, eye_x, eye_y, eye_z, GLOW, GLOW_RED, GLOW_GREEN, GLOW_BLUE, GLOW_ALPHA)
+    line_quads(mesh, eye_x, eye_y, eye_z, CORE, Color::SOLID_WHITE)
+    line_quads(mesh, eye_x, eye_y, eye_z, GLOW, GLOW_COLOR)
     mesh.glow = 0.0
   end
 
-  def line_quads(mesh, eye_x, eye_y, eye_z, width, red, green, blue, alpha)
+  def line_quads(mesh, eye_x, eye_y, eye_z, width, color)
     layer = Tex::WHITE.to_f
     @lines.each_slice(LINE_FIELDS) do |x0, y0, z0, x1, y1, z1, scale|
       # The side of the quad is across the line and across the view.
@@ -213,12 +210,12 @@ class Lightning
       side_x = cross_x * half_width
       side_y = cross_y * half_width
       side_z = cross_z * half_width
-      mesh.vert(x0 - side_x, y0 - side_y, z0 - side_z, 0.0, 0.0, layer, red, green, blue, alpha)
-      mesh.vert(x0 + side_x, y0 + side_y, z0 + side_z, 1.0, 0.0, layer, red, green, blue, alpha)
-      mesh.vert(x1 + side_x, y1 + side_y, z1 + side_z, 1.0, 1.0, layer, red, green, blue, alpha)
-      mesh.vert(x0 - side_x, y0 - side_y, z0 - side_z, 0.0, 0.0, layer, red, green, blue, alpha)
-      mesh.vert(x1 + side_x, y1 + side_y, z1 + side_z, 1.0, 1.0, layer, red, green, blue, alpha)
-      mesh.vert(x1 - side_x, y1 - side_y, z1 - side_z, 0.0, 1.0, layer, red, green, blue, alpha)
+      mesh.vert(x0 - side_x, y0 - side_y, z0 - side_z, 0.0, 0.0, layer, color.red, color.green, color.blue, color.alpha)
+      mesh.vert(x0 + side_x, y0 + side_y, z0 + side_z, 1.0, 0.0, layer, color.red, color.green, color.blue, color.alpha)
+      mesh.vert(x1 + side_x, y1 + side_y, z1 + side_z, 1.0, 1.0, layer, color.red, color.green, color.blue, color.alpha)
+      mesh.vert(x0 - side_x, y0 - side_y, z0 - side_z, 0.0, 0.0, layer, color.red, color.green, color.blue, color.alpha)
+      mesh.vert(x1 + side_x, y1 + side_y, z1 + side_z, 1.0, 1.0, layer, color.red, color.green, color.blue, color.alpha)
+      mesh.vert(x1 - side_x, y1 - side_y, z1 - side_z, 0.0, 1.0, layer, color.red, color.green, color.blue, color.alpha)
     end
   end
 end
