@@ -173,6 +173,7 @@ class Game
     test_menu_layout
     test_seen_recipes
     test_recipe_scroll
+    test_hotbar_wheel
     test_creative_layout
     cx = @spawn_x.floor + 4
     cz = @spawn_z.floor + 4
@@ -2153,6 +2154,22 @@ class Game
     set_block(x, y, z, old)
     @recipe_book = book
     check("the recipe list scrolls to its last row, and it opens at the top", rows > RecipeBook::ROWS && top && bottom && back && reset)
+  end
+
+  # The wheel moves the hotbar slot, also when the system sends the turn
+  # sideways, as macOS does while Shift (the sneak key) is down.
+  def test_hotbar_wheel
+    @slot = 3
+    Gfx.in_test_wheel(0.0, -1.0)
+    Gfx.in_poll
+    select_slot
+    down = @slot == 4
+    Gfx.in_test_wheel(1.0, 0.0)
+    Gfx.in_poll
+    select_slot
+    sideways = @slot == 3
+    @slot = 0
+    check("the wheel moves the hotbar slot, also when the turn comes sideways", down && sideways)
   end
 
   # The inventory screen fits the frame and leaves the hotbar and the health

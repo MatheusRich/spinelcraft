@@ -1420,7 +1420,7 @@ module Gfx
         switch (e.type) {
           case SDL_EVENT_QUIT: quit_requested = 1; break;
           case SDL_EVENT_MOUSE_MOTION: mouse_dx += e.motion.xrel; mouse_dy += e.motion.yrel; break;
-          case SDL_EVENT_MOUSE_WHEEL: wheel += e.wheel.y; break;
+          case SDL_EVENT_MOUSE_WHEEL: wheel += e.wheel.y != 0 ? e.wheel.y : e.wheel.x; break; /* macOS sends Shift+scroll as horizontal. */
           case SDL_EVENT_WINDOW_FOCUS_LOST: focus_lost = 1; break;
           case SDL_EVENT_WINDOW_ENTER_FULLSCREEN: fullscreen_change = 1; break;
           case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN: fullscreen_change = 0; break;
@@ -1468,6 +1468,15 @@ module Gfx
     void in_test_button(long b, long on) {
       Uint32 bit = 1u << (b - 1);
       buttons_now = on ? buttons_now | bit : buttons_now & ~bit;
+    }
+    /* Sends a wheel event through SDL, for in_poll to read. */
+    void in_test_wheel(double x, double y) {
+      SDL_Event e;
+      SDL_zero(e);
+      e.type = SDL_EVENT_MOUSE_WHEEL;
+      e.wheel.x = (float)x;
+      e.wheel.y = (float)y;
+      SDL_PushEvent(&e);
     }
     void in_test_fullscreen(long change) { fullscreen_change = (int)change; }
     void in_test_frame(void) { memcpy(keys_prev, keys_now, sizeof keys_now); buttons_prev = buttons_now; }
@@ -1529,6 +1538,7 @@ module Gfx
   ffi_func :in_mouse_dx, [], :double
   ffi_func :in_mouse_dy, [], :double
   ffi_func :in_wheel, [], :double
+  ffi_func :in_test_wheel, [:double, :double], :void
   ffi_func :in_focus_lost, [], :bool
   ffi_func :in_fullscreen_change, [], :long
   ffi_func :in_typed_count, [], :long
