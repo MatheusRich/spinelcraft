@@ -1,3 +1,4 @@
+require "fileutils"
 # Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, SHOWBOATS and STRIKE.
 class Game
   # A height above the land and the trees, where the tests and the
@@ -236,7 +237,7 @@ class Game
     test_streaming
     test_title
     test_demo_reel
-    File.delete(@save_path) if File.exist?(@save_path)
+    FileUtils.rm_f(@save_path)
     puts @failures == 0 ? "ALL #{@checks} PASS" : "#{@failures} OF #{@checks} FAILED"
     @failures == 0
   end
@@ -678,7 +679,7 @@ class Game
   # CONFIRM_WAIT after the first. A click on PLAY or NEW WORLD takes the
   # mouse, as a click on Back to game does, so the check gives it back.
   def test_title
-    File.delete(@save_path) if File.exist?(@save_path)
+    FileUtils.rm_f(@save_path)
     show_screen(Screen::PAUSED)
     click_menu(M_QUIT)
     check("save and quit to title saves the world and opens the title screen", File.exist?(@save_path) && current_screen.title? && !@quit)
@@ -2035,7 +2036,7 @@ class Game
     ok = load
     check("a save in an old format gives its format", !ok && @load_error == "its format is 0, not #{SAVE_VERSION}")
     File.delete(@save_path)
-    File.delete(@bad_save_path) if File.exist?(@bad_save_path)
+    FileUtils.rm_f(@bad_save_path)
   end
 
   # A right-click takes half a stack or puts down one item. A Shift-click

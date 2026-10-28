@@ -24,12 +24,6 @@ Lint/DuplicateBranch:
     - 'game/vitals.rb'
 
 # Offense count: 6
-# This cop supports unsafe autocorrection (--autocorrect-all).
-Lint/NonAtomicFileOperation:
-  Exclude:
-    - 'game/testing.rb'
-
-# Offense count: 6
 # Configuration parameters: CountComments, Max, CountAsOne.
 Metrics/ClassLength:
   Exclude:
