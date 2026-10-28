@@ -6,16 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 9
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: AllowedMethods, AllowedPatterns.
-Lint/AmbiguousBlockAssociation:
-  Exclude:
-    - 'test/furnace_test.rb'
-    - 'test/log_test.rb'
-    - 'test/slots_test.rb'
-    - 'test/world_test.rb'
-
 # Offense count: 6
 # Configuration parameters: CountComments, Max, CountAsOne.
 Metrics/ClassLength:

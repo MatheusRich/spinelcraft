@@ -25,14 +25,14 @@ class LogTest < Minitest::Test
   def test_all_turns_on_every_topic
     Log.setup("all")
     _, err = capture_io { Log::NAMES.size.times { |topic| Log.debug(topic) { "on" } } }
-    assert_equal Log::NAMES, err.lines.map { |line| line.split[1].chomp(":") }
+    assert_equal(Log::NAMES, err.lines.map { |line| line.split[1].chomp(":") })
   end
 
   def test_setup_turns_off_the_topics_that_are_not_in_the_list
     Log.setup("all")
     Log.setup("world")
     _, err = capture_io { Log::NAMES.size.times { |topic| Log.debug(topic) { "on" } } }
-    assert_equal ["world"], err.lines.map { |line| line.split[1].chomp(":") }
+    assert_equal(["world"], err.lines.map { |line| line.split[1].chomp(":") })
   end
 
   def test_a_name_that_is_not_a_topic_gets_a_warning_and_the_rest_turn_on

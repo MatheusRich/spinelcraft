@@ -20,7 +20,7 @@ class SlotsTest < Minitest::Test
     slots.set(0, Block::DIRT, 3)
     slots.set(1, PICK, 9)
     slots.clear
-    assert [0, 1].all? { |index| slots.empty?(index) && slots.block(index) == Block::AIR }
+    assert([0, 1].all? { |index| slots.empty?(index) && slots.block(index) == Block::AIR })
   end
 
   def test_a_copy_does_not_change_with_the_original
@@ -117,7 +117,7 @@ class SlotsTest < Minitest::Test
     to.set(3, Block::DIRT, 62)
     from.set(0, Block::DIRT, 10)
     from.move_stack(0, to, 0...4)
-    assert_equal [4, 64, 0, 64], (0...4).map { |index| to.count(index) }
+    assert_equal([4, 64, 0, 64], (0...4).map { |index| to.count(index) })
     assert_equal Block::DIRT, to.block(0)
     assert from.empty?(0)
   end

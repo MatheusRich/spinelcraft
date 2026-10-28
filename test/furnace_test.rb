@@ -125,7 +125,7 @@ class FurnaceTest < Minitest::Test
     assert_equal 0, furnace.burn
     assert_equal 0, furnace.burn_total
     assert_equal 0, furnace.progress
-    assert [Furnace::INPUT, Furnace::FUEL, Furnace::OUTPUT].all? { |slot| furnace.slots.empty?(slot) }
+    assert([Furnace::INPUT, Furnace::FUEL, Furnace::OUTPUT].all? { |slot| furnace.slots.empty?(slot) })
   end
 
   def test_a_furnace_is_idle_while_it_is_cold_and_empty

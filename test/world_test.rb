@@ -10,7 +10,7 @@ class WorldTest < Minitest::Test
     end
     assert_equal Biome::TREE_KINDS.size, Trees::TRUNK.size
     assert_equal Biome::TREE_KINDS.size, Trees::WOOD.size
-    assert Biome::TREE.all? { |kind| kind < Biome::TREE_KINDS.size }
+    assert(Biome::TREE.all? { |kind| kind < Biome::TREE_KINDS.size })
   end
 
   # A column of 16 cells covers each byte of an Integer twice, also the ids
@@ -20,14 +20,14 @@ class WorldTest < Minitest::Test
     ids = [Block::COUNT - 1, Block::STONE, Block::PLACED_SPRUCE_LEAVES, Block::AIR] * 4
     column = (SKY_Y - 16...SKY_Y)
     column.zip(ids) { |y, id| world.set(8, y, 8, id) }
-    assert_equal ids, column.map { |y| world.get(8, y, 8) }
+    assert_equal(ids, column.map { |y| world.get(8, y, 8) })
 
     world.set(8, SKY_Y - 9, 8, Block::STONE)
     ids[7] = Block::STONE
-    assert_equal ids, column.map { |y| world.get(8, y, 8) }
+    assert_equal(ids, column.map { |y| world.get(8, y, 8) })
 
     column.each { |y| world.set(8, y, 8, Block::AIR) }
-    assert_equal [Block::AIR] * 16, column.map { |y| world.get(8, y, 8) }
+    assert_equal([Block::AIR] * 16, column.map { |y| world.get(8, y, 8) })
   end
 
   def test_a_door_fits_on_a_solid_block_with_room_for_its_two_halves
