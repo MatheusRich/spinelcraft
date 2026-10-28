@@ -50,6 +50,7 @@ require_relative "game/far_terrain"
 require_relative "game/chunk_meshes"
 require_relative "game/block_sound"
 require_relative "game/constants"
+require_relative "game/save_file"
 require_relative "game/save"
 require_relative "game/block_changes"
 require_relative "game/slots"
@@ -182,7 +183,7 @@ class Game
     @faces_drawn = 0
     @cpu_end = 0
     @game_mode = ENV["MODE"] == "survival" ? GameMode::SURVIVAL : GameMode::CREATIVE
-    @loaded = [""]
+    @loaded = SaveFile.new
     @load_error = ""
     @changed = false
     # A scripted run (FRAMES or DEMO) does not change the save or the options.
@@ -331,8 +332,6 @@ class Game
     keep_bad_save if !loaded && !fresh
     reset_world unless loaded
     if loaded
-      @player = Player.new(0.5, 80.0, 0.5)
-      @target_block = BlockTarget.new
       apply_loaded
     else
       spawn
@@ -393,13 +392,13 @@ class Game
     land_x, land_z = @world.terrain.land_near_origin
     @chunk_meshes.stream(land_x >> 4, land_z >> 4, -1, SYNC_R)
     start_x, start_z = @world.dry_spot_near(land_x, land_z, (SYNC_R - 1) * CHUNK)
-    h = @world.height_at(start_x, start_z)
+    ground = @world.height_at(start_x, start_z)
     @spawn_x = start_x + 0.5
     @spawn_z = start_z + 0.5
-    @player = Player.new(@spawn_x, h + 0.01, @spawn_z)
+    @player = Player.new(@spawn_x, ground + 0.01, @spawn_z)
     # A new player has no block in the crosshair yet.
     @target_block = BlockTarget.new
-    Log.debug(Log::WORLD) { "spawn at #{start_x} #{h} #{start_z}#{@world.dry_spot?(start_x, start_z) ? "" : ", but no dry land was near"}" }
+    Log.debug(Log::WORLD) { "spawn at #{start_x} #{ground} #{start_z}#{@world.dry_spot?(start_x, start_z) ? "" : ", but no dry land was near"}" }
   end
 
   def respawn

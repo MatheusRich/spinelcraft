@@ -1,65 +1,28 @@
-# Save and load: the world.sav format.
+# Save and load: the world.sav format. SaveFile has the form of the file. The
+# sections are the ones that save adds.
 class Game
-  # Field positions in the first line of a save. Field 0 is the format.
-  # save writes the fields in this order.
-  F_SEED = 1
-  F_PLAYER = 2 # x, y, z, yaw, pitch
-  F_TIME = 7
-  F_DAY = 8
-  F_GAME_MODE = 9
-  F_HEALTH = 10
-  F_ALIVE = 11 # the seconds since the last respawn
-  F_SPAWN = 12 # x, z
-  F_INV = 14 # INV blocks, then INV counts
-  F_HOTBAR = F_INV + INV * 2
-  F_HUNGER = F_HOTBAR + HOTBAR # hunger, saturation, exhaustion
-  # Raining (1 or 0), seconds to the next change of the rain, the thunder
-  # flag (1 or 0), and seconds to the next change of the flag.
-  F_WEATHER = F_HUNGER + 3
-  # The chest count, then the key and the contents of each chest. Then the
-  # item count and ITEM_FIELDS for each item on the ground. Then the count
-  # of seen blocks, and their ids. Then the furnaces (Furnaces#to_a). Then
-  # the boat count, BOAT_FIELDS for each boat, and the index of the boat
-  # that the player rides (or -1). Then the looted treasure chests
-  # (Treasure#to_a).
-  F_CHESTS = F_WEATHER + 4
   ITEM_FIELDS = 6 # block, count, x, y, z, age
   BOAT_FIELDS = 5 # item, x, y, z, yaw
 
-  def save # rubocop:todo Metrics/MethodLength
-    header = [@seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
-              @clock.time_of_day, @clock.day, game_mode.name, @player.vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
+  def save
     return_held
     @chests.close
     land_falling
-    chest_fields = @chests.to_a
-    seen = []
-    Block::COUNT.times { |block| seen << block if @recipe_book.seen?(block) }
-    furnace_fields = @furnaces.to_a
-    boat_fields = [@boats.size]
-    @boats.each { |boat| boat_fields.concat([boat.item, boat.x, boat.y, boat.z, boat.yaw]) }
-    boat_fields << @riding
-    looted_fields = @treasure.to_a
-    item_fields = [@items.size]
-    @items.each { |item| item_fields.concat([item.block, item.count, item.x, item.y, item.z, item.age]) }
+    file = save_sections
     t0 = Gfx.gfx_ns
     chunks = @world.edited_chunks
     keys = chunks.keys
-    chunk_fields = [keys.size] + keys
-    vitals = @player.vitals
-    inv = (@inv.to_a + @hotbar + [vitals.hunger, vitals.saturation, vitals.exhaustion] + @weather.to_a + chest_fields +
-           item_fields + [seen.size] + seen + furnace_fields + boat_fields + looted_fields + chunk_fields).map(&:to_s).join(" ")
-    line = "#{SAVE_VERSION} #{header} #{inv}\n"
-    File.open(@save_path, "wb") do |f|
-      f.write(line)
-      keys.each { |k| f.write(chunks[k]) }
+    head = file.head(SAVE_VERSION, keys)
+    File.open(@save_path, "wb") do |out|
+      out.write(head)
+      keys.each { |key| out.write(chunks[key]) }
     end
     @changed = false
     say("WORLD SAVED")
     puts "saved #{@save_path} in #{((Gfx.gfx_ns - t0) / 1.0e6).round} ms"
     Log.debug(Log::SAVE) do
-      "#{line.bytesize + keys.size * CHUNK_BYTES} bytes: #{keys.size} edited chunks, #{@chests.size} chests, #{@items.size} items, " \
-        "#{furnace_fields[0]} furnaces, #{@boats.size} boats"
+      "#{head.bytesize + keys.size * CHUNK_BYTES} bytes: #{keys.size} edited chunks, #{@chests.size} chests, #{@items.size} items, " \
+        "#{@furnaces.size} furnaces, #{@boats.size} boats"
     end
   end
 
@@ -69,31 +32,16 @@ class Game
   def load
     return false unless File.exist?(@save_path)
 
-    data = File.binread(@save_path)
-    nl = data.index("\n")
-    return load_failed("it has no first line") if nl.nil?
+    file = SaveFile.new
+    return load_failed(file.error) unless file.read(File.binread(@save_path), SAVE_VERSION)
 
-    f = data[0, nl].split(" ")
-    return load_failed("its first line has #{f.size} fields, and a save has more than #{F_CHESTS}") if f.size <= F_CHESTS
-    return load_failed("its format is #{f[0]}, not #{SAVE_VERSION}") unless f[0] == SAVE_VERSION
-
-    at = F_CHESTS
-    at += 1 + f[at].to_i * (1 + Chest::SLOTS * 2)
-    at += 1 + f[at].to_i * ITEM_FIELDS
-    at += 1 + f[at].to_i
-    at += 1 + f[at].to_i * Furnaces::FIELDS
-    at += 1 + f[at].to_i * BOAT_FIELDS + 1
-    at += 1 + f[at].to_i
-    n = f[at].to_i
-    chunk_bytes = data.bytesize - nl - 1
-    return load_failed("it has #{chunk_bytes} bytes of chunks, not #{n} * #{CHUNK_BYTES}") if chunk_bytes != n * CHUNK_BYTES
-
-    @seed = f[F_SEED].to_i
+    seed = file.section("seed")
+    @seed = seed[0].to_i unless seed.empty?
     reset_world
     store = @world.store
-    n.times { |k| store[f[at + 1 + k].to_i] = data.byteslice(nl + 1 + k * CHUNK_BYTES, CHUNK_BYTES) }
-    @loaded = f
-    Log.debug(Log::SAVE) { "loaded #{@save_path}: #{data.bytesize} bytes, seed #{@seed}, #{n} edited chunks" }
+    file.chunks.each { |key, bytes| store[key] = bytes }
+    @loaded = file
+    Log.debug(Log::SAVE) { "loaded #{@save_path}: seed #{@seed}, #{file.chunks.size} edited chunks" }
     true
   end
 
@@ -131,54 +79,132 @@ class Game
     @falling.clear
   end
 
-  def apply_loaded # rubocop:todo Metrics/MethodLength
-    f = @loaded
-    @player.x = f[F_PLAYER].to_f
-    @player.y = f[F_PLAYER + 1].to_f
-    @player.z = f[F_PLAYER + 2].to_f
-    @player.yaw = f[F_PLAYER + 3].to_f
-    @player.pitch = f[F_PLAYER + 4].to_f
-    @player.fall_start = @player.y
-    @clock.time_of_day = f[F_TIME].to_f
-    @clock.day = f[F_DAY].to_i
-    @game_mode = GameMode.parse(f[F_GAME_MODE])
-    @player.vitals.health = f[F_HEALTH].to_f
-    @alive_time = f[F_ALIVE].to_f
-    @spawn_x = f[F_SPAWN].to_f
-    @spawn_z = f[F_SPAWN + 1].to_f
-    @inv.load(f, F_INV)
-    HOTBAR.times { |i| @hotbar[i] = f[F_HOTBAR + i].to_i }
-    @player.vitals.hunger = f[F_HUNGER].to_i
-    @player.vitals.saturation = f[F_HUNGER + 1].to_f
-    @player.vitals.exhaustion = f[F_HUNGER + 2].to_f
-    @weather.load(f, F_WEATHER)
-    at = @chests.load(f, F_CHESTS)
-    @items.clear
-    items = f[at].to_i
-    at += 1
-    c = 0
-    while c < items
-      @items << Item.new(f[at].to_i, f[at + 1].to_i, f[at + 2].to_f, f[at + 3].to_f, f[at + 4].to_f, 0.0, 0.0, 0.0, PICKUP_WAIT, f[at + 5].to_f)
-      at += ITEM_FIELDS
-      c += 1
-    end
-    @recipe_book = RecipeBook.new
-    seen = f[at].to_i
-    seen.times { |c| @recipe_book.learn(f[at + 1 + c].to_i) }
-    at += 1 + seen
-    at = @furnaces.load(f, at)
-    @boats.clear
-    boats = f[at].to_i
-    at += 1
-    c = 0
-    while c < boats
-      @boats << Boat.new(f[at].to_i, f[at + 1].to_f, f[at + 2].to_f, f[at + 3].to_f, f[at + 4].to_f)
-      at += BOAT_FIELDS
-      c += 1
-    end
-    @riding = f[at].to_i
-    @treasure.load(f, at + 1)
+
+  # The SaveFile with a section for each part of the game that the save keeps.
+  def save_sections
+    file = SaveFile.new
+    vitals = @player.vitals
+    file.add("seed", [@seed])
+    file.add("player", [@player.x, @player.y, @player.z, @player.yaw, @player.pitch])
+    file.add("clock", [@clock.time_of_day, @clock.day])
+    file.add("mode", [game_mode.name])
+    file.add("vitals", [vitals.health, vitals.hunger, vitals.saturation, vitals.exhaustion])
+    file.add("life", [@alive_time, @spawn_x, @spawn_z]) # the seconds since the last respawn, and the spawn x and z
+    file.add("inventory", @inv.to_a)
+    file.add("hotbar", @hotbar)
+    file.add("weather", @weather.to_a)
+    file.add("chests", @chests.to_a)
+    file.add("items", item_fields)
+    file.add("recipes", seen_fields)
+    file.add("furnaces", @furnaces.to_a)
+    file.add("boats", boat_fields)
+    file.add("riding", [@riding])
+    file.add("treasure", @treasure.to_a)
+    file
+  end
+
+  # The item count, then ITEM_FIELDS for each item on the ground.
+  def item_fields
+    fields = [@items.size]
+    @items.each { |item| fields.concat([item.block, item.count, item.x, item.y, item.z, item.age]) }
+    fields
+  end
+
+  # The count of seen blocks, then their ids.
+  def seen_fields
+    seen = (0...Block::COUNT).select { |block| @recipe_book.seen?(block) }
+    [seen.size] + seen
+  end
+
+  # The boat count, then BOAT_FIELDS for each boat.
+  def boat_fields
+    fields = [@boats.size]
+    @boats.each { |boat| fields.concat([boat.item, boat.x, boat.y, boat.z, boat.yaw]) }
+    fields
+  end
+
+  def apply_loaded
+    # A part that the save lacks keeps its value for a new world: the spawn
+    # point, and the player there.
+    spawn
+    with_section("player") { |fields| apply_player(fields) }
+    with_section("clock") { |fields| apply_clock(fields) }
+    with_section("mode") { |fields| @game_mode = GameMode.parse(fields[0]) }
+    with_section("vitals") { |fields| apply_vitals(fields) }
+    with_section("life") { |fields| apply_life(fields) }
+    with_section("inventory") { |fields| @inv.load(fields, 0) }
+    with_section("hotbar") { |fields| HOTBAR.times { |slot| @hotbar[slot] = fields[slot].to_i } }
+    with_section("weather") { |fields| @weather.load(fields, 0) }
+    with_section("chests") { |fields| @chests.load(fields, 0) }
+    with_section("items") { |fields| apply_items(fields) }
+    with_section("recipes") { |fields| apply_recipes(fields) }
+    with_section("furnaces") { |fields| @furnaces.load(fields, 0) }
+    with_section("boats") { |fields| apply_boats(fields) }
+    with_section("riding") { |fields| apply_riding(fields) }
+    with_section("treasure") { |fields| @treasure.load(fields, 0) }
     @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, -1, SYNC_R)
     respawn if @player.vitals.dead?
+  end
+
+  # Calls the block with the fields of the section name, when the loaded save
+  # has that section. Otherwise the part keeps its value for a new world.
+  def with_section(name)
+    fields = @loaded.section(name)
+    yield fields unless fields.empty?
+  end
+
+  def apply_player(fields)
+    @player.x = fields[0].to_f
+    @player.y = fields[1].to_f
+    @player.z = fields[2].to_f
+    @player.yaw = fields[3].to_f
+    @player.pitch = fields[4].to_f
+    @player.fall_start = @player.y
+  end
+
+  def apply_clock(fields)
+    @clock.time_of_day = fields[0].to_f
+    @clock.day = fields[1].to_i
+  end
+
+  def apply_vitals(fields)
+    @player.vitals.health = fields[0].to_f
+    @player.vitals.hunger = fields[1].to_i
+    @player.vitals.saturation = fields[2].to_f
+    @player.vitals.exhaustion = fields[3].to_f
+  end
+
+  def apply_life(fields)
+    @alive_time = fields[0].to_f
+    @spawn_x = fields[1].to_f
+    @spawn_z = fields[2].to_f
+  end
+
+  # The boat that the player rides must exist.
+  def apply_riding(fields)
+    @riding = -1
+    index = fields[0].to_i
+    @riding = index if index >= 0 && index < @boats.size
+  end
+
+  def apply_items(fields)
+    @items.clear
+    fields[0].to_i.times do |index|
+      at = 1 + index * ITEM_FIELDS
+      @items << Item.new(fields[at].to_i, fields[at + 1].to_i, fields[at + 2].to_f, fields[at + 3].to_f, fields[at + 4].to_f, 0.0, 0.0, 0.0, PICKUP_WAIT, fields[at + 5].to_f)
+    end
+  end
+
+  def apply_recipes(fields)
+    @recipe_book = RecipeBook.new
+    fields[0].to_i.times { |index| @recipe_book.learn(fields[1 + index].to_i) }
+  end
+
+  def apply_boats(fields)
+    @boats.clear
+    fields[0].to_i.times do |index|
+      at = 1 + index * BOAT_FIELDS
+      @boats << Boat.new(fields[at].to_i, fields[at + 1].to_f, fields[at + 2].to_f, fields[at + 3].to_f, fields[at + 4].to_f)
+    end
   end
 end

@@ -2032,12 +2032,46 @@ class Game
     ok = load
     keep_bad_save
     check("a save that does not load moves aside", !ok && !File.exist?(@save_path) && File.exist?(@bad_save_path))
-    check("a save that does not load gives the reason", @load_error == "its first line has 3 fields, and a save has more than #{F_CHESTS}")
-    File.write(@save_path, "0 #{Array.new(F_CHESTS, "0").join(" ")}\n")
+    check("a save that does not load gives the reason", @load_error == "its format is NOT, not #{SAVE_VERSION}")
+    File.write(@save_path, "SPINELCRAFT0\nseed 1\nchunks \n")
     ok = load
-    check("a save in an old format gives its format", !ok && @load_error == "its format is 0, not #{SAVE_VERSION}")
+    check("a save in an old format gives its format", !ok && @load_error == "its format is SPINELCRAFT0, not #{SAVE_VERSION}")
+    @seed = 1337
+    File.write(@save_path, "#{SAVE_VERSION}\nplayer 1 2 3 4 5\nchunks \n")
+    ok = load
+    check("a save without a seed uses the seed that the game has", ok && @seed == 1337)
+    here = [@player.x, @player.y, @player.z, @player.yaw, @player.pitch]
+    File.write(@save_path, "#{SAVE_VERSION}\nseed 7\nfuture 1 2\nchunks \n")
+    ok = load
+    apply_loaded if ok
+    check("a save with a section that the game does not know, and without the others, loads", ok && @seed == 7)
+    test_sparse_saves
+    File.write(@save_path, "#{SAVE_VERSION}\nseed 7\nplayer #{here.join(" ")}\nlife 0 #{here[0]} #{here[2]}\nchunks \n")
+    ok = load
+    apply_loaded if ok
+    check("a save puts the player where it says", ok && [@player.x, @player.y, @player.z, @player.yaw, @player.pitch] == here)
     File.delete(@save_path)
     FileUtils.rm_f(@bad_save_path)
+  end
+
+  # A save that lacks a section gives the part its value for a new world.
+  def test_sparse_saves
+    @spawn_x = 5000.5
+    @spawn_z = 5000.5
+    File.write(@save_path, "#{SAVE_VERSION}\nseed 1337\nplayer 0.5 80 0.5 0 0\nvitals 0 20 5 0\nchunks \n")
+    ok = load
+    apply_loaded if ok
+    check("a dead player in a save without a spawn point respawns at the spawn point of a new world",
+          ok && !@player.vitals.dead? && @spawn_x != 5000.5 && @player.x == @spawn_x && @player.z == @spawn_z)
+    File.write(@save_path, "#{SAVE_VERSION}\nseed 1337\nlife 0 40.5 41.5\nchunks \n")
+    ok = load
+    apply_loaded if ok
+    check("a save without a player keeps its spawn point", ok && @spawn_x == 40.5 && @spawn_z == 41.5)
+    File.write(@save_path, "#{SAVE_VERSION}\nseed 1337\nriding 0\nchunks \n")
+    @boats.clear
+    ok = load
+    apply_loaded if ok
+    check("a save that rides a boat that it does not have does not ride", ok && @riding == -1)
   end
 
   # A right-click takes half a stack or puts down one item. A Shift-click

@@ -2,9 +2,10 @@
 
 Spinelcraft is pre-alpha. No player, save or tool depends on old behavior yet.
 
-- Do not keep compatibility with old saves, old names or old behavior. When a change makes old code obsolete, remove it.
-- Do not add importers, fallbacks or guards for data from an earlier version of the game.
-- When the save format changes, change `SAVE_VERSION` in `game/constants.rb`. Then an old save does not load, and the game moves it to `world-bad.sav` and starts a new world. That is all the old save gets.
+- Do not keep compatibility with old names or old behavior. When a change makes old code obsolete, remove it.
+- Do not add importers, fallbacks or guards for data from an earlier version of the game, except for the save sections below.
+- A save is a set of named sections (`game/save_file.rb`). A new part of the game that needs saving gets a new section, and a save without that section loads with the value of the part for a new world. A new section needs no new `SAVE_VERSION`.
+- Change `SAVE_VERSION` in `game/constants.rb` only when an existing section changes its meaning or its layout, or when `SaveFile` changes. Then an old save does not load, and the game moves it to `world-bad.sav` and starts a new world. Ask the user before such a change whether a converter for the old save is worth writing.
 - Remove code that nothing calls.
 - Write idiomatic Ruby where it costs no speed. When the speed is not known, measure it. Use `each`, `find` and the other `Enumerable` methods by default. Use `while` only with a measurement that shows the gain, and name that measurement in the commit.
 - Name things so that a reader who did not see the diff understands them. A class name is a noun. A method name is not a verb in disguise. Do not abbreviate (`ox`, `dy`, `m`). Give each relevant numeric literal a named constant. Do not write a comment that only restates the code.
