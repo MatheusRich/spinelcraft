@@ -83,4 +83,22 @@ class WeatherTest < Minitest::Test
     assert_equal 55.5, other.thunder.timer
     assert_equal 1.0, other.thunderstorm_strength
   end
+
+  def test_rain_falls_in_two_crossed_streaks_in_each_column_around_the_player
+    world = world_with_one_chunk
+    player = Player.new(8.5, world.height_at(8, 8).to_f, 8.5)
+    @weather.rain.start.settle
+    assert @weather.build_quads(world, player, 0.0)
+    vertices = @weather.mesh.v.each_slice(11).to_a
+    assert_equal 0, vertices.size % 12
+    along, across = vertices.first(12).each_slice(6).to_a
+    assert_equal [1.0, 1.0], [along[1][0] - along[0][0], along[1][2] - along[0][2]]
+    assert_equal [-1.0, 1.0], [across[1][0] - across[0][0], across[1][2] - across[0][2]]
+    assert_in_delta 0.5, across[0][4] - along[0][4], 1.0e-6
+    assert_in_delta 0.5, across[2][4] - along[2][4], 1.0e-6
+    assert_operator along[0][1], :>, along[2][1]
+    color = along.first[6, 4]
+    assert_operator color[3], :<, 1.0
+    assert_operator color[2], :>, color[0]
+  end
 end

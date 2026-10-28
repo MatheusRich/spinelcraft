@@ -18,6 +18,13 @@ class Particle
   HEART = 8
   BLAST = 9
 
+  CHIP_COLOR = Color.new(0.6, 0.6, 0.6, 1.0)
+  DROP_COLOR = Color.new(0.7, 0.78, 0.95, 1.0)
+  # The green of the bone meal sparkle in VoxeLibre (#00EE00).
+  GROWTH_COLOR = Color.new(0.0, 0.93, 0.0, 1.0)
+  CRIT_COLOR = Color.new(0.85, 0.85, 0.8, 1.0)
+  # The dull green #587653 of the Hunger effect. minecraft.wiki/w/Hunger_(effect)
+  EFFECT_COLOR = Color.new(0.345, 0.463, 0.325, 1.0)
   attr_reader :kind
 
   def initialize(kind, x, y, z, vx, vy, vz, life, layer)
@@ -82,35 +89,33 @@ class Particle
     t = @life / @max
     case @kind
     when CHIP
-      mesh.billboard(@x, @y, @z, @half, rx, rz, ux, uy, uz, @u0, @v0, 0.25, @layer, 0.6, 0.6, 0.6, 1.0)
+      mesh.billboard(@x, @y, @z, @half, rx, rz, ux, uy, uz, @u0, @v0, 0.25, @layer, CHIP_COLOR)
     when FLAME
       mesh.glow = 1.0
-      mesh.billboard(@x, @y, @z, 0.04 + 0.12 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::FIRE, 1.0, 0.7 + 0.3 * t, 0.5 + 0.5 * t, 1.0)
+      mesh.billboard(@x, @y, @z, 0.04 + 0.12 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::FIRE, Color.new(1.0, 0.7 + 0.3 * t, 0.5 + 0.5 * t, 1.0))
       mesh.glow = 0.0
     when SMOKE
       c = 0.25 + 0.25 * t
-      mesh.billboard(@x, @y, @z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, c, c, c, 1.0)
+      mesh.billboard(@x, @y, @z, 0.08 + 0.12 * (1.0 - t), rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, Color.new(c, c, c, 1.0))
     when DROP
-      mesh.billboard(@x, @y, @z, 0.035, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.7, 0.78, 0.95, 1.0)
+      mesh.billboard(@x, @y, @z, 0.035, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, DROP_COLOR)
     when GROWTH
-      # The green of the bone meal sparkle in VoxeLibre (#00EE00).
       mesh.glow = 1.0
-      mesh.billboard(@x, @y, @z, 0.02 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.0, 0.93, 0.0, 1.0)
+      mesh.billboard(@x, @y, @z, 0.02 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, GROWTH_COLOR)
       mesh.glow = 0.0
     when HEART
       # The heart of the HUD, whose icon fills the top left of its layer.
-      mesh.billboard(@x, @y, @z, 0.12, rx, rz, ux, uy, uz, 0.0, 0.0, Tex::ICON_PART, Tex::HEART, 1.0, 1.0, 1.0, 1.0)
+      mesh.billboard(@x, @y, @z, 0.12, rx, rz, ux, uy, uz, 0.0, 0.0, Tex::ICON_PART, Tex::HEART, Color::SOLID_WHITE)
     when BLAST
       c = 0.55 + 0.45 * t
-      mesh.billboard(@x, @y, @z, 1.5 - 0.75 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, c, c, c, 1.0)
+      mesh.billboard(@x, @y, @z, 1.5 - 0.75 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, Color.new(c, c, c, 1.0))
     when CRIT
-      mesh.billboard(@x, @y, @z, 0.03 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.85, 0.85, 0.8, 1.0)
+      mesh.billboard(@x, @y, @z, 0.03 + 0.03 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, CRIT_COLOR)
     when EFFECT
-      # The dull green #587653 of the Hunger effect. minecraft.wiki/w/Hunger_(effect)
-      mesh.billboard(@x, @y, @z, 0.02, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, 0.345, 0.463, 0.325, 1.0)
+      mesh.billboard(@x, @y, @z, 0.02, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, EFFECT_COLOR)
     else
       mesh.glow = 1.0
-      mesh.billboard(@x, @y, @z, 0.04, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::WHITE, 1.0, 0.45 + 0.3 * t, 0.1, 1.0)
+      mesh.billboard(@x, @y, @z, 0.04, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::WHITE, Color.new(1.0, 0.45 + 0.3 * t, 0.1, 1.0))
       mesh.glow = 0.0
     end
     # A nil return keeps Spinel from boxing the value of each branch.

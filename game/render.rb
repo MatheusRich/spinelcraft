@@ -1,5 +1,8 @@
 # The 3D frame: uniforms, chunk and far terrain draws, and the sky.
 class Game
+  # The gold of the beam over a treasure chest.
+  BEACON_COLOR = Color.new(1.0, 0.85, 0.2, 1.0)
+
   def render # rubocop:todo Metrics/MethodLength
     w = Gfx.gfx_width.to_f
     h = Gfx.gfx_height.to_f
@@ -125,7 +128,7 @@ class Game
         z = @mine_z.to_f
         stage = (@mine_progress * Tex::CRACK_STAGES).to_i
         stage = Tex::CRACK_STAGES - 1 if stage >= Tex::CRACK_STAGES
-        @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, 1.0, 1.0, 1.0, 1.0)
+        @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, Color::SOLID_WHITE)
       end
     end
     @hand_at = @dyn.count
@@ -153,7 +156,7 @@ class Game
         z = site.chest_z
         next unless @treasure.unlooted?(x, site.chest_y, z) && site.distance(ex, ez) < reach
 
-        @dyn.aabb(x - 0.5, site.chest_y + 1.0, z - 0.5, x + 1.5, WY + 64.0, z + 1.5, Tex::WHITE, 1.0, 0.85, 0.2, 1.0)
+        @dyn.aabb(x - 0.5, site.chest_y + 1.0, z - 0.5, x + 1.5, WY + 64.0, z + 1.5, Tex::WHITE, BEACON_COLOR)
       end
     end
     nil

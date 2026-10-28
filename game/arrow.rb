@@ -1,6 +1,8 @@
 # An arrow from the player's bow or from a skeleton. It falls, and it sticks
 # in the first solid block that it flies into.
 class Arrow
+  SHAFT_COLOR = Color.new(0.45, 0.32, 0.18, 1.0)
+  FLETCHING_COLOR = Color.new(0.9, 0.9, 0.9, 1.0)
   attr_reader :x, :y, :z, :vx, :vz
   # 0 for a skeleton's arrow; otherwise the damage of the player's arrow.
   attr_reader :damage
@@ -56,7 +58,7 @@ class Arrow
   def draw(mesh)
     yaw = Math.atan2(-@vx, @vz)
     pitch = -Math.atan2(@vy, Math.sqrt(@vx * @vx + @vz * @vz))
-    mesh.box(@x, @y, @z, yaw, 0.0, 0.0, pitch, -0.03, -0.03, -0.6, 0.03, 0.03, 0.0, Tex::WHITE, 0.45, 0.32, 0.18, 1.0)
-    mesh.box(@x, @y, @z, yaw, 0.0, 0.0, pitch, -0.05, -0.05, -0.62, 0.05, 0.05, -0.5, Tex::WHITE, 0.9, 0.9, 0.9, 1.0)
+    mesh.box(@x, @y, @z, yaw, 0.0, 0.0, pitch, -0.03, -0.03, -0.6, 0.03, 0.03, 0.0, Tex::WHITE, SHAFT_COLOR)
+    mesh.box(@x, @y, @z, yaw, 0.0, 0.0, pitch, -0.05, -0.05, -0.62, 0.05, 0.05, -0.5, Tex::WHITE, FLETCHING_COLOR)
   end
 end

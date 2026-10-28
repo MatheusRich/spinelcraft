@@ -5,6 +5,7 @@
 class Monster < Mob
   # Seconds of a creeper's fuse. minecraft.wiki/w/Creeper
   FUSE = 1.5
+  BOW_COLOR = Color.new(0.4, 0.26, 0.12, 1.0)
   # A creeper lights its fuse when the player is this near, and the fuse
   # burns until the player is this far, as in Minecraft.
   # minecraft.wiki/w/Creeper
@@ -173,47 +174,48 @@ class Monster < Mob
 
   # The monster as the boxes of its Minecraft model. A creeper flashes
   # white as its fuse burns down.
-  def draw_model(mesh, swing, red, _fall)
+  def draw_model(mesh, swing, color, _fall)
     if @kind == CREEPER
-      draw_creeper(mesh, swing, red)
+      draw_creeper(mesh, swing, color)
     else
-      draw_humanoid(mesh, swing, red)
+      draw_humanoid(mesh, swing, color)
     end
     # A nil return keeps Spinel from boxing it.
     nil
   end
 
-  def draw_creeper(mesh, swing, red)
+  def draw_creeper(mesh, swing, color)
     layer = Tex::SKINS + @kind
     flash = @fuse > 0.0 && Math.sin(@fuse * @fuse * 18.0) > 0.0 ? 1.6 : 0.0
     glow = 1.0 + flash
     grow = @fuse * 0.4
-    part(mesh, layer, 0.0, 6.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, grow, false, glow, glow * red, glow * red)
-    part(mesh, layer, 0.0, 6.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, grow, false, glow, glow * red, glow * red)
-    legs(mesh, layer, 2.0, 18.0, 4.0, -4.0, 6.0, 0.0, swing, glow, glow * red)
+    lit = Color.new(glow * color.red, glow * color.green, glow * color.blue, color.alpha)
+    part(mesh, layer, 0.0, 6.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, grow, false, lit)
+    part(mesh, layer, 0.0, 6.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, grow, false, lit)
+    legs(mesh, layer, 2.0, 18.0, 4.0, -4.0, 6.0, 0.0, swing, lit)
   end
 
   # A zombie or a skeleton: a person with the arms out to the front. A
   # skeleton has thin arms and legs, and holds a bow.
-  def draw_humanoid(mesh, swing, red)
+  def draw_humanoid(mesh, swing, color)
     layer = Tex::SKINS + @kind
     thin = @kind == SKELETON
     width = thin ? 2.0 : 4.0
-    part(mesh, layer, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 32.0, 0.0, 0.5, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 0.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
+    part(mesh, layer, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 0.0, 0.0, 0.0, -4.0, -8.0, -4.0, 8.0, 8.0, 8.0, 32.0, 0.0, 0.5, false, color)
+    part(mesh, layer, 0.0, 0.0, 0.0, 0.0, -4.0, 0.0, -2.0, 8.0, 12.0, 4.0, 16.0, 16.0, 0.0, false, color)
     arm = thin ? -1.45 : -1.5 + swing * 0.2
-    part(mesh, layer, -5.0, 2.0, 0.0, arm, thin ? -1.0 : -3.0, -2.0, -width / 2.0, width, 12.0, width, 40.0, 16.0, 0.0, false, 1.0, red, red)
+    part(mesh, layer, -5.0, 2.0, 0.0, arm, thin ? -1.0 : -3.0, -2.0, -width / 2.0, width, 12.0, width, 40.0, 16.0, 0.0, false, color)
     arm = thin ? -1.45 : -1.5 - swing * 0.2
-    part(mesh, layer, 5.0, 2.0, 0.0, arm, -1.0, -2.0, -width / 2.0, width, 12.0, width, 40.0, 16.0, 0.0, true, 1.0, red, red)
+    part(mesh, layer, 5.0, 2.0, 0.0, arm, -1.0, -2.0, -width / 2.0, width, 12.0, width, 40.0, 16.0, 0.0, true, color)
     leg = thin ? 2.0 : 1.9
-    part(mesh, layer, -leg, 12.0, 0.0, swing, -width / 2.0, 0.0, -width / 2.0, width, 12.0, width, 0.0, 16.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, leg, 12.0, 0.0, -swing, -width / 2.0, 0.0, -width / 2.0, width, 12.0, width, 0.0, 16.0, 0.0, true, 1.0, red, red)
-    mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, 0.4, 0.26, 0.12, 1.0) if thin
+    part(mesh, layer, -leg, 12.0, 0.0, swing, -width / 2.0, 0.0, -width / 2.0, width, 12.0, width, 0.0, 16.0, 0.0, false, color)
+    part(mesh, layer, leg, 12.0, 0.0, -swing, -width / 2.0, 0.0, -width / 2.0, width, 12.0, width, 0.0, 16.0, 0.0, true, color)
+    mesh.box(@x, @y, @z, @yaw, 0.0, 0.0, 0.0, -0.04, 1.05, 0.55, 0.04, 1.75, 0.62, Tex::WHITE, BOW_COLOR) if thin
     # A block on the head is 1 pixel larger on each side than the head.
     if @head > 0
       mesh.block_box(@x, @y, @z, @yaw, -0.3125, 1.4375, -0.3125, 0.3125, 2.0625, 0.3125,
-                     Block::TOP[@head], Block::SIDE[@head], Block::BOTTOM[@head], Block::FRONT[@head], 1.0, red, red, 1.0)
+                     Block::TOP[@head], Block::SIDE[@head], Block::BOTTOM[@head], Block::FRONT[@head], color)
     end
   end
 end

@@ -295,7 +295,7 @@ class HeldItem
     if @block == Block::AIR
       # The right arm of the skin of the player, 4 x 12 x 4 pixels, reaches
       # forward from below the view.
-      dyn.frame_skin_box(-0.5, -2.5, -0.5, 0.5, 0.5, 0.5, Tex::SKINS + Tex::SKIN_PLAYER, 40.0, 16.0, 4.0, 12.0, 4.0, false, 1.0, 1.0, 1.0, 1.0)
+      dyn.frame_skin_box(-0.5, -2.5, -0.5, 0.5, 0.5, 0.5, Tex::SKINS + Tex::SKIN_PLAYER, 40.0, 16.0, 4.0, 12.0, 4.0, false, Color::SOLID_WHITE)
     elsif @block == Block::BOW && draw_time >= 0.0
       dyn.sprite_model(Tex::BOW_PULLING + bow_stage(draw_time))
     else

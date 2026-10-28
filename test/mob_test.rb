@@ -21,6 +21,120 @@ class MobTest < Minitest::Test
     assert_operator creeper.fuse, :>, 0.0
   end
 
+  # Keeps the color that a mob draws each of its boxes with.
+  class ColorLog
+    attr_reader :colors
+
+    def initialize
+      @colors = []
+    end
+
+    def count = @colors.size
+
+    def roll(_angle); end
+
+    def skin_box(*arguments)
+      @colors << arguments.last
+    end
+
+    def box(*arguments)
+      @colors << arguments.last
+    end
+
+    def block_box(*arguments)
+      @colors << arguments.last
+    end
+  end
+
+  def drawn_colors(mob)
+    log = ColorLog.new
+    mob.draw(log)
+    log.colors.uniq
+  end
+
+  def test_a_mob_that_is_not_hurt_draws_in_its_own_colors
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    assert_equal [Color.new(1.0, 1.0, 1.0, 1.0)], drawn_colors(pig)
+  end
+
+  def test_a_hurt_mob_turns_red
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    pig.wound(1.0)
+    color = drawn_colors(pig).fetch(0)
+    assert_equal 1.0, color.red
+    assert_operator color.green, :<, 1.0
+    assert_equal color.green, color.blue
+  end
+
+  def test_a_hurt_zombie_turns_red_too
+    zombie = Monster.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 8.5, 3)
+    zombie.wound(1.0)
+    assert_equal [0.45], drawn_colors(zombie).map(&:green).uniq
+  end
+
+  def test_a_dying_mob_stays_red_after_the_hurt_flash_ends
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    pig.wound(100.0)
+    pig.update_mob(@world, 0.5, Player.new(0.5, SKY_Y - 1.0, 0.5), Block::AIR)
+    assert_operator drawn_colors(pig).fetch(0).green, :<, 1.0
+  end
+
+  def test_each_box_of_an_animal_has_the_color_of_the_animal
+    [Mob::PIG, Mob::SHEEP, Mob::COW, Mob::CHICKEN].each do |kind|
+      animal = Animal.new(kind, 8.5, SKY_Y - 1.0, 8.5, 5)
+      animal.wound(1.0)
+      assert_equal 1, drawn_colors(animal).size, kind
+      animal.make_baby
+      assert_equal 1, drawn_colors(animal).size, kind
+    end
+  end
+
+  def test_a_sheared_sheep_has_no_wool_boxes
+    sheep = Animal.new(Mob::SHEEP, 8.5, SKY_Y - 1.0, 8.5, 5)
+    log = ColorLog.new
+    sheep.draw(log)
+    wool = log.count
+    sheep.sheared = true
+    log = ColorLog.new
+    sheep.draw(log)
+    assert_operator log.count, :<, wool
+  end
+
+  def test_a_zombie_wears_the_block_on_its_head_in_its_color
+    zombie = Monster.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 8.5, 3)
+    zombie.wound(1.0)
+    without = ColorLog.new
+    zombie.draw(without)
+    zombie.head = Block::CARVED_PUMPKIN
+    log = ColorLog.new
+    zombie.draw(log)
+    assert_equal without.count + 1, log.count
+    assert_equal without.colors.uniq, log.colors.uniq
+  end
+
+  def test_a_skeleton_holds_a_brown_bow_that_does_not_turn_red
+    skeleton = Monster.new(Mob::SKELETON, 8.5, SKY_Y - 1.0, 8.5, 3)
+    skeleton.wound(1.0)
+    colors = drawn_colors(skeleton)
+    assert_equal 2, colors.size
+    assert_equal Monster::BOW_COLOR, colors.last
+    assert_operator colors.first.green, :<, 1.0
+  end
+
+  def test_a_creeper_flashes_white_as_its_fuse_burns
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 8.5)
+    creeper = Monster.new(Mob::CREEPER, player.x + 1.5, player.y, player.z, 11)
+    assert_equal [1.0], drawn_colors(creeper).map(&:red)
+    reds = []
+    60.times do
+      creeper.update_mob(@world, DT, player, Block::AIR)
+      reds.concat(drawn_colors(creeper).map(&:red))
+    end
+    assert_includes reds, 1.0
+    assert(reds.any? { |red| red > 1.0 })
+  end
+
   def test_a_hit_makes_a_mob_cry_out
     pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
     pig.wound(1.0)

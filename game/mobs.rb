@@ -397,16 +397,18 @@ class Mob
   # A hurt mob is red, and a creeper flashes white as its fuse burns down.
   def draw(mesh)
     swing = Math.sin(@phase) * 0.7 * @leg_swing
-    red = @hurt > 0.0 || dying? ? 0.45 : 1.0
+    # A hurt mob has less green and blue.
+    tone = @hurt > 0.0 || dying? ? 0.45 : 1.0
+    color = Color.new(1.0, tone, tone, 1.0)
     # The fall follows the curve of the game's renderer, which the wiki does
     # not confirm: sqrt(1.6 * t / DEATH_TIME) of a right angle.
     fall = Math.sqrt((1.6 * @death / DEATH_TIME).clamp(0.0, 1.0)) * Math::PI * 0.5
     mesh.roll(fall)
     @size = baby? ? 0.5 : 1.0
     # The model of each kind: Animal#draw_model and Monster#draw_model.
-    # swing is the angle of the legs, red is the green and blue of a hurt
-    # mob, and fall the angle of a dying mob.
-    draw_model(mesh, swing, red, fall)
+    # swing is the angle of the legs, color the color of the mob, and fall
+    # the angle of a dying mob.
+    draw_model(mesh, swing, color, fall)
     mesh.roll(0.0)
     @size = 1.0
   end
@@ -418,22 +420,22 @@ class Mob
   # the skin at u, v (Mesh3#skin_box). grow makes the box larger on each
   # side, but not its skin, as for a hat or wool. The model has the scale
   # @size, from the feet: a baby is half as large.
-  def part(mesh, layer, px, py, pz, rot, bx, by, bz, w, h, d, u, v, grow, mirror, r, g, b)
+  def part(mesh, layer, px, py, pz, rot, bx, by, bz, w, h, d, u, v, grow, mirror, color)
     k = @size / 16.0
     mesh.skin_box(@x, @y, @z, @yaw, (24.0 - py) * k, -pz * k, rot,
                   (px + bx - grow) * k, (24.0 - py - by - h - grow) * k, (-pz - bz - d - grow) * k,
                   (px + bx + w + grow) * k, (24.0 - py - by + grow) * k, (-pz - bz + grow) * k,
-                  layer, u, v, w, h, d, mirror, r, g, b, 1.0)
+                  layer, u, v, w, h, d, mirror, color)
   end
 
   # The four legs of a pig, a sheep, a cow or a creeper, in the numbers of part:
   # 4 pixels wide and h high, with pivots at x -dx and dx, height py, and
   # z hind and front. The legs on one diagonal swing one way, and the other
   # two the other way.
-  def legs(mesh, layer, dx, py, hind, front, h, grow, swing, r, gb)
+  def legs(mesh, layer, dx, py, hind, front, h, grow, swing, color)
     4.times do |i|
       sw = (i == 0 || i == 3) ? swing : -swing
-      part(mesh, layer, i % 2 == 0 ? -dx : dx, py, i / 2 == 0 ? hind : front, sw, -2.0, 0.0, -2.0, 4.0, h, 4.0, 0.0, 16.0, grow, false, r, gb, gb)
+      part(mesh, layer, i % 2 == 0 ? -dx : dx, py, i / 2 == 0 ? hind : front, sw, -2.0, 0.0, -2.0, 4.0, h, 4.0, 0.0, 16.0, grow, false, color)
     end
   end
 end

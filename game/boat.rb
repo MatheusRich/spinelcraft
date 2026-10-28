@@ -206,12 +206,12 @@ class Boat
     w = x1 - x0
     h = y1 - y0
     d = z1 - z0
-    mesh.face_quad(0, layer, 0.0, d, 0.0, h, 1.0, 1.0, 1.0, 1.0)
-    mesh.face_quad(1, layer, 0.0, d, 0.0, h, 1.0, 1.0, 1.0, 1.0)
-    mesh.face_quad(2, layer, 0.0, w, 0.0, d, 1.0, 1.0, 1.0, 1.0)
-    mesh.face_quad(3, layer, 0.0, w, 0.0, d, 1.0, 1.0, 1.0, 1.0)
-    mesh.face_quad(4, layer, 0.0, w, 0.0, h, 1.0, 1.0, 1.0, 1.0)
-    mesh.face_quad(5, layer, 0.0, w, 0.0, h, 1.0, 1.0, 1.0, 1.0)
+    mesh.face_quad(0, layer, 0.0, d, 0.0, h, Color::SOLID_WHITE)
+    mesh.face_quad(1, layer, 0.0, d, 0.0, h, Color::SOLID_WHITE)
+    mesh.face_quad(2, layer, 0.0, w, 0.0, d, Color::SOLID_WHITE)
+    mesh.face_quad(3, layer, 0.0, w, 0.0, d, Color::SOLID_WHITE)
+    mesh.face_quad(4, layer, 0.0, w, 0.0, h, Color::SOLID_WHITE)
+    mesh.face_quad(5, layer, 0.0, w, 0.0, h, Color::SOLID_WHITE)
   end
 
   # The paddle on side (-1 left, 1 right) at angle a of its stroke. It

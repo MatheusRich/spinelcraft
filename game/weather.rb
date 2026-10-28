@@ -8,6 +8,8 @@
 class Weather
   # Rain falls in the columns within R blocks of the player.
   R = 10
+  # The color of a rain streak.
+  RAIN_COLOR = Color.new(0.75, 0.8, 0.95, 0.45)
   # Seconds that a spell of rain lasts, and that the sky stays dry.
   RAIN_LASTS = 120.0..360.0
   RAIN_PAUSES = 300.0..900.0
@@ -136,8 +138,8 @@ class Weather
         v1 = v0 + (top - bottom) / 4.0
         fx = x.to_f
         fz = z.to_f
-        @mesh.wall(fx, fz, fx + 1.0, fz + 1.0, bottom, top, 2.0, v0, v1, Tex::RAIN, 0.75, 0.8, 0.95, 0.45)
-        @mesh.wall(fx + 1.0, fz, fx, fz + 1.0, bottom, top, 2.0, v0 + 0.5, v1 + 0.5, Tex::RAIN, 0.75, 0.8, 0.95, 0.45)
+        @mesh.wall(fx, fz, fx + 1.0, fz + 1.0, bottom, top, 2.0, v0, v1, Tex::RAIN, RAIN_COLOR)
+        @mesh.wall(fx + 1.0, fz, fx, fz + 1.0, bottom, top, 2.0, v0 + 0.5, v1 + 0.5, Tex::RAIN, RAIN_COLOR)
       end
     end
     true

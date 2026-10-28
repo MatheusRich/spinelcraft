@@ -52,4 +52,18 @@ class BoatTest < Minitest::Test
     boat.move_boat(@world, DT, 0.0, 0.0)
     assert_operator boat.y, :>, SKY_Y - 0.01
   end
+
+  def test_a_boat_is_drawn_as_nine_boxes_of_planks_with_six_different_faces
+    mesh = Mesh3.new
+    Boat.new(Block::OAK_BOAT, 8.5, SKY_Y.to_f, 8.5, 0.0).draw_boat(mesh)
+    vertices = mesh.v.each_slice(11).to_a
+    assert_equal 9 * 36, vertices.size
+    assert_equal [Block::TOP[Block::PLANKS[0]]], vertices.map { |vertex| vertex[5].to_i }.uniq
+    assert_equal [1.0], vertices.map { |vertex| vertex[9] }.uniq
+    assert(vertices.all? { |vertex| vertex[6] == vertex[7] && vertex[7] == vertex[8] })
+    vertices.each_slice(36) do |box|
+      faces = box.each_slice(6).map { |face| face.map { |vertex| vertex[0, 3].map { |place| place.round(4) } }.uniq.sort }
+      assert_equal 6, faces.uniq.size
+    end
+  end
 end

@@ -250,15 +250,15 @@ class Animal < Mob
   end
 
   # The animal as the boxes of its Minecraft model.
-  def draw_model(mesh, swing, red, fall)
+  def draw_model(mesh, swing, color, fall)
     if @kind == PIG
-      draw_pig(mesh, swing, red)
+      draw_pig(mesh, swing, color)
     elsif @kind == SHEEP
-      draw_sheep(mesh, swing, red)
+      draw_sheep(mesh, swing, color)
     elsif @kind == COW
-      draw_cow(mesh, swing, red)
+      draw_cow(mesh, swing, color)
     else
-      draw_chicken(mesh, swing, red, fall)
+      draw_chicken(mesh, swing, color, fall)
     end
     # A nil return keeps Spinel from boxing it.
     nil
@@ -318,40 +318,40 @@ class Animal < Mob
     dx * dx + dz * dz > TEMPT_NEAR * TEMPT_NEAR ? WALK_SPEED * TEMPT_PACE[@kind] : 0.0
   end
 
-  def draw_pig(mesh, swing, red)
+  def draw_pig(mesh, swing, color)
     layer = Tex::SKINS + @kind
-    part(mesh, layer, 0.0, 12.0, -6.0, 0.0, -4.0, -4.0, -8.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 12.0, -6.0, 0.0, -2.0, 0.0, -9.0, 4.0, 3.0, 1.0, 16.0, 16.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 11.0, 2.0, Math::PI / 2.0, -5.0, -10.0, -7.0, 10.0, 16.0, 8.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
-    legs(mesh, layer, 3.0, 18.0, 7.0, -5.0, 6.0, 0.0, swing, 1.0, red)
+    part(mesh, layer, 0.0, 12.0, -6.0, 0.0, -4.0, -4.0, -8.0, 8.0, 8.0, 8.0, 0.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 12.0, -6.0, 0.0, -2.0, 0.0, -9.0, 4.0, 3.0, 1.0, 16.0, 16.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 11.0, 2.0, Math::PI / 2.0, -5.0, -10.0, -7.0, 10.0, 16.0, 8.0, 28.0, 8.0, 0.0, false, color)
+    legs(mesh, layer, 3.0, 18.0, 7.0, -5.0, 6.0, 0.0, swing, color)
   end
 
   # A grazing sheep bows its head to the ground, and a sheared sheep has no
   # fur.
-  def draw_sheep(mesh, swing, red)
+  def draw_sheep(mesh, swing, color)
     layer = Tex::SKINS + @kind
     nod = @graze > 0.0 ? GRAZE_NOD : 0.0
-    part(mesh, layer, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, 1.0, red, red)
-    legs(mesh, layer, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, 1.0, red)
+    part(mesh, layer, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -6.0, 6.0, 6.0, 8.0, 0.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 0.0, false, color)
+    legs(mesh, layer, 3.0, 12.0, 7.0, -5.0, 12.0, 0.0, swing, color)
     return if @sheared
 
     fur = Tex::SKINS + Tex::SKIN_FUR
-    part(mesh, fur, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, 1.0, red, red)
-    part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, 1.0, red, red)
-    legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, 1.0, red)
+    part(mesh, fur, 0.0, 6.0, -8.0, nod, -3.0, -4.0, -4.0, 6.0, 6.0, 6.0, 0.0, 0.0, 0.6, false, color)
+    part(mesh, fur, 0.0, 5.0, 2.0, Math::PI / 2.0, -4.0, -10.0, -7.0, 8.0, 16.0, 6.0, 28.0, 8.0, 1.75, false, color)
+    legs(mesh, fur, 3.0, 12.0, 7.0, -5.0, 6.0, 0.5, swing, color)
   end
 
   # The head with its horns, the body with the udder under it, and legs 12
   # pixels long.
-  def draw_cow(mesh, swing, red)
+  def draw_cow(mesh, swing, color)
     layer = Tex::SKINS + @kind
-    part(mesh, layer, 0.0, 4.0, -8.0, 0.0, -4.0, -4.0, -6.0, 8.0, 8.0, 6.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 4.0, -8.0, 0.0, -5.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 4.0, -8.0, 0.0, 4.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 5.0, 2.0, Math::PI / 2.0, -6.0, -10.0, -7.0, 12.0, 18.0, 10.0, 18.0, 4.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, 5.0, 2.0, Math::PI / 2.0, -2.0, 2.0, -8.0, 4.0, 6.0, 1.0, 52.0, 0.0, 0.0, false, 1.0, red, red)
-    legs(mesh, layer, 4.0, 12.0, 7.0, -6.0, 12.0, 0.0, swing, 1.0, red)
+    part(mesh, layer, 0.0, 4.0, -8.0, 0.0, -4.0, -4.0, -6.0, 8.0, 8.0, 6.0, 0.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 4.0, -8.0, 0.0, -5.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 4.0, -8.0, 0.0, 4.0, -5.0, -4.0, 1.0, 3.0, 1.0, 22.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 5.0, 2.0, Math::PI / 2.0, -6.0, -10.0, -7.0, 12.0, 18.0, 10.0, 18.0, 4.0, 0.0, false, color)
+    part(mesh, layer, 0.0, 5.0, 2.0, Math::PI / 2.0, -2.0, 2.0, -8.0, 4.0, 6.0, 1.0, 52.0, 0.0, 0.0, false, color)
+    legs(mesh, layer, 4.0, 12.0, 7.0, -6.0, 12.0, 0.0, swing, color)
   end
 
   # The ChickenModel of Minecraft. The wings turn around the axis from the
@@ -359,22 +359,22 @@ class Animal < Mob
   # fall is the angle of a dying mob (Mesh3#roll). A chick has the head of
   # a grown chicken, 5 pixels lower and 2 farther back, on a body half as
   # large (AgeableListModel).
-  def draw_chicken(mesh, swing, red, fall)
+  def draw_chicken(mesh, swing, color, fall)
     layer = Tex::SKINS + @kind
-    part(mesh, layer, 0.0, 16.0, 0.0, Math::PI / 2.0, -3.0, -4.0, -3.0, 6.0, 8.0, 6.0, 0.0, 9.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, -2.0, 19.0, 1.0, swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 1.0, 19.0, 1.0, -swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, 1.0, red, red)
+    part(mesh, layer, 0.0, 16.0, 0.0, Math::PI / 2.0, -3.0, -4.0, -3.0, 6.0, 8.0, 6.0, 0.0, 9.0, 0.0, false, color)
+    part(mesh, layer, -2.0, 19.0, 1.0, swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 1.0, 19.0, 1.0, -swing, -1.0, 0.0, -3.0, 3.0, 5.0, 3.0, 26.0, 0.0, 0.0, false, color)
     beat = (Math.sin(@flap) + 1.0) * @flap_open
-    wing(mesh, layer, -4.0, fall, beat, red)
-    wing(mesh, layer, 4.0, fall, -beat, red)
+    wing(mesh, layer, -4.0, fall, beat, color)
+    wing(mesh, layer, 4.0, fall, -beat, color)
     mesh.roll(fall)
     chick = baby?
     @size = 1.0
     py = chick ? 20.0 : 15.0
     pz = chick ? -2.0 : -4.0
-    part(mesh, layer, 0.0, py, pz, 0.0, -2.0, -6.0, -2.0, 4.0, 6.0, 3.0, 0.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, py, pz, 0.0, -2.0, -4.0, -4.0, 4.0, 2.0, 2.0, 14.0, 0.0, 0.0, false, 1.0, red, red)
-    part(mesh, layer, 0.0, py, pz, 0.0, -1.0, -2.0, -3.0, 2.0, 2.0, 2.0, 14.0, 4.0, 0.0, false, 1.0, red, red)
+    part(mesh, layer, 0.0, py, pz, 0.0, -2.0, -6.0, -2.0, 4.0, 6.0, 3.0, 0.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, py, pz, 0.0, -2.0, -4.0, -4.0, 4.0, 2.0, 2.0, 14.0, 0.0, 0.0, false, color)
+    part(mesh, layer, 0.0, py, pz, 0.0, -1.0, -2.0, -3.0, 2.0, 2.0, 2.0, 14.0, 4.0, 0.0, false, color)
   end
 
   # A wing of a chicken: 1 x 4 x 6 pixels that hang from the pivot px, 13,
@@ -383,7 +383,7 @@ class Animal < Mob
   # whole body by fall around the axis through its feet, so the turn by
   # fall + beat goes around that axis, and the box moves by the difference
   # to turn around the pivot instead.
-  def wing(mesh, layer, px, fall, beat, red)
+  def wing(mesh, layer, px, fall, beat, color)
     scale = @size / 16.0
     cx = px * scale
     cy = 11.0 * scale
@@ -395,6 +395,6 @@ class Animal < Mob
     # to_f: Spinel cannot type the position of a mob.
     mesh.skin_box(@x.to_f + mx * Math.cos(@yaw), @y.to_f + my, @z.to_f + mx * Math.sin(@yaw), @yaw, 0.0, 0.0, 0.0,
                   x0 * scale, 7.0 * scale, -3.0 * scale, (x0 + 1.0) * scale, 11.0 * scale, 3.0 * scale,
-                  layer, 24.0, 13.0, 1.0, 4.0, 6.0, false, 1.0, red, red, 1.0)
+                  layer, 24.0, 13.0, 1.0, 4.0, 6.0, false, color)
   end
 end

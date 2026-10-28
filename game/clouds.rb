@@ -16,6 +16,7 @@ class Clouds
   # the pixels of Minecraft's clouds.png (1.21.1) are clouds.
   COVER = 0.2
   ALPHA = 0.82
+  COLOR = Color.new(1.0, 1.0, 1.0, ALPHA)
   # Boxes go out to NEAR cells from the player's cell, about 800 blocks.
   NEAR = 66
   # The walls of the boxes fade out over FADE blocks, and are gone at
@@ -114,13 +115,13 @@ class Clouds
           end
           z0 = (start * CELL).to_f
           z1 = ((j + 1) * CELL).to_f
-          @mesh.aabb_faces(x0, HEIGHT, z0, x0 + CELL, HEIGHT + DEPTH, z1, 4 | 8, Tex::WHITE, 1.0, 1.0, 1.0, ALPHA)
+          @mesh.aabb_faces(x0, HEIGHT, z0, x0 + CELL, HEIGHT + DEPTH, z1, 4 | 8, Tex::WHITE, COLOR)
           # Glow -1 marks the walls, which vcloud_box fades out with distance.
           @mesh.glow = -1.0
           ends = 0
           ends |= 16 unless cloud?(i, j + 1)
           ends |= 32 unless cloud?(i, start - 1)
-          @mesh.aabb_faces(x0, HEIGHT, z0, x0 + CELL, HEIGHT + DEPTH, z1, ends, Tex::WHITE, 1.0, 1.0, 1.0, ALPHA)
+          @mesh.aabb_faces(x0, HEIGHT, z0, x0 + CELL, HEIGHT + DEPTH, z1, ends, Tex::WHITE, COLOR)
           side(i, start, j, i + 1, 1)
           side(i, start, j, i - 1, 2)
           @mesh.glow = 0.0
@@ -142,7 +143,7 @@ class Clouds
       unless cloud?(ni, j)
         start = j
         j += 1 while j < j1 && !cloud?(ni, j + 1)
-        @mesh.aabb_faces(x0, HEIGHT, (start * CELL).to_f, x0 + CELL, HEIGHT + DEPTH, ((j + 1) * CELL).to_f, bit, Tex::WHITE, 1.0, 1.0, 1.0, ALPHA)
+        @mesh.aabb_faces(x0, HEIGHT, (start * CELL).to_f, x0 + CELL, HEIGHT + DEPTH, ((j + 1) * CELL).to_f, bit, Tex::WHITE, COLOR)
       end
       j += 1
     end

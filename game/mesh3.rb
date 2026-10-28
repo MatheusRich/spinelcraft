@@ -33,21 +33,29 @@ class Mesh3
 
   # A vertical quad from (x0, z0) to (x1, z1), between y0 and y1. The texture
   # runs from u 0 to u1 across, and from v0 at the top to v1 at the bottom.
-  def wall(x0, z0, x1, z1, y0, y1, u1, v0, v1, layer, r, g, b, a)
+  def wall(x0, z0, x1, z1, y0, y1, u1, v0, v1, layer, color)
     l = layer.to_f
-    vert(x0, y1, z0, 0.0, v0, l, r, g, b, a)
-    vert(x1, y1, z1, u1, v0, l, r, g, b, a)
-    vert(x1, y0, z1, u1, v1, l, r, g, b, a)
-    vert(x0, y1, z0, 0.0, v0, l, r, g, b, a)
-    vert(x1, y0, z1, u1, v1, l, r, g, b, a)
-    vert(x0, y0, z0, 0.0, v1, l, r, g, b, a)
+    red = color.red
+    green = color.green
+    blue = color.blue
+    alpha = color.alpha
+    vert(x0, y1, z0, 0.0, v0, l, red, green, blue, alpha)
+    vert(x1, y1, z1, u1, v0, l, red, green, blue, alpha)
+    vert(x1, y0, z1, u1, v1, l, red, green, blue, alpha)
+    vert(x0, y1, z0, 0.0, v0, l, red, green, blue, alpha)
+    vert(x1, y0, z1, u1, v1, l, red, green, blue, alpha)
+    vert(x0, y0, z0, 0.0, v1, l, red, green, blue, alpha)
   end
 
   # A square of half size h around x, y, z that faces the camera, whose
   # right and up axes are (rx, 0, rz) and (ux, uy, uz). It shows the square
   # of the texture from (u0, v0) with the side du.
-  def billboard(x, y, z, h, rx, rz, ux, uy, uz, u0, v0, du, layer, r, g, b, a)
+  def billboard(x, y, z, h, rx, rz, ux, uy, uz, u0, v0, du, layer, color)
     l = layer.to_f
+    red = color.red
+    green = color.green
+    blue = color.blue
+    alpha = color.alpha
     ax = (rx + ux) * h
     ay = uy * h
     az = (rz + uz) * h
@@ -56,12 +64,12 @@ class Mesh3
     bz = (rz - uz) * h
     u1 = u0 + du
     v1 = v0 + du
-    vert(x - bx, y - by, z - bz, u0, v0, l, r, g, b, a)
-    vert(x + ax, y + ay, z + az, u1, v0, l, r, g, b, a)
-    vert(x + bx, y + by, z + bz, u1, v1, l, r, g, b, a)
-    vert(x - bx, y - by, z - bz, u0, v0, l, r, g, b, a)
-    vert(x + bx, y + by, z + bz, u1, v1, l, r, g, b, a)
-    vert(x - ax, y - ay, z - az, u0, v1, l, r, g, b, a)
+    vert(x - bx, y - by, z - bz, u0, v0, l, red, green, blue, alpha)
+    vert(x + ax, y + ay, z + az, u1, v0, l, red, green, blue, alpha)
+    vert(x + bx, y + by, z + bz, u1, v1, l, red, green, blue, alpha)
+    vert(x - bx, y - by, z - bz, u0, v0, l, red, green, blue, alpha)
+    vert(x + bx, y + by, z + bz, u1, v1, l, red, green, blue, alpha)
+    vert(x - ax, y - ay, z - az, u0, v1, l, red, green, blue, alpha)
   end
 
   # Tips the bodies of the next boxes by angle around their forward (z) axis
@@ -74,17 +82,17 @@ class Mesh3
   # A box in a body's local space: the box swings by `swing` around the x axis
   # through (0, pivot_y, pivot_z), the body tips by the angle of roll, then the
   # body turns by `yaw` and moves to ox, oy, oz.
-  def box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
+  def box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, color)
     body_corners(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1)
-    corner_faces(63, layer, layer, layer, r, g, b, a)
+    corner_faces(63, layer, layer, layer, color)
   end
 
   # A box with the faces of a block on a body, as box: the front (+z, the
   # front of a mob's model) takes front, and the other sides take side.
-  def block_box(ox, oy, oz, yaw, x0, y0, z0, x1, y1, z1, top, side, bottom, front, r, g, b, a)
+  def block_box(ox, oy, oz, yaw, x0, y0, z0, x1, y1, z1, top, side, bottom, front, color)
     body_corners(ox, oy, oz, yaw, 0.0, 0.0, 0.0, x0, y0, z0, x1, y1, z1)
     6.times do |f|
-      face_quad(f, f == 2 ? top : (f == 3 ? bottom : (f == 4 ? front : side)), 0.0, 1.0, 0.0, 1.0, r, g, b, a)
+      face_quad(f, f == 2 ? top : (f == 3 ? bottom : (f == 4 ? front : side)), 0.0, 1.0, 0.0, 1.0, color)
     end
   end
 
@@ -92,20 +100,20 @@ class Mesh3
   # layout of Minecraft: a box of w x h x d skin pixels at u, v. The front
   # of the body is +z, and its right is -x. mirror swaps the right and the
   # left, as on the left legs of Minecraft models.
-  def skin_box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, u, v, w, h, d, mirror, r, g, b, a)
+  def skin_box(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1, layer, u, v, w, h, d, mirror, color)
     body_corners(ox, oy, oz, yaw, pivot_y, pivot_z, swing, x0, y0, z0, x1, y1, z1)
-    skin_faces(layer, u, v, w, h, d, mirror, r, g, b, a)
+    skin_faces(layer, u, v, w, h, d, mirror, color)
   end
 
   # The box of frame_box with a skin, as skin_box: +z is the front of the box.
-  def frame_skin_box(x0, y0, z0, x1, y1, z1, layer, u, v, w, h, d, mirror, r, g, b, a)
+  def frame_skin_box(x0, y0, z0, x1, y1, z1, layer, u, v, w, h, d, mirror, color)
     frame_corners(x0, y0, z0, x1, y1, z1)
-    skin_faces(layer, u, v, w, h, d, mirror, r, g, b, a)
+    skin_faces(layer, u, v, w, h, d, mirror, color)
   end
 
   # The six faces of the corners in @cx, @cy and @cz, with the skin of a box
   # of w x h x d skin pixels at u, v.
-  def skin_faces(layer, u, v, w, h, d, mirror, r, g, b, a)
+  def skin_faces(layer, u, v, w, h, d, mirror, color)
     k = 1.0 / 64.0
     # Under the top and the bottom, the skin has the right side, the front,
     # the left side and the back in a row. A mirror takes the right side
@@ -121,12 +129,12 @@ class Mesh3
     n = 1.0 - m
     s0 = (v + d) * k
     s1 = (v + d + h) * k
-    face_quad(0, layer, (left + d * m) * k, (left + d * n) * k, s0, s1, r, g, b, a)
-    face_quad(1, layer, (right + d * m) * k, (right + d * n) * k, s0, s1, r, g, b, a)
-    face_quad(2, layer, (front + w * n) * k, (front + w * m) * k, s0, v * k, r, g, b, a)
-    face_quad(3, layer, (front + w + w * n) * k, (front + w + w * m) * k, v * k, s0, r, g, b, a)
-    face_quad(4, layer, (front + w * m) * k, (front + w * n) * k, s0, s1, r, g, b, a)
-    face_quad(5, layer, (back + w * m) * k, (back + w * n) * k, s0, s1, r, g, b, a)
+    face_quad(0, layer, (left + d * m) * k, (left + d * n) * k, s0, s1, color)
+    face_quad(1, layer, (right + d * m) * k, (right + d * n) * k, s0, s1, color)
+    face_quad(2, layer, (front + w * n) * k, (front + w * m) * k, s0, v * k, color)
+    face_quad(3, layer, (front + w + w * n) * k, (front + w + w * m) * k, v * k, s0, color)
+    face_quad(4, layer, (front + w * m) * k, (front + w * n) * k, s0, s1, color)
+    face_quad(5, layer, (back + w * m) * k, (back + w * n) * k, s0, s1, color)
   end
 
   # Puts the corners of the box of box in @cx, @cy and @cz.
@@ -153,19 +161,19 @@ class Mesh3
     end
   end
 
-  def aabb(x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
-    box(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, x0, y0, z0, x1, y1, z1, layer, r, g, b, a)
+  def aabb(x0, y0, z0, x1, y1, z1, layer, color)
+    box(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, x0, y0, z0, x1, y1, z1, layer, color)
   end
 
   # An axis-aligned box that draws only the faces in mask: bit f draws face f
   # (0..5 for +x -x +y -y +z -z).
-  def aabb_faces(x0, y0, z0, x1, y1, z1, mask, layer, r, g, b, a)
+  def aabb_faces(x0, y0, z0, x1, y1, z1, mask, layer, color)
     8.times do |i|
       @cx[i] = (i & 1) == 0 ? x0 : x1
       @cy[i] = (i & 2) == 0 ? y0 : y1
       @cz[i] = (i & 4) == 0 ? z0 : z1
     end
-    corner_faces(mask, layer, layer, layer, r, g, b, a)
+    corner_faces(mask, layer, layer, layer, color)
   end
 
   # Sets the frame for frame_box: the origin o and the axes a, b and c. The
@@ -189,9 +197,9 @@ class Mesh3
   # A box from (x0, y0, z0) to (x1, y1, z1) in the frame of set_frame. It
   # draws the faces in mask (see aabb_faces), with the top layer on the +y
   # face, the bottom layer on the -y face, and the side layer on the others.
-  def frame_box(x0, y0, z0, x1, y1, z1, mask, top, side, bottom, r, g, b, a)
+  def frame_box(x0, y0, z0, x1, y1, z1, mask, top, side, bottom, color)
     frame_corners(x0, y0, z0, x1, y1, z1)
-    corner_faces(mask, top, side, bottom, r, g, b, a)
+    corner_faces(mask, top, side, bottom, color)
   end
 
   # Puts the corners of the box of frame_box in @cx, @cy and @cz.
@@ -217,18 +225,18 @@ class Mesh3
       shape_model(block)
     elsif Block::FACING[block] >= 0
       # The front is on the -x face, which faces the view in the hand.
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], 1.0, 1.0, 1.0, 1.0)
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 2, Block::FRONT[block], Block::FRONT[block], Block::FRONT[block], 1.0, 1.0, 1.0, 1.0)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], Color::SOLID_WHITE)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 2, Block::FRONT[block], Block::FRONT[block], Block::FRONT[block], Color::SOLID_WHITE)
     else
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], 1.0, 1.0, 1.0, 1.0)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], Color::SOLID_WHITE)
     end
   end
 
   # A flat item with the image of texture layer layer.
   def sprite_model(layer)
     frame_corners(-0.5, -0.5, -ITEM_T, 0.5, 0.5, ITEM_T)
-    face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
-    face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, Color::SOLID_WHITE)
+    face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, Color::SOLID_WHITE)
     item_edges(layer)
   end
 
@@ -310,37 +318,41 @@ class Mesh3
     y1 = Block::SHAPE_BOX[s + 4] / 16.0
     z1 = Block::SHAPE_BOX[s + 5] / 16.0
     frame_corners(x0 - 0.5, y0 - 0.5, z0 - 0.5, x1 - 0.5, y1 - 0.5, z1 - 0.5)
-    face_quad(0, Block::SIDE[block], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
-    face_quad(1, Block::FRONT[block], z0, z1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
-    face_quad(2, Block::TOP[block], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
-    face_quad(3, Block::BOTTOM[block], x0, x1, z0, z1, 1.0, 1.0, 1.0, 1.0)
-    face_quad(4, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
-    face_quad(5, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, 1.0, 1.0, 1.0, 1.0)
+    face_quad(0, Block::SIDE[block], z0, z1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
+    face_quad(1, Block::FRONT[block], z0, z1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
+    face_quad(2, Block::TOP[block], x0, x1, z0, z1, Color::SOLID_WHITE)
+    face_quad(3, Block::BOTTOM[block], x0, x1, z0, z1, Color::SOLID_WHITE)
+    face_quad(4, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
+    face_quad(5, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
   end
 
   # The faces in mask of the box with the corners in @cx, @cy and @cz.
-  def corner_faces(mask, top, side, bottom, r, g, b, a)
+  def corner_faces(mask, top, side, bottom, color)
     6.times do |f|
-      face_quad(f, f == 2 ? top : (f == 3 ? bottom : side), 0.0, 1.0, 0.0, 1.0, r, g, b, a) if ((mask >> f) & 1) == 1
+      face_quad(f, f == 2 ? top : (f == 3 ? bottom : side), 0.0, 1.0, 0.0, 1.0, color) if ((mask >> f) & 1) == 1
     end
   end
 
   # Face f of the box with the corners in @cx, @cy and @cz. The texture runs
   # from u0 to u1 across, and from v0 at the top to v1 at the bottom.
-  def face_quad(f, layer, u0, u1, v0, v1, r, g, b, a)
+  def face_quad(f, layer, u0, u1, v0, v1, color)
     l = layer.to_f
     face = FACES[f]
     s = SHADE[f]
+    red = color.red * s
+    green = color.green * s
+    blue = color.blue * s
+    alpha = color.alpha
     a0 = face[0]
     a1 = face[1]
     a2 = face[2]
     a3 = face[3]
-    vert(@cx[a0], @cy[a0], @cz[a0], u0, v1, l, r * s, g * s, b * s, a)
-    vert(@cx[a1], @cy[a1], @cz[a1], u1, v1, l, r * s, g * s, b * s, a)
-    vert(@cx[a2], @cy[a2], @cz[a2], u1, v0, l, r * s, g * s, b * s, a)
-    vert(@cx[a0], @cy[a0], @cz[a0], u0, v1, l, r * s, g * s, b * s, a)
-    vert(@cx[a2], @cy[a2], @cz[a2], u1, v0, l, r * s, g * s, b * s, a)
-    vert(@cx[a3], @cy[a3], @cz[a3], u0, v0, l, r * s, g * s, b * s, a)
+    vert(@cx[a0], @cy[a0], @cz[a0], u0, v1, l, red, green, blue, alpha)
+    vert(@cx[a1], @cy[a1], @cz[a1], u1, v1, l, red, green, blue, alpha)
+    vert(@cx[a2], @cy[a2], @cz[a2], u1, v0, l, red, green, blue, alpha)
+    vert(@cx[a0], @cy[a0], @cz[a0], u0, v1, l, red, green, blue, alpha)
+    vert(@cx[a2], @cy[a2], @cz[a2], u1, v0, l, red, green, blue, alpha)
+    vert(@cx[a3], @cy[a3], @cz[a3], u0, v0, l, red, green, blue, alpha)
   end
 
   # The outline of the aimed block is black at alpha 0.4, as in the game
