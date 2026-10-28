@@ -196,9 +196,7 @@ class Vitals
     saturated = wounded && @saturation > 0.0 && @hunger >= MAX_HUNGER
     wait = if saturated
       0.5
-    elsif wounded && @hunger >= 18
-      4.0
-    elsif @hunger <= 0
+    elsif (wounded && @hunger >= 18) || @hunger <= 0
       4.0
     else
       0.0

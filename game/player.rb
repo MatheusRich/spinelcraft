@@ -354,14 +354,11 @@ class Player
     was_ground = @on_ground
     move(world, @vx * dt, @vy * dt, @vz * dt)
     landed = 0.0
-    if @medium != ON_LAND || Block.water?(world.get(@x.floor, (@y + 0.4).floor, @z.floor))
-      @fall_start = @y
-    elsif !@on_ground
+    on_dry_land = @medium == ON_LAND && !Block.water?(world.get(@x.floor, (@y + 0.4).floor, @z.floor))
+    if on_dry_land && !@on_ground
       @fall_start = @y if @y > @fall_start
-    elsif !was_ground
-      landed = @fall_start - @y
-      @fall_start = @y
     else
+      landed = @fall_start - @y if on_dry_land && !was_ground
       @fall_start = @y
     end
     if @y < -20.0

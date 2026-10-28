@@ -16,13 +16,6 @@ Lint/AmbiguousBlockAssociation:
     - 'test/slots_test.rb'
     - 'test/world_test.rb'
 
-# Offense count: 2
-# Configuration parameters: IgnoreLiteralBranches, IgnoreConstantBranches, IgnoreDuplicateElseBranch.
-Lint/DuplicateBranch:
-  Exclude:
-    - 'game/player.rb'
-    - 'game/vitals.rb'
-
 # Offense count: 6
 # Configuration parameters: CountComments, Max, CountAsOne.
 Metrics/ClassLength:
