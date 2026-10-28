@@ -18,7 +18,7 @@ class Game
   # Takes amount of health and plays sound: Sfx::HURT, or Sfx::FALL for a
   # fall, as in Minecraft.
   def hurt(amount, sound)
-    return if !@survival || @player.vitals.dead? || amount <= 0
+    return if game_mode.creative? || @player.vitals.dead? || amount <= 0
 
     @player.vitals.hurt(amount)
     felt_hurt(sound)
@@ -164,7 +164,7 @@ class Game
 
       hurt(damage, Sfx::HURT)
       # to_f: Spinel cannot type the mob.
-      @player.knock_back(mob.x.to_f, mob.z.to_f) if @survival
+      @player.knock_back(mob.x.to_f, mob.z.to_f) if game_mode.survival?
     end
   end
 
@@ -180,7 +180,7 @@ class Game
   # kills it, as in Minecraft. Only experience and the bow of a skeleton
   # need the player (Monster#drops). minecraft.wiki/w/Pig, /w/Skeleton
   def mob_died(mob)
-    drop_loot(mob) if @survival
+    drop_loot(mob) if game_mode.survival?
     play_from(mob, voice(mob, Mob::DEATH_SOUND), 1.0)
   end
 
@@ -296,7 +296,7 @@ class Game
     pull = held > 1.0 ? 1.0 : held
     return if pull < 0.1
 
-    if @survival
+    if game_mode.survival?
       if @inv.total(Block::ARROW) == 0
         say("NO ARROWS")
         return
@@ -343,7 +343,7 @@ class Game
           if dx * dx + dy * dy + dz * dz < 9.5 - @rng.rand01 * 2.5 && block != Block::AIR && block != Block::BEDROCK && !Block.water?(block) && !Block.lava?(block)
             @particles.burst(x, y, z, block) if @rng.rand01 < 0.15
             set_block(x, y, z, Block::AIR)
-            drop_broken(block, x, y, z, Block::AIR) if @survival && @rng.rand01 < BLAST_DROP
+            drop_broken(block, x, y, z, Block::AIR) if game_mode.survival? && @rng.rand01 < BLAST_DROP
           end
           z += 1
         end
@@ -413,7 +413,7 @@ class Game
       elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)
         # A skeleton's arrow does 3 to 5. minecraft.wiki/w/Skeleton
         hurt(3 + (@rng.rand01 * 3.0).to_i, Sfx::HURT)
-        if @survival
+        if game_mode.survival?
           len = Math.sqrt(a.vx * a.vx + a.vz * a.vz)
           len = 1.0 if len < 0.001
           @player.vx += a.vx / len * 5.0
@@ -427,7 +427,7 @@ class Game
 
   # Throws an egg where the player looks. Creative keeps the egg.
   def throw_egg
-    @inv.take(@slot, 1) if @survival
+    @inv.take(@slot, 1) if game_mode.survival?
     p = @player
     @eggs << Egg.new(p.x, p.eye_y.to_f - 0.1, p.z, p.fx * Egg::SPEED, p.fy * Egg::SPEED, p.fz * Egg::SPEED)
     @swing = SWING

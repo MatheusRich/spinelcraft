@@ -114,7 +114,7 @@ class Game
     [Block::SEEDS, Block::WHEAT_1, Block::WHEAT_2, Block::WHEAT_RIPE].each_with_index do |block, i|
       set_block(bx - 4 + i, y + 1, bz - 1, block)
     end
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     hand = (ENV["HAND"] || Block::OAK_LOG.to_s).to_i
     @inv.set(0, hand, hand == Block::AIR ? 0 : 5)
     @slot = 0
@@ -319,7 +319,7 @@ class Game
   # The commands change the time, the inventory and the place of the
   # player, and a bad command prints a red line.
   def test_commands
-    survival = @survival
+    previous_mode = game_mode
     day = @clock.day
     @chat = Chat.new
     @console = Console.new(self, @chat, @clock, @weather)
@@ -334,7 +334,7 @@ class Game
           @clock.day == day + 1 + 2147483647 / Clock::DAY_TICKS && @clock.ticks == 2147483647 % Clock::DAY_TICKS)
     @clock.time_of_day = 0.3
     @clock.day = day
-    set_mode(true)
+    set_mode(GameMode::SURVIVAL)
     kept = @inv.copy
     @inv.clear
     @console.submit("/give diamond_pickaxe")
@@ -351,10 +351,10 @@ class Game
     check("a bad item, count or command prints an error line", bad_item && bad_count && unknown)
     @inv = kept
     @console.submit("/gamemode creative")
-    creative = !@survival
+    creative = game_mode.creative?
     @console.submit("/gamemode s")
-    check("/gamemode switches survival and creative", creative && @survival)
-    set_mode(survival)
+    check("/gamemode switches survival and creative", creative && game_mode.survival?)
+    set_mode(previous_mode)
     x = @player.x
     y = @player.y
     z = @player.z
@@ -493,12 +493,12 @@ class Game
   # survival do not, a landing stops the flight, and R and G no longer
   # change the rain or the game mode.
   def test_fly_keys
-    survival = @survival
+    previous_mode = game_mode
     x = @spawn_x.floor
     z = @spawn_z.floor
     y = SKY_Y - 10
     fill_box(x - 2, y, z - 2, x + 2, y, z + 2, Block::STONE)
-    set_mode(false)
+    set_mode(GameMode::CREATIVE)
     stand_at(x, y + 1, z)
     key_frame(Key::SPACE, true, 0.05)
     jumped = @player.y > y + 1.0 && !@player.flying
@@ -522,7 +522,7 @@ class Game
     key_frame(Key::SPACE, true, 0.05)
     slow = !@player.flying
     key_frame(Key::SPACE, false, 0.05)
-    set_mode(true)
+    set_mode(GameMode::SURVIVAL)
     stand_at(x, y + 1, z)
     key_frame(Key::SPACE, true, 0.05)
     key_frame(Key::SPACE, false, 0.05)
@@ -530,7 +530,7 @@ class Game
     in_survival = !@player.flying
     key_frame(Key::SPACE, false, 0.05)
     check("a slow double press, or one in survival, does not start flying", slow && in_survival)
-    set_mode(false)
+    set_mode(GameMode::CREATIVE)
     stand_at(x, y + 2, z)
     @player.flying = true
     key_frame(Key::SPACE, false, 0.1)
@@ -546,8 +546,8 @@ class Game
     Gfx.in_test_key(Key::R, 0)
     Gfx.in_test_key(KEY_G, 0)
     Gfx.in_test_frame
-    check("R and G no longer change the rain or the game mode", @weather.rain.on? == rain && !@survival)
-    set_mode(survival)
+    check("R and G no longer change the rain or the game mode", @weather.rain.on? == rain && game_mode.creative?)
+    set_mode(previous_mode)
   end
 
   def test_tab_completion
@@ -598,8 +598,8 @@ class Game
     typing = current_screen.typing?
     close_chat
     check("the inventory and the chat open their screens and give the game back", opened && typing && current_screen.playing?)
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     toggle_inventory
     open_chat("")
@@ -609,7 +609,7 @@ class Game
     respawn
     resume
     check("a death opens the death screen, and a respawn plays again", dead && current_screen.playing? && !@player.vitals.dead?)
-    @survival = survival
+    @game_mode = previous_mode
     Gfx.in_capture(0)
   end
 
@@ -639,9 +639,9 @@ class Game
     y = SKY_Y - 20
     fill_box(bx - 2, y + 1, bz - 2, bx + 2, y + 4, bz + 2, Block::AIR)
     fill_box(bx - 2, y, bz - 2, bx + 2, y, bz + 2, Block::STONE)
-    survival = @survival
+    previous_mode = game_mode
     keep_pose
-    @survival = false
+    @game_mode = GameMode::CREATIVE
     @mobs.clear
     @target_mob = -1
     @target_boat = -1
@@ -669,7 +669,7 @@ class Game
     Gfx.in_test_frame
     Gfx.in_capture(0)
     check("the click on BACK TO GAME breaks no block, and the next click does", kept && @world.get(bx, y, bz) == Block::AIR)
-    @survival = survival
+    @game_mode = previous_mode
     restore_pose
   end
 
@@ -783,12 +783,12 @@ class Game
     end
     @boats.clear
     @riding = -1
-    survival = @survival
+    previous_mode = game_mode
     boat = Boat.new(Block::OAK_BOAT, x + 0.5, y + 1.0, z - 20.5, 0.0)
     150.times { boat.move_boat(@world, 0.02, 1.0, 0.0) }
     land = boat.speed
     # The player cannot put a boat on land.
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @slot = 0
     @inv.add(Block::OAK_BOAT)
@@ -845,7 +845,7 @@ class Game
     held = @boats.size == 1
     hit_boat(0)
     dropped = @boats.empty? && @items.size == 1 && @items[0].block == Block::OAK_BOAT
-    @survival = false
+    @game_mode = GameMode::CREATIVE
     @boats << Boat.new(Block::BIRCH_BOAT, x + 0.5, y + 1.5, z - 20.5, 0.0)
     hit_boat(0)
     check("a boat breaks after 5 hits in survival and drops itself, and after one in creative",
@@ -856,7 +856,7 @@ class Game
     check("each boat takes a slot of its own", @inv.count(0) == 1 && @inv.count(1) == 1 && @inv.room_for(Block::OAK_BOAT) == INV - 2)
     @inv.clear
     @items.clear
-    @survival = survival
+    @game_mode = previous_mode
     (x - 2..x + 3).each do |cx|
       (z - 41..z + 1).each do |cz|
         @world.set(cx, y, cz, Block::AIR)
@@ -999,13 +999,13 @@ class Game
     @player.flying = false
     # In creative, lava does not hurt, so the hurt sound does not hide the
     # splash.
-    survival = @survival
-    @survival = false
+    previous_mode = game_mode
+    @game_mode = GameMode::CREATIVE
     set_block(x, y, z, Block::LAVA)
     lava = splashes_into?(x, y, z)
     set_block(x, y, z, Block::WATER)
     water = splashes_into?(x, y, z)
-    @survival = survival
+    @game_mode = previous_mode
     fill_box(x - 1, y - 1, z - 1, x + 1, y, z + 1, Block::AIR)
     restore_pose
     check("the player splashes into water, but not into lava", !lava && water)
@@ -1100,9 +1100,9 @@ class Game
   # A left click with nothing in reach swings the held sword, and the next
   # hit has a low charge.
   def test_swing_at_air
-    survival = @survival
+    previous_mode = game_mode
     shown = @screen
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     show_screen(Screen::PLAYING)
     @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
     @slot = 0
@@ -1126,7 +1126,7 @@ class Game
     @inv.clear
     @screen = shown
     @player.pitch = 0.0
-    @survival = survival
+    @game_mode = previous_mode
   end
 
   # The bow in the hand shows the arrow and a pulled string while the
@@ -1312,7 +1312,7 @@ class Game
 
   # Survival basics: crafting, stacks, health, placing, mining, and food.
   def test_survival(x, z, ground)
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     3.times { @inv.add(Block::OAK_LOG) }
     @slot = 0
@@ -1618,7 +1618,7 @@ class Game
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie burns in the sun at dawn", zombie.fire > 0.0)
     @mobs.clear
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @player.vitals.health = Vitals::MAX_HEALTH
     @world.set(px + 1, SKY_Y - 1, pz, Block::LAVA)
     @player.x = px + 1.5
@@ -1678,7 +1678,7 @@ class Game
   def test_thunder
     px = @spawn_x.floor
     pz = @spawn_z.floor
-    survival = @survival
+    previous_mode = game_mode
     @weather.rain.stop.settle
     @weather.thunder.start
     on = @weather.thunder.timer
@@ -1698,7 +1698,7 @@ class Game
     @mobs.clear
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @player.vitals.health = Vitals::MAX_HEALTH
     @player.x = px + 0.5
     @player.y = SKY_Y - 1.0
@@ -1733,7 +1733,7 @@ class Game
     @console.submit("/weather clear")
     check("/weather thunder starts a storm, /weather rain ends the thunder, and /weather clear ends both",
           thunder && rain && !@weather.rain.on? && !@weather.thunder.on?)
-    @survival = survival
+    @game_mode = previous_mode
     @weather.clear
     @weather.settle
     @clock.time_of_day = 0.3
@@ -1746,7 +1746,7 @@ class Game
     px = @spawn_x.floor
     pz = @spawn_z.floor
     @mobs.clear
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     # With hunger under 18 and no saturation, the player does not heal.
     @player.revive
     @player.vitals.hunger = 17
@@ -1797,8 +1797,8 @@ class Game
     set_block(px + 3, SKY_Y - 3, pz, Block::AIR)
     @player.revive
     # The player places a cactus on sand and on a cactus, but not on stone.
-    survival = @survival
-    @survival = false
+    previous_mode = game_mode
+    @game_mode = GameMode::CREATIVE
     held = @hotbar[0]
     @slot = 0
     @hotbar[0] = Block::CACTUS
@@ -1897,7 +1897,7 @@ class Game
     set_block(px + 5, SKY_Y - 2, pz, Block::AIR)
     set_block(px + 5, SKY_Y - 3, pz, Block::AIR)
     @hotbar[0] = held
-    @survival = survival
+    @game_mode = previous_mode
     @player.pitch = pitch
     @player.flying = flying
     @player.x = px + 0.5
@@ -1987,7 +1987,7 @@ class Game
     ok = load
     apply_loaded if ok
     check("the save keeps the day and the time alive", ok && @clock.day == 37 && @alive_time == 1500.0)
-    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @player.vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && @survival)
+    check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @player.vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && game_mode.survival?)
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
@@ -2242,8 +2242,8 @@ class Game
     @inv.add(Block::WOOD_PICK)
     @slot = 0
     @inv.set(0, Block::WOOD_PICK, 1)
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     chips = @particles.count(Particle::CHIP)
     wear_tool(1)
     broke = @inv.count(0) == 0 && @inv.block(1) == Block::WOOD_PICK && @particles.count(Particle::CHIP) - chips == 5
@@ -2252,7 +2252,7 @@ class Game
     @items.clear
     throw_selected
     collect_items
-    @survival = survival
+    @game_mode = previous_mode
     check("a tool breaks after its last use, and a thrown tool keeps its uses", broke && @inv.count(0) == 7 && @inv.block(0) == Block::WOOD_PICK)
     # The only free slot is the one that the recipe empties.
     INV.times { |i| @inv.set(i, Block::DIRT, 64) }
@@ -2271,8 +2271,8 @@ class Game
     back_x = @player.x.to_f
     back_y = @player.y.to_f
     back_z = @player.z.to_f
-    was_survival = @survival
-    @survival = true
+    was_survival = game_mode
+    @game_mode = GameMode::SURVIVAL
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
@@ -2314,7 +2314,7 @@ class Game
     @console.teleport(x + 0.5, y + 0.01, z + 20.5)
     check("BEACONS=1 draws no beam over a looted treasure chest", beacon_faces < lit)
     test_treasure_large_chest(x, y, z)
-    @survival = was_survival
+    @game_mode = was_survival
     @console.teleport(back_x, back_y, back_z)
   end
 
@@ -2607,8 +2607,8 @@ class Game
     @mobs.clear
     @eggs.clear
     @inv.clear
-    was = @survival
-    @survival = true
+    was = game_mode
+    @game_mode = GameMode::SURVIVAL
     @slot = 0
     @inv.set(0, Block::EGG, 2)
     throw_egg
@@ -2660,7 +2660,7 @@ class Game
           picked && @inv.count(0) == 16 && @inv.block(1) == Block::EGG && @inv.count(1) == 4 && !last_chat_error?)
     @items.clear
     @inv.clear
-    @survival = was
+    @game_mode = was
   end
 
   # A dead mob lies on the ground for DEATH_TIME and takes no hits. Then it
@@ -2756,8 +2756,8 @@ class Game
     set_block(bx, y, bz, Block::OAK_LOG)
     (1..8).each { |i| set_block(bx + i, y, bz, Block::OAK_LEAVES) }
     keep_pose
-    survival = @survival
-    @survival = false
+    previous_mode = game_mode
+    @game_mode = GameMode::CREATIVE
     held = @hotbar[0]
     @slot = 0
     @hotbar[0] = Block::OAK_LEAVES
@@ -2772,7 +2772,7 @@ class Game
     set_block(bx + 10, y - 1, bz, Block::AIR)
     placed = @world.get(bx + 10, y, bz) == Block::PLACED_OAK_LEAVES
     @hotbar[0] = held
-    @survival = survival
+    @game_mode = previous_mode
     restore_pose
     decay_leaves(1200.0)
     near = (1..6).all? { |k| @world.get(bx + k, y, bz) == Block::OAK_LEAVES }
@@ -2987,8 +2987,8 @@ class Game
     # A wooden sword does 4 with a full cooldown, and 20% of that right after
     # an attack.
     @mobs.clear
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.set(0, Block::WOOD_SWORD, Block.uses(Block::WOOD_SWORD))
     @slot = 0
     update_hand(0.0)
@@ -3019,7 +3019,7 @@ class Game
     @inv.clear
     @mobs.clear
     @target_mob = -1
-    @survival = survival
+    @game_mode = previous_mode
   end
 
   # A right click with a bow in hand opens a furnace or a crafting table,
@@ -3029,8 +3029,8 @@ class Game
     z = @spawn_z.floor - 45
     y = SKY_Y - 20
     keep_pose
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.add(Block::BOW)
     @slot = 0
@@ -3046,7 +3046,7 @@ class Game
     end
     set_block(x, y, z, Block::AIR)
     @inv.clear
-    @survival = survival
+    @game_mode = previous_mode
     restore_pose
     check("a bow in hand opens a furnace or a crafting table, and does not draw", opened)
   end
@@ -3318,14 +3318,14 @@ class Game
     click_furnace(Furnace::OUTPUT, true)
     no_output = @held.block(0) == Block::DIRT && slots.empty?(Furnace::OUTPUT)
     @held.clear
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @items.clear
     furnaces = @furnaces.size
     set_block(x + 2, y, z + 3, Block::AIR)
     dropped = ground_count(Block::IRON) == 4 && ground_count(Block::OAK_PLANKS) == 2 && @furnaces.size == furnaces - 1
     @items.clear
-    @survival = survival
+    @game_mode = previous_mode
     toggle_inventory
     check("the furnace slots take only what fits them, and a broken furnace drops what it holds", not_fuel && not_smelted && no_output && dropped)
     # A log smelts into coal, and coal burns for 1600 ticks.
@@ -3372,8 +3372,8 @@ class Game
     g = @world.height_at(x, z) + 2
     fill_box(x - 3, g - 1, z - 2, x + 3, g - 1, z + 2, Block::STONE)
     fill_box(x - 3, g, z - 2, x + 3, g + 2, z + 2, Block::AIR)
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.add(Block::BED)
     @slot = 0
@@ -3404,7 +3404,7 @@ class Game
     place
     door = @world.get(x, g, z) == Block.door_id(1, false, false) && @world.get(x, g + 1, z) == Block.door_id(1, true, false)
     set_block(x, g, z, Block::AIR)
-    @survival = survival
+    @game_mode = previous_mode
     @inv.clear
     check("a bed takes two blocks along the view and breaks as a whole", blocked && two && gone)
     check("a furnace and a door turn their front to the player", furnace == Block.facing_id(Block::FURNACE, 1) && door)
@@ -3417,8 +3417,8 @@ class Game
     z = @spawn_z.floor - 70
     g = @world.height_at(x, z) + 2
     fill_box(x - 3, g - 1, z - 2, x + 3, g - 1, z + 2, Block::STONE)
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @player.x = x - 1.5
     @player.y = g.to_f
     @player.z = z + 0.5
@@ -3430,7 +3430,7 @@ class Game
       bed && door
     end
     @fluids.clear
-    @survival = survival
+    @game_mode = previous_mode
     @inv.clear
     check("each half of a bed and of a door takes the place of water and of tall grass", placed == [true, true])
   end
@@ -3459,8 +3459,8 @@ class Game
     g = @world.height_at(x, z) + 2
     fill_box(x - 3, g - 1, z - 2, x + 3, g - 1, z + 3, Block::STONE)
     fill_box(x - 3, g, z - 2, x + 3, g + 2, z + 3, Block::AIR)
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @items.clear
     @inv.clear
     @inv.set(0, Block::CHEST, 2)
@@ -3502,7 +3502,7 @@ class Game
     set_block(x, g, z, Block::AIR)
     @items.clear
     @inv.clear
-    @survival = survival
+    @game_mode = previous_mode
   end
 
   # The view ray hits a plant only in its small box, and goes on past it.
@@ -3582,8 +3582,8 @@ class Game
     @player.x = x + 0.5
     @items.clear
     check("water from a bucket washes away a rose and it drops, and lava burns it", roses == [1, 0])
-    was = @survival
-    @survival = true
+    was = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @console.submit("/give bucket 20")
     given = @inv.count(0) == 16 && @inv.count(1) == 4
@@ -3593,7 +3593,7 @@ class Game
     check("empty buckets stack to 16, and full buckets and beds do not stack",
           filled && given && @inv.count(1) == 1 && @inv.block(1) == Block::MILK_BUCKET &&
           @inv.count(3) == 1 && @inv.block(3) == Block::BED && !last_chat_error?)
-    @survival = was
+    @game_mode = was
     @mobs.clear
     @mobs << Animal.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
     @player.yaw = 0.0
@@ -3608,15 +3608,15 @@ class Game
     # food, milk needs no hunger.
     @mobs.clear
     @target_mob = -1
-    was = @survival
-    @survival = true
+    was = game_mode
+    @game_mode = GameMode::SURVIVAL
     @player.revive
     @player.vitals.give_hunger_effect
     @eat_time = -1.0
     34.times { right_button(0.05, true) }
     right_button(0.05, false)
     check("a bucket milks a cow, and the milk ends the Hunger effect", milked && !@player.vitals.hunger_effect? && @inv.block(0) == Block::BUCKET)
-    @survival = was
+    @game_mode = was
     @player.revive
     @inv.clear
   end
@@ -3655,8 +3655,8 @@ class Game
     # has 3 steps of stage here, and a stem 2.
     wheat = [2, 3, 4, 5].map { |a| Plants.meal_stage(0, a, 3) } == [1, 1, 2, 2] && Plants.meal_stage(2, 5, 3) == 3
     stem = [2, 3, 4, 5].map { |a| Plants.meal_stage(0, a, 2) } == [1, 1, 1, 1]
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.set(5, Block::BONE_MEAL, 20)
     @slot = 5
     set_block(x + 7, g, z, Block::DIRT)
@@ -3728,7 +3728,7 @@ class Game
     check("bone meal on grass grows tall grass and flowers around it, only on grass",
           fewest >= 15 && flowers >= 1 && on_stone == 0 && spent && @inv.count(5) == before)
     @inv.set(5, Block::AIR, 0)
-    @survival = survival
+    @game_mode = previous_mode
     fill_box(x - 10, g - 1, z - 10, x + 10, g + 8, z + 10, Block::AIR)
   end
 
@@ -3749,9 +3749,9 @@ class Game
     fill_box(bx - 3, y, bz - 3, bx + 3, y, bz + 3, Block::GRASS)
     set_block(bx, y + 1, bz, Block::STONE)
     set_block(bx, y + 2, bz, Block::PUMPKIN)
-    survival = @survival
+    previous_mode = game_mode
     keep_pose
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.add(Block::SHEARS)
     @slot = 0
@@ -3838,7 +3838,7 @@ class Game
     text = @recipe_book.recipe(jack).need == "1 CARVED PUMPKIN + 1 TORCH" && @recipe_book.recipe(recipe_for(Block::SHEARS)).need == "2 IRON INGOT"
     check("a recipe with two ingredients takes each of them for each result, and names both", all && short && text)
     @inv.clear
-    @survival = survival
+    @game_mode = previous_mode
     restore_pose
 
     set_block(bx, y + 2, bz, Block::AIR)
@@ -3911,9 +3911,9 @@ class Game
     bz = @spawn_z.floor - 70
     y = SKY_Y - 20
     keep_pose
-    survival = @survival
+    previous_mode = game_mode
     held = @hotbar[0]
-    @survival = false
+    @game_mode = GameMode::CREATIVE
     @slot = 0
     @player.x = bx + 0.5
     @player.y = y + 2.0
@@ -3939,7 +3939,7 @@ class Game
     set_block(bx, y, bz, Block::AIR)
     set_block(bx, y - 1, bz, Block::AIR)
     @hotbar[0] = held
-    @survival = survival
+    @game_mode = previous_mode
     restore_pose
     soil = (0...plants.size - 1).all? { |i| planted[i] == [true, true, true, false, false, false] }
     torch = planted[plants.size - 1].all?
@@ -3957,9 +3957,9 @@ class Game
     fill_box(bx - 4, y + 1, bz - 3, bx + 5, y + 4, bz + 3, Block::AIR)
     fill_box(bx - 4, y, bz - 3, bx + 5, y, bz + 3, Block::STONE)
     set_block(bx + 2, y + 1, bz, Block::PUMPKIN)
-    survival = @survival
+    previous_mode = game_mode
     keep_pose
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.add(Block::SHEARS)
     @slot = 0
@@ -3995,7 +3995,7 @@ class Game
     @mobs.clear
     @items.clear
     @inv.clear
-    @survival = survival
+    @game_mode = previous_mode
     restore_pose
   end
 
@@ -4006,8 +4006,8 @@ class Game
     bz = @spawn_z.floor - 80
     y = SKY_Y - 20
     fill_box(bx - 2, y, bz - 2, bx + 2, y, bz + 2, Block::GRASS)
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.add(Block::SHEARS)
     @slot = 0
@@ -4063,7 +4063,7 @@ class Game
     @player.yaw = 0.0
     @player.pitch = -0.35
     @player.flying = false
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @slot = 0
     @items.clear
@@ -4091,7 +4091,7 @@ class Game
           aimed && stopped && sheep.dying? && ground_count(Block::WOOL) == 0 && ground_count(Block::MUTTON) >= 1)
     @mobs.clear
     @inv.clear
-    @survival = survival
+    @game_mode = previous_mode
     fill_box(bx - 2, y, bz - 2, bx + 2, y + 1, bz + 2, Block::AIR)
   end
 
@@ -4126,8 +4126,8 @@ class Game
     bz = @spawn_z.floor - 80
     y = SKY_Y - 20
     (-2..2).each { |dx| (-2..2).each { |dz| set_block(bx + dx, y, bz + dz, Block::GRASS) } }
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.add(Block::SHEARS)
     @slot = 0
@@ -4148,7 +4148,7 @@ class Game
     @mobs.clear
     @inv.clear
     @items.clear
-    @survival = survival
+    @game_mode = previous_mode
     (-2..2).each { |dx| (-2..2).each { |dz| (0..1).each { |dy| set_block(bx + dx, y + dy, bz + dz, Block::AIR) } } }
   end
 
@@ -4208,8 +4208,8 @@ class Game
     y = SKY_Y - 12
     (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::STONE) } }
     fy = y + 1.0
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.set(0, Block::WHEAT, 10)
     @inv.set(1, Block::SEEDS, 10)
@@ -4302,7 +4302,7 @@ class Game
     300.times { update_mobs(1.0 / 60.0) }
     check("two babies fed wheat make no baby", @mobs.count(&:baby?) == 2)
     @mobs.clear
-    @survival = false
+    @game_mode = GameMode::CREATIVE
     held = @hotbar[@slot]
     @hotbar[@slot] = Block::WHEAT
     @inv.clear
@@ -4315,7 +4315,7 @@ class Game
     test_tempt(bx, bz, fy)
     @mobs.clear
     @inv.clear
-    @survival = survival
+    @game_mode = previous_mode
     (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::AIR) } }
   end
 
@@ -4329,7 +4329,7 @@ class Game
     (-10..10).each { |dx| (-10..10).each { |dz| set_block(bx + dx, y, bz + dz, Block::STONE) } }
     (-10..10).each { |dz| set_block(bx + 5, y + 1, bz + dz, Block::STONE) }
     fy = y + 1.0
-    survival = @survival
+    previous_mode = game_mode
     px = @player.x
     py = @player.y
     pz = @player.z
@@ -4356,7 +4356,7 @@ class Game
     check("a push does not move a mob into a block",
           !wall.blocked?(@world) && wall.x + Mob::HALF[Mob::CREEPER] <= bx + 5.0 && other.x < bx + 4.2)
     @mobs.clear
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.set(0, Block::WHEAT, 10)
     @slot = 0
@@ -4380,7 +4380,7 @@ class Game
     check("cows that follow wheat to the player do not stand on one spot", cows.all?(&:tempted) && gap > 0.5)
     @mobs.clear
     @inv.clear
-    @survival = survival
+    @game_mode = previous_mode
     @player.x = px
     @player.y = py
     @player.z = pz
@@ -4391,7 +4391,7 @@ class Game
   # player is 10 blocks away, and stops 2.5 blocks from the player. The
   # floor at y fy - 1 is around bx, bz.
   def test_tempt(bx, bz, fy)
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.set(0, Block::WHEAT, 10)
     @inv.set(1, Block::SEEDS, 10)
@@ -4473,8 +4473,8 @@ class Game
     fill_box(x - 2, g - 1, z, x + 1, g - 1, z, Block::STONE)
     fill_box(x - 2, g, z, x + 1, g + 1, z, Block::AIR)
     set_block(x + 1, g, z, Block::STONE)
-    survival = @survival
-    @survival = true
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
     @inv.clear
     @inv.add(Block::LADDER)
     @inv.add(Block::LADDER)
@@ -4504,7 +4504,7 @@ class Game
     @target_block.trace(@world, @player)
     place
     floor = @target_block.y == g - 1 && @world.get(x - 1, g, z) == Block::AIR && @inv.count(0) == 1
-    @survival = survival
+    @game_mode = previous_mode
     @inv.clear
     check("a ladder hangs on the side of a solid block as a thin board, and falls with it", hung && thin && fell && floor)
   end

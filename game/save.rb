@@ -6,7 +6,7 @@ class Game
   F_PLAYER = 2 # x, y, z, yaw, pitch
   F_TIME = 7
   F_DAY = 8
-  F_SURVIVAL = 9
+  F_GAME_MODE = 9
   F_HEALTH = 10
   F_ALIVE = 11 # the seconds since the last respawn
   F_SPAWN = 12 # x, z
@@ -28,7 +28,7 @@ class Game
 
   def save # rubocop:todo Metrics/MethodLength
     header = [@seed, @player.x, @player.y, @player.z, @player.yaw, @player.pitch,
-              @clock.time_of_day, @clock.day, @survival ? 1 : 0, @player.vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
+              @clock.time_of_day, @clock.day, game_mode.name, @player.vitals.health, @alive_time, @spawn_x, @spawn_z].map(&:to_s).join(" ")
     return_held
     @chests.close
     land_falling
@@ -141,7 +141,7 @@ class Game
     @player.fall_start = @player.y
     @clock.time_of_day = f[F_TIME].to_f
     @clock.day = f[F_DAY].to_i
-    @survival = f[F_SURVIVAL] == "1"
+    @game_mode = GameMode.parse(f[F_GAME_MODE])
     @player.vitals.health = f[F_HEALTH].to_f
     @alive_time = f[F_ALIVE].to_f
     @spawn_x = f[F_SPAWN].to_f

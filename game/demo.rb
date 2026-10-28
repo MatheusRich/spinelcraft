@@ -65,7 +65,7 @@ class Game
     when 2 then stage_animals
     when 3 then stage_house
     when 4 then stage_night
-    else @survival = false
+    else @game_mode = GameMode::CREATIVE
     end
     nil
   end
@@ -85,7 +85,7 @@ class Game
 
   # A flight over the plains to the river, late in the afternoon.
   def stage_flight
-    @survival = false
+    @game_mode = GameMode::CREATIVE
     @clock.time_of_day = 0.42
   end
 
@@ -208,7 +208,7 @@ class Game
   # A house of planks and logs goes up on a stone floor, one block after
   # the other, while the sun goes down.
   def stage_house
-    @survival = false
+    @game_mode = GameMode::CREATIVE
     @demo_house = House.flattest(@world, HOUSE_RANGE)
     house = @demo_house
     fill_box(house.corner_x - 1, house.floor_y + 1, house.corner_z - 1, house.corner_x + House::SIZE, house.floor_y + 9, house.corner_z + House::SIZE, Block::AIR)
@@ -296,7 +296,7 @@ class Game
   # Survival with full health and an empty inventory, and count of block in
   # the hand. The day starts again.
   def demo_survival(block, count)
-    @survival = true
+    @game_mode = GameMode::SURVIVAL
     @player.revive
     @inv.clear
     @inv.set(0, block, count)

@@ -23,7 +23,7 @@ class Game
     x0 = (w - total) / 2.0
     y0 = hotbar_y(h, s)
     draw_hotbar(x0, y0, size, gap, s)
-    draw_survival_bars(x0, y0, total, s) if @survival
+    draw_survival_bars(x0, y0, total, s) if game_mode.survival?
     draw_messages(w, y0, s)
     draw_chat_lines(w, y0, s)
     draw_chat_line(w, h, s) if current_screen.typing?
@@ -36,7 +36,7 @@ class Game
     current = current_screen
     if current.death_screen?
       draw_death_screen(w, h, s)
-    elsif current.inventory? && @survival
+    elsif current.inventory? && game_mode.survival?
       draw_backpack(w, h, inventory_scale(w, h))
     elsif current.inventory?
       draw_block_picker(w, h, creative_scale(h))
@@ -54,7 +54,7 @@ class Game
     elsif Block.lava?(eye_block)
       @ui.rect(0.0, 0.0, w, h, Ui::LAVA_TINT)
     end
-    if @player.vitals.burning? && @survival && !@player.vitals.dead?
+    if @player.vitals.burning? && game_mode.survival? && !@player.vitals.dead?
       # Two flames at the bottom corners that flicker.
       size = h * 0.42
       2.times do |k|
@@ -73,7 +73,7 @@ class Game
       pull = @draw_time > 1.0 ? 1.0 : @draw_time
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s, 4.0 * s, Ui::BAR_BACKDROP)
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s * pull, 4.0 * s, Color.new(1.0, pull, 0.2, 0.9))
-    elsif @survival && @player.melee_attack.charge(current_block.to_i) < 1.0
+    elsif game_mode.survival? && @player.melee_attack.charge(current_block.to_i) < 1.0
       charge = @player.melee_attack.charge(current_block.to_i)
       @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s, 3.0 * s, Ui::BAR_BACKDROP)
       @ui.rect(w / 2.0 - 10.0 * s, h / 2.0 + 16.0 * s, 20.0 * s * charge, 3.0 * s, Ui::CHARGE_FILL)
@@ -89,10 +89,10 @@ class Game
         @ui.rect(x - 3.0 * s, y0 - 3.0 * s, size + 6.0 * s, size + 6.0 * s, Ui::HOTBAR_SELECTION)
       end
       @ui.rect(x, y0, size, size, Ui::HOTBAR_SLOT_BACK)
-      slot_block = @survival ? @inv.block(i) : @hotbar[i]
+      slot_block = game_mode.survival? ? @inv.block(i) : @hotbar[i]
       if slot_block != Block::AIR
         @ui.item(x + 5.0 * s, y0 + 5.0 * s, size - 10.0 * s, slot_block, 1.0)
-        draw_count(slot_block, @inv.count(i), x, y0, size, 2.0 * s, s) if @survival
+        draw_count(slot_block, @inv.count(i), x, y0, size, 2.0 * s, s) if game_mode.survival?
       end
     end
   end
@@ -137,7 +137,7 @@ class Game
 
   # The first-steps hint for an empty survival inventory, and the last message.
   def draw_messages(w, y0, s)
-    if @survival && !@player.vitals.dead? && !current_screen.inventory? && @inv.room_for(Block::DIRT) == INV * Slots::STACK
+    if game_mode.survival? && !@player.vitals.dead? && !current_screen.inventory? && @inv.room_for(Block::DIRT) == INV * Slots::STACK
       hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
       @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, Ui::HINT_TEXT)
     end
@@ -219,7 +219,7 @@ class Game
     @ui.text(8.0 * s, 8.0 * s, "FPS #{@fps.round}  CPU #{@cpu_ms.round(2)}MS", ts, Color::SOLID_WHITE)
     @ui.text(8.0 * s, 22.0 * s, "XYZ #{@player.x.floor} #{@player.y.floor} #{@player.z.floor}  FACES #{@faces_drawn}", ts, Color::SOLID_WHITE)
     @ui.text(8.0 * s, 36.0 * s, "CHUNKS #{@chunk_meshes.visible.size / 2}  REMESH #{@chunk_meshes.mesh_ms.round(2)}MS  MOBS #{@mobs.size}", ts, Color::SOLID_WHITE)
-    mode = @survival ? "SURVIVAL" : "CREATIVE"
+    mode = game_mode.name
     @ui.text(8.0 * s, 50.0 * s, "DAY #{@clock.day + 1}  TIME #{@clock.hour}:00  #{mode}#{weather_label}", ts, Color::SOLID_WHITE)
   end
 

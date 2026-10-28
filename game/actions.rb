@@ -68,7 +68,7 @@ class Game
     right = Gfx.in_button(3) && !@wait_for_release
     left_pressed = Gfx.in_button_pressed(1)
     @action_cooldown = 0.0 if left_pressed || Gfx.in_button_pressed(3)
-    if Gfx.in_button_pressed(2) && @target_block.hit? && !@survival
+    if Gfx.in_button_pressed(2) && @target_block.hit? && game_mode.creative?
       picked = targeted_block
       picked = Block::BASE[picked]
       @hotbar[@slot] = picked if picked != Block::BEDROCK
@@ -89,7 +89,7 @@ class Game
   # Keys that switch a mode or a setting, save, craft, or open the chat.
   def handle_keys
     if Gfx.in_key_pressed(Key::Q)
-      if @survival
+      if game_mode.survival?
         throw_selected
       else
         at = CREATIVE_ITEMS.index(@hotbar[@slot]) || 0
@@ -147,9 +147,9 @@ class Game
     end
   end
 
-  def set_mode(survival)
-    @survival = survival
-    @player.flying = false if @survival
+  def set_mode(game_mode)
+    @game_mode = game_mode
+    @player.flying = false if game_mode.survival?
     nil
   end
 
@@ -189,12 +189,12 @@ class Game
   # Hits the mob with the item in the hand.
   def attack_mob(mob)
     item_in_hand = current_block.to_i
-    damage = @survival ? @player.melee_attack.damage(item_in_hand, @player) : @player.melee_attack.creative_damage
+    damage = game_mode.survival? ? @player.melee_attack.damage(item_in_hand, @player) : @player.melee_attack.creative_damage
     mob.hit(damage, @player.x, @player.z)
     @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if @player.melee_attack.critical?(item_in_hand, @player)
     @player.melee_attack.restart
     wear_tool(Block.wear(current_block.to_i, true))
-    @player.vitals.exhaust(Vitals::ATTACK_COST) if @survival
+    @player.vitals.exhaust(Vitals::ATTACK_COST) if game_mode.survival?
     mob.by_player = true
     @sfx.play(Sfx::HIT, 0.8)
     @swing = SWING
@@ -203,7 +203,7 @@ class Game
   # Mines the block in view over time in survival, and breaks it at once in
   # creative.
   def break_target(dt)
-    return mine(dt) if @survival
+    return mine(dt) if game_mode.survival?
     return unless @action_cooldown <= 0.0
 
     broken = targeted_block
@@ -317,7 +317,7 @@ class Game
 
   # Opens the chest or the station at the block in view. True when it opens.
   def open_container(target)
-    return false unless @survival
+    return false unless game_mode.survival?
 
     x = @target_block.x
     y = @target_block.y
@@ -337,7 +337,7 @@ class Game
 
   # The item in the hand acts on the block in view, or on the air.
   def use_held
-    if @survival && Block.bucket?(current_block.to_i)
+    if game_mode.survival? && Block.bucket?(current_block.to_i)
       use_bucket
     elsif Block.boat?(current_block.to_i)
       place_boat
@@ -345,7 +345,7 @@ class Game
       carve_pumpkin(@target_block.x, @target_block.y, @target_block.z)
     elsif current_block == Block::BONE_MEAL && block_in_view?
       use_bone_meal
-    elsif current_block == Block::EGG && (!@survival || !@inv.empty?(@slot))
+    elsif current_block == Block::EGG && (game_mode.creative? || !@inv.empty?(@slot))
       throw_egg
     elsif block_in_view?
       place
@@ -388,7 +388,7 @@ class Game
   def feed_animal(m)
     return unless m.feed
 
-    @inv.take(@slot, 1) if @survival
+    @inv.take(@slot, 1) if game_mode.survival?
     @swing = SWING
     play_from(m, Sfx::EAT, 0.6)
     # to_i and to_f: Spinel cannot type the mob. The sparkles fill the
@@ -642,14 +642,14 @@ class Game
     apply_changes
     return unless grows
 
-    @inv.take(@slot, 1) if @survival
+    @inv.take(@slot, 1) if game_mode.survival?
     @particles.growth(x, y, z, grass)
   end
 
   # True when the player holds food and can eat it now.
   # Milk needs no hunger. minecraft.wiki/w/Milk_Bucket
   def edible?
-    return false if !@survival || @inv.empty?(@slot)
+    return false if game_mode.creative? || @inv.empty?(@slot)
 
     block = current_block.to_i
     block == Block::MILK_BUCKET || (@player.vitals.hungry? && Block.food(block) > 0)
@@ -701,7 +701,7 @@ class Game
     # the parameters of Block.solid?, plant? and emits? unboxed.
     block = current_block.to_i
     return if block == Block::AIR || Block.item?(block)
-    return if @survival && @inv.empty?(@slot)
+    return if game_mode.survival? && @inv.empty?(@slot)
 
     x = place_x
     y = place_y
@@ -717,7 +717,7 @@ class Game
     set_block(x, y, z, block)
     @sfx.play(BlockSound.placed(block), 0.7)
     @swing = SWING
-    @inv.take(@slot, 1) if @survival
+    @inv.take(@slot, 1) if game_mode.survival?
   end
 
   # A block placed on grass (Block.replaceable?) takes its cell, as in

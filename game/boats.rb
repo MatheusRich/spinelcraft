@@ -13,7 +13,7 @@ class Game
   # way the player looks.
   def place_boat
     block = current_block.to_i
-    return if @survival && @inv.empty?(@slot)
+    return if game_mode.survival? && @inv.empty?(@slot)
     return unless fluid_in_view && @world.get(@fluid_x, @fluid_y, @fluid_z) == Block::WATER
     return if @boats.size >= MAX_BOATS
 
@@ -23,7 +23,7 @@ class Game
     return if @world.solid_in_box?(x, y, z, Boat::HALF, Boat::TALL)
 
     @boats << Boat.new(block, x, y, z, @player.yaw)
-    @inv.take(@slot, 1) if @survival
+    @inv.take(@slot, 1) if game_mode.survival?
     @sfx.play_at(Sfx::SPLASH, x, y, z, 0.4)
     @swing = SWING
   end
@@ -92,7 +92,7 @@ class Game
     damage = @player.melee_attack.scaled_damage(current_block.to_i)
     @player.melee_attack.restart
     @swing = SWING
-    if @survival && !boat.hit(damage)
+    if game_mode.survival? && !boat.hit(damage)
       @sfx.play_at(Sfx::DIG_WOOD, x, y, z, 0.6)
       return
     end
@@ -100,7 +100,7 @@ class Game
     @riding -= 1 if @riding > i
     @particles.burst(x.floor, y.floor, z.floor, Block::PLANKS[item - Block::OAK_BOAT])
     @sfx.play_at(Sfx::BREAK, x, y, z, 0.7)
-    drop_item(item, 1, x, y + 0.3, z, 0.0, 2.0, 0.0, PICKUP_WAIT) if @survival
+    drop_item(item, 1, x, y + 0.3, z, 0.0, 2.0, 0.0, PICKUP_WAIT) if game_mode.survival?
     @boats.delete_at(i)
     @target_boat = -1
   end

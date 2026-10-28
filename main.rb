@@ -21,6 +21,7 @@ require_relative "game/player"
 require_relative "game/voxel_walk"
 require_relative "game/block_target"
 require_relative "game/vitals"
+require_relative "game/game_mode"
 require_relative "game/melee_attack"
 require_relative "game/screen"
 require_relative "game/camera"
@@ -87,9 +88,7 @@ require_relative "game/demo"
 
 class Game
   # What Console reads and changes. A new world replaces some of it.
-  attr_reader :player, :treasure, :seed, :chunk_meshes, :inv, :hotbar, :slot, :mobs, :rng
-
-  def survival? = @survival
+  attr_reader :player, :treasure, :seed, :chunk_meshes, :game_mode, :inv, :hotbar, :slot, :mobs, :rng
 
   def initialize # rubocop:todo Metrics/MethodLength
     Log.setup(ENV["LOG"] || "")
@@ -182,7 +181,7 @@ class Game
     @stamps = Array.new(4, 0)
     @faces_drawn = 0
     @cpu_end = 0
-    @survival = ENV["MODE"] == "survival"
+    @game_mode = ENV["MODE"] == "survival" ? GameMode::SURVIVAL : GameMode::CREATIVE
     @loaded = [""]
     @load_error = ""
     @changed = false
@@ -286,7 +285,7 @@ class Game
     show_debug_scenes
     @spawner.spawn_animals(@mobs, @player)
     open_first_screen
-    say(@survival ? "SURVIVAL MODE" : "CREATIVE MODE")
+    say("#{game_mode.name} MODE")
   end
 
   def init_graphics
@@ -507,7 +506,7 @@ class Game
       step = remaining > 0.02 ? 0.02 : remaining
       fell = @player.update(@world, step)
       hurt((fell - 3.0).ceil, Sfx::FALL) if fell > 3.5
-      if @survival
+      if game_mode.survival?
         moved = @player.speed * step
         @player.vitals.move(moved, @player.controls.sprint && @player.on_ground, @player.in_water, @player.jumped)
       end
@@ -544,7 +543,7 @@ class Game
     update_furnaces(dt)
     update_items(dt)
     update_falling(dt)
-    note_seen if @survival
+    note_seen if game_mode.survival?
   end
 
   def update_weather_effects(dt)
@@ -564,7 +563,7 @@ class Game
   end
 
   def lightning_hit_player
-    return unless @survival
+    return unless game_mode.survival?
 
     @player.vitals.ignite(Storm::STRIKE_FIRE)
     hurt(Storm::STRIKE_DAMAGE, Sfx::HURT)
@@ -607,12 +606,12 @@ class Game
 
   # A hungry player cannot sprint in survival, nor a player who eats or
   # draws the bow.
-  def may_sprint? = (!@survival || @player.vitals.can_sprint?) && !using_item?
+  def may_sprint? = (game_mode.creative? || @player.vitals.can_sprint?) && !using_item?
 
   # A second press of jump within FLY_TAP starts or stops flying in
   # creative, as in Minecraft. A third press starts a new double press.
   def tap_to_fly
-    if !@survival && @anim_time - @last_jump < FLY_TAP && @anim_time > @last_jump
+    if game_mode.creative? && @anim_time - @last_jump < FLY_TAP && @anim_time > @last_jump
       @player.flying = !@player.flying
       @last_jump = -1.0
     else
@@ -622,7 +621,7 @@ class Game
   end
 
   def update_survival(dt)
-    return unless @survival && !@player.vitals.dead?
+    return unless game_mode.survival? && !@player.vitals.dead?
 
     @alive_time += dt
     p = @player

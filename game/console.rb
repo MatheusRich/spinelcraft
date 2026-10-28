@@ -7,8 +7,6 @@ class Console
   HELP = ["/TIME SET|ADD <TIME>  /TIME QUERY  /WEATHER CLEAR|RAIN|THUNDER", "/GAMEMODE SURVIVAL|CREATIVE  /TP <X> <Y> <Z>  /SPAWN",
           "/GIVE <ITEM> [COUNT]  /SUMMON <MOB> [X Y Z]", "/LOCATE TREASURE  /KILL  /SEED  /HELP"]
 
-  # The names of the game modes in /gamemode: an even index is survival.
-  GAME_MODES = ["SURVIVAL", "CREATIVE", "S", "C", "0", "1"]
   # The blocks in front of the player where /summon puts a mob that has no place.
   SUMMON_DISTANCE = 3.0
   # The farthest x and z of /tp. Minecraft keeps them within 30,000,000,
@@ -116,12 +114,11 @@ class Console
   end
 
   def gamemode(args)
-    mode = args.size == 1 ? Command.find(GAME_MODES, args[0]) : -1
-    return @chat.post_error("USE /GAMEMODE SURVIVAL OR /GAMEMODE CREATIVE") if mode < 0
+    game_mode = args.size == 1 ? GameMode.parse(args[0]) : nil
+    return @chat.post_error("USE /GAMEMODE SURVIVAL OR /GAMEMODE CREATIVE") unless game_mode
 
-    survival = mode % 2 == 0
-    @game.set_mode(survival)
-    @chat.post("SET OWN GAME MODE TO #{survival ? "SURVIVAL" : "CREATIVE"} MODE")
+    @game.set_mode(game_mode)
+    @chat.post("SET OWN GAME MODE TO #{game_mode.name} MODE")
   end
 
   def tp(args)
@@ -172,7 +169,7 @@ class Console
   # at the feet of the player. In creative the item goes to the selected
   # slot of the hotbar.
   def give_items(block, count)
-    unless @game.survival?
+    unless @game.game_mode.survival?
       @game.hotbar[@game.slot] = block
       return
     end

@@ -5,12 +5,12 @@ class Game
   RECIPE_H = 44.0
 
   def current_block
-    @survival ? @inv.block(@slot) : @hotbar[@slot]
+    game_mode.survival? ? @inv.block(@slot) : @hotbar[@slot]
   end
 
   # Uses up n uses of the selected tool. A tool with no uses left breaks.
   def wear_tool(n)
-    return unless @survival && n > 0
+    return unless game_mode.survival? && n > 0
 
     block = @inv.block(@slot)
     return unless Block.tool?(block) && @inv.count(@slot) > 0
@@ -114,7 +114,7 @@ class Game
   # A broken furnace drops what it holds (in survival).
   def drop_furnace(x, y, z)
     furnace = @furnaces.remove_at(World.key(x, y, z))
-    return if furnace.nil? || !@survival
+    return if furnace.nil? || game_mode.creative?
 
     (0...3).each { |i| drop_from_block(furnace.slots.block(i), furnace.slots.count(i), x, y, z) }
   end
@@ -348,7 +348,7 @@ class Game
       Gfx.in_capture(1)
     end
     chest = @chests.remove_at(key)
-    return if chest.nil? || !@survival
+    return if chest.nil? || game_mode.creative?
 
     (0...Chest::SLOTS).each { |k| drop_from_block(chest.block(k), chest.count(k), x, y, z) }
   end
@@ -400,13 +400,13 @@ class Game
     w = Gfx.gfx_width.to_f
     h = Gfx.gfx_height.to_f
     s = inventory_scale(w, h)
-    if @survival && !@chests.open? && Gfx.in_wheel != 0.0 && over_recipes?(w, h, s)
+    if game_mode.survival? && !@chests.open? && Gfx.in_wheel != 0.0 && over_recipes?(w, h, s)
       @recipe_book.turn_wheel(Gfx.in_wheel, active_station)
     else
       select_slot
     end
     left = Gfx.in_button_pressed(1)
-    if @survival && (left || Gfx.in_button_pressed(3))
+    if game_mode.survival? && (left || Gfx.in_button_pressed(3))
       shift = left && Gfx.in_key(Key::LSHIFT)
       hover = pack_hover(w, h, s)
       if hover >= 0
