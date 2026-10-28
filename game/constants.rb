@@ -36,28 +36,6 @@ class Game
   OPTION_UNIFORMS = RAIN_UNIFORMS + 4
   TINT_UNIFORMS = OPTION_UNIFORMS + 4
   UNIFORMS = TINT_UNIFORMS + 8 * Biome::ALL.size
-  # The materials of blocks for their sounds (Game#material), and the sound
-  # of each material when the player digs it, breaks it, steps on it and
-  # places it. They follow VoxeLibre (mcl_sounds), but stone, wood and dirt
-  # break with one sound.
-  M_STONE = 0
-  M_WOOD = 1
-  M_DIRT = 2
-  M_GRASS = 3
-  M_SAND = 4
-  M_GRAVEL = 5
-  M_GLASS = 6
-  M_LEAVES = 7
-  M_CLOTH = 8
-  M_SNOW = 9
-  MATERIAL_DIG = [Sfx::DIG_STONE, Sfx::DIG_WOOD, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_SOFT, Sfx::DIG_GRAVEL, Sfx::DIG_STONE, Sfx::DIG_LEAVES,
-                  Sfx::CLOTH, Sfx::SNOW]
-  MATERIAL_BREAK = [Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::BREAK, Sfx::STEP_SAND, Sfx::BREAK_GRAVEL, Sfx::BREAK_GLASS, Sfx::STEP_GRASS,
-                    Sfx::CLOTH, Sfx::SNOW]
-  MATERIAL_STEP = [Sfx::STEP_HARD, Sfx::STEP_WOOD, Sfx::STEP_DIRT, Sfx::STEP_GRASS, Sfx::STEP_SAND, Sfx::STEP_GRAVEL, Sfx::STEP_GLASS, Sfx::STEP_GRASS,
-                   Sfx::CLOTH, Sfx::SNOW]
-  MATERIAL_PLACE = [Sfx::PLACE_HARD, Sfx::PLACE_HARD, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE, Sfx::PLACE_HARD, Sfx::PLACE,
-                    Sfx::CLOTH, Sfx::PLACE]
   # Seconds that one swing takes (see @swing): 6 ticks, as in the game code
   # (LivingEntity.getCurrentSwingDuration). The wiki does not say.
   SWING = 0.3

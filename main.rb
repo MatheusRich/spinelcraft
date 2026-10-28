@@ -46,6 +46,7 @@ require_relative "game/clouds"
 require_relative "game/lod"
 require_relative "game/far_terrain"
 require_relative "game/chunk_meshes"
+require_relative "game/block_sound"
 require_relative "game/constants"
 require_relative "game/save"
 require_relative "game/block_changes"
@@ -524,7 +525,7 @@ class Game
       @step_dist += @player.speed * dt
       if @step_dist > Player::STEP
         @step_dist = 0.0
-        ground = MATERIAL_STEP[material(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))]
+        ground = BlockSound.footstep(@world.get(@player.x.floor, (@player.y - 0.1).floor, @player.z.floor))
         @sfx.play(swimming ? Sfx::STEP_WATER : ground, 0.35)
       end
     end

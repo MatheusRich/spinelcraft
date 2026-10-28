@@ -226,7 +226,7 @@ class Game
       set_block(@demo_build[index], @demo_build[index + 1], @demo_build[index + 2], block)
       # A place sound for each third block, so that the sounds do not run
       # into one noise.
-      @sfx.play(MATERIAL_PLACE[material(block)], 0.4) if @demo_built % 3 == 0
+      @sfx.play(BlockSound.placed(block), 0.4) if @demo_built % 3 == 0
       @demo_built += 1
     end
     house = @demo_house

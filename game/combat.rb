@@ -102,7 +102,7 @@ class Game
       # does. A creeper has no step sound of its own
       # (minecraft.wiki/w/Creeper), and VoxeLibre has none for the others.
       mob.step = false
-      ground = MATERIAL_STEP[material(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))]
+      ground = BlockSound.footstep(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))
       @sfx.play_at(ground, mob.x, mob.y, mob.z, 0.35)
     end
     mob.douse if mob.fire > 0.0 && @weather.wet? && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)

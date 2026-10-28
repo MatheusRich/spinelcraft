@@ -868,12 +868,6 @@ class Game
     check("every sound file loads", Sfx.load_files == Sfx::FILES.size && Gfx.au_seconds(Sfx::RAIN) > 5.0)
     # The lid of a chest hits at once, not after a creak.
     check("the closing sound of a chest hits within 0.1 s", Gfx.au_peak_seconds(Sfx::CHEST_CLOSE) < 0.1)
-    check("blocks sound like their material",
-          MATERIAL_STEP[material(Block::GRASS)] == Sfx::STEP_GRASS && MATERIAL_STEP[material(Block::STONE)] == Sfx::STEP_HARD &&
-          MATERIAL_STEP[material(Block::OAK_PLANKS)] == Sfx::STEP_WOOD && MATERIAL_STEP[material(Block::SAND)] == Sfx::STEP_SAND &&
-          MATERIAL_BREAK[material(Block::GLASS)] == Sfx::BREAK_GLASS && MATERIAL_DIG[material(Block::OAK_LEAVES)] == Sfx::DIG_LEAVES &&
-          MATERIAL_DIG[material(Block::ROSE)] == Sfx::DIG_LEAVES && material(Block::TORCH) == M_WOOD &&
-          MATERIAL_STEP[material(Block::WOOL)] == Sfx::CLOTH && MATERIAL_STEP[material(Block::SNOW)] == Sfx::SNOW)
     test_block_sounds
     test_furnace_crackle
     test_lava_swim
@@ -3897,10 +3891,9 @@ class Game
     end
     set_block(bx - 1, y, bz, Block::GRASS)
     check("a ripe stem grows one pumpkin next to it, only on a free side over dirt or grass", grown == 1 && on_grass && on_stone && on_dirt)
-    check("pumpkin seeds and a young stem grow, and pumpkins sound like wood",
+    check("pumpkin seeds and a young stem grow",
           Block.growing?(Block::PUMPKIN_SEEDS) && Block.growing?(Block::PUMPKIN_STEM) && !Block.growing?(Block::PUMPKIN_STEM_RIPE) &&
-          !Block.growing?(Block::PUMPKIN) && material(Block::PUMPKIN) == M_WOOD && material(Block.facing_id(Block::JACK_O_LANTERN, 3)) == M_WOOD &&
-          material(Block::PLACED_BIRCH_LEAVES) == M_LEAVES && material(Block::PUMPKIN_STEM) == M_LEAVES)
+          !Block.growing?(Block::PUMPKIN))
     # A plant draws its top texture, and an item in the hand, on the ground
     # or in a slot its side and front textures.
     check("pumpkin seeds look like seeds as an item and like a stem when planted",

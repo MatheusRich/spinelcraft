@@ -208,7 +208,7 @@ class Game
 
     broken = targeted_block
     @particles.burst(@target_block.x, @target_block.y, @target_block.z, broken)
-    @sfx.play(MATERIAL_BREAK[material(broken)], 0.7)
+    @sfx.play(BlockSound.broken(broken), 0.7)
     set_block(@target_block.x, @target_block.y, @target_block.z, Block::AIR)
     @player.melee_attack.restart
     @action_cooldown = ACTION_COOLDOWN
@@ -413,7 +413,7 @@ class Game
     end
     set_block(x, y, z, Block.facing_id(Block::CARVED_PUMPKIN, d))
     drop_from_block(Block::PUMPKIN_SEEDS, 4, x, y, z)
-    @sfx.play(MATERIAL_DIG[M_WOOD], 0.7)
+    @sfx.play(BlockSound.dig(Block::CARVED_PUMPKIN), 0.7)
     @swing = SWING
     wear_tool(1)
   end
@@ -526,7 +526,7 @@ class Game
     @dig_wait -= dt
     return unless @dig_wait <= 0.0 && hardness > 0.0
 
-    @sfx.play(MATERIAL_DIG[material(block)], 0.55)
+    @sfx.play(BlockSound.dig(block), 0.55)
     @dig_wait = 0.25
   end
 
@@ -552,7 +552,7 @@ class Game
     z = @target_block.z
     tool = current_block.to_i
     @particles.burst(x, y, z, block)
-    @sfx.play(MATERIAL_BREAK[material(block)], 0.7)
+    @sfx.play(BlockSound.broken(block), 0.7)
     set_block(x, y, z, Block::AIR)
     @player.melee_attack.restart
     drop_broken(block, x, y, z, tool) if harvests?(tool, block)
@@ -562,23 +562,6 @@ class Game
     end
     @player.vitals.exhaust(Vitals::MINE_COST)
     @mining = false
-  end
-
-  # The material of block for its sounds, as in VoxeLibre (mcl_sounds).
-  def material(block) # rubocop:todo Metrics/CyclomaticComplexity
-    block = Block::BASE[block]
-    return M_GLASS if block == Block::GLASS
-    return M_GRAVEL if block == Block::GRAVEL
-    return M_SAND if block == Block::SAND
-    return M_GRASS if block == Block::GRASS || block == Block::SNOW_GRASS
-    return M_SNOW if block == Block::SNOW
-    return M_CLOTH if block == Block::WOOL
-    return M_WOOD if block == Block::TORCH || block == Block::CACTUS || Block.pumpkin?(block)
-    return M_LEAVES if Block.leaves?(block) || Block.plant?(block)
-    return M_STONE if Block::NEEDS_PICK[block] > 0 || block == Block::BEDROCK || block == Block::FURNACE
-    return M_WOOD if Block.log?(block) || Block.planks?(block) || block == Block::CHEST || block == Block::BED || block == Block::DOOR || block == Block::CRAFTING_TABLE || block == Block::LADDER
-
-    M_DIRT
   end
 
   # A bed sets the spawn point; at night with no monster close by, it skips to morning.
@@ -732,7 +715,7 @@ class Game
 
     block = join_chest(x, y, z, block) if Block::BASE[block] == Block::CHEST
     set_block(x, y, z, block)
-    @sfx.play(MATERIAL_PLACE[material(block)], 0.7)
+    @sfx.play(BlockSound.placed(block), 0.7)
     @swing = SWING
     @inv.take(@slot, 1) if @survival
   end
