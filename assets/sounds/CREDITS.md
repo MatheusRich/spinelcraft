@@ -91,6 +91,8 @@ Each file keeps its license.
 | `lightning_thunder.3.ogg` | IllusiaProductions | CC BY-SA (no version given) | <http://www.freesound.org/people/IllusiaProductions/sounds/249950/>, VoxeLibre `lightning` |
 | `item_drop_pickup.ogg` | VoxeLibre contributors (no author listed) | Free license (VoxeLibre `LEGAL.md`) | VoxeLibre `mcl_item_entity` |
 | `mesecons_button_push.ogg` | junggle | CC BY 3.0 | <https://freesound.org/people/junggle/sounds/29301/> |
+| `mcl_armor_equip_iron.ogg` | mitchanary | CC0 1.0 | <https://freesound.org/people/mitchanary/sounds/506148/> (VoxeLibre `mcl_armor`) |
+| `mcl_armor_equip_diamond.ogg` | juryduty | CC0 1.0 | <https://freesound.org/people/juryduty/sounds/180231/> (VoxeLibre `mcl_armor`) |
 | `mcl_potions_drinking.ogg` | VoxeLibre contributors (no author listed) | CC0 1.0 (VoxeLibre `mcl_potions/README.txt`) | VoxeLibre `mcl_potions` |
 
 ## Licenses

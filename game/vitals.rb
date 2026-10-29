@@ -53,6 +53,7 @@ class Vitals
     @exhaustion = 0.0
     @air = MAX_AIR
     @fire = 0.0
+    @armorable_damage = 0.0
     # Seconds of the Hunger effect left.
     @hunger_effect = 0.0
     # Seconds until the next point of fire damage, of lava damage, and of
@@ -90,6 +91,14 @@ class Vitals
 
   def kill = hurt(@health)
 
+  # Gives the damage of lava and cactus that armor has not lowered yet, and
+  # clears it.
+  def take_armorable_damage
+    damage = @armorable_damage
+    @armorable_damage = 0.0
+    damage
+  end
+
   def heal(amount)
     @health = [@health + amount, MAX_HEALTH].min
   end
@@ -125,7 +134,8 @@ class Vitals
   # dt seconds of lava, fire, cactus, air, hunger and healing. in_lava is
   # true when the player touches lava, on_cactus when the player touches a
   # cactus, and under_water when the head is in water. Returns true when
-  # the player took damage.
+  # fire or drowning hurt the player. Lava and cactus damage waits in
+  # armorable_damage, and Game takes it with take_armorable_damage.
   # TODO: Rename back to update when Spinel types the parameters of each
   # method on its own. Now all methods named update share one type for each
   # parameter, and this one made the others untyped.
@@ -137,7 +147,7 @@ class Vitals
       @lava_tick -= dt
       if @lava_tick <= 0.0
         @lava_tick = 0.5
-        hurt(4)
+        @armorable_damage += 4.0
       end
       # Out of the lava, the player burns on for a while.
       @fire = LAVA_FIRE
@@ -147,20 +157,20 @@ class Vitals
       @fire_tick -= dt
       if @fire_tick <= 0.0
         @fire_tick = 1.0
-        hurt(1)
+        hurt(1.0)
       end
     end
     # A cactus does 1 each half second. minecraft.wiki/w/Cactus
     @cactus_tick -= dt
     if on_cactus && @cactus_tick <= 0.0
       @cactus_tick = 0.5
-      hurt(1)
+      @armorable_damage += 1.0
     end
     if under_water
       @air -= dt
       if @air < 0.0
         @air += 1.0
-        hurt(2)
+        hurt(2.0)
       end
     else
       @air = [@air + dt * AIR_REFILL, MAX_AIR].min

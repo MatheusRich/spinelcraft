@@ -95,6 +95,7 @@ class Game
     file.add("life", [@alive_time, @spawn_x, @spawn_z]) # the seconds since the last respawn, and the spawn x and z
     file.add("inventory", @inv.to_a)
     file.add("hotbar", @hotbar)
+    file.add("armor", @armor.slots.to_a)
     file.add("weather", @weather.to_a)
     file.add("chests", @chests.to_a)
     file.add("items", item_fields)
@@ -136,6 +137,7 @@ class Game
     with_section("vitals") { |fields| apply_vitals(fields) }
     with_section("life") { |fields| apply_life(fields) }
     with_section("inventory") { |fields| @inv.load(fields, 0) }
+    with_section("armor") { |fields| @armor.slots.load(fields, 0) }
     with_section("hotbar") { |fields| HOTBAR.times { |slot| @hotbar[slot] = fields[slot].to_i } }
     with_section("weather") { |fields| @weather.load(fields, 0) }
     with_section("chests") { |fields| @chests.load(fields, 0) }

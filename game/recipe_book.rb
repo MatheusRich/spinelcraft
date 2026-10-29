@@ -25,6 +25,12 @@ class RecipeBook
                 Recipe.new(Block::DIAMOND, 3, Block::DIAMOND_AXE, 1, Recipe::AT_TABLE), Recipe.new(Block::DIAMOND, 1, Block::DIAMOND_SHOVEL, 1, Recipe::AT_TABLE),
                 # Minecraft has no mattock: 3 spinel is a choice for balance.
                 Recipe.new(Block::SPINEL, 3, Block::SPINEL_MATTOCK, 1, Recipe::AT_TABLE),
+                # Armor takes the ingots or the diamonds of its crafting shape.
+                # minecraft.wiki/w/Armor
+                Recipe.new(Block::IRON_INGOT, 5, Block::IRON_HELMET, 1, Recipe::AT_TABLE), Recipe.new(Block::IRON_INGOT, 8, Block::IRON_CHESTPLATE, 1, Recipe::AT_TABLE),
+                Recipe.new(Block::IRON_INGOT, 7, Block::IRON_LEGGINGS, 1, Recipe::AT_TABLE), Recipe.new(Block::IRON_INGOT, 4, Block::IRON_BOOTS, 1, Recipe::AT_TABLE),
+                Recipe.new(Block::DIAMOND, 5, Block::DIAMOND_HELMET, 1, Recipe::AT_TABLE), Recipe.new(Block::DIAMOND, 8, Block::DIAMOND_CHESTPLATE, 1, Recipe::AT_TABLE),
+                Recipe.new(Block::DIAMOND, 7, Block::DIAMOND_LEGGINGS, 1, Recipe::AT_TABLE), Recipe.new(Block::DIAMOND, 4, Block::DIAMOND_BOOTS, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::COAL, 1, Block::TORCH, 4, Recipe::BY_HAND),
                 # Minecraft makes 4 arrows of a flint, a stick and a feather
                 # (minecraft.wiki/w/Arrow). The game has no flint and no

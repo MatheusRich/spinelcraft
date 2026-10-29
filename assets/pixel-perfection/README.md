@@ -47,6 +47,9 @@ These files are copies with no changes.
 | `beef.png`, `steak.png`, `leather.png`, `milk_bucket.png` | `mcl_mobitems_beef_raw.png`, `mcl_mobitems_beef_cooked.png`, `mcl_mobitems_leather.png`, `mcl_mobitems_bucket_milk.png` |
 | `hunger.png`, `hunger_empty.png`, `hunger_effect.png` | `hbhunger_icon.png`, `hbhunger_bgicon.png`, `mcl_hunger_icon_foodpoison.png` (9x9, as the HUD icons of Minecraft) |
 | `heart.png`, `heart_empty.png` | `hudbars_icon_health.png`, `hudbars_bgicon_health.png` (9x9, as the HUD icons of Minecraft) |
+| `armor.png`, `armor_empty.png` | `hbarmor_icon.png`, `hbarmor_bgicon.png` (9x9, as the HUD icons of Minecraft) |
+| `iron_helmet.png`, `iron_chestplate.png`, `iron_leggings.png`, `iron_boots.png` | `mcl_armor_inv_helmet_iron.png`, `mcl_armor_inv_chestplate_iron.png`, `mcl_armor_inv_leggings_iron.png`, `mcl_armor_inv_boots_iron.png` |
+| `diamond_helmet.png`, `diamond_chestplate.png`, `diamond_leggings.png`, `diamond_boots.png` | `mcl_armor_inv_helmet_diamond.png`, `mcl_armor_inv_chestplate_diamond.png`, `mcl_armor_inv_leggings_diamond.png`, `mcl_armor_inv_boots_diamond.png` |
 | `bucket.png`, `water_bucket.png`, `lava_bucket.png` | `mcl_buckets_bucket.png`, `mcl_buckets_water_bucket.png`, `mcl_buckets_lava_bucket.png` |
 | `pumpkin_side.png`, `pumpkin_top.png`, `pumpkin_face.png`, `jack_face.png` | `farming_pumpkin_side.png`, `farming_pumpkin_top.png`, `farming_pumpkin_face.png`, `farming_pumpkin_face_light.png` |
 | `pumpkin_seeds.png`, `shears.png` | `mcl_farming_pumpkin_seeds.png`, `default_tool_shears.png` |

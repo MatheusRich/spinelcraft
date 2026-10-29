@@ -54,6 +54,8 @@ require_relative "game/save_file"
 require_relative "game/save"
 require_relative "game/block_changes"
 require_relative "game/slots"
+require_relative "game/armor"
+require_relative "game/icon_row"
 require_relative "game/chest"
 require_relative "game/chests"
 require_relative "game/loot_pool"
@@ -127,6 +129,9 @@ class Game
     @uniforms = Array.new(UNIFORMS, 0.0)
     @hotbar = HOTBAR_START.dup
     @inv = Slots.new(INV)
+    @armor = Armor.new
+    @heart_row = IconRow.new(@ui, Tex::HEART, Tex::HEART_EMPTY)
+    @armor_row = IconRow.new(@ui, Tex::ARMOR, Tex::ARMOR_EMPTY)
     @recipe_book = RecipeBook.new
     @furnaces = Furnaces.new
     # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE of Recipe),
@@ -365,6 +370,7 @@ class Game
     @seed = seed
     reset_world
     @inv.clear
+    @armor.slots.clear
     @hotbar = HOTBAR_START.dup
     @chests.clear
     @recipe_book = RecipeBook.new
@@ -506,7 +512,7 @@ class Game
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining
       fell = @player.update(@world, step)
-      hurt((fell - 3.0).ceil, Sfx::FALL) if fell > 3.5
+      hurt((fell - 3.0).ceil.to_f, Sfx::FALL) if fell > 3.5
       if game_mode.survival?
         moved = @player.speed * step
         @player.vitals.move(moved, @player.controls.sprint && @player.on_ground, @player.in_water, @player.jumped)
@@ -567,7 +573,8 @@ class Game
     return unless game_mode.survival?
 
     @player.vitals.ignite(Storm::STRIKE_FIRE)
-    hurt(Storm::STRIKE_DAMAGE, Sfx::HURT)
+    # Armor lowers a strike. minecraft.wiki/w/Armor (Damage sources)
+    armored_hurt(Storm::STRIKE_DAMAGE, Sfx::HURT)
   end
 
   def update_timers(dt)
@@ -636,7 +643,15 @@ class Game
       @sfx.play(Sfx::FIZZ, 0.6)
     end
     on_cactus = @world.cactus_in_box?(p.x, p.y, p.z, Player::HALF, Player::TALL)
-    felt_hurt(Sfx::HURT) if @player.vitals.update_vitals(dt, in_lava, on_cactus, under_water)
+    hurt_by_fire_or_water = @player.vitals.update_vitals(dt, in_lava, on_cactus, under_water)
+    armorable = @player.vitals.take_armorable_damage
+    # One hurt sound for each frame. A hit that armor lowers plays it, and
+    # so does a hit that kills.
+    if armorable > 0.0 && !@player.vitals.dead?
+      armored_hurt(armorable, Sfx::HURT)
+    elsif hurt_by_fire_or_water
+      felt_hurt(Sfx::HURT)
+    end
     @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @player.vitals.hunger_effect?
   end
 

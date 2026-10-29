@@ -187,7 +187,7 @@ class Game
     while s > 1.0
       first = pack_cell(HOTBAR, w, h, s)
       last = recipe_cell(RecipeBook::ROWS * 2 - 1, w, h, s)
-      break if first[0] >= 18.0 * s && last[0] + last[2] + 18.0 * s <= w && last[1] + last[3] + 18.0 * s <= bars
+      break if first[0] >= 18.0 * s && pack_cell(INV, w, h, s)[1] >= Ui::ARMOR_ROW_ROOM * s && last[0] + last[2] + 18.0 * s <= w && last[1] + last[3] + 18.0 * s <= bars
 
       s -= 1.0
     end
@@ -195,23 +195,28 @@ class Game
   end
 
   # Survival inventory cell i: backpack rows on top, the hotbar row below.
-  # The grid and the recipe list start at one height, and the recipe list is
-  # in the middle of the frame.
+  # The armor row and the recipe list start at one height, and the recipe
+  # list is in the middle of the frame. The cells from INV are the armor slots, in a
+  # row above the grid: the head at the left and the feet at the right.
   def pack_cell(i, w, h, s)
+    if i >= INV
+      above = pack_cell(HOTBAR + i - INV, w, h, s)
+      return [above[0], above[1] - above[2] - Ui::PACK_ROW_GAP * s, above[2]]
+    end
     size = 52.0 * s
     gap = 6.0 * s
     row = i < HOTBAR ? 3 : (i - HOTBAR) / HOTBAR
     col = i < HOTBAR ? i : (i - HOTBAR) % HOTBAR
     x0 = (w - (HOTBAR * size + (HOTBAR - 1) * gap) - (RECIPE_W * 2.0 + 8.0) * s - 60.0 * s) / 2.0
     y0 = (h - (RecipeBook::ROWS * RECIPE_H - 4.0) * s) / 2.0 + 20.0 * s
-    [x0 + col * (size + gap), y0 + row * (size + gap) + (row == 3 ? 14.0 * s : 0.0), size]
+    [x0 + col * (size + gap), y0 + row * (size + gap) + (row == 3 ? Ui::PACK_ROW_GAP * s : 0.0), size]
   end
 
   # Place j of the recipe list beside the grid, two to a row: x, y, width,
   # height.
   def recipe_cell(j, w, h, s)
     last = pack_cell(INV - 1, w, h, s)
-    top = pack_cell(HOTBAR, w, h, s)
+    top = pack_cell(INV, w, h, s)
     [last[0] + last[2] + 60.0 * s + (j % 2) * (RECIPE_W + 8.0) * s, top[1] + (j / 2) * RECIPE_H * s, RECIPE_W * s, (RECIPE_H - 4.0) * s]
   end
 
@@ -269,8 +274,10 @@ class Game
     -1
   end
 
+  # The inventory cell under the mouse, or -1. An armor slot counts as the
+  # cell INV + slot.
   def pack_hover(w, h, s)
-    INV.times do |i|
+    (INV + Block::ARMOR_SLOTS).times do |i|
       c = pack_cell(i, w, h, s)
       return i if mouse_in?(c[0], c[1], c[2], c[2])
     end
@@ -284,8 +291,11 @@ class Game
     return if @inv.empty?(i) || !@held.empty?(0)
 
     furnace = station_makes?(Recipe::AT_FURNACE)
+    piece = @inv.block(i)
     if @chests.open?
       @chests.current.store(@inv, i)
+    elsif @armor.quick_put_on(@inv, i)
+      play_armor_equip(piece)
     elsif furnace && @recipe_book.smelts?(@inv.block(i))
       @inv.move_stack(i, open_furnace.slots, Furnace::INPUT..Furnace::INPUT)
     elsif furnace && Furnace.fuel?(@inv.block(i))
@@ -409,7 +419,9 @@ class Game
     if game_mode.survival? && (left || Gfx.in_button_pressed(3))
       shift = left && Gfx.in_key(Key::LSHIFT)
       hover = pack_hover(w, h, s)
-      if hover >= 0
+      if hover >= INV
+        shift ? take_off_armor(hover - INV) : click_armor(hover - INV) if left
+      elsif hover >= 0
         if shift
           quick_move_slot(hover)
         elsif left

@@ -99,23 +99,16 @@ class Game
 
   # Hearts on the left above the hotbar, food on the right, and up to 10 air
   # bubbles above the food.
-  def draw_survival_bars(x0, y0, total, s) # rubocop:todo Metrics/MethodLength
+  def draw_survival_bars(x0, y0, total, s)
     hy = y0 - 26.0 * s
-    i = 0
-    while i < 10
-      hx = x0 + i * 20.0 * s
-      p = Tex::ICON_PART
-      @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART_EMPTY, p, p, Color::SOLID_WHITE)
-      # A part of a half heart shows as a half heart, as in Minecraft. A half
-      # heart is the left 5 of the 9 columns.
-      hp = @player.vitals.health.ceil - i * 2
-      if hp >= 2
-        @ui.quad(hx, hy, 18.0 * s, 18.0 * s, Tex::HEART, p, p, Color::SOLID_WHITE)
-      elsif hp == 1
-        @ui.quad(hx, hy, 10.0 * s, 18.0 * s, Tex::HEART, 5.0 / 16.0, p, Color::SOLID_WHITE)
-      end
-      i += 1
-    end
+    # A part of a half heart shows as a half heart, as in Minecraft.
+    @heart_row.scale = s
+    @armor_row.scale = s
+    @heart_row.draw(@player.vitals.health.ceil, x0, hy)
+    # The armor bar shows above the hearts when the player wears armor.
+    # minecraft.wiki/w/Armor
+    points = @armor.points
+    @armor_row.draw(points, x0, hy - ARMOR_BAR_LIFT * s) if points > 0
     # The Hunger effect turns the food yellow-green. minecraft.wiki/w/Hunger_(effect)
     full = @player.vitals.hunger_effect? ? Tex::HUNGER_EFFECT : Tex::HUNGER
     10.times do |i|
@@ -135,15 +128,20 @@ class Game
     end
   end
 
+  # The pixels that the armor bar takes above the hearts, at scale 1.
+  ARMOR_BAR_LIFT = 20.0
+
   # The first-steps hint for an empty survival inventory, and the last message.
   def draw_messages(w, y0, s)
+    # The texts go up a row over the armor bar.
+    lift = game_mode.survival? && @armor.points > 0 ? ARMOR_BAR_LIFT * s : 0.0
     if game_mode.survival? && !@player.vitals.dead? && !current_screen.inventory? && @inv.room_for(Block::DIRT) == INV * Slots::STACK
       hint = "HOLD LEFT CLICK ON A TREE FOR LOGS, THEN PRESS E TO CRAFT PLANKS"
-      @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s, hint, 2.0 * s, Ui::HINT_TEXT)
+      @ui.text((w - @ui.text_width(hint, 2.0 * s)) / 2.0, y0 - 92.0 * s - lift, hint, 2.0 * s, Ui::HINT_TEXT)
     end
     if @message_time > 0.0
       tw = @ui.text_width(@message, 3.0 * s)
-      @ui.text((w - tw) / 2.0, y0 - 64.0 * s, @message, 3.0 * s, Color.new(1.0, 1.0, 1.0, @message_time > 1.0 ? 1.0 : @message_time))
+      @ui.text((w - tw) / 2.0, y0 - 64.0 * s - lift, @message, 3.0 * s, Color.new(1.0, 1.0, 1.0, @message_time > 1.0 ? 1.0 : @message_time))
     end
   end
 
@@ -248,9 +246,19 @@ class Game
     top = pack_cell(HOTBAR, w, h, s)
     bottom = pack_cell(8, w, h, s)
     pad = 18.0 * s
-    @ui.rect(top[0] - pad, top[1] - pad - 40.0 * s, bottom[0] + bottom[2] - top[0] + pad * 2.0, bottom[1] + bottom[2] - top[1] + pad * 2.0 + 40.0 * s, Ui::PANEL)
-    @ui.text(top[0], top[1] - 36.0 * s, "INVENTORY", 4.0 * s, Color::SOLID_WHITE)
+    armor_top = pack_cell(INV, w, h, s)[1]
+    @ui.rect(top[0] - pad, armor_top - pad - 40.0 * s, bottom[0] + bottom[2] - top[0] + pad * 2.0, bottom[1] + bottom[2] - armor_top + pad * 2.0 + 40.0 * s, Ui::PANEL)
+    @ui.text(top[0], armor_top - 36.0 * s, "INVENTORY", 4.0 * s, Color::SOLID_WHITE)
     hover = pack_hover(w, h, s)
+    # The armor slots, and the armor points beside them. An empty slot shows
+    # a dark iron piece of its kind.
+    last = pack_cell(INV + Block::ARMOR_SLOTS - 1, w, h, s)
+    @ui.text(last[0] + last[2] + 16.0 * s, last[1] + last[2] / 2.0 - 7.0 * s, "ARMOR #{@armor.points}", 2.0 * s, Ui::LABEL_TEXT)
+    Block::ARMOR_SLOTS.times do |slot|
+      cell = pack_cell(INV + slot, w, h, s)
+      draw_slot(cell, INV + slot == hover, @armor.slots, slot, 6.0 * s, 2.0 * s, s)
+      @ui.item(cell[0] + 6.0 * s, cell[1] + 6.0 * s, cell[2] - 12.0 * s, Block::IRON_HELMET + slot, Ui::EMPTY_ARMOR_OPACITY) if @armor.slots.empty?(slot)
+    end
     INV.times do |i|
       c = pack_cell(i, w, h, s)
       if i == @slot
@@ -264,7 +272,8 @@ class Game
       draw_recipe_panel(w, h, s, pad)
     end
     tip = @chests.open? ? "SHIFT-CLICK MOVES A STACK ACROSS  RIGHT-CLICK TAKES HALF" : "SHIFT-CLICK MOVES A STACK OR CRAFTS ALL  RIGHT-CLICK TAKES HALF"
-    label = hover >= 0 && !@inv.empty?(hover) ? Block::NAMES[@inv.block(hover)] : tip
+    label = hover >= 0 && hover < INV && !@inv.empty?(hover) ? Block::NAMES[@inv.block(hover)] : tip
+    label = Block::NAMES[@armor.slots.block(hover - INV)] if hover >= INV && !@armor.slots.empty?(hover - INV)
     mid = (top[0] + bottom[0] + bottom[2]) / 2.0
     @ui.text(mid - @ui.text_width(label, 2.0 * s) / 2.0, bottom[1] + bottom[2] + pad + 12.0 * s, label, 2.0 * s, Ui::LABEL_TEXT)
     unless @held.empty?(0)

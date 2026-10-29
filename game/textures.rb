@@ -192,6 +192,17 @@ module Tex
   SPINEL_ORE = image("spinel_ore")
   SPINEL = image("spinel")
   SPINEL_MATTOCK = image("spinel_mattock")
+  # The armor pieces, in the order of the Block ids from IRON_HELMET.
+  IRON_HELMET = image("iron_helmet")
+  IRON_CHESTPLATE = image("iron_chestplate")
+  IRON_LEGGINGS = image("iron_leggings")
+  IRON_BOOTS = image("iron_boots")
+  DIAMOND_HELMET = image("diamond_helmet")
+  DIAMOND_CHESTPLATE = image("diamond_chestplate")
+  DIAMOND_LEGGINGS = image("diamond_leggings")
+  DIAMOND_BOOTS = image("diamond_boots")
+  ARMOR = hud_icon("armor")
+  ARMOR_EMPTY = hud_icon("armor_empty")
   # The red blocks of SPINEL in the title (tools/logo.rb).
   SPINEL_BLOCK = image("spinel_block")
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"

@@ -18,10 +18,27 @@ class Game
   # Takes amount of health and plays sound: Sfx::HURT, or Sfx::FALL for a
   # fall, as in Minecraft.
   def hurt(amount, sound)
-    return if game_mode.creative? || @player.vitals.dead? || amount <= 0
+    return if game_mode.creative? || @player.vitals.dead? || amount <= 0.0
 
     @player.vitals.hurt(amount)
     felt_hurt(sound)
+  end
+
+  # A hit that armor lowers: a mob, an arrow, an explosion, lightning, lava
+  # and a cactus. Fall, fire, drowning and hunger skip armor and call hurt.
+  # Each worn piece wears for the hit. minecraft.wiki/w/Armor
+  def armored_hurt(amount, sound)
+    return if game_mode.creative? || @player.vitals.dead? || amount <= 0.0
+
+    reduced = @armor.reduce(amount)
+    @armor.wear(amount).each { |piece| armor_broke(piece) }
+    hurt(reduced, sound)
+  end
+
+  def armor_broke(piece)
+    @sfx.play(Sfx::TOOL_BREAK, 0.8)
+    @particles.shatter(@player, piece)
+    say("#{Block::NAMES[piece]} BROKE")
   end
 
   # The sound and the red flash of a hit. At zero health the player dies
@@ -162,7 +179,7 @@ class Game
       damage = mob.update_mob(@world, sdt, @player, held)
       next if damage <= 0
 
-      hurt(damage, Sfx::HURT)
+      armored_hurt(damage.to_f, Sfx::HURT)
       # to_f: Spinel cannot type the mob.
       @player.knock_back(mob.x.to_f, mob.z.to_f) if game_mode.survival?
     end
@@ -359,7 +376,7 @@ class Game
     pdz = @player.z - cz
     dist = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz)
     if dist < BLAST_REACH
-      hurt(blast_damage(dist), Sfx::HURT)
+      armored_hurt(blast_damage(dist).to_f, Sfx::HURT)
       len = dist < 0.1 ? 1.0 : dist
       @player.vx += pdx / len * (BLAST_REACH - dist) * 2.0
       @player.vz += pdz / len * (BLAST_REACH - dist) * 2.0
@@ -412,7 +429,7 @@ class Game
         end
       elsif a.in_box?(@player.x, @player.y, @player.z, Player::HALF, Player::TALL)
         # A skeleton's arrow does 3 to 5. minecraft.wiki/w/Skeleton
-        hurt(3 + (@rng.rand01 * 3.0).to_i, Sfx::HURT)
+        armored_hurt((3 + (@rng.rand01 * 3.0).to_i).to_f, Sfx::HURT)
         if game_mode.survival?
           len = Math.sqrt(a.vx * a.vx + a.vz * a.vz)
           len = 1.0 if len < 0.001

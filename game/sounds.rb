@@ -71,6 +71,8 @@ class Sfx
   # The thunder sounds are THUNDER to THUNDER + THUNDERS - 1.
   THUNDER = 66
   THUNDERS = 3
+  ARMOR_IRON = 69
+  ARMOR_DIAMOND = 70
   # A sound from a point fades to silence at RANGE blocks, and an  # explosion at EXPLOSION_RANGE. The wiki gives 64 blocks for TNT. It does
   # not say if a creeper explosion carries as far. minecraft.wiki/w/Sound
   RANGE = 16.0
@@ -99,7 +101,8 @@ class Sfx
            "env_sounds_lava.1", "env_sounds_water.1", "fire_fire.1",
            "mesecons_button_push", "mobs_mc_cow", "mobs_mc_cow_hurt", "mobs_mc_cow_milk",
            "mcl_potions_drinking", "mobs_mc_chicken_buck.1", "mobs_mc_chicken_hurt", "mobs_mc_chicken_lay_egg",
-           "mobs_mc_chicken_child", "lightning_thunder.1", "lightning_thunder.2", "lightning_thunder.3"]
+           "mobs_mc_chicken_child", "lightning_thunder.1", "lightning_thunder.2", "lightning_thunder.3",
+           "mcl_armor_equip_iron", "mcl_armor_equip_diamond"]
   # The gain of each file in dB, in the order of the ids above. It sets the
   # RMS of the loudest 0.1 seconds of each sound to -20 dBFS (-12 dBFS for
   # the explosion and the thunder), so that all sounds are equally loud.
@@ -111,7 +114,7 @@ class Sfx
            -1.5, 1.8, -0.6, 6.8, 2.7, -6.0, -1.3, -9.5,
            -10.4, -9.6, -15.5, 6.8, -8.5, 10.6, -6.0, 3.3, -9.7, 2.7,
            -11.4, -8.4, -1.9, -0.6, 9.6, -2.7, -5.4, -2.7,
-           -5.6, -2.7, -0.5]
+           -5.6, -2.7, -0.5, -1.1, -2.4]
   # The distance in blocks at which each sound from a point fades to
   # silence, in the order of the ids above.
   RANGES = Array.new(FILES.size, RANGE)

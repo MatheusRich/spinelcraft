@@ -146,6 +146,17 @@ module Block
   CHEST_LEFT = 161
   CHEST_RIGHT = 165
   PUMPKIN_PIE = 169
+  # Armor: iron, then diamond, each as a helmet, a chestplate, leggings and
+  # boots. A piece goes into the armor slot of its place in the four
+  # (Block.armor_slot).
+  IRON_HELMET = 170
+  IRON_CHESTPLATE = 171
+  IRON_LEGGINGS = 172
+  IRON_BOOTS = 173
+  DIAMOND_HELMET = 174
+  DIAMOND_CHESTPLATE = 175
+  DIAMOND_LEGGINGS = 176
+  DIAMOND_BOOTS = 177
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -489,6 +500,14 @@ module Block
                shape: 7, opaque: 0, hardness: 2.5, drops: CHEST, dig: DIG_AXE
   define_turns CHEST_RIGHT + 1, CHEST_RIGHT
   define_item PUMPKIN_PIE, "PUMPKIN PIE", Tex::PUMPKIN_PIE, food: 8, saturation: 4.8 # minecraft.wiki/w/Pumpkin_Pie
+  define_item IRON_HELMET, "IRON HELMET", Tex::IRON_HELMET
+  define_item IRON_CHESTPLATE, "IRON CHESTPLATE", Tex::IRON_CHESTPLATE
+  define_item IRON_LEGGINGS, "IRON LEGGINGS", Tex::IRON_LEGGINGS
+  define_item IRON_BOOTS, "IRON BOOTS", Tex::IRON_BOOTS
+  define_item DIAMOND_HELMET, "DIAMOND HELMET", Tex::DIAMOND_HELMET
+  define_item DIAMOND_CHESTPLATE, "DIAMOND CHESTPLATE", Tex::DIAMOND_CHESTPLATE
+  define_item DIAMOND_LEGGINGS, "DIAMOND LEGGINGS", Tex::DIAMOND_LEGGINGS
+  define_item DIAMOND_BOOTS, "DIAMOND BOOTS", Tex::DIAMOND_BOOTS
   COUNT = NAMES.size
 
   def self.blocks_light(block) = block != AIR && block != GLASS && !door?(block) && BASE[block] != LADDER && !plant?(block)
@@ -700,6 +719,8 @@ module Block
     return TOOL_USES[tool_tier(block) - 1] if tool_tier(block) > 0
     return TOOL_USES[block - WOOD_SWORD] if sword?(block)
 
+    return ARMOR_USES[block - IRON_HELMET] if armor?(block)
+
     # minecraft.wiki/w/Item_durability
     block == BOW ? 384 : (block == SHEARS ? 238 : 0)
   end
@@ -720,6 +741,20 @@ module Block
 
     block >= WOOD_SHOVEL && block <= DIAMOND_SHOVEL ? block - WOOD_SHOVEL + 1 : 0
   end
+  # The armor slots: the head, the chest, the legs and the feet.
+  ARMOR_SLOTS = 4
+  # For each armor piece from IRON_HELMET: its armor points, its toughness
+  # and its uses. minecraft.wiki/w/Armor
+  ARMOR_POINTS = [2, 6, 5, 2, 3, 8, 6, 3]
+  ARMOR_TOUGHNESS = [0, 0, 0, 0, 2, 2, 2, 2]
+  ARMOR_USES = [165, 240, 225, 195, 363, 528, 495, 429]
+  def self.armor?(block) = block >= IRON_HELMET && block <= DIAMOND_BOOTS
+  def self.diamond_armor?(block) = block >= DIAMOND_HELMET && block <= DIAMOND_BOOTS
+  # The armor slot of a piece: 0 for a helmet, 1 for a chestplate, 2 for
+  # leggings and 3 for boots.
+  def self.armor_slot(block) = (block - IRON_HELMET) % ARMOR_SLOTS
+  # A piece of armor wears out as a tool does, so it never stacks and its
+  # count is the uses that it has left.
   def self.tool?(block) = uses(block) > 0
   def self.lava?(block) = LAVA_LEVEL[block] > 0
   def self.jack_o_lantern?(block) = BASE[block] == JACK_O_LANTERN

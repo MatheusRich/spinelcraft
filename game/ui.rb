@@ -1,5 +1,12 @@
 # Vertex builder for the HUD, in pixels (2D).
 class Ui
+  # The gap between the armor row and the grid, and between the grid and the
+  # hotbar row, in pixels at scale 1.
+  PACK_ROW_GAP = 14.0
+  # The room that the armor row and the title need above the grid.
+  ARMOR_ROW_ROOM = 58.0
+  # An empty armor slot shows a dark piece of its kind.
+  EMPTY_ARMOR_OPACITY = 0.2
   # The colors of the screens.
   TITLE_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.25)
   PAUSE_BACKDROP = Color.new(0.0, 0.0, 0.0, 0.45)

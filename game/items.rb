@@ -38,18 +38,47 @@ class Game
     @swing = SWING
   end
 
-  # At death the player drops each stack of the inventory, and the stack in
-  # the mouse, where they died.
+  # A right click with a piece of armor in the hand puts it on. The piece
+  # that was worn in its slot goes into the hand slot, as in Minecraft.
+  def equip_armor
+    piece = @inv.block(@slot)
+    @armor.swap_with(@inv, @slot)
+    play_armor_equip(piece)
+    @swing = SWING
+  end
+
+  def play_armor_equip(piece)
+    @sfx.play(Block.diamond_armor?(piece) ? Sfx::ARMOR_DIAMOND : Sfx::ARMOR_IRON, 0.8)
+  end
+
+  # A click on armor slot slot. It takes only the piece for that slot.
+  def click_armor(slot)
+    piece = @held.block(0)
+    play_armor_equip(piece) if @armor.click(slot, @held)
+  end
+
+  def take_off_armor(slot)
+    @armor.slots.move_stack(slot, @inv, 0...INV) if @held.empty?(0)
+  end
+
+  # At death the player drops each stack of the inventory, each worn piece
+  # of armor, and the stack in the mouse, where they died.
   def drop_inventory
     p = @player
-    INV.times do |i|
-      unless @inv.empty?(i)
-        drop_item(@inv.block(i), @inv.count(i), p.x, p.y + 0.5, p.z, (@rng.rand01 - 0.5) * 4.0, 3.0, (@rng.rand01 - 0.5) * 4.0, PICKUP_WAIT)
-        @inv.set(i, Block::AIR, 0)
-      end
-    end
+    drop_stacks(@inv)
+    drop_stacks(@armor.slots)
     drop_item(@held.block(0), @held.count(0), p.x, p.y + 0.5, p.z, 0.0, 3.0, 0.0, PICKUP_WAIT)
     @held.clear
+  end
+
+  def drop_stacks(slots)
+    player = @player
+    slots.size.times do |index|
+      next if slots.empty?(index)
+
+      drop_item(slots.block(index), slots.count(index), player.x, player.y + 0.5, player.z, (@rng.rand01 - 0.5) * 4.0, 3.0, (@rng.rand01 - 0.5) * 4.0, PICKUP_WAIT)
+      slots.set(index, Block::AIR, 0)
+    end
   end
 
   # The number of block on the ground.

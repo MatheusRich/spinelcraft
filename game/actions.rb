@@ -337,7 +337,9 @@ class Game
 
   # The item in the hand acts on the block in view, or on the air.
   def use_held
-    if game_mode.survival? && Block.bucket?(current_block.to_i)
+    if game_mode.survival? && Block.armor?(current_block.to_i)
+      equip_armor
+    elsif game_mode.survival? && Block.bucket?(current_block.to_i)
       use_bucket
     elsif Block.boat?(current_block.to_i)
       place_boat

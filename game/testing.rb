@@ -167,6 +167,7 @@ class Game
     test_thunder
     test_weather_fade
     test_cactus
+    test_armor
     test_save(x, z, ground)
     test_crafting_limits
     test_inventory_layout
@@ -1322,12 +1323,12 @@ class Game
     70.times { @inv.add(Block::DIRT) }
     check("stacks split at 64", @inv.count(2) == 64 && @inv.block(3) == Block::DIRT && @inv.count(3) == 6)
     @player.vitals.health = Vitals::MAX_HEALTH
-    hurt(5, Sfx::HURT)
+    hurt(5.0, Sfx::HURT)
     check("hurt lowers health", @player.vitals.health == 15.0 && !@player.vitals.dead?)
     kept = @inv.copy
     @items.clear
     toggle_inventory
-    hurt(30, Sfx::HURT)
+    hurt(30.0, Sfx::HURT)
     check("death at zero health, and it closes the inventory", @player.vitals.health == 0.0 && @player.vitals.dead? && !current_screen.inventory?)
     check("death drops the inventory on the ground", @inv.room_for(Block::DIRT) == INV * Slots::STACK && ground_count(Block::DIRT) == 70 && ground_count(Block::OAK_PLANKS) == 4)
     @items.clear
@@ -1337,7 +1338,7 @@ class Game
     kept = @inv.copy
     @inv.clear
     open_chat("")
-    hurt(30, Sfx::HURT)
+    hurt(30.0, Sfx::HURT)
     Gfx.in_test_frame
     Gfx.in_test_key(Key::R, 1)
     handle_input(0.05)
@@ -1740,6 +1741,60 @@ class Game
     @clock.time_of_day = 0.3
   end
 
+  # Armor goes on with a right click, lowers the hits that Minecraft armor
+  # lowers, wears down, and falls with the inventory at death.
+  def test_armor
+    @mobs.clear
+    @game_mode = GameMode::SURVIVAL
+    @player.revive
+    @armor.slots.clear
+    kept_inventory = @inv.to_a
+    kept_slot = @slot
+    @slot = 0
+    @inv.set(0, Block::IRON_CHESTPLATE, Block.uses(Block::IRON_CHESTPLATE))
+    use_held
+    check("a right click puts the armor on, from the hand",
+          @inv.empty?(0) && @armor.slots.block(1) == Block::IRON_CHESTPLATE && @armor.points == 6)
+    armored_hurt(10.0, Sfx::HURT)
+    check("armor lowers a hit: 6 points cut a hit of 10 to 9.52", (@player.vitals.health - (Vitals::MAX_HEALTH - 9.52)).abs < 0.001)
+    check("a hit wears the armor", @armor.slots.count(1) == Block.uses(Block::IRON_CHESTPLATE) - 2)
+    @player.revive
+    hurt(10.0, Sfx::FALL)
+    check("a fall goes through armor", @player.vitals.health == Vitals::MAX_HEALTH - 10.0 && @armor.slots.count(1) == Block.uses(Block::IRON_CHESTPLATE) - 2)
+    @player.revive
+    lightning_hit_player
+    check("lightning goes through armor: 6 points cut a strike of 5 to 4.3, and it wears the armor",
+          (@player.vitals.health - (Vitals::MAX_HEALTH - 4.3)).abs < 0.001 && @armor.slots.count(1) == Block.uses(Block::IRON_CHESTPLATE) - 3)
+    @player.revive
+    @inv.set(0, Block::DIAMOND_CHESTPLATE, Block.uses(Block::DIAMOND_CHESTPLATE))
+    use_held
+    check("a new piece swaps with the worn piece, which goes to the hand slot",
+          @inv.block(0) == Block::IRON_CHESTPLATE && @inv.count(0) == Block.uses(Block::IRON_CHESTPLATE) - 3 &&
+          @armor.slots.block(1) == Block::DIAMOND_CHESTPLATE && @armor.points == 8 && @armor.toughness == 2)
+    @armor.slots.set(1, Block::DIAMOND_CHESTPLATE, 1)
+    armored_hurt(1.0, Sfx::HURT)
+    check("a piece that has no uses left breaks and gives no points", @armor.slots.empty?(1) && @armor.points == 0)
+    @held.set(0, Block::IRON_BOOTS, Block.uses(Block::IRON_BOOTS))
+    click_armor(0)
+    check("a click on the armor slot of another kind refuses the piece", @armor.slots.empty?(0) && @held.block(0) == Block::IRON_BOOTS)
+    click_armor(Block.armor_slot(Block::IRON_BOOTS))
+    check("a click on its armor slot puts the piece from the mouse on", @held.empty?(0) && @armor.slots.block(3) == Block::IRON_BOOTS)
+    take_off_armor(3)
+    boots_slot = (0...INV).find { |index| @inv.block(index) == Block::IRON_BOOTS }
+    check("a Shift-click on an armor slot moves the piece into the inventory", @armor.slots.empty?(3) && !boots_slot.nil?)
+    quick_move_slot(boots_slot)
+    check("a Shift-click on a piece in the inventory moves it to its armor slot", @armor.slots.block(3) == Block::IRON_BOOTS && @inv.total(Block::IRON_BOOTS) == 0)
+    @armor.put_on(Block::IRON_HELMET, Block.uses(Block::IRON_HELMET))
+    @items.clear
+    drop_inventory
+    check("the worn armor falls at death", @armor.slots.empty?(0) && ground_count(Block::IRON_HELMET) == Block.uses(Block::IRON_HELMET))
+    check("the creative screen lists each piece of armor", (Block::IRON_HELMET..Block::DIAMOND_BOOTS).all? { |piece| CREATIVE_ITEMS.include?(piece) })
+    @items.clear
+    @inv.load(kept_inventory, 0)
+    @slot = kept_slot
+    @player.revive
+  end
+
   # On the sky platform from test_monsters: a cactus hurts the player who
   # leans on it or stands on it, 1 each half second, and it hurts a mob.
   # It grows up to 3 blocks.
@@ -1778,6 +1833,19 @@ class Game
     update_mobs(1.0 / 60.0)
     check("a cactus hurts a mob", pig.hp == Mob::HP[Mob::PIG] - 1.0)
     @mobs.clear
+    # A burning player on a cactus takes both hits in one frame and hears
+    # one hurt sound.
+    @player.revive
+    @player.x = px + 0.76
+    @player.vitals.ignite(5.0)
+    @sfx.clear
+    update_survival(1.0)
+    # Both hits land (a single hit leaves more than 19 health, even with the
+    # healing of a frame of 1 second), and the frame plays one hurt sound.
+    check("a fire hit and a cactus hit in one frame play one hurt sound",
+          @player.vitals.health < Vitals::MAX_HEALTH - 1.0 && @sfx.ids.count(Sfx::HURT) == 1)
+    @player.vitals.douse
+    @player.revive
     set_block(px + 1, SKY_Y - 1, pz, Block::AIR)
     # A cactus that grows stands on sand.
     set_block(px + 3, SKY_Y - 3, pz, Block::STONE)
@@ -1957,6 +2025,7 @@ class Game
     @weather.rain.timer = 77.5
     @weather.thunder.start
     @weather.thunder.timer = 55.5
+    @armor.put_on(Block::IRON_CHESTPLATE, 77)
     @recipe_book = RecipeBook.new
     @recipe_book.learn(Block::DIAMOND)
     @furnaces.clear
@@ -1978,6 +2047,7 @@ class Game
     @world.set(x, ground + 1, z, Block::GLASS)
     @player.vitals.health = 3.0
     @inv.set(1, Block::AIR, 0)
+    @armor.slots.clear
     @items.clear
     @weather.clear
     @weather.settle
@@ -1989,6 +2059,7 @@ class Game
     apply_loaded if ok
     check("the save keeps the day and the time alive", ok && @clock.day == 37 && @alive_time == 1500.0)
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @player.vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && game_mode.survival?)
+    check("the save keeps the worn armor", @armor.slots.block(1) == Block::IRON_CHESTPLATE && @armor.slots.count(1) == 77)
     check("the save keeps the items on the ground and the weather",
           @items.size == 1 && @items[0].block == Block::STONE_SWORD && @items[0].count == 17 &&
           @items[0].x == x + 0.25 && @items[0].y == ground + 1.0 && @items[0].z == z + 0.75 &&
@@ -2211,17 +2282,21 @@ class Game
   def test_inventory_layout
     sizes = [1280.0, 720.0, 2560.0, 1440.0, 1920.0, 1080.0, 2880.0, 1800.0, 3840.0, 2160.0]
     fits = true
+    aligned = true
     (0...sizes.size).step(2) do |i|
       w = sizes[i]
       h = sizes[i + 1]
       s = inventory_scale(w, h)
+      aligned = false if recipe_cell(0, w, h, s)[1] != pack_cell(INV, w, h, s)[1]
       first = pack_cell(HOTBAR, w, h, s)
       last = recipe_cell(RecipeBook::ROWS * 2 - 1, w, h, s)
       pad = 18.0 * s
-      fits = false if first[0] - pad < 0.0 || first[1] - pad - 40.0 * s < 0.0
+      head = pack_cell(INV, w, h, s)
+      fits = false if first[0] - pad < 0.0 || head[1] - pad - 40.0 * s < 0.0
       fits = false if last[0] + last[2] + pad > w || last[1] + last[3] + pad > h - 82.0 * ui_scale(h)
     end
     check("the inventory screen fits the frame above the hotbar", fits)
+    check("the crafting panel starts at the height of the inventory panel", aligned)
   end
 
   # The creative inventory screen fits the frame height, for common frame

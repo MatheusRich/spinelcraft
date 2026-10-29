@@ -123,15 +123,18 @@ class VitalsTest < Minitest::Test
   end
 
   # Lava does 4 each half second, and the player burns for 15 seconds after
-  # it. minecraft.wiki/w/Damage and /w/Lava
-  def test_lava_does_4_each_half_second_and_sets_the_player_on_fire
+  # it. Armor lowers the lava damage, so Vitals leaves it for the game to
+  # take. minecraft.wiki/w/Damage and /w/Lava
+  def test_lava_gives_4_each_half_second_for_armor_and_sets_the_player_on_fire
     vitals = unhealing
-    assert vitals.update_vitals(QUARTER, true, false, false)
-    assert_equal 16.0, vitals.health
-    assert vitals.burning?
     refute vitals.update_vitals(QUARTER, true, false, false)
+    assert_equal 4.0, vitals.take_armorable_damage
+    assert_equal 20.0, vitals.health
+    assert vitals.burning?
     vitals.update_vitals(QUARTER, true, false, false)
-    assert_equal 12.0, vitals.health
+    assert_equal 0.0, vitals.take_armorable_damage
+    vitals.update_vitals(QUARTER, true, false, false)
+    assert_equal 4.0, vitals.take_armorable_damage
     assert_equal Vitals::LAVA_FIRE, vitals.fire
   end
 
@@ -139,9 +142,10 @@ class VitalsTest < Minitest::Test
   def test_out_of_the_lava_the_player_burns_1_each_second
     vitals = unhealing
     vitals.update_vitals(QUARTER, true, false, false)
-    3.times { vitals.update_vitals(QUARTER, false, false, false) }
+    vitals.hurt(vitals.take_armorable_damage)
+    3.times { refute vitals.update_vitals(QUARTER, false, false, false) }
     assert_equal 16.0, vitals.health
-    vitals.update_vitals(QUARTER, false, false, false)
+    assert vitals.update_vitals(QUARTER, false, false, false)
     assert_equal 15.0, vitals.health
     assert_equal Vitals::LAVA_FIRE - 1.0, vitals.fire
     3.times { vitals.update_vitals(QUARTER, false, false, false) }
@@ -164,25 +168,27 @@ class VitalsTest < Minitest::Test
     refute vitals.burning?
   end
 
-  # A cactus does 1 each half second. minecraft.wiki/w/Cactus
-  def test_a_cactus_does_1_each_half_second
+  # A cactus does 1 each half second, and armor lowers it.
+  # minecraft.wiki/w/Cactus
+  def test_a_cactus_gives_1_each_half_second_for_armor
     vitals = unhealing
     vitals.update_vitals(QUARTER, false, true, false)
-    assert_equal 19.0, vitals.health
+    assert_equal 1.0, vitals.take_armorable_damage
     vitals.update_vitals(QUARTER, false, true, false)
-    assert_equal 19.0, vitals.health
+    assert_equal 0.0, vitals.take_armorable_damage
     vitals.update_vitals(QUARTER, false, true, false)
-    assert_equal 18.0, vitals.health
+    assert_equal 1.0, vitals.take_armorable_damage
+    assert_equal 20.0, vitals.health
   end
 
   # Air lasts 15 seconds, then drowning does 2 each second.
   # minecraft.wiki/w/Damage (Drowning)
   def test_drowning_does_2_each_second_after_15_seconds_of_air
     vitals = unhealing
-    60.times { vitals.update_vitals(QUARTER, false, false, true) }
+    60.times { refute vitals.update_vitals(QUARTER, false, false, true) }
     assert_equal Vitals::MAX_HEALTH, vitals.health
     assert_equal 0.0, vitals.air
-    vitals.update_vitals(QUARTER, false, false, true)
+    assert vitals.update_vitals(QUARTER, false, false, true)
     assert_equal 18.0, vitals.health
     3.times { vitals.update_vitals(QUARTER, false, false, true) }
     assert_equal 18.0, vitals.health

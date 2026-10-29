@@ -90,9 +90,9 @@ class RecipeBookTest < Minitest::Test
       ingredient = book.recipe(index).ingredient
       Block.fillers(ingredient).each { |b| book.learn(b) } unless [Block::COAL, Block::SPINEL, Block::BONE].include?(ingredient)
     end
-    assert_equal 38, book.shown(TABLE).size
+    assert_equal 46, book.shown(TABLE).size
     book.scroll_by(100, TABLE)
-    assert_equal 19 - RecipeBook::ROWS, book.top
+    assert_equal 23 - RecipeBook::ROWS, book.top
     assert_equal book.shown(TABLE).last, book.in_view(TABLE).last
   end
 
