@@ -229,6 +229,7 @@ class Game
     test_screens
     test_screen_input
     test_menu
+    test_perf_log
     test_fullscreen_follows_window
     test_commands
     test_tab_completion
@@ -763,6 +764,21 @@ class Game
           read.brightness == 1.0 && read.volume == 0.25 && read.music == 0.0 && read.view == 1200.0 && read.fov_degrees == 90.0 && !read.debug && !read.fullscreen)
     @options = options
     @fov = @options.half_fov
+  end
+
+  # The compiled game writes the lines of the perf log, and reads the GPU
+  # name and the memory from the system.
+  def test_perf_log
+    path = file_prefix + PERF_LOG_PATH
+    log = PerfLog.new(path)
+    log.start("session")
+    100.times { log.add(10.0, 2.0) }
+    log.write_stretch("memory #{Gfx.gfx_footprint_mb} MB")
+    text = File.read(path)
+    File.delete(path)
+    check("the perf log writes the line of a stretch of play",
+          text.include?("1 s: 100 frames, frame ms p50 10.5 p95 10.5 p99 10.5 worst 10.0, over 16.7 ms 0.0%, over 33.3 ms 0.0%, cpu ms avg 2.0 p99 2.5, memory "))
+    check("the game reads the GPU name and the memory that the system charges to it", Gfx.gfx_machine(0) != "" && Gfx.gfx_footprint_mb > 0)
   end
 
   # Every sound file loads, footsteps follow the block underfoot, and a

@@ -105,6 +105,8 @@ class World
   end
 
   def loaded?(x, z) = chunk_loaded?(x >> 4, z >> 4)
+
+  def loaded_chunk_count = @slot_cx.count { |cx| cx != NONE }
   def inside?(x, y, z) = y >= 0 && y < WY && loaded?(x, z)
   def height_at(x, z) = @height[(x & LMASK) * WZ + (z & LMASK)]
   # The y above the highest block in the column x, z that stops motion or

@@ -5,6 +5,9 @@
 *.sav
 /options.txt
 
+# How the game ran on a computer (see PerfLog)
+/perf.log
+
 # Raw screenshots (tools/shot.sh converts them to PNG)
 *.ppm
 

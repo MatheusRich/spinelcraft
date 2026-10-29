@@ -1,6 +1,9 @@
 # Game setup, spawn and respawn, the update step, and the game loop.
 require_relative "game/gfx"
 require_relative "game/log"
+require_relative "game/time_histogram"
+require_relative "game/frame_stats"
+require_relative "game/perf_log"
 require_relative "game/rng"
 require_relative "game/textures"
 require_relative "game/block"
@@ -187,6 +190,7 @@ class Game
     @stamps = Array.new(4, 0)
     @faces_drawn = 0
     @cpu_end = 0
+    @frame_began = 0
     @game_mode = ENV["MODE"] == "survival" ? GameMode::SURVIVAL : GameMode::CREATIVE
     @loaded = SaveFile.new
     @load_error = ""
@@ -197,6 +201,7 @@ class Game
     @save_path = prefix + SAVE_PATH
     @bad_save_path = prefix + BAD_SAVE_PATH
     @options = Options.new(prefix + OPTIONS_PATH)
+    @perf_log = PerfLog.new(prefix + PERF_LOG_PATH)
     @options.read_file if @save_on_quit
     @options.read_option("view", ENV["VIEW"]) if ENV["VIEW"]
     @sound = false
@@ -286,6 +291,7 @@ class Game
 
   def setup
     init_graphics
+    @perf_log.start(perf_log_header) unless @scripted
     init_audio
     start_world
     show_debug_scenes
@@ -784,6 +790,7 @@ class Game
 
   # One frame of the game. Returns the milliseconds of CPU that it took.
   def frame(dt, now, frames)
+    @frame_began = now
     strike_ahead if @strike_shot && frames == @max_frames - 3
     advance(dt)
     stamp(STAMP_STREAM)
@@ -795,7 +802,7 @@ class Game
     stamp(STAMP_RENDER)
     render
     cpu = (@cpu_end - now) / 1.0e6
-    log_slow_frame(frames, cpu, now) if cpu > Log::SLOW_MS
+    log_slow_frame(frames, cpu) if cpu > Log::SLOW_MS
     cpu
   end
 
@@ -820,12 +827,15 @@ class Game
     @stamps[index] = Gfx.gfx_ns
   end
 
-  def log_slow_frame(frames, cpu, now)
-    Log.debug(Log::FRAME) do
-      "frame #{frames}: #{cpu.round(2)} ms of CPU. update #{step_ms(now, @stamps[STAMP_STREAM])}, " \
-        "chunks #{step_ms(@stamps[STAMP_STREAM], @stamps[STAMP_FAR])}, far tiles #{step_ms(@stamps[STAMP_FAR], @stamps[STAMP_FLUSH])}, " \
-        "remesh #{step_ms(@stamps[STAMP_FLUSH], @stamps[STAMP_RENDER])}, render #{step_ms(@stamps[STAMP_RENDER], @cpu_end)}"
-    end
+  def log_slow_frame(frames, cpu)
+    Log.debug(Log::FRAME) { "frame #{frames}: #{cpu.round(2)} ms of CPU. #{frame_steps}" }
+  end
+
+  # The milliseconds of each step of the last frame.
+  def frame_steps
+    "update #{step_ms(@frame_began, @stamps[STAMP_STREAM])}, " \
+      "chunks #{step_ms(@stamps[STAMP_STREAM], @stamps[STAMP_FAR])}, far tiles #{step_ms(@stamps[STAMP_FAR], @stamps[STAMP_FLUSH])}, " \
+      "remesh #{step_ms(@stamps[STAMP_FLUSH], @stamps[STAMP_RENDER])}, render #{step_ms(@stamps[STAMP_RENDER], @cpu_end)}"
   end
 
   def step_ms(from, to) = ((to - from) / 1.0e6).round(2)
@@ -843,6 +853,25 @@ class Game
     @fps_frames += 1
     @fps_time += dt
     update_fps if @fps_time >= 0.5
+    write_perf_log(frame_ms, cpu) unless @scripted
+  end
+
+  def write_perf_log(frame_ms, cpu)
+    @perf_log.add(frame_ms, cpu)
+    @perf_log.write_stutter(frame_ms, "#{cpu.round(1)} ms of CPU, #{(frame_ms - cpu).round(1)} ms of wait. #{frame_steps}") if @perf_log.stutter?(frame_ms)
+    @perf_log.write_stretch(perf_state) if @perf_log.due?
+  end
+
+  # What the game knows at the end of a stretch of play, for the perf log.
+  def perf_state
+    "window #{Gfx.gfx_width}x#{Gfx.gfx_height}, memory #{Gfx.gfx_footprint_mb} MB, #{@world.loaded_chunk_count} chunks, #{@mobs.size} mobs"
+  end
+
+  def perf_log_header
+    started = Time.now
+    "session #{started.strftime("%Y-%m-%d %H:%M:%S")}\n" \
+      "machine #{Gfx.gfx_machine(2)}, #{Gfx.gfx_machine(1)}, macOS #{Gfx.gfx_machine(3)}, GPU #{Gfx.gfx_machine(0)}\n" \
+      "settings view #{@options.view.round}, fov #{@options.fov_degrees.round}"
   end
 
   # The fps and the CPU time that the HUD shows are the mean of the last
@@ -860,6 +889,7 @@ class Game
       save
       @options.write_file
     end
+    @perf_log.write_stretch(perf_state) unless @scripted
     elapsed = (Gfx.gfx_ns - started) / 1.0e9
     puts "gpu_wait_ms=#{Gfx.gfx_gpu_ms.round(2)}" if ENV["GPUTIME"]
     puts "size=#{Gfx.gfx_width}x#{Gfx.gfx_height} frames=#{frames} avg_fps=#{(frames / elapsed).round(1)} avg_cpu_ms=#{(@total_cpu / frames).round(3)} max_cpu_ms=#{@max_cpu.round(2)} max_frame_ms=#{@max_frame.round(1)} slow_frames=#{@slow_frames} health=#{@player.vitals.health} dead=#{@player.vitals.dead?} mobs=#{@mobs.size}"

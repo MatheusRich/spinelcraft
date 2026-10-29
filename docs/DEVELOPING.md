@@ -122,4 +122,8 @@ F3 shows the frame rate, the CPU time, the position, the faces drawn, the visibl
 
 `tools/bench.sh [REF]` compares the working tree with a git ref (`main` by default). It builds both, runs each `N` times in turns (3 by default) with `AUTOPILOT=1`, and prints the median world generation time and CPU time per frame. It also prints two counts from Spinel that go up when a value loses its type: the `sp_box` calls in the C and the `--warn-widen` warnings.
 
+`tools/lowend.sh` runs the game at several view distances, at normal speed and under `taskpolicy -b` (low priority on the slow cores), and prints the CPU time, the GPU wait, the worst frame and the resident memory. `tools/footprint.sh [idle|circle|straight]` samples the memory that macOS charges to the game, with `footprint`, while it runs. The resident memory leaves out most of the graphics memory, so use `footprint.sh` for the memory.
+
+The game appends to `perf.log` in the current directory while a person plays (not in a scripted run). Each session starts with the machine and the settings. Then it writes one line for each 30 seconds of play, with the percentiles of the frame time and of the CPU time, the share of frames over 16.7 ms and over 33.3 ms, the window size, the memory that macOS charges to the game, the loaded chunks and the mobs. A stutter (a frame over 33.3 ms) gets its own line, with the CPU time of each step of the frame. The log is for a computer where the benchmarks cannot run: play for a while and read the file.
+
 `tools/box_diff.sh base.c new.c` shows where the `sp_box` count changed. It takes two outputs of `spinel main.rb -S`, and it prints each C function whose count of `sp_box` calls differs, with the count in each file.

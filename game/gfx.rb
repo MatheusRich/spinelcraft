@@ -5,6 +5,11 @@ module Gfx
   ffi_lib "vorbisfile"
   ffi_cflags "-I/opt/homebrew/include -L/opt/homebrew/lib"
   ffi_source <<~'C'
+    #ifdef __APPLE__
+    #include <libproc.h>
+    #include <sys/sysctl.h>
+    #include <unistd.h>
+    #endif
     #include <SDL3/SDL.h>
     #include <math.h>
     #include <vorbis/vorbisfile.h>
@@ -1395,6 +1400,36 @@ module Gfx
     long gfx_width(void) { return swap_w; }
     long gfx_height(void) { return swap_h; }
     long gfx_ns(void) { return (long)SDL_GetTicksNS(); }
+
+    /* What the perf log says about the machine: 0 the GPU, 1 the CPU, 2 the
+       model, 3 the system version. The text is "" when the system does not
+       tell. */
+    const char *gfx_machine(long which) {
+      static char text[256];
+      text[0] = 0;
+      if (which == 0) {
+        snprintf(text, sizeof text, "%s", SDL_GetStringProperty(SDL_GetGPUDeviceProperties(dev), SDL_PROP_GPU_DEVICE_NAME_STRING, ""));
+        return text;
+      }
+    #ifdef __APPLE__
+      const char *names[] = {"", "machdep.cpu.brand_string", "hw.model", "kern.osproductversion"};
+      size_t size = sizeof text;
+      if (which < 1 || which > 3 || sysctlbyname(names[which], text, &size, NULL, 0) != 0) text[0] = 0;
+    #endif
+      return text;
+    }
+
+    /* The memory that the system charges to the game, in MB. It counts the
+       graphics memory, which the resident size leaves out. */
+    long gfx_footprint_mb(void) {
+    #ifdef __APPLE__
+      struct rusage_info_v2 info;
+      if (proc_pid_rusage(getpid(), RUSAGE_INFO_V2, (rusage_info_t *)&info) != 0) return 0;
+      return (long)(info.ri_phys_footprint >> 20);
+    #else
+      return 0;
+    #endif
+    }
     void gfx_quit(void) {
       SDL_WaitForGPUIdle(dev);
       if (record_out) fclose(record_out);
@@ -1529,6 +1564,8 @@ module Gfx
   ffi_func :gfx_width, [], :long
   ffi_func :gfx_height, [], :long
   ffi_func :gfx_ns, [], :long
+  ffi_func :gfx_machine, [:long], :str
+  ffi_func :gfx_footprint_mb, [], :long
   ffi_func :gfx_quit, [], :void
   ffi_func :in_poll, [], :bool
   ffi_func :in_key, [:long], :bool

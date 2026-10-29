@@ -13,6 +13,14 @@ class WorldTest < Minitest::Test
     assert(Biome::TREE.all? { |kind| kind < Biome::TREE_KINDS.size })
   end
 
+  def test_it_counts_the_loaded_chunks
+    world = World.new(1337)
+    assert_equal 0, world.loaded_chunk_count
+    world.load_chunk(0, 0)
+    world.load_chunk(3, -2)
+    assert_equal 2, world.loaded_chunk_count
+  end
+
   # A column of 16 cells covers each byte of an Integer twice, also the ids
   # from 128 and the byte that holds the sign bit.
   def test_the_store_keeps_each_block_id_in_its_own_byte

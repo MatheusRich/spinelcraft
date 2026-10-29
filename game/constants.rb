@@ -97,6 +97,8 @@ class Game
   SAVE_VERSION = "SPINELCRAFT25"
   # The options of the pause menu (see Options#write_file).
   OPTIONS_PATH = "options.txt"
+  # How the game ran, as text for a person to read (see PerfLog).
+  PERF_LOG_PATH = "perf.log"
   # Where a save that does not load goes, so that the next save does not replace it.
   BAD_SAVE_PATH = "world-bad.sav"
 end
