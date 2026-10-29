@@ -4,13 +4,6 @@
 # wells. It writes into the store of World with World#put_block, and
 # keeps its own work arrays.
 class ChunkGenerator
-  # Cave noise grid of one chunk: a point every 4 blocks.
-  GX = CHUNK / 4 + 1
-  GY = WY / 4 + 1
-  # Caves at this height and below fill with lava. Minecraft fills them
-  # below y -54, 10 layers above the bottom of its world
-  # (minecraft.wiki/w/Altitude).
-  LAVA_LEVEL = 9
   # The coal rolls of one column of coal cells: one for each 2 layers.
   COAL_ROLLS = WY / 2
   # Dirt and sand lie SOIL_DEPTH deep, and sand lies on sandstone
@@ -28,19 +21,10 @@ class ChunkGenerator
     @world = world
     @col_h = Array.new(CHUNK * CHUNK, 0)
     @col_b = Array.new(CHUNK * CHUNK, 0)
-    @cave_a = Array.new(GX * GY * GX, 0.0)
-    @cave_b = Array.new(GX * GY * GX, 0.0)
-    # 1 for each cell of the cave grid that can hold a cave (see cave_cell).
-    @cave_cell = Array.new(GX * GY * GX, 0)
-    # The edges along x of a cave grid cell, of the two fields (Terrain.x_edges).
-    @edges_a = Array.new(4, 0.0)
-    @edges_c = Array.new(4, 0.0)
-    # The grid layer of the edges in @edges_a and @edges_c (see tunnel?).
-    @a_layer = -1
-    @c_layer = -1
     @coal_rolls = Array.new(16 * COAL_ROLLS, 0)
     @ores = Ores.new
     @terrain = Terrain.new(seed)
+    @caves = Caves.new(world, @terrain, @col_h)
     @trees = Trees.new(world)
     @treasure_map = TreasureMap.new(@terrain)
   end
@@ -51,7 +35,7 @@ class ChunkGenerator
     z0 = cz * CHUNK
     highest = sample_columns(x0, z0)
     fill_ground(x0, z0)
-    carve_caves(x0, z0, highest)
+    @caves.carve(x0, z0, highest)
     place_ores(x0, z0, highest)
     decorate(cx, cz)
   end
@@ -114,104 +98,6 @@ class ChunkGenerator
     Block::STONE
   end
 
-  # Air in the tunnels, and lava at LAVA_LEVEL and below.
-  def carve_caves(x0, z0, highest)
-    fill_cave_grid(x0, z0, highest)
-    CHUNK.times do |lx|
-      CHUNK.times { |lz| carve_column(x0, z0, lx, lz) }
-    end
-  end
-
-  # Coarse 3D noise for caves, sampled every 4 blocks and interpolated.
-  # Caves stay below the top block of a column, so the grid stops at the
-  # layer above the highest top block.
-  def fill_cave_grid(x0, z0, highest)
-    gx0 = x0 >> 2
-    gz0 = z0 >> 2
-    gy = (highest - 1) / 4 + 2
-    gy = GY if gy > GY
-    i = 0
-    while i < GX
-      j = 0
-      while j < gy
-        k = 0
-        while k < GX
-          n = (i * GY + j) * GX + k
-          @cave_a[n] = @terrain.cave_a(gx0 + i, j, gz0 + k)
-          @cave_b[n] = @terrain.cave_b(gx0 + i, j, gz0 + k)
-          k += 1
-        end
-        j += 1
-      end
-      i += 1
-    end
-    mark_cave_cells(gy)
-  end
-
-  # Marks the cells of the lowest gy layers of the cave grid that can
-  # hold a cave (see cave_cell).
-  def mark_cave_cells(gy)
-    (GX - 1).times do |i|
-      (gy - 1).times do |j|
-        (GX - 1).times do |k|
-          n = (i * GY + j) * GX + k
-          @cave_cell[n] = cave_cell(n)
-        end
-      end
-    end
-  end
-
-  # Carves the tunnels of column lx, lz of the chunk at x0, z0. In an
-  # entrance patch they keep their full width up to the top block. A beach
-  # keeps the 3 blocks under its top block.
-  def carve_column(x0, z0, lx, lz)
-    x = x0 + lx
-    z = z0 + lz
-    top = @col_h[lx * CHUNK + lz] - 1
-    entrance = @terrain.entrance?(x, z)
-    base = World.index(x, 0, z)
-    # The column's place in the cave grid.
-    fx = lx / 4.0
-    fz = lz / 4.0
-    ix = fx.to_i
-    iz = fz.to_i
-    @a_layer = -1
-    @c_layer = -1
-    last = Terrain.beach?(top) ? top - 3 : top
-    y = 2
-    while y <= last
-      n = (ix * GY + (y >> 2)) * GX + iz
-      if @cave_cell[n] == 1
-        width = entrance ? Terrain::CAVE_WIDTH : Terrain.cave_width(top - y)
-        @world.put_block(base + y, y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if tunnel?(n, y, fx - ix, fz - iz, width)
-      end
-      y += 1
-    end
-    nil
-  end
-
-  # True when layer y of a column is in a tunnel of width. n is the cave
-  # grid point under the block, and tx, tz are the place of the column
-  # inside the grid cell. The 4 layers of a grid cell share its edges along
-  # x (x_edges), so a column reads them once a layer, into @edges_a and
-  # @edges_c.
-  def tunnel?(n, y, tx, tz, width)
-    fy = y / 4.0
-    iy = fy.to_i
-    if iy != @a_layer
-      @a_layer = iy
-      Terrain.x_edges(@cave_a, n, GY, GX, tx, @edges_a)
-    end
-    a = Terrain.yz_lerp(@edges_a, fy - iy, tz)
-    return false unless Terrain.cave_possible?(a, width)
-
-    if iy != @c_layer
-      @c_layer = iy
-      Terrain.x_edges(@cave_b, n, GY, GX, tx, @edges_c)
-    end
-    Terrain.cave?(a, Terrain.yz_lerp(@edges_c, fy - iy, tz), width)
-  end
-
   # Coal, iron, diamond and spinel in the stone that the caves left.
   def place_ores(x0, z0, highest)
     roll_coal(x0, z0, highest)
@@ -261,25 +147,6 @@ class ChunkGenerator
       y += 1
     end
     nil
-  end
-
-  # 1 when the cell of the cave grid from point n can hold a cave, else 0.
-  # Inside the cell, the first cave field mixes the values at its 8
-  # corners. When all of them are too far from zero on one side, every
-  # block of the cell is too.
-  def cave_cell(n)
-    low = 1.0
-    high = -1.0
-    2.times do |di|
-      2.times do |dj|
-        2.times do |dk|
-          a = @cave_a[n + (di * GY + dj) * GX + dk]
-          low = a if a < low
-          high = a if a > high
-        end
-      end
-    end
-    Terrain.cave_possible?(low, Terrain::CAVE_WIDTH) || Terrain.cave_possible?(high, Terrain::CAVE_WIDTH) || (low < 0.0 && high > 0.0) ? 1 : 0
   end
 
   # A chunk has a pumpkin patch 1 time in 32 (minecraft.wiki/w/Pumpkin).

@@ -422,7 +422,7 @@ class World
     z0 = cz * CHUNK
     (x0...x0 + CHUNK).each { |x| (z0...z0 + CHUNK).each { |z| update_height(x, z) } }
     # A generated chunk has no torches and no lava above LAVA_LEVEL.
-    find_torches(cx, cz, data.nil? ? ChunkGenerator::LAVA_LEVEL + 1 : WY)
+    find_torches(cx, cz, data.nil? ? Caves::LAVA_LEVEL + 1 : WY)
   end
 
   def unload(s)

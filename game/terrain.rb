@@ -10,6 +10,23 @@ class Terrain
   # widen over CAVE_FADE blocks to CAVE_WIDTH.
   CAVE_ROOF = 4
   CAVE_FADE = 8
+  # Tunnels exist only in regions. The region noise (cave_region) is below
+  # CAVE_REGION_LOW where the tunnels are closed, and above CAVE_REGION_HIGH
+  # where they have their full width. CAVE_REGION_SCALE is the size of the
+  # noise in blocks.
+  CAVE_REGION_SCALE = 150.0
+  CAVE_REGION_LOW = 0.0
+  CAVE_REGION_HIGH = 0.12
+  # Rooms are open spaces where the room noise (cave_room) is above
+  # ROOM_THRESHOLD. They stay ROOM_ROOF blocks under the top block of a
+  # column, and the threshold falls to its value over the next ROOM_FADE
+  # blocks, so a room has a roof. ROOM_SCALE and ROOM_SCALE_UP are the size
+  # of the noise in blocks, across and up.
+  ROOM_THRESHOLD = 0.55
+  ROOM_ROOF = 14
+  ROOM_FADE = 6
+  ROOM_SCALE = 56.0
+  ROOM_SCALE_UP = 26.0
   # Tunnels reach the surface only in entrance patches: where the entrance
   # noise is above ENTRANCE. Minecraft also keeps most tunnels below the
   # surface and opens a separate, rarer set of entrances.
@@ -305,6 +322,13 @@ class Terrain
     CAVE_WIDTH * (depth - CAVE_ROOF) / CAVE_FADE
   end
 
+  # The share of the full tunnel width at column x, z, from 0.0 (closed) to
+  # 1.0, and every value between, so that a tunnel narrows to its end.
+  def cave_region(x, z)
+    noise = @noise4.noise2(x / CAVE_REGION_SCALE + 90.0, z / CAVE_REGION_SCALE + 30.0)
+    ((noise - CAVE_REGION_LOW) / (CAVE_REGION_HIGH - CAVE_REGION_LOW)).clamp(0.0, 1.0)
+  end
+
   # True in the patches where tunnels keep their width up to the surface.
   def entrance?(x, z) = @noise.noise2(x / ENTRANCE_SCALE + 200.0, z / ENTRANCE_SCALE) > ENTRANCE
 
@@ -317,8 +341,23 @@ class Terrain
   def cave_a(gx, gy, gz) = @noise2.noise3(gx * 4 / 40.0, gy * 4 / 22.0, gz * 4 / 40.0)
   def cave_b(gx, gy, gz) = @noise3.noise3(gx * 4 / 40.0 + 50.0, gy * 4 / 22.0, gz * 4 / 40.0)
 
+  # The room noise at a point of the cave grid.
+  def cave_room(gx, gy, gz) = @noise.noise3(gx * 4 / ROOM_SCALE + 120.0, gy * 4 / ROOM_SCALE_UP, gz * 4 / ROOM_SCALE)
+
+  # The room noise at depth blocks below the top block of a column that
+  # makes a room: above it is a room. No value of the noise reaches the
+  # threshold in the roof.
+  def self.room_threshold(depth)
+    return 2.0 if depth <= ROOM_ROOF
+    return ROOM_THRESHOLD if depth >= ROOM_ROOF + ROOM_FADE
+
+    ROOM_THRESHOLD + (1.0 - ROOM_THRESHOLD) * (ROOM_ROOF + ROOM_FADE - depth) / ROOM_FADE
+  end
+
   # The cave test for one block of an entrance patch, from the 8 grid points
-  # around it. It gives the same numbers as the chunk grid of World#generate_chunk.
+  # around it. It gives the same numbers as the chunk grid of World#generate_chunk
+  # for the tunnels. It does not test the rooms, which lie deeper than ROOM_ROOF
+  # blocks under the top block.
   def carved?(x, y, z)
     gx = x >> 2
     gy = y >> 2
@@ -336,7 +375,7 @@ class Terrain
     tx = (x - gx * 4) / 4.0
     ty = (y - gy * 4) / 4.0
     tz = (z - gz * 4) / 4.0
-    Terrain.cave?(trilinear(@corner_a, 0, 2, 2, tx, ty, tz), trilinear(@corner_b, 0, 2, 2, tx, ty, tz), CAVE_WIDTH)
+    Terrain.cave?(trilinear(@corner_a, 0, 2, 2, tx, ty, tz), trilinear(@corner_b, 0, 2, 2, tx, ty, tz), CAVE_WIDTH * cave_region(x, z))
   end
 
   # The top ground block of the tree that grows at column x, z, or -1. It

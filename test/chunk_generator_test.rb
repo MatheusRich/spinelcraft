@@ -35,6 +35,47 @@ class ChunkGeneratorTest < Minitest::Test
     assert_operator counts[Block::CACTUS], :>, 5
   end
 
+  # The air of a generated column, from the lava level up to the top block.
+  def air_runs(world, x, z)
+    runs = []
+    run = []
+    (Caves::LAVA_LEVEL + 1...world.height_at(x, z) - 1).each do |y|
+      if world.get(x, y, z) == Block::AIR
+        run << y
+      else
+        runs << run unless run.empty?
+        run = []
+      end
+    end
+    runs
+  end
+
+  # The 4 x 4 chunks around x = z = 0 of seed 1337 have a room: a column of
+  # air that is 6 blocks tall or more and lies deeper than the roof of the
+  # rooms.
+  def test_the_world_has_rooms_under_a_roof
+    world = World.new(1337)
+    (-2..1).each { |cx| (-2..1).each { |cz| world.load_chunk(cx, cz) } }
+    rooms = (-32...32).flat_map { |x| (-32...32).flat_map { |z| air_runs(world, x, z).select { |run| run.size >= 6 }.map { |run| [run.last, world.height_at(x, z) - 1] } } }
+    assert(rooms.any? { |top_of_room, top_of_column| top_of_column - top_of_room > Terrain::ROOM_ROOF })
+  end
+
+  # In a chunk where the region noise is 0 in each column, no tunnel opens,
+  # so no air lies within the roof of the rooms.
+  def test_a_chunk_in_a_closed_region_has_no_tunnel
+    terrain = Terrain.new(1337)
+    closed = (-8..8).flat_map { |cx| (-8..8).map { |cz| [cx, cz] } }.find do |cx, cz|
+      CHUNK.times.all? { |dx| CHUNK.times.all? { |dz| terrain.cave_region(cx * CHUNK + dx, cz * CHUNK + dz) == 0.0 } }
+    end
+    refute_nil closed
+    world = World.new(1337)
+    world.load_chunk(*closed)
+    x0 = closed[0] * CHUNK
+    z0 = closed[1] * CHUNK
+    shallow = CHUNK.times.flat_map { |dx| CHUNK.times.flat_map { |dz| air_runs(world, x0 + dx, z0 + dz).flatten.select { |y| world.height_at(x0 + dx, z0 + dz) - 1 - y <= Terrain::ROOM_ROOF } } }
+    assert_empty shallow
+  end
+
   ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE].freeze
 
   # The stone and ore blocks of each layer, and the blocks of each ore by

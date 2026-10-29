@@ -91,6 +91,27 @@ class TerrainTest < Minitest::Test
     assert_operator patch, :<, CHUNK * CHUNK
   end
 
+  def test_the_cave_region_goes_from_closed_to_full_and_has_values_between
+    terrain = Terrain.new(1337)
+    values = (-30..30).flat_map { |i| (-30..30).map { |j| terrain.cave_region(i * 40, j * 40) } }
+    assert_equal 0.0, values.min
+    assert_equal 1.0, values.max
+    assert(values.any? { |value| value > 0.0 && value < 1.0 })
+    assert_operator values.count(0.0), :>, values.size / 4
+    assert_operator values.count(1.0), :>, values.size / 8
+  end
+
+  def test_the_room_threshold_has_a_roof_and_falls_to_its_value
+    roof = Terrain::ROOM_ROOF
+    fade = Terrain::ROOM_FADE
+    assert_operator Terrain.room_threshold(roof), :>, 1.0
+    assert_in_delta Terrain::ROOM_THRESHOLD, Terrain.room_threshold(roof + fade), 1e-12
+    assert_in_delta Terrain::ROOM_THRESHOLD, Terrain.room_threshold(roof + fade + 40), 1e-12
+    steps = (roof + 1..roof + fade).map { |depth| Terrain.room_threshold(depth) }
+    assert_equal steps.sort.reverse, steps
+    assert_operator steps.first, :<, 1.0
+  end
+
   # x_edges and yz_lerp blend the 8 points of a cell of the cave grid. In
   # a grid of 2 x 2 x 2 points where point n holds n, the blend at tx, ty,
   # tz is 4 tx + 2 ty + tz.
@@ -105,13 +126,29 @@ class TerrainTest < Minitest::Test
   # grid of World#generate_chunk, where tunnels keep their full width.
   def test_carved_blocks_of_an_entrance_patch_are_the_caves_of_the_generated_chunk
     terrain = Terrain.new(1337)
-    world = world_with_one_chunk
+    # A chunk with a tunnel in an entrance patch, near the top block.
+    cx, cz = (-8..8).flat_map { |i| (-8..8).map { |j| [i, j] } }.find do |i, j|
+      CHUNK.times.any? do |x|
+        CHUNK.times.any? do |z|
+          column_x = i * CHUNK + x
+          column_z = j * CHUNK + z
+          terrain.entrance?(column_x, column_z) && (2...terrain.surface_height(column_x, column_z)).any? { |y| terrain.carved?(column_x, y, column_z) }
+        end
+      end
+    end
+    world = World.new(1337)
+    world.load_chunk(cx, cz)
     carved = 0
-    CHUNK.times do |x|
-      CHUNK.times do |z|
+    CHUNK.times do |dx|
+      CHUNK.times do |dz|
+        x = cx * CHUNK + dx
+        z = cz * CHUNK + dz
         next unless terrain.entrance?(x, z)
 
-        (2...terrain.surface_height(x, z)).each do |y|
+        top = terrain.surface_height(x, z)
+        (2...top).each do |y|
+          next if top - 1 - y > Terrain::ROOM_ROOF
+
           cave = [Block::AIR, Block::LAVA].include?(world.get(x, y, z))
           assert_equal cave, terrain.carved?(x, y, z), "block #{x} #{y} #{z}"
           carved += 1 if cave

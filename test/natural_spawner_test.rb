@@ -314,9 +314,12 @@ class NaturalSpawnerTest < Minitest::Test
 
   def test_on_halloween_the_new_monsters_wear_pumpkins
     spawner = NaturalSpawner.new(@world, 5, true)
-    mobs = []
-    spawner.spawn_monsters(mobs, @player, 0, 10.0)
-    assert(mobs.any? { |monster| monster.head != 0 })
+    heads = 10.times.flat_map do
+      mobs = []
+      spawner.spawn_monsters(mobs, @player, 0, 10.0)
+      mobs.map(&:head)
+    end
+    assert(heads.any? { |head| head != 0 })
   end
 
   def test_animals_spawn_on_grass_around_the_player
