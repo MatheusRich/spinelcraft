@@ -205,6 +205,10 @@ module Tex
   ARMOR_EMPTY = hud_icon("armor_empty")
   # The red blocks of SPINEL in the title (tools/logo.rb).
   SPINEL_BLOCK = image("spinel_block")
+  # The leaves with no clear pixel, for FAST graphics (Tex.solid_leaves).
+  OAK_LEAVES_SOLID = drawn(1)
+  SPRUCE_LEAVES_SOLID = drawn(1)
+  BIRCH_LEAVES_SOLID = drawn(1)
   CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()!?,'<>=_~@[]#*;\"|"
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size
@@ -218,9 +222,18 @@ module Tex
   # so items show the plains colors. A pixel with alpha 254 keeps its
   # color: the dirt of GRASS_SIDE.
   def self.tint(layer)
-    return 2 if layer == OAK_LEAVES
+    return 2 if layer == OAK_LEAVES || layer == OAK_LEAVES_SOLID
 
     layer == GRASS_TOP || layer == GRASS_SIDE || layer == TALL_GRASS ? 1 : 0
+  end
+
+  # The layer that FAST graphics draws in place of a layer of leaves.
+  def self.solid(layer)
+    return OAK_LEAVES_SOLID if layer == OAK_LEAVES
+    return SPRUCE_LEAVES_SOLID if layer == SPRUCE_LEAVES
+    return BIRCH_LEAVES_SOLID if layer == BIRCH_LEAVES
+
+    layer
   end
 
   GLYPHS = [
@@ -312,7 +325,26 @@ module Tex
     cracks(px)
     images(px)
     LAYERS.times { |layer| bleed(px, layer) if BLEED[layer] == 1 }
+    solid_leaves(px)
     px
+  end
+
+  # The share of the color of a clear pixel of leaves that its solid layer
+  # keeps: the dark of the leaves behind the first ones.
+  SOLID_SHADE_PERCENT = 55
+
+  # Fills the solid layer of each layer of leaves: the opaque pixels stay,
+  # and each clear pixel takes the color that bleed gave it, darker. It runs
+  # after bleed.
+  def self.solid_leaves(px)
+    [OAK_LEAVES, SPRUCE_LEAVES, BIRCH_LEAVES].each do |layer|
+      solid = Tex.solid(layer)
+      256.times do |pixel|
+        color = px[layer * 256 + pixel]
+        shade = (color >> 24) & 255 >= 128 ? 100 : SOLID_SHADE_PERCENT
+        px[solid * 256 + pixel] = rgba((color & 255) * shade / 100, ((color >> 8) & 255) * shade / 100, ((color >> 16) & 255) * shade / 100, 255)
+      end
+    end
   end
 
 

@@ -75,6 +75,43 @@ class MesherTest < Minitest::Test
     assert_equal 6 + 5, faces - before
   end
 
+  # The second words of the faces of the blocks that the test put at CUBE_X, SKY_Y, CUBE_Z.
+  def face_words
+    @mesher.build(0, 0)
+    words = []
+    (0...@mesher.opaque.size).step(2) do |k|
+      w0 = @mesher.opaque[k]
+      next unless Mesher.face_x(w0) == CUBE_X && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == CUBE_Z
+
+      words << @mesher.opaque[k + 1]
+    end
+    words
+  end
+
+  def test_fast_leaves_draw_the_solid_layer_of_their_leaves_and_keep_the_tint
+    {Block::OAK_LEAVES => Tex::OAK_LEAVES_SOLID, Block::SPRUCE_LEAVES => Tex::SPRUCE_LEAVES_SOLID,
+     Block::BIRCH_LEAVES => Tex::BIRCH_LEAVES_SOLID, Block::PLACED_OAK_LEAVES => Tex::OAK_LEAVES_SOLID}.each do |block, solid|
+      setup
+      @mesher.fast_leaves = true
+      @world.set(CUBE_X, SKY_Y, CUBE_Z, block)
+      words = face_words
+      assert_equal 6, words.size
+      assert(words.all? { |w1| Mesher.field(w1, Mesher::TEX_AT, Mesher::TEX_BITS) == solid })
+      assert(words.all? { |w1| Mesher.face_tint(w1) == Tex.tint(solid) })
+    end
+  end
+
+  def test_fancy_leaves_draw_their_own_layer
+    @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::OAK_LEAVES)
+    assert(face_words.all? { |w1| Mesher.field(w1, Mesher::TEX_AT, Mesher::TEX_BITS) == Tex::OAK_LEAVES })
+  end
+
+  def test_fast_graphics_draw_other_blocks_with_their_own_layers
+    @mesher.fast_leaves = true
+    @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::STONE)
+    assert(face_words.all? { |w1| Mesher.field(w1, Mesher::TEX_AT, Mesher::TEX_BITS) == Block::SIDE[Block::STONE] })
+  end
+
   def test_other_blocks_make_the_same_faces_in_both_graphics
     fancy = faces_added_by(Block::STONE, 3)
     setup

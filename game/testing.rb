@@ -230,6 +230,7 @@ class Game
     test_screen_input
     test_menu
     test_graphics_setting
+    test_solid_leaves
     test_perf_log
     test_fullscreen_follows_window
     test_commands
@@ -809,6 +810,23 @@ class Game
     @console.teleport(x, y, z)
     @player.yaw = yaw
     @player.pitch = pitch
+  end
+
+  # The solid layers of FAST graphics, as the compiled game builds them from
+  # the images: no clear pixel, and the opaque pixels of the leaves.
+  def test_solid_leaves
+    px = Tex.build
+    ok = true
+    [Tex::OAK_LEAVES, Tex::SPRUCE_LEAVES, Tex::BIRCH_LEAVES].each do |layer|
+      solid = Tex.solid(layer)
+      256.times do |i|
+        leaf = px[layer * 256 + i]
+        fill = px[solid * 256 + i]
+        ok = false if (fill >> 24) & 255 != 255
+        ok = false if (leaf >> 24) & 255 >= 128 && fill != (leaf | (255 << 24))
+      end
+    end
+    check("the solid leaves of FAST graphics have no clear pixel and keep the pixels of the leaves", ok)
   end
 
   # The compiled game writes the lines of the perf log, and reads the GPU

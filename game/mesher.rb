@@ -407,6 +407,7 @@ class Mesher
       visible = false if f == 3 && y == 0
       if visible
         tex = f == 2 ? Block::TOP[id] : (f == 3 ? Block::BOTTOM[id] : (f == front ? Block::FRONT[id] : Block::SIDE[id]))
+        tex = Tex.solid(tex) if @fast_leaves && @leaf[id] == 1
         ny = y + (f == 2 ? 1 : (f == 3 ? -1 : 0))
         sx = x + @nx[f]
         sz = z + @nz[f]
