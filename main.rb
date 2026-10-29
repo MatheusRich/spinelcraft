@@ -191,6 +191,8 @@ class Game
     @faces_drawn = 0
     @cpu_end = 0
     @frame_began = 0
+    @previous_cpu = 0.0
+    @previous_steps = ""
     @game_mode = ENV["MODE"] == "survival" ? GameMode::SURVIVAL : GameMode::CREATIVE
     @loaded = SaveFile.new
     @load_error = ""
@@ -769,12 +771,14 @@ class Game
     frames = 0
     until Gfx.in_poll || @quit
       now = Gfx.gfx_ns
-      dt = (now - last) / 1.0e9
+      interval_ms = (now - last) / 1.0e6
+      dt = interval_ms / 1000.0
       dt = 0.05 if dt > 0.05
       dt = 1.0 / RECORD_FPS if @record != ""
       last = now
       cpu = frame(dt, now, frames)
       record_frame(frames, dt, cpu)
+      write_perf_log(interval_ms, cpu) if frames > WARMUP_FRAMES && !@scripted
       frames += 1
       Gfx.gfx_screenshot(@shot) if @shot != "" && frames == @max_frames - 1
       break if @max_frames > 0 && frames >= @max_frames
@@ -843,7 +847,7 @@ class Game
   # The first frames are not counted in the maximum values: they load the
   # world.
   def record_frame(frames, dt, cpu)
-    warm = frames > 10
+    warm = frames > WARMUP_FRAMES
     @max_cpu = cpu if cpu > @max_cpu && warm
     frame_ms = dt * 1000.0
     @max_frame = frame_ms if frame_ms > @max_frame && warm
@@ -853,13 +857,25 @@ class Game
     @fps_frames += 1
     @fps_time += dt
     update_fps if @fps_time >= 0.5
-    write_perf_log(frame_ms, cpu) unless @scripted
   end
 
-  def write_perf_log(frame_ms, cpu)
-    @perf_log.add(frame_ms, cpu)
-    @perf_log.write_stutter(frame_ms, "#{cpu.round(1)} ms of CPU, #{(frame_ms - cpu).round(1)} ms of wait. #{frame_steps}") if @perf_log.stutter?(frame_ms)
+  # The interval is the time from the start of the last frame to the start of
+  # this one, with no limit. It belongs to the last frame, so it goes with the
+  # CPU time and the steps of the last frame. The steps are only for a frame
+  # with enough CPU time to have a slow step.
+  def write_perf_log(interval_ms, cpu)
+    @perf_log.add(interval_ms, @previous_cpu)
+    @perf_log.write_stutter(interval_ms, stutter_detail(interval_ms)) if @perf_log.stutter?(interval_ms)
     @perf_log.write_stretch(perf_state) if @perf_log.due?
+    @previous_cpu = cpu
+    @previous_steps = cpu > Log::SLOW_MS ? frame_steps : ""
+  end
+
+  def stutter_detail(interval_ms)
+    detail = "#{@previous_cpu.round(1)} ms of CPU, #{(interval_ms - @previous_cpu).round(1)} ms of wait"
+    return detail if @previous_steps == ""
+
+    "#{detail}. #{@previous_steps}"
   end
 
   # What the game knows at the end of a stretch of play, for the perf log.

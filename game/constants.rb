@@ -81,6 +81,9 @@ class Game
   STAMP_FAR = 1
   STAMP_FLUSH = 2
   STAMP_RENDER = 3
+  # The first frames of a run load the world, so the numbers of the run do
+  # not count them.
+  WARMUP_FRAMES = 10
   # The frame rate of a recording (RECORD).
   RECORD_FPS = 30
 

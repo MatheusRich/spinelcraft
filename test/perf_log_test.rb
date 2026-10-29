@@ -17,14 +17,25 @@ class PerfLogTest < Minitest::Test
   def lines = File.readlines(@path, chomp: true)
 
   # Adds one second of frames at 10 ms each.
-  def play_one_second
-    100.times { @log.add(10.0, 2.0) }
+  def play_one_second = play_one_second_in(@log)
+
+  def play_one_second_in(log)
+    100.times { log.add(10.0, 2.0) }
   end
 
   def test_a_session_appends_its_header_and_keeps_the_sessions_before
     @log.start("session one")
     PerfLog.new(@path).start("session two")
     assert_equal ["", "session one", "", "session two"], lines
+  end
+
+  def test_a_log_that_cannot_be_written_does_not_raise
+    log = PerfLog.new(File.join(@dir, "no-such-folder", "perf.log"))
+    log.start("session")
+    play_one_second_in(log)
+    log.write_stretch("extra")
+    log.write_stutter(50.0, "slow")
+    refute_path_exists File.join(@dir, "no-such-folder")
   end
 
   def test_a_stretch_is_due_after_the_interval

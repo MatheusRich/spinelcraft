@@ -776,9 +776,31 @@ class Game
     log.write_stretch("memory #{Gfx.gfx_footprint_mb} MB")
     text = File.read(path)
     File.delete(path)
+    test_perf_log_stutters(path)
     check("the perf log writes the line of a stretch of play",
           text.include?("1 s: 100 frames, frame ms p50 10.5 p95 10.5 p99 10.5 worst 10.0, over 16.7 ms 0.0%, over 33.3 ms 0.0%, cpu ms avg 2.0 p99 2.5, memory "))
     check("the game reads the GPU name and the memory that the system charges to it", Gfx.gfx_machine(0) != "" && Gfx.gfx_footprint_mb > 0)
+  end
+
+  # The game writes a stutter with the CPU time and the steps of the frame
+  # that took the time, which is the frame before the one that sees the
+  # interval, and it does not limit the interval to the 50 ms of the game
+  # clock. A log that cannot be written does not stop the game.
+  def test_perf_log_stutters(path)
+    write_perf_log(10.0, 2.0)
+    write_perf_log(10.0, 30.0)
+    write_perf_log(45.0, 3.0)
+    write_perf_log(1500.0, 1.0)
+    text = File.read(path)
+    File.delete(path)
+    check("a stutter line goes with the CPU time and the steps of the frame that took the time",
+          text.include?("frame 45.0 ms, 30.0 ms of CPU, 15.0 ms of wait. update "))
+    check("a stutter line of a frame over 50 ms shows the whole interval and no steps for a cheap frame",
+          text.include?("frame 1500.0 ms, 3.0 ms of CPU, 1497.0 ms of wait\n"))
+    unwritable = PerfLog.new("/spinelcraft-no-such-folder/perf.log")
+    unwritable.start("session")
+    unwritable.write_stutter(50.0, "slow")
+    check("a perf log that cannot be written does not stop the game", true)
   end
 
   # Every sound file loads, footsteps follow the block underfoot, and a

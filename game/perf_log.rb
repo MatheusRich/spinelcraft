@@ -2,7 +2,9 @@
 # that a computer which cannot run the benchmarks still tells how the game
 # runs on it. A session writes a header with the machine, then one line for
 # each INTERVAL_SECONDS of play, and one line for each stutter (a frame over
-# FrameStats::STUTTER_MS). A crash loses at most the last stretch.
+# FrameStats::STUTTER_MS). A crash loses at most the last stretch. A percentile
+# is the upper edge of a bucket of TimeHistogram, and 100.0 means 100 ms or
+# more.
 class PerfLog
   INTERVAL_SECONDS = 30.0
   # A stretch writes at most this many stutter lines, so that a stutter that
@@ -61,7 +63,11 @@ class PerfLog
 
   def percent_of_frames(frames) = "#{(frames * PERCENT / @stats.count).round(1)}%"
 
+  # A log that cannot be written (a folder without write access) must not
+  # stop the game.
   def append(text)
     File.write(@path, "#{text}\n", mode: "a")
+  rescue SystemCallError
+    nil
   end
 end
