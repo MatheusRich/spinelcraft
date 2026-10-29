@@ -13,6 +13,7 @@ module Log
   # A frame takes more CPU time than this to be in the frame topic: half a
   # frame at 60 Hz.
   SLOW_MS = 8.0
+  MILLISECONDS_PER_SECOND = 1000.0
 
   @on = Array.new(NAMES.size, false)
   @start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -39,5 +40,18 @@ module Log
 
     seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @start
     $stderr.puts "#{format("%9.3f", seconds)} #{NAMES[topic]}: #{yield}"
+  end
+
+  # Runs the block and returns its value. When the topic is on, it also writes
+  # the label and the milliseconds that the block took. A topic that is off
+  # runs the block and does not read the clock.
+  def self.measure(topic, label)
+    return yield unless @on[topic]
+
+    began = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    result = yield
+    milliseconds = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - began) * MILLISECONDS_PER_SECOND
+    debug(topic) { "#{label} (#{milliseconds.round(1)} ms)" }
+    result
   end
 end
