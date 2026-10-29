@@ -1,7 +1,7 @@
 require_relative "test_helper"
 
 # The mesher makes a face for each side of a block that a block next to it
-# does not cover. Leaves do not cover, so FAST graphics (fast_leaves) drops
+# does not cover. Leaves do not cover, so FAST graphics drop
 # the faces between two blocks of leaves.
 class MesherTest < Minitest::Test
   CUBE_X = 6
@@ -40,17 +40,17 @@ class MesherTest < Minitest::Test
   end
 
   def test_fast_leaves_make_only_the_faces_on_the_outside_of_a_group_of_leaves
-    @mesher.fast_leaves = true
+    @mesher.graphics = GraphicsMode::FAST
     assert_equal 6 * 9, faces_added_by(Block::OAK_LEAVES, 3)
   end
 
   def test_a_single_leaf_block_keeps_all_six_faces_in_fast_graphics
-    @mesher.fast_leaves = true
+    @mesher.graphics = GraphicsMode::FAST
     assert_equal 6, faces_added_by(Block::OAK_LEAVES, 1)
   end
 
   def test_fast_leaves_also_hide_the_faces_between_leaves_of_another_kind_and_placed_leaves
-    @mesher.fast_leaves = true
+    @mesher.graphics = GraphicsMode::FAST
     before = faces
     @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::OAK_LEAVES)
     @world.set(CUBE_X + 1, SKY_Y, CUBE_Z, Block::BIRCH_LEAVES)
@@ -59,7 +59,7 @@ class MesherTest < Minitest::Test
   end
 
   def test_fast_leaves_keep_the_faces_between_leaves_and_another_block
-    @mesher.fast_leaves = true
+    @mesher.graphics = GraphicsMode::FAST
     before = faces
     @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::OAK_LEAVES)
     @world.set(CUBE_X + 1, SKY_Y, CUBE_Z, Block::GLASS)
@@ -68,7 +68,7 @@ class MesherTest < Minitest::Test
   end
 
   def test_a_block_next_to_leaves_keeps_its_face_in_fast_graphics
-    @mesher.fast_leaves = true
+    @mesher.graphics = GraphicsMode::FAST
     before = faces
     @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::STONE)
     @world.set(CUBE_X + 1, SKY_Y, CUBE_Z, Block::OAK_LEAVES)
@@ -92,7 +92,7 @@ class MesherTest < Minitest::Test
     {Block::OAK_LEAVES => Tex::OAK_LEAVES_SOLID, Block::SPRUCE_LEAVES => Tex::SPRUCE_LEAVES_SOLID,
      Block::BIRCH_LEAVES => Tex::BIRCH_LEAVES_SOLID, Block::PLACED_OAK_LEAVES => Tex::OAK_LEAVES_SOLID}.each do |block, solid|
       setup
-      @mesher.fast_leaves = true
+      @mesher.graphics = GraphicsMode::FAST
       @world.set(CUBE_X, SKY_Y, CUBE_Z, block)
       words = face_words
       assert_equal 6, words.size
@@ -107,7 +107,7 @@ class MesherTest < Minitest::Test
   end
 
   def test_fast_graphics_draw_other_blocks_with_their_own_layers
-    @mesher.fast_leaves = true
+    @mesher.graphics = GraphicsMode::FAST
     @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::STONE)
     assert(face_words.all? { |w1| Mesher.field(w1, Mesher::TEX_AT, Mesher::TEX_BITS) == Block::SIDE[Block::STONE] })
   end
@@ -115,7 +115,7 @@ class MesherTest < Minitest::Test
   def test_other_blocks_make_the_same_faces_in_both_graphics
     fancy = faces_added_by(Block::STONE, 3)
     setup
-    @mesher.fast_leaves = true
+    @mesher.graphics = GraphicsMode::FAST
     assert_equal fancy, faces_added_by(Block::STONE, 3)
   end
 

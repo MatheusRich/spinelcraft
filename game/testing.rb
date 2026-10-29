@@ -778,9 +778,9 @@ class Game
     z = @player.z
     yaw = @player.yaw
     pitch = @player.pitch
-    fancy = @options.fancy_graphics
-    @options.fancy_graphics = true
-    @chunk_meshes.fast_leaves = false
+    graphics = @options.graphics
+    @options.graphics = GraphicsMode::FANCY
+    @chunk_meshes.graphics = GraphicsMode::FANCY
     ex = x.floor
     ez = z.floor
     @console.teleport(x, SKY_Y + 1.0, z)
@@ -797,16 +797,16 @@ class Game
     @chunk_meshes.flush_all
     render
     with_fast = @faces_drawn
-    check("the GRAPHICS button switches to FAST", menu_label(M_GRAPHICS) == "GRAPHICS: FAST" && !@options.fancy_graphics)
+    check("the GRAPHICS button switches to FAST", menu_label(M_GRAPHICS) == "GRAPHICS: FAST" && @options.graphics.equal?(GraphicsMode::FAST))
     check("a frame with FAST graphics draws fewer faces: the faces inside a cube of leaves", with_fancy - with_fast >= 36)
     click_menu(M_GRAPHICS)
     @chunk_meshes.flush_all
     render
-    check("the GRAPHICS button switches back to FANCY and the faces come back", @options.fancy_graphics && @faces_drawn == with_fancy)
+    check("the GRAPHICS button switches back to FANCY and the faces come back", @options.graphics.equal?(GraphicsMode::FANCY) && @faces_drawn == with_fancy)
     cube.each { |c| set_block(c[0], c[1], c[2], Block::AIR) }
     @chunk_meshes.flush_all
-    @options.fancy_graphics = fancy
-    @chunk_meshes.fast_leaves = !fancy
+    @options.graphics = graphics
+    @chunk_meshes.graphics = graphics
     @console.teleport(x, y, z)
     @player.yaw = yaw
     @player.pitch = pitch

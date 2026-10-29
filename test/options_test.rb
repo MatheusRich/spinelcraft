@@ -16,7 +16,7 @@ class OptionsTest < Minitest::Test
     assert_equal 70.0, options.fov_degrees
     assert_equal false, options.fullscreen
     assert_equal false, options.debug
-    assert options.fancy_graphics
+    assert_same GraphicsMode::FANCY, options.graphics
   end
 
   def test_the_render_distance_slider_goes_from_200_to_5000_in_steps_of_100_blocks
@@ -65,7 +65,7 @@ class OptionsTest < Minitest::Test
       written.fov_degrees = 90.0
       written.fullscreen = true
       written.debug = true
-      written.fancy_graphics = false
+      written.graphics = GraphicsMode::FAST
       written.write_file
       assert_equal "graphics:fast\n", File.readlines(path).last
       read = Options.new(path)
@@ -77,25 +77,25 @@ class OptionsTest < Minitest::Test
       assert_equal 90.0, read.fov_degrees
       assert read.fullscreen
       assert read.debug
-      refute read.fancy_graphics
+      assert_same GraphicsMode::FAST, read.graphics
     end
   end
 
-  def test_the_file_keeps_fancy_graphics
+  def test_a_file_without_graphics_keeps_the_graphics_fancy
     in_dir do |path|
       Options.new(path).write_file
       read = Options.new(path)
-      read.fancy_graphics = false
+      read.graphics = GraphicsMode::FAST
       read.read_file
-      assert read.fancy_graphics
+      assert_same GraphicsMode::FANCY, read.graphics
     end
   end
 
   def test_only_the_word_fast_turns_the_graphics_to_fast
-    refute read_text("graphics:fast\n").fancy_graphics
-    assert read_text("graphics:fancy\n") { |o| o.fancy_graphics = false }.fancy_graphics
-    assert read_text("graphics:ultra\n").fancy_graphics
-    assert read_text("graphics:\n").fancy_graphics
+    assert_same GraphicsMode::FAST, read_text("graphics:fast\n").graphics
+    assert_same GraphicsMode::FANCY, read_text("graphics:fancy\n") { |o| o.graphics = GraphicsMode::FAST }.graphics
+    assert_same GraphicsMode::FANCY, read_text("graphics:ultra\n").graphics
+    assert_same GraphicsMode::FANCY, read_text("graphics:\n").graphics
   end
 
   def test_a_value_outside_its_range_reads_as_the_nearest_end
@@ -116,7 +116,7 @@ class OptionsTest < Minitest::Test
     assert_equal 0.5, read.brightness
     assert_equal 70.0, read.fov_degrees
     assert read.debug
-    assert read.fancy_graphics
+    assert_same GraphicsMode::FANCY, read.graphics
   end
 
   def test_only_the_word_true_turns_an_on_or_off_option_on

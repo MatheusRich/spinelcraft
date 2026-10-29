@@ -15,9 +15,8 @@ class Options
   # The brightness, the volume and the music go from 0 to 1. Brightness 0
   # is the light without a lift. The render distance is in blocks, and the
   # field of view in degrees. debug shows the debug lines of F3.
-  # fancy_graphics is true for the graphics of FANCY and false for FAST: FAST
-  # draws no face between two blocks of leaves (Mesher#fast_leaves).
-  attr_accessor :brightness, :volume, :music, :view, :fov_degrees, :fullscreen, :debug, :fancy_graphics
+  # graphics is a GraphicsMode.
+  attr_accessor :brightness, :volume, :music, :view, :fov_degrees, :fullscreen, :debug, :graphics
 
   # Options that path keeps. The brightness, the volume and the music
   # start at half, the graphics start FANCY, and the debug lines start off.
@@ -30,7 +29,7 @@ class Options
     @fov_degrees = FOV_NORMAL
     @fullscreen = false
     @debug = false
-    @fancy_graphics = true
+    @graphics = GraphicsMode::FANCY
   end
 
   # Where the render distance is on its slider, from 0 to 1.
@@ -57,7 +56,7 @@ class Options
   # the options.txt of Minecraft.
   def write_file
     File.open(@path, "w") do |f|
-      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nmusic:#{@music}\nview:#{@view}\nfov:#{@fov_degrees}\nfullscreen:#{@fullscreen}\ndebug:#{@debug}\ngraphics:#{@fancy_graphics ? "fancy" : "fast"}\n")
+      f.write("brightness:#{@brightness}\nvolume:#{@volume}\nmusic:#{@music}\nview:#{@view}\nfov:#{@fov_degrees}\nfullscreen:#{@fullscreen}\ndebug:#{@debug}\ngraphics:#{@graphics.name.downcase}\n")
     end
     nil
   end
@@ -91,7 +90,7 @@ class Options
     elsif name == "debug"
       @debug = value == "true"
     elsif name == "graphics"
-      @fancy_graphics = value != "fast"
+      @graphics = GraphicsMode.parse(value) || GraphicsMode::FANCY
     end
     # A nil return keeps Spinel from boxing the value of each branch.
     nil

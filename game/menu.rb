@@ -107,8 +107,8 @@ class Game
     if i == M_RESUME
       resume
     elsif i == M_GRAPHICS
-      @options.fancy_graphics = !@options.fancy_graphics
-      @chunk_meshes.fast_leaves = !@options.fancy_graphics
+      @options.graphics = @options.graphics.next_mode
+      @chunk_meshes.graphics = @options.graphics
     elsif i == M_FULLSCREEN
       toggle_fullscreen
     elsif i == M_DEBUG
@@ -170,7 +170,7 @@ class Game
       f = @options.fov_degrees.to_i
       "FIELD OF VIEW: #{f == Options::FOV_NORMAL.to_i ? "NORMAL" : (f == Options::FOV_MAX.to_i ? "QUAKE PRO" : f.to_s)}"
     elsif i == M_GRAPHICS
-      "GRAPHICS: #{@options.fancy_graphics ? "FANCY" : "FAST"}"
+      "GRAPHICS: #{@options.graphics.name}"
     elsif i == M_FULLSCREEN
       "FULLSCREEN: #{@options.fullscreen ? "ON" : "OFF"}"
     elsif i == M_DEBUG

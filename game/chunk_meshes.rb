@@ -161,13 +161,12 @@ class ChunkMeshes
     nil
   end
 
-  # Sets the FAST graphics for the leaves (Mesher#fast_leaves). The meshes
-  # that exist change in the frames that follow, as the remeshes of
-  # torch light do.
-  def fast_leaves=(on)
-    return if on == @mesher.fast_leaves
+  # Sets the GraphicsMode of the meshes. The meshes that exist change in the
+  # frames that follow, as the remeshes of torch light do.
+  def graphics=(mode)
+    return if mode.equal?(@mesher.graphics)
 
-    @mesher.fast_leaves = on
+    @mesher.graphics = mode
     (CX * CZ).times { |slot| later_slot(slot) }
   end
 
