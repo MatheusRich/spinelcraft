@@ -8,18 +8,18 @@ class Game
     return_held
     @chests.close
     land_falling
-    file = save_sections
-    t0 = Gfx.gfx_ns
+    file = Log.measure(Log::SAVE, "sections") { save_sections }
     chunks = @world.edited_chunks
     keys = chunks.keys
     head = file.head(SAVE_VERSION, keys)
-    File.open(@save_path, "wb") do |out|
-      out.write(head)
-      keys.each { |key| out.write(chunks[key]) }
+    Log.measure(Log::SAVE, "write #{@save_path}") do
+      File.open(@save_path, "wb") do |out|
+        out.write(head)
+        keys.each { |key| out.write(chunks[key]) }
+      end
     end
     @changed = false
     say("WORLD SAVED")
-    puts "saved #{@save_path} in #{((Gfx.gfx_ns - t0) / 1.0e6).round} ms"
     Log.debug(Log::SAVE) do
       "#{head.bytesize + keys.size * CHUNK_BYTES} bytes: #{keys.size} edited chunks, #{@chests.size} chests, #{@items.size} items, " \
         "#{@furnaces.size} furnaces, #{@boats.size} boats"
@@ -33,13 +33,16 @@ class Game
     return false unless File.exist?(@save_path)
 
     file = SaveFile.new
-    return load_failed(file.error) unless file.read(File.binread(@save_path), SAVE_VERSION)
+    read = Log.measure(Log::SAVE, "read #{@save_path}") { file.read(File.binread(@save_path), SAVE_VERSION) }
+    return load_failed(file.error) unless read
 
     seed = file.section("seed")
     @seed = seed[0].to_i unless seed.empty?
     reset_world
     store = @world.store
-    file.chunks.each { |key, bytes| store[key] = bytes }
+    Log.measure(Log::SAVE, "store #{file.chunks.size} chunks") do
+      file.chunks.each { |key, bytes| store[key] = bytes }
+    end
     @loaded = file
     Log.debug(Log::SAVE) { "loaded #{@save_path}: seed #{@seed}, #{file.chunks.size} edited chunks" }
     true

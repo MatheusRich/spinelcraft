@@ -402,7 +402,9 @@ class Game
   end
 
   def respawn
-    @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
+    Log.measure(Log::WORLD, "mesh the nearest chunks for the respawn") do
+      @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
+    end
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
     @player.move_to(@spawn_x, h + 0.01, @spawn_z)
     @player.revive
