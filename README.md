@@ -45,7 +45,7 @@ The game saves to `world.sav` in the current directory and loads it at start. To
 | T, / | Chat and commands |
 | Esc | Pause, play again |
 
-The game starts on a title screen, with buttons to play, to start a new world, and to quit. The pause menu has sliders for brightness, volume and render distance, and buttons for fullscreen, the debug text, and save and quit to the title.
+The game starts on a title screen, with buttons to play, to start a new world, and to quit. The pause menu has sliders for brightness, volume, music, render distance and field of view, and buttons for the graphics (FANCY or FAST), fullscreen, the debug text, and save and quit to the title. FAST graphics simplifies how some things look, so the game uses less memory and has less to draw. It helps on a weaker computer.
 
 In survival, start by punching a tree. The inventory shows a recipe after you have had its ingredient. Some recipes need a crafting table or a furnace near you.
 

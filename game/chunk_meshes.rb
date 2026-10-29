@@ -161,6 +161,16 @@ class ChunkMeshes
     nil
   end
 
+  # Sets the FAST graphics for the leaves (Mesher#fast_leaves). The meshes
+  # that exist change in the frames that follow, as the remeshes of
+  # torch light do.
+  def fast_leaves=(on)
+    return if on == @mesher.fast_leaves
+
+    @mesher.fast_leaves = on
+    (CX * CZ).times { |slot| later_slot(slot) }
+  end
+
   def meshable?(cx, cz)
     w = @world
     w.chunk_loaded?(cx - 1, cz - 1) && w.chunk_loaded?(cx, cz - 1) && w.chunk_loaded?(cx + 1, cz - 1) &&

@@ -229,6 +229,7 @@ class Game
     test_screens
     test_screen_input
     test_menu
+    test_graphics_setting
     test_perf_log
     test_fullscreen_follows_window
     test_commands
@@ -764,6 +765,50 @@ class Game
           read.brightness == 1.0 && read.volume == 0.25 && read.music == 0.0 && read.view == 1200.0 && read.fov_degrees == 90.0 && !read.debug && !read.fullscreen)
     @options = options
     @fov = @options.half_fov
+  end
+
+  # FAST graphics draws no face between two blocks of leaves. A frame that
+  # looks at a cube of leaves draws the faces inside the cube with FANCY and
+  # draws them no more with FAST, and the GRAPHICS button switches between
+  # them. The faces of a frame count what the player sees (FACES of F3).
+  def test_graphics_setting
+    x = @player.x
+    y = @player.y
+    z = @player.z
+    yaw = @player.yaw
+    pitch = @player.pitch
+    fancy = @options.fancy_graphics
+    @options.fancy_graphics = true
+    @chunk_meshes.fast_leaves = false
+    ex = x.floor
+    ez = z.floor
+    @console.teleport(x, SKY_Y + 1.0, z)
+    @player.yaw = 0.0
+    @player.pitch = 0.0
+    cube = []
+    3.times { |dx| 3.times { |dy| 3.times { |dz| cube << [ex + dx - 1, SKY_Y + dy, ez - 8 + dz] } } }
+    cube.each { |c| set_block(c[0], c[1], c[2], Block::OAK_LEAVES) }
+    @chunk_meshes.flush_all
+    render
+    with_fancy = @faces_drawn
+    check("the GRAPHICS button starts at FANCY", menu_label(M_GRAPHICS) == "GRAPHICS: FANCY")
+    click_menu(M_GRAPHICS)
+    @chunk_meshes.flush_all
+    render
+    with_fast = @faces_drawn
+    check("the GRAPHICS button switches to FAST", menu_label(M_GRAPHICS) == "GRAPHICS: FAST" && !@options.fancy_graphics)
+    check("a frame with FAST graphics draws fewer faces: the faces inside a cube of leaves", with_fancy - with_fast >= 36)
+    click_menu(M_GRAPHICS)
+    @chunk_meshes.flush_all
+    render
+    check("the GRAPHICS button switches back to FANCY and the faces come back", @options.fancy_graphics && @faces_drawn == with_fancy)
+    cube.each { |c| set_block(c[0], c[1], c[2], Block::AIR) }
+    @chunk_meshes.flush_all
+    @options.fancy_graphics = fancy
+    @chunk_meshes.fast_leaves = !fancy
+    @console.teleport(x, y, z)
+    @player.yaw = yaw
+    @player.pitch = pitch
   end
 
   # The compiled game writes the lines of the perf log, and reads the GPU

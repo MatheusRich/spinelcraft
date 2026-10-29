@@ -7,10 +7,11 @@ class Game
   M_MUSIC = 3
   M_VIEW = 4
   M_FOV = 5
-  M_FULLSCREEN = 6
-  M_DEBUG = 7
-  M_QUIT = 8
-  MENU_ITEMS = 9
+  M_GRAPHICS = 6
+  M_FULLSCREEN = 7
+  M_DEBUG = 8
+  M_QUIT = 9
+  MENU_ITEMS = 10
 
   # The buttons of the title screen.
   T_PLAY = 0
@@ -105,6 +106,9 @@ class Game
   def click_menu(i)
     if i == M_RESUME
       resume
+    elsif i == M_GRAPHICS
+      @options.fancy_graphics = !@options.fancy_graphics
+      @chunk_meshes.fast_leaves = !@options.fancy_graphics
     elsif i == M_FULLSCREEN
       toggle_fullscreen
     elsif i == M_DEBUG
@@ -165,6 +169,8 @@ class Game
     elsif i == M_FOV
       f = @options.fov_degrees.to_i
       "FIELD OF VIEW: #{f == Options::FOV_NORMAL.to_i ? "NORMAL" : (f == Options::FOV_MAX.to_i ? "QUAKE PRO" : f.to_s)}"
+    elsif i == M_GRAPHICS
+      "GRAPHICS: #{@options.fancy_graphics ? "FANCY" : "FAST"}"
     elsif i == M_FULLSCREEN
       "FULLSCREEN: #{@options.fullscreen ? "ON" : "OFF"}"
     elsif i == M_DEBUG
@@ -179,7 +185,7 @@ class Game
   def menu_cell(i, w, h, s)
     bw = 400.0 * s
     bh = 40.0 * s
-    gap = 8.0 * s
+    gap = 4.0 * s
     column = MENU_ITEMS * bh + (MENU_ITEMS - 1) * gap
     top = (h - column - 150.0 * s) / 2.0 + 50.0 * s
     [(w - bw) / 2.0, top + i * (bh + gap), bw, bh]

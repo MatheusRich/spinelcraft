@@ -109,6 +109,9 @@ class Mesher
   def self.define_field(name, at, bits) = "#define #{name}_AT #{at}u\n#define #{name}_MASK #{(1 << bits) - 1}u\n"
 
   attr_reader :opaque, :water, :offsets, :water_offsets
+  # True when a face between two blocks of leaves is not drawn (the FAST
+  # graphics). The caller remeshes the chunks that it meshed before.
+  attr_accessor :fast_leaves
 
   def initialize(world) # rubocop:todo Metrics/MethodLength
     @world = world
@@ -119,6 +122,7 @@ class Mesher
     @light = Array.new(LW * LW * WY, 0)
     @queue = Array.new(0, 0)
     @blocks = world.blocks
+    @fast_leaves = false
     @flood_x = 0
     @flood_z = 0
     # Empty literals infer as untyped in Spinel, so these say Integer.
@@ -138,7 +142,10 @@ class Mesher
     # 1 when block shows faces even with covers on all 6 sides: a plant,
     # or a fluid, whose top shows under a block.
     @always = Array.new(Block::COUNT, 0)
+    # 1 for a block of leaves, also a placed one (fast_leaves).
+    @leaf = Array.new(Block::COUNT, 0)
     Block::COUNT.times do |block|
+      @leaf[block] = 1 if Block.leaves?(block)
       @cover[block] = Block.lava?(block) ? 0 : Block::OPAQUE[block]
       @always[block] = Block.plant?(block) || Mesher.fluid(block) > 0 ? 1 : 0
     end
@@ -394,7 +401,7 @@ class Mesher
         Mesher.fluid(nb) != kind && (@cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
       else
         # Lava under lava fills its cell.
-        @cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
+        @cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(@fast_leaves && @leaf[id] == 1 && @leaf[nb] == 1) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
       end
       visible = true if shape > 0
       visible = false if f == 3 && y == 0

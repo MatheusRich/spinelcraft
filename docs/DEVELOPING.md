@@ -87,6 +87,7 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `HALLOWEEN=1` | Play as on October 31: some zombies and skeletons wear a carved pumpkin or a jack o'lantern. With `SHOWMOBS=1`, the zombie and the skeleton wear one |
 | `SELFTEST=1` | Check the game rules and print PASS or FAIL for each, then the totals. The exit status is 1 when a rule fails |
 | `VIEW=200` | Start with that view distance |
+| `GRAPHICS=fast` | Start with FAST graphics (`fancy` is the default), over the options file |
 | `NOVSYNC=1` | Ask for no vsync |
 | `LOG=save,mobs` | Write the debug log of these topics to stderr (see [Debug log](#debug-log)) |
 
@@ -121,6 +122,8 @@ F3 shows the frame rate, the CPU time, the position, the faces drawn, the visibl
 `tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby. `ruby tools/map.rb [OUT]` draws the generated world without the game: `OUT-top.png` from above and `OUT-tilt.png` at a slant, with biome colors, water depth and spawn. `SEED`, `SIZE`, `STEP` and `LIFT` change the map.
 
 `tools/bench.sh [REF]` compares the working tree with a git ref (`main` by default). It builds both, runs each `N` times in turns (3 by default) with `AUTOPILOT=1`, and prints the median world generation time and CPU time per frame. It also prints two counts from Spinel that go up when a value loses its type: the `sp_box` calls in the C and the `--warn-widen` warnings.
+
+The `GRAPHICS` option (FANCY or FAST, in `options.txt` and the pause menu) holds the settings that trade looks for speed and memory. FAST has one change for now: `Mesher#fast_leaves` makes no face between two blocks of leaves, which removes about a third of the faces of the world. A change of the option remeshes the chunks over the next frames (`ChunkMeshes#fast_leaves=`). A new item goes in this option only when a measurement shows that it costs enough to matter.
 
 `tools/lowend.sh` runs the game at several view distances, at normal speed and under `taskpolicy -b` (low priority on the slow cores), and prints the CPU time, the GPU wait, the worst frame and the resident memory. `tools/footprint.sh [idle|circle|straight]` samples the memory that macOS charges to the game, with `footprint`, while it runs. The resident memory leaves out most of the graphics memory, so use `footprint.sh` for the memory.
 

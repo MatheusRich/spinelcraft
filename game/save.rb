@@ -72,6 +72,7 @@ class Game
     @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
     @far = FarTerrain.new(@world.terrain, LOD_SLOT0)
     @chunk_meshes = ChunkMeshes.new(@world, @tint)
+    @chunk_meshes.fast_leaves = !@options.fancy_graphics
     @light = Light.new(@world)
     @storm = Storm.new(@seed * 5 + 3, @world, @weather, @mobs)
     @spawner = NaturalSpawner.new(@world, @seed * 11 + 5, @halloween)

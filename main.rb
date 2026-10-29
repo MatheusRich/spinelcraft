@@ -205,7 +205,7 @@ class Game
     @options = Options.new(prefix + OPTIONS_PATH)
     @perf_log = PerfLog.new(prefix + PERF_LOG_PATH)
     @options.read_file if @save_on_quit
-    @options.read_option("view", ENV["VIEW"]) if ENV["VIEW"]
+    read_option_overrides
     @sound = false
     @clouds = Clouds.new(@seed)
     @cloud_drift = 0.0
@@ -300,6 +300,12 @@ class Game
     @spawner.spawn_animals(@mobs, @player)
     open_first_screen
     say("#{game_mode.name} MODE")
+  end
+
+  # VIEW and GRAPHICS give the options of this run, over the options file.
+  def read_option_overrides
+    @options.read_option("view", ENV["VIEW"]) if ENV["VIEW"]
+    @options.read_option("graphics", ENV["GRAPHICS"]) if ENV["GRAPHICS"]
   end
 
   def init_graphics

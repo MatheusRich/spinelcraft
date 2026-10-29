@@ -16,6 +16,7 @@ class OptionsTest < Minitest::Test
     assert_equal 70.0, options.fov_degrees
     assert_equal false, options.fullscreen
     assert_equal false, options.debug
+    assert options.fancy_graphics
   end
 
   def test_the_render_distance_slider_goes_from_200_to_5000_in_steps_of_100_blocks
@@ -64,7 +65,9 @@ class OptionsTest < Minitest::Test
       written.fov_degrees = 90.0
       written.fullscreen = true
       written.debug = true
+      written.fancy_graphics = false
       written.write_file
+      assert_equal "graphics:fast\n", File.readlines(path).last
       read = Options.new(path)
       read.read_file
       assert_equal 1.0, read.brightness
@@ -74,7 +77,25 @@ class OptionsTest < Minitest::Test
       assert_equal 90.0, read.fov_degrees
       assert read.fullscreen
       assert read.debug
+      refute read.fancy_graphics
     end
+  end
+
+  def test_the_file_keeps_fancy_graphics
+    in_dir do |path|
+      Options.new(path).write_file
+      read = Options.new(path)
+      read.fancy_graphics = false
+      read.read_file
+      assert read.fancy_graphics
+    end
+  end
+
+  def test_only_the_word_fast_turns_the_graphics_to_fast
+    refute read_text("graphics:fast\n").fancy_graphics
+    assert read_text("graphics:fancy\n") { |o| o.fancy_graphics = false }.fancy_graphics
+    assert read_text("graphics:ultra\n").fancy_graphics
+    assert read_text("graphics:\n").fancy_graphics
   end
 
   def test_a_value_outside_its_range_reads_as_the_nearest_end
@@ -90,11 +111,12 @@ class OptionsTest < Minitest::Test
   end
 
   def test_an_option_that_the_file_does_not_have_keeps_its_value
-    read = read_text("volume:0.25\nnoise\nfov:a:b\nspeed:3\n") { |o| o.debug = true }
+    read = read_text("volume:0.25\nnoise\nfov:a:b\nspeed:fast\n") { |o| o.debug = true }
     assert_equal 0.25, read.volume
     assert_equal 0.5, read.brightness
     assert_equal 70.0, read.fov_degrees
     assert read.debug
+    assert read.fancy_graphics
   end
 
   def test_only_the_word_true_turns_an_on_or_off_option_on
