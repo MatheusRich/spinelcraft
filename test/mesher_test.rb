@@ -6,6 +6,7 @@ require_relative "test_helper"
 class MesherTest < Minitest::Test
   CUBE_X = 6
   CUBE_Z = 6
+  SEABED_Y = SKY_Y - 30
 
   def setup
     @world = World.new(1337)
@@ -76,12 +77,12 @@ class MesherTest < Minitest::Test
   end
 
   # The second words of the faces of the blocks that the test put at CUBE_X, SKY_Y, CUBE_Z.
-  def face_words
+  def face_words(y = SKY_Y)
     @mesher.build(0, 0)
     words = []
     (0...@mesher.opaque.size).step(2) do |k|
       w0 = @mesher.opaque[k]
-      next unless Mesher.face_x(w0) == CUBE_X && Mesher.face_y(w0) == SKY_Y && Mesher.face_z(w0) == CUBE_Z
+      next unless Mesher.face_x(w0) == CUBE_X && Mesher.face_y(w0) == y && Mesher.face_z(w0) == CUBE_Z
 
       words << @mesher.opaque[k + 1]
     end
@@ -128,6 +129,93 @@ class MesherTest < Minitest::Test
     @world.set(CUBE_X + 4, SKY_Y, CUBE_Z, Block::GLASS)
     @world.set(CUBE_X + 5, SKY_Y, CUBE_Z, Block::OAK_LEAVES)
     assert_equal 6 + 6, faces - before
+  end
+
+  # The faces that a stone block adds at CUBE_X, SEABED_Y, CUBE_Z, with
+  # blocks of water in a column of height cells that begins at dx and dy
+  # from the stone.
+  def faces_added_by_stone_beside_water(height, dx: 0, dy: 1)
+    height.times { |up| @world.set(CUBE_X + dx, SEABED_Y + dy + up, CUBE_Z, Block::WATER) }
+    before = faces
+    @world.set(CUBE_X, SEABED_Y, CUBE_Z, Block::STONE)
+    faces - before
+  end
+
+  # The water step that the second word of the faces of a stone block at
+  # SEABED_Y has, with depth cells of water above it.
+  def water_step_under(depth)
+    depth.times { |up| @world.set(CUBE_X, SEABED_Y + 1 + up, CUBE_Z, Block::WATER) }
+    @world.set(CUBE_X, SEABED_Y, CUBE_Z, Block::STONE)
+    face_words(SEABED_Y).map { |w1| Mesher.field(w1, Mesher::WATER_STEP_AT, Mesher::WATER_STEP_BITS) }.max
+  end
+
+  def test_the_water_step_of_a_face_grows_by_one_for_every_two_blocks_of_water
+    steps = (0..Mesher::DEEP_WATER).map do |depth|
+      setup
+      water_step_under(depth)
+    end
+    assert_equal [0, 0, 1, 1, 2, 2, 3], steps
+  end
+
+  def test_more_water_than_the_deep_water_adds_no_step
+    assert_equal Mesher::WATER_STEP_MAX, water_step_under(Mesher::DEEP_WATER + 4)
+  end
+
+  def test_a_face_that_does_not_touch_water_has_step_0
+    assert_equal 0, water_step_under(0)
+  end
+
+  def test_the_water_step_of_a_side_face_counts_the_water_beside_it
+    Mesher::DEEP_WATER.times { |up| @world.set(CUBE_X + 1, SEABED_Y + up, CUBE_Z, Block::WATER) }
+    @world.set(CUBE_X, SEABED_Y, CUBE_Z, Block::STONE)
+    steps = face_words(SEABED_Y).map { |w1| Mesher.field(w1, Mesher::WATER_STEP_AT, Mesher::WATER_STEP_BITS) }
+    assert_equal [0, 0, 0, 0, 0, Mesher::WATER_STEP_MAX], steps.sort
+  end
+
+  def test_the_shaders_know_the_layer_of_every_fluid_block
+    water_layers = []
+    lava_layers = []
+    Block::COUNT.times do |block|
+      layers = [Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block]]
+      water_layers.concat(layers) if Mesher.fluid(block) == 1
+      lava_layers.concat(layers) if Mesher.fluid(block) == 2
+    end
+    assert_equal [Tex::WATER], water_layers.uniq
+    assert_equal [Tex::LAVA], lava_layers.uniq
+    assert_includes Mesher.shader_defines, "#define WATER_LAYER #{Tex::WATER}u"
+    assert_includes Mesher.shader_defines, "#define LAVA_LAYER #{Tex::LAVA}u"
+  end
+
+  def test_fancy_graphics_keep_the_floor_under_deep_water
+    assert_equal 6, faces_added_by_stone_beside_water(Mesher::DEEP_WATER)
+  end
+
+  def test_fast_graphics_hide_the_face_of_a_block_under_deep_water
+    @mesher.graphics = GraphicsMode::FAST
+    assert_equal 5, faces_added_by_stone_beside_water(Mesher::DEEP_WATER)
+  end
+
+  def test_fast_graphics_hide_the_face_toward_deep_water_at_the_side
+    @mesher.graphics = GraphicsMode::FAST
+    assert_equal 5, faces_added_by_stone_beside_water(Mesher::DEEP_WATER, dx: 1, dy: 0)
+  end
+
+  def test_fast_graphics_keep_the_floor_under_shallow_water
+    @mesher.graphics = GraphicsMode::FAST
+    assert_equal 6, faces_added_by_stone_beside_water(Mesher::DEEP_WATER - 1)
+  end
+
+  def test_fast_graphics_keep_the_floor_under_water_with_a_gap
+    @mesher.graphics = GraphicsMode::FAST
+    Mesher::DEEP_WATER.times { |up| @world.set(CUBE_X, SEABED_Y + 1 + up, CUBE_Z, Block::WATER) unless up == 3 }
+    before = faces
+    @world.set(CUBE_X, SEABED_Y, CUBE_Z, Block::STONE)
+    assert_equal 6, faces - before
+  end
+
+  def test_fast_graphics_keep_the_faces_of_a_block_in_open_air
+    @mesher.graphics = GraphicsMode::FAST
+    assert_equal 6, faces_added_by_stone_beside_water(0)
   end
 
   # The +x faces that a stone block at CUBE_X, SKY_Y, CUBE_Z adds, when lava

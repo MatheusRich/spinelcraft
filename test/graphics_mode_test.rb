@@ -6,6 +6,16 @@ class GraphicsModeTest < Minitest::Test
     refute_predicate GraphicsMode::FANCY, :opaque_leaves?
   end
 
+  def test_only_fast_hides_the_deep_seabed
+    assert_predicate GraphicsMode::FAST, :hides_deep_seabed?
+    refute_predicate GraphicsMode::FANCY, :hides_deep_seabed?
+  end
+
+  def test_only_fast_has_opaque_water
+    assert_predicate GraphicsMode::FAST, :opaque_water?
+    refute_predicate GraphicsMode::FANCY, :opaque_water?
+  end
+
   def test_the_next_mode_goes_around
     assert_same GraphicsMode::FAST, GraphicsMode::FANCY.next_mode
     assert_same GraphicsMode::FANCY, GraphicsMode::FAST.next_mode

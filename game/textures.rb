@@ -213,10 +213,6 @@ module Tex
   FONT = drawn(CHARS.size)
   LAYERS = LAYER_FILES.size
 
-  # How a layer's texture scrolls: 0 not at all, 1 like water, 2 like lava.
-  # The mesher puts it in bits 23-24 of a face record for the shader.
-  def self.scroll(layer) = layer == WATER ? 1 : (layer == LAVA ? 2 : 0)
-
   # The biome color that a layer takes in the world: 0 none, 1 the grass
   # color, 2 the foliage color (Tint). The images have the plains colors,
   # so items show the plains colors. A pixel with alpha 254 keeps its

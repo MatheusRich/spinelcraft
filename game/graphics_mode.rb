@@ -16,6 +16,12 @@ class GraphicsMode
   # Leaves draw as solid blocks, and no face lies between two of them.
   def opaque_leaves? = equal?(FAST)
 
+  # No face of the floor under deep water (Mesher::DEEP_WATER).
+  def hides_deep_seabed? = equal?(FAST)
+
+  # Water that hides what is under it, with no blend.
+  def opaque_water? = equal?(FAST)
+
   # The mode after this one in the pause menu.
   def next_mode = equal?(FANCY) ? FAST : FANCY
 

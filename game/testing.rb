@@ -230,6 +230,7 @@ class Game
     test_screen_input
     test_menu
     test_graphics_setting
+    test_deep_seabed
     test_solid_leaves
     test_perf_log
     test_fullscreen_follows_window
@@ -810,6 +811,48 @@ class Game
     @console.teleport(x, y, z)
     @player.yaw = yaw
     @player.pitch = pitch
+  end
+
+  # FAST graphics draw no face of the floor under deep water. A frame that
+  # looks at a block under a column of water draws one face more with FANCY
+  # than the same frame without the block does.
+  def test_deep_seabed
+    x = @player.x
+    y = @player.y
+    z = @player.z
+    yaw = @player.yaw
+    pitch = @player.pitch
+    graphics = @options.graphics
+    ex = x.floor
+    ez = z.floor
+    @console.teleport(x, SKY_Y - 3.0, z)
+    @player.yaw = 0.0
+    @player.pitch = 0.0
+    without_block = faces_saved_by_fast
+    Mesher::DEEP_WATER.times { |up| @world.set(ex, SKY_Y - 7 + up, ez - 8, Block::WATER) }
+    set_block(ex, SKY_Y - 8, ez - 8, Block::STONE)
+    with_block = faces_saved_by_fast
+    check("a frame with FAST graphics draws one face less: the floor under deep water", with_block - without_block == 1)
+    Mesher::DEEP_WATER.times { |up| @world.set(ex, SKY_Y - 7 + up, ez - 8, Block::AIR) }
+    set_block(ex, SKY_Y - 8, ez - 8, Block::AIR)
+    @chunk_meshes.graphics = graphics
+    @chunk_meshes.flush_all
+    @console.teleport(x, y, z)
+    @player.yaw = yaw
+    @player.pitch = pitch
+  end
+
+  # The faces that a frame draws with FANCY graphics and does not draw with
+  # FAST graphics.
+  def faces_saved_by_fast
+    @chunk_meshes.graphics = GraphicsMode::FANCY
+    @chunk_meshes.flush_all
+    render
+    with_fancy = @faces_drawn
+    @chunk_meshes.graphics = GraphicsMode::FAST
+    @chunk_meshes.flush_all
+    render
+    with_fancy - @faces_drawn
   end
 
   # The solid layers of FAST graphics, as the compiled game builds them from

@@ -24,12 +24,13 @@ class Mesher
   FACE_AT = Z_AT + Z_BITS
   FACE_BITS = 4
   # The second word: the texture, the AO of the 4 corners (2 bits each),
-  # the flip of the diagonal, the sky bit, the torch light, the scroll of
-  # the texture (Tex.scroll), the facing and the shape of a block
-  # (Block::SHAPE), and the tint (Tex.tint). A wall torch has the shape
-  # TORCH_SHAPE and the facing of the torch. Only a fluid face scrolls, and
-  # it has no AO, flip, facing, shape or tint: those bits hold the heights
-  # of its corners (Mesher.fluid_w1).
+  # the flip of the diagonal, the sky bit, the torch light, the water step
+  # (water_step), the facing and the shape of a block (Block::SHAPE), and
+  # the tint (Tex.tint). A wall torch has the shape TORCH_SHAPE and the
+  # facing of the torch. A fluid face is a face with the layer of water or
+  # of lava (WATER_LAYER and LAVA_LAYER in the shaders). It has no AO, flip,
+  # facing, shape or tint: those bits hold the heights of its corners
+  # (Mesher.fluid_w1). It has no water step.
   TEX_AT = 0
   TEX_BITS = 8
   AO_AT = TEX_AT + TEX_BITS
@@ -40,9 +41,9 @@ class Mesher
   SKY_BITS = 1
   LIGHT_AT = SKY_AT + SKY_BITS
   LIGHT_BITS = 4
-  SCROLL_AT = LIGHT_AT + LIGHT_BITS
-  SCROLL_BITS = 2
-  FACING_AT = SCROLL_AT + SCROLL_BITS
+  WATER_STEP_AT = LIGHT_AT + LIGHT_BITS
+  WATER_STEP_BITS = 2
+  FACING_AT = WATER_STEP_AT + WATER_STEP_BITS
   FACING_BITS = 2
   SHAPE_AT = FACING_AT + FACING_BITS
   SHAPE_BITS = 4
@@ -93,20 +94,28 @@ class Mesher
   def self.field(w, at, bits) = (w >> at) & ((1 << bits) - 1)
 
   # The fields of a face record as #defines for the shaders: NAME_AT and
-  # NAME_MASK for each, and TORCH_SHAPE.
+  # NAME_MASK for each, TORCH_SHAPE, and the texture layers of the fluids.
   def self.shader_defines
-    "#define TORCH_SHAPE #{TORCH_SHAPE}u\n" +
+    "#define TORCH_SHAPE #{TORCH_SHAPE}u\n#define WATER_LAYER #{Tex::WATER}u\n#define LAVA_LAYER #{Tex::LAVA}u\n" +
       Mesher.define_field("X", X_AT, X_BITS) + Mesher.define_field("Y", Y_AT, Y_BITS) + Mesher.define_field("Z", Z_AT, Z_BITS) +
       Mesher.define_field("FACE", FACE_AT, FACE_BITS) + Mesher.define_field("TEX", TEX_AT, TEX_BITS) + Mesher.define_field("AO", AO_AT, AO_BITS) +
       Mesher.define_field("FLIP", FLIP_AT, FLIP_BITS) + Mesher.define_field("SKY", SKY_AT, SKY_BITS) +
       Mesher.define_field("LIGHT", LIGHT_AT, LIGHT_BITS) +
-      Mesher.define_field("SCROLL", SCROLL_AT, SCROLL_BITS) + Mesher.define_field("FACING", FACING_AT, FACING_BITS) +
+      Mesher.define_field("WATER_STEP", WATER_STEP_AT, WATER_STEP_BITS) + Mesher.define_field("FACING", FACING_AT, FACING_BITS) +
       Mesher.define_field("SHAPE", SHAPE_AT, SHAPE_BITS) + Mesher.define_field("TINT", TINT_AT, TINT_BITS) +
       Mesher.define_field("HEIGHTS_LOW", HEIGHTS_LOW_AT, HEIGHTS_LOW_BITS) +
       Mesher.define_field("HEIGHTS_HIGH", HEIGHTS_HIGH_AT, HEIGHTS_HIGH_BITS) + "#define HEIGHTS_LOW_BITS #{HEIGHTS_LOW_BITS}u\n"
   end
 
   def self.define_field(name, at, bits) = "#define #{name}_AT #{at}u\n#define #{name}_MASK #{(1 << bits) - 1}u\n"
+
+  # The water step of a face is the depth of the water in front of it,
+  # BLOCKS_PER_WATER_STEP blocks for each step. The shader fades a face by
+  # its step, and at WATER_STEP_MAX, with DEEP_WATER blocks of water, a face
+  # is black. The FAST graphics do not make that face.
+  WATER_STEP_MAX = (1 << WATER_STEP_BITS) - 1
+  BLOCKS_PER_WATER_STEP = 2
+  DEEP_WATER = WATER_STEP_MAX * BLOCKS_PER_WATER_STEP
 
   attr_reader :opaque, :water, :offsets, :water_offsets
   # The GraphicsMode of the faces. The caller remeshes the chunks that it
@@ -197,6 +206,21 @@ class Mesher
   # World#block reads the same, but its callers make its i a nullable
   # Integer, and the mesher calls this for each cell.
   def cell(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 255
+
+  # The water step of a face toward the cell at index at, which holds block
+  # nb: the cells of water from it up, at most DEEP_WATER, in steps of
+  # BLOCKS_PER_WATER_STEP. A cell that is not water has step 0.
+  def water_step(nb, at)
+    return 0 unless Mesher.fluid(nb) == 1
+
+    (0...DEEP_WATER).take_while { |up| Mesher.fluid(cell(at + up)) == 1 }.size / BLOCKS_PER_WATER_STEP
+  end
+
+  # True when the graphics leave out a face toward the cell at index at,
+  # which holds block nb: the water in front of it is deep.
+  def hidden_by_deep_water?(nb, at)
+    @graphics.hides_deep_seabed? && water_step(nb, at) == WATER_STEP_MAX
+  end
 
   # The fluid kind of block: 1 water, 2 lava, 0 not a fluid.
   def self.fluid(block) = Block::WATER_LEVEL[block] > 0 ? 1 : (Block.lava?(block) ? 2 : 0)
@@ -401,7 +425,7 @@ class Mesher
         Mesher.fluid(nb) != kind && (@cover[nb] == 0 || (f == 2 && corners != 0xFFFF))
       else
         # Lava under lava fills its cell.
-        @cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(@graphics.opaque_leaves? && @leaf[id] == 1 && @leaf[nb] == 1) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
+        @cover[nb] == 0 && !(nb == id && id == Block::GLASS) && !(@graphics.opaque_leaves? && @leaf[id] == 1 && @leaf[nb] == 1) && !hidden_by_deep_water?(nb, i + @delta[f]) && !(Block.lava?(nb) && Block.lava?(cell(i + @delta[f] + 1)))
       end
       visible = true if shape > 0
       visible = false if f == 3 && y == 0
@@ -415,7 +439,7 @@ class Mesher
         w0 = Mesher.pack(lx, y, lz, f)
         if kind > 0
           # A fluid face has no AO: it holds the heights of its corners.
-          w1 = tex | Mesher.fluid_w1(corners) | (sky << SKY_AT) | (Tex.scroll(tex) << SCROLL_AT)
+          w1 = tex | Mesher.fluid_w1(corners) | (sky << SKY_AT)
           w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
           if kind == 1
             @water << w0
@@ -436,6 +460,7 @@ class Mesher
           w1 = tex | (ao0 << AO_AT) | (ao1 << (AO_AT + 2)) | (ao2 << (AO_AT + 4)) | (ao3 << (AO_AT + 6)) | (flip << FLIP_AT) | (sky << SKY_AT) |
                Mesher.tint_w1(tex)
           w1 |= torch_light(sx, ny, sz) << LIGHT_AT if lit
+          w1 |= water_step(nb, i + @delta[f]) << WATER_STEP_AT if Block::WATER_LEVEL[nb] > 0
           # A jack o'lantern glows on each face, as lava does.
           w1 = (w1 & ~(((1 << LIGHT_BITS) - 1) << LIGHT_AT)) | (LIGHT_MAX << LIGHT_AT) if Block.jack_o_lantern?(id)
           # A block with a shape has no AO. A shape without a facing

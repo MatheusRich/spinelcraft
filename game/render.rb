@@ -31,11 +31,13 @@ class Game
     if Gfx.gfx_begin(@uniforms)
       visible = @chunk_meshes.visible
       @faces_drawn = Gfx.gfx_chunks(visible, visible.size / 2, 0)
+      water = @chunk_meshes.water_visible
+      opaque_water = @options.graphics.opaque_water?
+      @faces_drawn += Gfx.gfx_chunks(water, water.size / 2, 0) if opaque_water
       @faces_drawn += Gfx.gfx_chunks(@far.visible, @far.visible.size / 2, 2)
       Gfx.gfx_draw_dyn
       Gfx.gfx_draw_clouds
-      water = @chunk_meshes.water_visible
-      @faces_drawn += Gfx.gfx_chunks(water, water.size / 2, 1)
+      @faces_drawn += Gfx.gfx_chunks(water, water.size / 2, 1) unless opaque_water
       Gfx.gfx_draw_rain
       Gfx.gfx_draw_hand unless current_screen.title?
     end
