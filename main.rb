@@ -912,7 +912,7 @@ class Game
 
   # What the game knows at the end of a stretch of play, for the perf log.
   def perf_state
-    "window #{Gfx.gfx_width}x#{Gfx.gfx_height}, memory #{Gfx.gfx_footprint_mb} MB, #{@world.loaded_chunk_count} chunks, #{@mobs.size} mobs, " \
+    "window #{Gfx.gfx_width}x#{Gfx.gfx_height}, memory #{Gfx.gfx_footprint_mb} MB, #{@world.loaded_chunk_count} chunks, #{@faces_drawn} faces drawn, #{@mobs.size} mobs, " \
       "#{@options.graphics.name}, #{underground? ? "underground" : "above ground"}, time of day #{@clock.time_of_day.round(2)}, " \
       "at x #{@player.x.round}, eye y #{@player.eye_y.round}, z #{@player.z.round}"
   end
