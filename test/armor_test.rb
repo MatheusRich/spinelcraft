@@ -4,6 +4,8 @@ class ArmorTest < Minitest::Test
   IRON_SET = [Block::IRON_HELMET, Block::IRON_CHESTPLATE, Block::IRON_LEGGINGS, Block::IRON_BOOTS]
   DIAMOND_SET = [Block::DIAMOND_HELMET, Block::DIAMOND_CHESTPLATE, Block::DIAMOND_LEGGINGS, Block::DIAMOND_BOOTS]
 
+  SPINEL_SET = [Block::SPINEL_HELMET, Block::SPINEL_CHESTPLATE, Block::SPINEL_LEGGINGS, Block::SPINEL_BOOTS]
+
   def worn(pieces)
     armor = Armor.new
     pieces.each { |piece| armor.put_on(piece, Block.uses(piece)) }
@@ -31,6 +33,34 @@ class ArmorTest < Minitest::Test
     assert_equal 0, worn(IRON_SET).toughness
     assert_equal 20, worn(DIAMOND_SET).points
     assert_equal 8, worn(DIAMOND_SET).toughness
+  end
+
+  def test_a_spinel_set_has_the_points_and_the_toughness_of_diamond_and_the_uses_of_iron
+    assert_equal 20, worn(SPINEL_SET).points
+    assert_equal 8, worn(SPINEL_SET).toughness
+    assert_equal(IRON_SET.map { |piece| Block.uses(piece) }, SPINEL_SET.map { |piece| Block.uses(piece) })
+    assert_equal([0, 1, 2, 3], SPINEL_SET.map { |piece| Block.armor_slot(piece) })
+  end
+
+  def test_a_set_of_four_spinel_pieces_is_a_spinel_set
+    assert worn(SPINEL_SET).spinel_set?
+    refute Armor.new.spinel_set?
+  end
+
+  def test_three_spinel_pieces_and_a_diamond_piece_are_not_a_spinel_set
+    refute worn(SPINEL_SET[0, 3] + [Block::DIAMOND_BOOTS]).spinel_set?
+    refute worn(SPINEL_SET[0, 3]).spinel_set?
+    refute worn(SPINEL_SET[1, 3]).spinel_set?
+    refute worn([Block::DIAMOND_HELMET] + SPINEL_SET[1, 3]).spinel_set?
+    refute worn(DIAMOND_SET).spinel_set?
+  end
+
+  def test_breaking_all_takes_off_each_piece_and_gives_them
+    armor = worn(SPINEL_SET)
+    armor.slots.set(2, Block::SPINEL_LEGGINGS, 1)
+    assert_equal SPINEL_SET, armor.break_all
+    assert_equal 0, armor.points
+    assert_equal [], Armor.new.break_all
   end
 
   def test_a_hit_loses_4_percent_for_each_point_minus_its_hardness

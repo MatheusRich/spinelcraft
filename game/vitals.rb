@@ -39,10 +39,20 @@ class Vitals
   # minecraft.wiki/w/Rotten_Flesh and /w/Hunger_(effect)
   HUNGER_EFFECT_TIME = 30.0
   HUNGER_EFFECT_COST = 0.1
+  # What a death that spinel armor rescues leaves: 1 health, and 40 seconds in
+  # which fire and lava do no damage. minecraft.wiki/w/Totem_of_Undying
+  RESCUE_HEALTH = 1.0
+  FIRE_RESISTANCE_TIME = 40.0
+  # Seconds after a rescue in which no hit hurts. Minecraft has no spinel
+  # armor and no such time. Without it, the next hit of the same frame, or of
+  # a mob at the player, kills the player. The length is a choice for balance.
+  RESCUE_GRACE = 1.0
 
   attr_accessor :health, :hunger, :saturation, :exhaustion
   # Seconds of air left under water.
   attr_reader :air
+  # Seconds of fire resistance left.
+  attr_reader :fire_resistance
   # Seconds that the player keeps burning after lava.
   attr_reader :fire
 
@@ -56,6 +66,9 @@ class Vitals
     @armorable_damage = 0.0
     # Seconds of the Hunger effect left.
     @hunger_effect = 0.0
+    @fire_resistance = 0.0
+    # Seconds left in which no hit hurts, after a rescue.
+    @grace = 0.0
     # Seconds until the next point of fire damage, of lava damage, and of
     # cactus damage.
     @fire_tick = 0.0
@@ -70,26 +83,46 @@ class Vitals
   def hungry? = @hunger < MAX_HUNGER
   def can_sprint? = @hunger > SPRINT_HUNGER
   def hunger_effect? = @hunger_effect > 0.0
+  def fire_resistant? = @fire_resistance > 0.0
+  # True in the seconds after a rescue, when no hit hurts.
+  def grace? = @grace > 0.0
 
   # A second dose starts the Hunger effect over and does not add to it.
   def give_hunger_effect
     @hunger_effect = HUNGER_EFFECT_TIME
   end
 
-  # The Hunger effect is the only effect in the game.
+  # The Hunger effect and the fire resistance are the effects in the game.
   def clear_effects
     @hunger_effect = 0.0
+    @fire_resistance = 0.0
+  end
+
+  # The death that spinel armor rescues: the player lives with RESCUE_HEALTH,
+  # full air, no fire, fire resistance and a grace.
+  def survive_death
+    @health = RESCUE_HEALTH
+    @air = MAX_AIR
+    @fire = 0.0
+    @fire_resistance = FIRE_RESISTANCE_TIME
+    @grace = RESCUE_GRACE
   end
 
   def hurt(amount)
-    return if dead?
+    return if dead? || grace?
 
     @health -= amount.to_f
     @health = 0.0 if @health < 0.0
     exhaust(HURT_COST)
   end
 
-  def kill = hurt(@health)
+  # Takes all the health, also in the grace.
+  def kill
+    return if dead?
+
+    @health = 0.0
+    exhaust(HURT_COST)
+  end
 
   # Gives the damage of lava and cactus that armor has not lowered yet, and
   # clears it.
@@ -126,9 +159,10 @@ class Vitals
     @fire = 0.0
   end
 
-  # Sets the player on fire for seconds, unless the player burns for longer.
+  # Sets the player on fire for seconds, unless the player burns for longer or
+  # has fire resistance.
   def ignite(seconds)
-    @fire = seconds if @fire < seconds
+    @fire = seconds if @fire < seconds && !fire_resistant?
   end
 
   # dt seconds of lava, fire, cactus, air, hunger and healing. in_lava is
@@ -141,9 +175,12 @@ class Vitals
   # parameter, and this one made the others untyped.
   def update_vitals(dt, in_lava, on_cactus, under_water) # rubocop:todo Metrics/MethodLength
     health = @health
+    @grace -= dt
+    @fire_resistance -= dt
     # Lava does 4 each half second, and fire 1 each second, and drowning 2
-    # each second. minecraft.wiki/w/Damage
-    if in_lava
+    # each second. minecraft.wiki/w/Damage Fire resistance stops the fire and
+    # the lava. minecraft.wiki/w/Fire_Resistance
+    if in_lava && !fire_resistant?
       @lava_tick -= dt
       if @lava_tick <= 0.0
         @lava_tick = 0.5

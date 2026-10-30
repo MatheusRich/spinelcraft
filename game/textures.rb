@@ -161,6 +161,8 @@ module Tex
   HUNGER = hud_icon("hunger")
   HUNGER_EMPTY = hud_icon("hunger_empty")
   HUNGER_EFFECT = hud_icon("hunger_effect")
+  # The icon of the fire resistance effect, in the top right corner.
+  FIRE_RESISTANCE = hud_icon("fire_resistance")
   OAK_BOAT = image("oak_boat")
   SPRUCE_BOAT = image("spruce_boat")
   BIRCH_BOAT = image("birch_boat")
@@ -201,6 +203,10 @@ module Tex
   DIAMOND_CHESTPLATE = image("diamond_chestplate")
   DIAMOND_LEGGINGS = image("diamond_leggings")
   DIAMOND_BOOTS = image("diamond_boots")
+  SPINEL_HELMET = image("spinel_helmet")
+  SPINEL_CHESTPLATE = image("spinel_chestplate")
+  SPINEL_LEGGINGS = image("spinel_leggings")
+  SPINEL_BOOTS = image("spinel_boots")
   ARMOR = hud_icon("armor")
   ARMOR_EMPTY = hud_icon("armor_empty")
   # The red blocks of SPINEL in the title (tools/logo.rb).

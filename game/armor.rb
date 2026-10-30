@@ -51,6 +51,16 @@ class Armor
     broken
   end
 
+  # True when each of the four slots holds a piece of spinel armor.
+  def spinel_set? = (0...Block::ARMOR_SLOTS).all? { |slot| Block.spinel_armor?(@slots.block(slot)) }
+
+  # Takes off all the worn pieces, whatever their uses. Gives the pieces.
+  def break_all
+    pieces = worn_slots.map { |slot| @slots.block(slot) }
+    @slots.clear
+    pieces
+  end
+
   # Puts the piece of block with uses on, in its slot. Gives the slot.
   def put_on(block, uses)
     slot = Block.armor_slot(block)

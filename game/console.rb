@@ -213,10 +213,12 @@ class Console
     @chat.post("SUMMONED NEW #{Mob::NAMES[kind]}")
   end
 
-  # /kill takes all health, also in creative, as in Minecraft.
+  # /kill takes all health, also in creative, as in Minecraft. Spinel armor
+  # does not rescue the player from it, as the Totem of Undying does not.
   def kill
     @game.player.vitals.kill
-    @game.felt_hurt(Sfx::HURT)
+    @game.show_hurt(Sfx::HURT)
+    @game.die
     @chat.post("KILLED PLAYER")
   end
 end

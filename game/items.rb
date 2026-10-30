@@ -48,7 +48,7 @@ class Game
   end
 
   def play_armor_equip(piece)
-    @sfx.play(Block.diamond_armor?(piece) ? Sfx::ARMOR_DIAMOND : Sfx::ARMOR_IRON, 0.8)
+    @sfx.play(Block.iron_armor?(piece) ? Sfx::ARMOR_IRON : Sfx::ARMOR_DIAMOND, 0.8)
   end
 
   # A click on armor slot slot. It takes only the piece for that slot.

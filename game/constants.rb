@@ -19,6 +19,7 @@ class Game
                     Block::WOOD_SHOVEL, Block::STONE_SHOVEL, Block::IRON_SHOVEL, Block::DIAMOND_SHOVEL, Block::SPINEL_MATTOCK,
                     Block::IRON_HELMET, Block::IRON_CHESTPLATE, Block::IRON_LEGGINGS, Block::IRON_BOOTS,
                     Block::DIAMOND_HELMET, Block::DIAMOND_CHESTPLATE, Block::DIAMOND_LEGGINGS, Block::DIAMOND_BOOTS,
+                    Block::SPINEL_HELMET, Block::SPINEL_CHESTPLATE, Block::SPINEL_LEGGINGS, Block::SPINEL_BOOTS,
                     Block::BOW, Block::ARROW, Block::BUCKET, Block::WATER_BUCKET, Block::LAVA_BUCKET,
                     Block::COAL, Block::IRON_INGOT, Block::SPINEL, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
                     Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::BEEF, Block::STEAK,

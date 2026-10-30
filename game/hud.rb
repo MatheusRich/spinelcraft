@@ -24,6 +24,7 @@ class Game
     y0 = hotbar_y(h, s)
     draw_hotbar(x0, y0, size, gap, s)
     draw_survival_bars(x0, y0, total, s) if game_mode.survival?
+    @fire_resistance_icon.draw(@player.vitals.fire_resistance, w, s) if game_mode.survival? && @player.vitals.fire_resistant?
     draw_messages(w, y0, s)
     draw_chat_lines(w, y0, s)
     draw_chat_line(w, h, s) if current_screen.typing?
@@ -102,8 +103,7 @@ class Game
   def draw_survival_bars(x0, y0, total, s)
     hy = y0 - 26.0 * s
     # A part of a half heart shows as a half heart, as in Minecraft.
-    @heart_row.scale = s
-    @armor_row.scale = s
+    [@heart_row, @armor_row].each { |row| row.scale = s }
     @heart_row.draw(@player.vitals.health.ceil, x0, hy)
     # The armor bar shows above the hearts when the player wears armor.
     # minecraft.wiki/w/Armor

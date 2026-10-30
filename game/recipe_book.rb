@@ -31,6 +31,9 @@ class RecipeBook
                 Recipe.new(Block::IRON_INGOT, 7, Block::IRON_LEGGINGS, 1, Recipe::AT_TABLE), Recipe.new(Block::IRON_INGOT, 4, Block::IRON_BOOTS, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::DIAMOND, 5, Block::DIAMOND_HELMET, 1, Recipe::AT_TABLE), Recipe.new(Block::DIAMOND, 8, Block::DIAMOND_CHESTPLATE, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::DIAMOND, 7, Block::DIAMOND_LEGGINGS, 1, Recipe::AT_TABLE), Recipe.new(Block::DIAMOND, 4, Block::DIAMOND_BOOTS, 1, Recipe::AT_TABLE),
+                # Minecraft has no spinel armor: it takes the spinel of the same shapes.
+                Recipe.new(Block::SPINEL, 5, Block::SPINEL_HELMET, 1, Recipe::AT_TABLE), Recipe.new(Block::SPINEL, 8, Block::SPINEL_CHESTPLATE, 1, Recipe::AT_TABLE),
+                Recipe.new(Block::SPINEL, 7, Block::SPINEL_LEGGINGS, 1, Recipe::AT_TABLE), Recipe.new(Block::SPINEL, 4, Block::SPINEL_BOOTS, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::COAL, 1, Block::TORCH, 4, Recipe::BY_HAND),
                 # Minecraft makes 4 arrows of a flint, a stick and a feather
                 # (minecraft.wiki/w/Arrow). The game has no flint and no

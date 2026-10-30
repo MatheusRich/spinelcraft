@@ -226,6 +226,100 @@ class VitalsTest < Minitest::Test
     refute vitals.hunger_effect?
   end
 
+  def test_milk_clears_the_fire_resistance
+    vitals = Vitals.new
+    vitals.survive_death
+    vitals.clear_effects
+    refute vitals.fire_resistant?
+  end
+
+  def test_a_saved_death_leaves_1_health_full_air_no_fire_and_40_seconds_of_fire_resistance
+    vitals = Vitals.new
+    vitals.update_vitals(QUARTER, true, false, false)
+    40.times { vitals.update_vitals(QUARTER, false, false, true) }
+    vitals.hurt(100)
+    vitals.survive_death
+    refute vitals.dead?
+    assert_equal Vitals::RESCUE_HEALTH, vitals.health
+    assert_equal Vitals::MAX_AIR, vitals.air
+    refute vitals.burning?
+    assert vitals.fire_resistant?
+    assert_equal Vitals::FIRE_RESISTANCE_TIME, vitals.fire_resistance
+  end
+
+  def test_the_fire_resistance_runs_out_after_40_seconds
+    vitals = Vitals.new
+    vitals.survive_death
+    last_frame = (Vitals::FIRE_RESISTANCE_TIME / QUARTER).to_i - 1
+    last_frame.times { vitals.update_vitals(QUARTER, false, false, false) }
+    assert vitals.fire_resistant?
+    vitals.update_vitals(QUARTER, false, false, false)
+    refute vitals.fire_resistant?
+  end
+
+  def test_fire_resistance_stops_the_lava_damage_and_the_fire
+    vitals = unhealing
+    vitals.survive_death
+    vitals.update_vitals(QUARTER, true, false, false)
+    vitals.update_vitals(QUARTER, true, false, false)
+    assert_equal 0.0, vitals.take_armorable_damage
+    refute vitals.burning?
+    vitals.ignite(5.0)
+    refute vitals.burning?
+    (2.0 / QUARTER).to_i.times { vitals.update_vitals(QUARTER, false, false, false) }
+    assert_equal Vitals::RESCUE_HEALTH, vitals.health
+  end
+
+  def test_fire_resistance_leaves_the_cactus_and_the_drowning_damage
+    vitals = unhealing
+    vitals.survive_death
+    vitals.update_vitals(QUARTER, false, true, false)
+    assert_equal 1.0, vitals.take_armorable_damage
+    vitals.health = Vitals::MAX_HEALTH
+    first_drowning_frame = (Vitals::MAX_AIR / QUARTER).to_i + 1
+    first_drowning_frame.times { vitals.update_vitals(QUARTER, false, false, true) }
+    assert_equal Vitals::MAX_HEALTH - 2.0, vitals.health
+  end
+
+  def test_no_hit_hurts_for_a_second_after_a_save
+    vitals = unhealing
+    vitals.survive_death
+    assert vitals.grace?
+    vitals.hurt(5)
+    assert_equal Vitals::RESCUE_HEALTH, vitals.health
+    3.times { vitals.update_vitals(QUARTER, false, false, false) }
+    assert vitals.grace?
+    vitals.update_vitals(QUARTER, false, false, false)
+    refute vitals.grace?
+    vitals.hurt(0.5)
+    assert_in_delta 0.5, vitals.health
+  end
+
+  def test_an_ignition_sets_the_fire_and_never_shortens_it
+    vitals = Vitals.new
+    vitals.ignite(5.0)
+    assert vitals.burning?
+    assert_equal 5.0, vitals.fire
+    vitals.ignite(2.0)
+    assert_equal 5.0, vitals.fire
+    vitals.ignite(8.0)
+    assert_equal 8.0, vitals.fire
+  end
+
+  def test_a_kill_of_a_dead_player_adds_no_exhaustion
+    vitals = Vitals.new
+    vitals.kill
+    vitals.kill
+    assert_in_delta Vitals::HURT_COST, vitals.exhaustion
+  end
+
+  def test_a_kill_takes_the_health_also_in_the_grace
+    vitals = Vitals.new
+    vitals.survive_death
+    vitals.kill
+    assert vitals.dead?
+  end
+
   # Full hunger with 3 saturation heals 3 / 6 each half second, for 3
   # exhaustion. minecraft.wiki/w/Hunger
   def test_a_full_stomach_with_saturation_heals_each_half_second

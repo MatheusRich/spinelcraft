@@ -157,6 +157,10 @@ module Block
   DIAMOND_CHESTPLATE = 175
   DIAMOND_LEGGINGS = 176
   DIAMOND_BOOTS = 177
+  SPINEL_HELMET = 178
+  SPINEL_CHESTPLATE = 179
+  SPINEL_LEGGINGS = 180
+  SPINEL_BOOTS = 181
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -508,6 +512,10 @@ module Block
   define_item DIAMOND_CHESTPLATE, "DIAMOND CHESTPLATE", Tex::DIAMOND_CHESTPLATE
   define_item DIAMOND_LEGGINGS, "DIAMOND LEGGINGS", Tex::DIAMOND_LEGGINGS
   define_item DIAMOND_BOOTS, "DIAMOND BOOTS", Tex::DIAMOND_BOOTS
+  define_item SPINEL_HELMET, "SPINEL HELMET", Tex::SPINEL_HELMET
+  define_item SPINEL_CHESTPLATE, "SPINEL CHESTPLATE", Tex::SPINEL_CHESTPLATE
+  define_item SPINEL_LEGGINGS, "SPINEL LEGGINGS", Tex::SPINEL_LEGGINGS
+  define_item SPINEL_BOOTS, "SPINEL BOOTS", Tex::SPINEL_BOOTS
   COUNT = NAMES.size
 
   def self.blocks_light(block) = block != AIR && block != GLASS && !door?(block) && BASE[block] != LADDER && !plant?(block)
@@ -745,11 +753,14 @@ module Block
   ARMOR_SLOTS = 4
   # For each armor piece from IRON_HELMET: its armor points, its toughness
   # and its uses. minecraft.wiki/w/Armor
-  ARMOR_POINTS = [2, 6, 5, 2, 3, 8, 6, 3]
-  ARMOR_TOUGHNESS = [0, 0, 0, 0, 2, 2, 2, 2]
-  ARMOR_USES = [165, 240, 225, 195, 363, 528, 495, 429]
-  def self.armor?(block) = block >= IRON_HELMET && block <= DIAMOND_BOOTS
-  def self.diamond_armor?(block) = block >= DIAMOND_HELMET && block <= DIAMOND_BOOTS
+  # Minecraft has no spinel armor. It has the points and the toughness of
+  # diamond, and the uses of iron: they are a choice for balance.
+  ARMOR_POINTS = [2, 6, 5, 2, 3, 8, 6, 3, 3, 8, 6, 3]
+  ARMOR_TOUGHNESS = [0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]
+  ARMOR_USES = [165, 240, 225, 195, 363, 528, 495, 429, 165, 240, 225, 195]
+  def self.armor?(block) = block >= IRON_HELMET && block <= SPINEL_BOOTS
+  def self.iron_armor?(block) = block >= IRON_HELMET && block <= IRON_BOOTS
+  def self.spinel_armor?(block) = block >= SPINEL_HELMET && block <= SPINEL_BOOTS
   # The armor slot of a piece: 0 for a helmet, 1 for a chestplate, 2 for
   # leggings and 3 for boots.
   def self.armor_slot(block) = (block - IRON_HELMET) % ARMOR_SLOTS

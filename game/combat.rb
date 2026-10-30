@@ -18,7 +18,7 @@ class Game
   # Takes amount of health and plays sound: Sfx::HURT, or Sfx::FALL for a
   # fall, as in Minecraft.
   def hurt(amount, sound)
-    return if game_mode.creative? || @player.vitals.dead? || amount <= 0.0
+    return if game_mode.creative? || @player.vitals.dead? || @player.vitals.grace? || amount <= 0.0
 
     @player.vitals.hurt(amount)
     felt_hurt(sound)
@@ -27,12 +27,14 @@ class Game
   # A hit that armor lowers: a mob, an arrow, an explosion, lightning, lava
   # and a cactus. Fall, fire, drowning and hunger skip armor and call hurt.
   # Each worn piece wears for the hit. minecraft.wiki/w/Armor
+  # The wear comes after the hurt, so that a set of spinel armor is whole when
+  # a lethal hit asks for the rescue. A player who dies drops the armor that
+  # the lethal hit has not worn.
   def armored_hurt(amount, sound)
-    return if game_mode.creative? || @player.vitals.dead? || amount <= 0.0
+    return if game_mode.creative? || @player.vitals.dead? || @player.vitals.grace? || amount <= 0.0
 
-    reduced = @armor.reduce(amount)
+    hurt(@armor.reduce(amount), sound)
     @armor.wear(amount).each { |piece| armor_broke(piece) }
-    hurt(reduced, sound)
   end
 
   def armor_broke(piece)
@@ -41,13 +43,33 @@ class Game
     say("#{Block::NAMES[piece]} BROKE")
   end
 
-  # The sound and the red flash of a hit. At zero health the player dies
-  # and drops the inventory.
+  # The sound and the red flash of a hit. At zero health the player dies, or a
+  # full set of spinel armor rescues the player.
   def felt_hurt(sound)
+    show_hurt(sound)
+    return unless @player.vitals.dead?
+    return spinel_rescue if @armor.spinel_set?
+
+    die
+  end
+
+  def show_hurt(sound)
     @sfx.play(sound, 0.8)
     @damage_flash = 0.35
-    return unless @player.vitals.dead?
+  end
 
+  # A full set of spinel armor rescues the player from a death that is not
+  # /kill, and breaks. Minecraft has no spinel armor. The rescue takes the
+  # health and the fire resistance of the Totem of Undying, and not its other
+  # effects. minecraft.wiki/w/Totem_of_Undying
+  def spinel_rescue
+    @armor.break_all.each { |piece| armor_broke(piece) }
+    @player.vitals.survive_death
+    say("SPINEL ARMOR SAVED YOU")
+  end
+
+  # The player dies and drops the inventory.
+  def die
     toggle_inventory if current_screen.inventory?
     close_chat if current_screen.typing?
     drop_inventory

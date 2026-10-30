@@ -96,6 +96,13 @@ class RecipeBookTest < Minitest::Test
     assert_equal book.shown(TABLE).last, book.in_view(TABLE).last
   end
 
+  def test_spinel_makes_the_mattock_and_each_piece_of_spinel_armor_at_a_table
+    book = RecipeBook.new
+    book.learn(Block::SPINEL)
+    pieces = [Block::SPINEL_HELMET, Block::SPINEL_CHESTPLATE, Block::SPINEL_LEGGINGS, Block::SPINEL_BOOTS]
+    assert_equal [recipe_for(Block::SPINEL_MATTOCK)] + pieces.map { |piece| recipe_for(piece) }, book.shown(TABLE)
+  end
+
   def test_a_short_list_does_not_scroll
     book = RecipeBook.new
     book.see(Block::OAK_LOG)

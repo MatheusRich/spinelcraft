@@ -168,6 +168,7 @@ class Game
     test_weather_fade
     test_cactus
     test_armor
+    test_spinel_armor
     test_save(x, z, ground)
     test_crafting_limits
     test_inventory_layout
@@ -1932,11 +1933,147 @@ class Game
     @items.clear
     drop_inventory
     check("the worn armor falls at death", @armor.slots.empty?(0) && ground_count(Block::IRON_HELMET) == Block.uses(Block::IRON_HELMET))
-    check("the creative screen lists each piece of armor", (Block::IRON_HELMET..Block::DIAMOND_BOOTS).all? { |piece| CREATIVE_ITEMS.include?(piece) })
+    check("the creative screen lists each piece of armor", (Block::IRON_HELMET..Block::SPINEL_BOOTS).all? { |piece| CREATIVE_ITEMS.include?(piece) })
     @items.clear
     @inv.load(kept_inventory, 0)
     @slot = kept_slot
     @player.revive
+  end
+
+  # A full set of spinel armor saves the player from any death but /kill, and
+  # breaks. The player then has half a heart, 40 seconds in which fire and
+  # lava do no damage, and a second in which no hit hurts.
+  def test_spinel_armor
+    px = @spawn_x.floor
+    pz = @spawn_z.floor
+    @mobs.clear
+    @game_mode = GameMode::SURVIVAL
+    kept_inventory = @inv.to_a
+    kept_slot = @slot
+    survivor
+    @slot = 0
+    @inv.set(0, Block::SPINEL_HELMET, Block.uses(Block::SPINEL_HELMET))
+    use_held
+    check("a right click puts a piece of spinel armor on", @armor.slots.block(0) == Block::SPINEL_HELMET && @armor.points == 3 && @armor.toughness == 2)
+    survivor
+    wear_spinel_set
+    armored_hurt(40.0, Sfx::HURT)
+    check("a full spinel set saves the player from a lethal hit, and the set breaks",
+          !@player.vitals.dead? && @player.vitals.health == Vitals::RESCUE_HEALTH && @armor.points == 0 &&
+          @message == "SPINEL ARMOR SAVED YOU" && current_screen.playing?)
+    @armor.put_on(Block::IRON_HELMET, 100)
+    armored_hurt(5.0, Sfx::HURT)
+    hurt(5.0, Sfx::FALL)
+    check("no hit hurts in the second after a rescue, and none wears armor",
+          @player.vitals.health == Vitals::RESCUE_HEALTH && @armor.slots.count(0) == 100)
+    @armor.slots.clear
+    update_survival(1.1)
+    hurt(5.0, Sfx::FALL)
+    check("with no armor left, the next hit after that second kills", current_screen.death_screen?)
+    die_and_respawn
+    survivor
+    wear_spinel_set
+    @armor.slots.set(0, Block::SPINEL_HELMET, 1)
+    armored_hurt(40.0, Sfx::HURT)
+    check("a lethal hit that wears a piece out still gets the save", !@player.vitals.dead? && @armor.points == 0)
+    survivor
+    wear_spinel_set
+    hurt(30.0, Sfx::FALL)
+    check("a full spinel set saves the player from a lethal fall", !@player.vitals.dead? && @player.vitals.health == Vitals::RESCUE_HEALTH && @armor.points == 0)
+    survivor
+    wear_spinel_set
+    @player.vitals.health = 1.0
+    @world.set(px + 1, SKY_Y - 1, pz, Block::LAVA)
+    @player.x = px + 1.5
+    @player.y = SKY_Y - 1.0
+    @player.z = pz + 0.5
+    update_survival(1.0 / 60.0)
+    120.times { update_survival(1.0 / 60.0) }
+    check("a full spinel set saves the player in lava, and the lava does no damage afterwards",
+          !@player.vitals.dead? && @player.vitals.health == Vitals::RESCUE_HEALTH && @player.vitals.fire_resistant? && @armor.points == 0)
+    @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
+    @player.vitals.ignite(5.0)
+    5.times { update_survival(1.0) }
+    check("fire does no damage in the 40 seconds", @player.vitals.health == Vitals::RESCUE_HEALTH)
+    @player.vitals.ignite(5.0)
+    check("the fire resistance icon shows while it lasts, and the player does not burn",
+          hud_draws?(Tex::FIRE_RESISTANCE) && !@player.vitals.burning? && !hud_draws?(Tex::FIRE))
+    update_survival(41.0)
+    @player.vitals.ignite(5.0)
+    check("the fire resistance icon is gone after 40 seconds, and the burning overlay shows again",
+          !hud_draws?(Tex::FIRE_RESISTANCE) && hud_draws?(Tex::FIRE))
+    @player.vitals.douse
+    survivor
+    wear_spinel_set
+    @player.vitals.health = 1.0
+    @player.x = px + 0.5
+    @player.vitals.ignite(5.0)
+    update_survival(1.0)
+    check("a full spinel set saves the player from a lethal fire", !@player.vitals.dead? && @player.vitals.health == Vitals::RESCUE_HEALTH && !@player.vitals.burning?)
+    survivor
+    wear_spinel_set
+    @player.vitals.health = 1.0
+    @world.set(px, SKY_Y, pz, Block::WATER)
+    update_survival(16.0)
+    saved = !@player.vitals.dead? && @armor.points == 0
+    @world.set(px, SKY_Y, pz, Block::AIR)
+    3.times { update_survival(1.0) }
+    check("a full spinel set saves the player from drowning, with full air to swim up", saved && !@player.vitals.dead? && @player.vitals.air == Vitals::MAX_AIR)
+    survivor
+    wear_spinel_set
+    armored_hurt(5.0, Sfx::HURT)
+    check("a hit that does not kill leaves the spinel set on", @armor.spinel_set? && @player.vitals.health > 18.0 && @message != "SPINEL ARMOR SAVED YOU")
+    survivor
+    wear_spinel_set
+    @armor.slots.set(3, Block::AIR, 0)
+    hurt(30.0, Sfx::FALL)
+    check("three pieces of spinel armor do not save the player", current_screen.death_screen?)
+    die_and_respawn
+    survivor
+    wear_spinel_set
+    @damage_flash = 0.0
+    @sfx.clear
+    @console.submit("/kill")
+    check("a full spinel set does not save the player from /kill, and the player sees and hears the hit",
+          current_screen.death_screen? && @damage_flash > 0.0 && @sfx.ids.count(Sfx::HURT) == 1)
+    die_and_respawn
+    @armor.slots.clear
+    @items.clear
+    @inv.load(kept_inventory, 0)
+    @slot = kept_slot
+    @player.revive
+  end
+
+  # The floats of a vertex of the HUD (see Ui#vert), and the place of its
+  # texture layer among them.
+  UI_VERTEX_FLOATS = 9
+  UI_LAYER_OFFSET = 4
+
+  # True when the HUD at 1280 x 720 draws a quad with texture layer layer.
+  def hud_draws?(layer)
+    build_ui(1280, 720)
+    (UI_LAYER_OFFSET...@ui.v.size).step(UI_VERTEX_FLOATS).any? { |index| @ui.v[index] == layer.to_f }
+  end
+
+  # A player in survival with no armor, who does not heal.
+  def survivor
+    @player.revive
+    @player.vitals.hunger = 17
+    @player.vitals.saturation = 0.0
+    @armor.slots.clear
+    @message = ""
+  end
+
+  def wear_spinel_set
+    [Block::SPINEL_HELMET, Block::SPINEL_CHESTPLATE, Block::SPINEL_LEGGINGS, Block::SPINEL_BOOTS].each do |piece|
+      @armor.put_on(piece, Block.uses(piece))
+    end
+  end
+
+  def die_and_respawn
+    @items.clear
+    respawn
+    resume
   end
 
   # On the sky platform from test_monsters: a cactus hurts the player who

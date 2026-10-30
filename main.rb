@@ -61,6 +61,7 @@ require_relative "game/block_changes"
 require_relative "game/slots"
 require_relative "game/armor"
 require_relative "game/icon_row"
+require_relative "game/effect_icon"
 require_relative "game/chest"
 require_relative "game/chests"
 require_relative "game/loot_pool"
@@ -137,6 +138,7 @@ class Game
     @armor = Armor.new
     @heart_row = IconRow.new(@ui, Tex::HEART, Tex::HEART_EMPTY)
     @armor_row = IconRow.new(@ui, Tex::ARMOR, Tex::ARMOR_EMPTY)
+    @fire_resistance_icon = EffectIcon.new(@ui, Tex::FIRE_RESISTANCE)
     @recipe_book = RecipeBook.new
     @furnaces = Furnaces.new
     # The station whose screen is open (BY_HAND, AT_TABLE or AT_FURNACE of Recipe),
