@@ -3762,6 +3762,11 @@ class Game
     cy = @world.height_at(x + 4, z)
     set_block(x + 4, cy - 1, z, Block::DIRT)
     set_block(x + 4, cy, z, Block::SEEDS)
+    # A crop with water in reach grows, and one without does not.
+    set_block(x + 4, cy - 1, z + 1, Block::WATER)
+    dry_y = @world.height_at(x + 4, z + 20)
+    set_block(x + 4, dry_y - 1, z + 20, Block::DIRT)
+    set_block(x + 4, dry_y, z + 20, Block::SEEDS)
     grow_plants(1200.0)
     check("a sapling grows into a tree", @world.get(x, y, z) == Block::OAK_LOG && @world.get(x, y + 3, z) == Block::OAK_LOG)
     sx = x - 10
@@ -3777,8 +3782,11 @@ class Game
     blocked = plan.empty?
     set_block(sx, sy + 2, z, Block::AIR)
     check("a spruce sapling grows a spruce, and a block in the way of its trunk stops it", spruce && blocked)
-    check("seeds grow into ripe wheat", @world.get(x + 4, cy, z) == Block::WHEAT_RIPE)
+    check("seeds grow into ripe wheat next to water, and dry seeds stay seeds",
+          @world.get(x + 4, cy, z) == Block::WHEAT_RIPE && @world.get(x + 4, dry_y, z + 20) == Block::SEEDS)
     set_block(x + 4, cy, z, Block::AIR)
+    set_block(x + 4, cy - 1, z + 1, Block::AIR)
+    set_block(x + 4, dry_y, z + 20, Block::AIR)
   end
 
   # A bed takes two blocks along the view, needs room for both, and breaks

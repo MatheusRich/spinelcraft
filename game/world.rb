@@ -222,6 +222,23 @@ class World
       Block.water?(get(x, y + 1, z)) || Block.water?(get(x, y, z + 1)) || Block.water?(get(x, y, z - 1))
   end
 
+  # A crop or a stem grows only when water is within WATER_REACH columns
+  # of the soil under it along x and z, on the level of the soil or one
+  # above. The game has no farmland, so the soil stands in for it, and a
+  # dry crop does not grow (in Minecraft it grows slower).
+  # minecraft.wiki/w/Farmland
+  WATER_REACH = 4
+
+  # True when water is within WATER_REACH columns of the soil at x, y, z,
+  # on the level y or the level above it.
+  def water_near_soil?(x, y, z)
+    (x - WATER_REACH..x + WATER_REACH).any? do |wx|
+      (z - WATER_REACH..z + WATER_REACH).any? do |wz|
+        Block.water?(get(wx, y, wz)) || Block.water?(get(wx, y + 1, wz))
+      end
+    end
+  end
+
   # The light list of a loaded chunk, else an empty list. (An Array-or-nil
   # return makes Spinel box the elements.)
   def torches_of(cx, cz) = chunk_loaded?(cx, cz) ? @chunk_torches[World.slot(cx.to_i, cz.to_i)] : @no_torches

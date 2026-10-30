@@ -253,7 +253,8 @@ module Block
   HOLD_FLOOR = 1
   # Dirt, grass or snowy grass under it. In Minecraft, seeds go only on
   # farmland (minecraft.wiki/w/Pumpkin_Seeds and /w/Wheat_Seeds). The game
-  # has no farmland, so dirt and grass take its place. Saplings, flowers
+  # has no farmland, so dirt and grass take its place, and a crop grows only
+  # with water in reach (World::WATER_REACH). Saplings, flowers
   # and short grass go on dirt and grass (minecraft.wiki/w/Sapling,
   # /w/Flower and /w/Short_Grass).
   HOLD_SOIL = 2

@@ -7,7 +7,7 @@
 class Plants
   # Each second, the game looks at this many of the 81 x 81 columns near the
   # player for a sapling, a crop or a cactus on top. Only a plant under the
-  # open sky grows. Each one that it finds grows (a sapling into a tree, a crop to
+  # open sky grows, and a crop also needs water (World#water_near_soil?). Each one that it finds grows (a sapling into a tree, a crop to
   # its next stage) with chance GROW_CHANCE. That is a step in about
   # 81 * 81 / (1100 * 0.1) = 60 seconds.
   GROW_SAMPLES = 1100.0
@@ -86,7 +86,7 @@ class Plants
 
     y = @world.height_at(x, z)
     block = @world.get(x, y, z)
-    if (Block.sapling?(block) || Block.growing?(block)) && @rng.rand01 < GROW_CHANCE
+    if (Block.sapling?(block) || (Block.growing?(block) && @world.water_near_soil?(x, y - 1, z))) && @rng.rand01 < GROW_CHANCE
       if Block.sapling?(block)
         grow_tree(x, y, z, Block.wood(block), changes)
       else

@@ -198,6 +198,7 @@ class PlantsTest < Minitest::Test
   # crop on one grows with GROW_CHANCE. So 20 000 ticks grow the 256 crops
   # of the chunk about 20 000 * 256 / 6561 * 0.1 = 78 times.
   def test_a_crop_grows_a_stage_on_about_one_in_ten_random_ticks
+    water_the_chunk
     16.times { |x| 16.times { |z| @world.set(x, Y, z, Block::SEEDS) } }
     grown = grow_ticks(20_000)
     assert(grown.all? { |_, y, _, b| y == Y && b > Block::SEEDS && b <= Block::WHEAT_RIPE })
@@ -260,7 +261,10 @@ class PlantsTest < Minitest::Test
 
   # From x = -32, the reach of 40 columns ends at x = 8.
   def test_a_random_tick_reaches_forty_columns_and_no_more
-    16.times { |x| 16.times { |z| @world.set(x, Y, z, Block::SEEDS) } }
+    16.times do |x|
+      @world.set(x, Y, Z, Block::SEEDS)
+      @world.set(x, Y, Z + 1, Block::WATER)
+    end
     grown = []
     20_000.times do
       @plants.grow_column(-32, Z, @changes)
@@ -268,6 +272,74 @@ class PlantsTest < Minitest::Test
     end
     assert(grown.any? { |x, *| x == 8 })
     assert(grown.none? { |x, *| x > 8 })
+  end
+
+  # Water in four cells of the soil level, 4 columns or less from each
+  # column of the chunk.
+  def water_the_chunk
+    [4, 12].product([4, 12]).each { |x, z| @world.set(x, Y - 1, z, Block::WATER) }
+  end
+
+  def fill_with(crop)
+    16.times { |x| 16.times { |z| @world.set(x, Y, z, crop) } }
+  end
+
+  def test_a_dry_crop_does_not_grow
+    [Block::SEEDS, Block::WHEAT_2, Block::PUMPKIN_SEEDS, Block::PUMPKIN_STEM].each do |crop|
+      fill_with(crop)
+      assert_empty grow_ticks(20_000), "block #{crop}"
+    end
+  end
+
+  def test_a_crop_grows_with_water_in_reach
+    water_the_chunk
+    [Block::WHEAT_2, Block::PUMPKIN_SEEDS, Block::PUMPKIN_STEM].each do |crop|
+      fill_with(crop)
+      assert_includes 55..100, grow_ticks(20_000).size, "block #{crop}"
+    end
+  end
+
+  def test_a_crop_grows_with_flowing_water_in_reach
+    4.times { |d| @world.set(X + 4 * Block::DIR_DX[d], Y - 1, Z + 4 * Block::DIR_DZ[d], Block::FLOW + 2) }
+    assert @world.water_near_soil?(X, Y - 1, Z)
+  end
+
+  def test_water_is_in_reach_up_to_four_columns_on_the_level_of_the_soil_or_one_above
+    [[Y - 1, 4, 4], [Y, -4, 4], [Y - 1, -4, 0], [Y, 0, -4]].each do |level, dx, dz|
+      @world.set(X + dx, level, Z + dz, Block::WATER)
+      assert @world.water_near_soil?(X, Y - 1, Z), "water at #{level} #{dx} #{dz}"
+      @world.set(X + dx, level, Z + dz, Block::AIR)
+    end
+  end
+
+  def test_water_is_out_of_reach_five_columns_away_and_below_or_two_above_the_soil
+    [[Y - 1, 5, 0], [Y, 0, 5], [Y - 1, -5, -5], [Y + 1, 0, 0], [Y - 2, 1, 1]].each do |level, dx, dz|
+      @world.set(X + dx, level, Z + dz, Block::WATER)
+      refute @world.water_near_soil?(X, Y - 1, Z), "water at #{level} #{dx} #{dz}"
+      @world.set(X + dx, level, Z + dz, Block::AIR)
+    end
+  end
+
+  def test_ripe_wheat_and_plain_ground_stay_the_same_next_to_water
+    water_the_chunk
+    fill_with(Block::WHEAT_RIPE)
+    assert_empty grow_ticks(20_000)
+    fill_with(Block::AIR)
+    assert_empty grow_ticks(20_000)
+  end
+
+  def test_bone_meal_grows_a_dry_crop
+    @world.set(X, Y, Z, Block::SEEDS)
+    assert @plants.fertilize(X, Y, Z, @changes)
+    refute_empty apply
+  end
+
+  def test_a_sapling_grows_with_no_water
+    16.times { |x| 16.times { |z| @world.set(x, Y - 1, z, Block::DIRT) } }
+    saplings = [2, 8, 13].product([2, 8, 13])
+    saplings.each { |x, z| @world.set(x, Y, z, Block::OAK_SAPLING) }
+    grow_ticks(60_000)
+    assert(saplings.any? { |x, z| @world.get(x, Y, z) == Block::OAK_LOG })
   end
 
   def test_a_cactus_just_under_the_top_of_the_world_grows
