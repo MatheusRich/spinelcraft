@@ -6,6 +6,20 @@ class WorldTest < Minitest::Test
     assert_equal Biome::TREE_KINDS.size, Trees::TRUNK.size
     assert_equal Biome::TREE_KINDS.size, Trees::WOOD.size
     assert(Biome::TREE.all? { |kind| kind < Biome::TREE_KINDS.size })
+    assert(Biome::PRECIPITATION.all? { |kind| Biome::WEATHER.include?(kind) })
+  end
+
+  def test_rain_falls_on_plains_and_no_precipitation_falls_on_a_desert
+    world = World.new(1337)
+    assert_equal Biome::RAIN, world.precipitation(-960, 288)
+    assert_equal Biome::DESERT, world.terrain.biome(-128, 256, world.terrain.surface_height(-128, 256))
+    assert_equal Biome::DRY, world.precipitation(-128, 256)
+  end
+
+  def test_snow_falls_on_a_mountain_over_a_valley_that_has_rain
+    world = World.new(1337)
+    assert_equal Biome::RAIN, Biome::PRECIPITATION[world.terrain.biome(-896, 832, Terrain::COLD_LINE)]
+    assert_equal Biome::SNOW, world.precipitation(-896, 832)
   end
 
   def test_it_counts_the_loaded_chunks

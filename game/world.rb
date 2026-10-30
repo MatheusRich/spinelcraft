@@ -52,6 +52,12 @@ class World
   def terrain = @generator.terrain
   def treasure_map = @generator.treasure_map
 
+  def precipitation(x, z)
+    ix = x.to_i
+    iz = z.to_i
+    Biome::PRECIPITATION[terrain.biome(ix, iz, terrain.surface_height(ix, iz))]
+  end
+
   # Spinel cannot type the positions that the game code gives World (from
   # the player, the mobs or the flow queue). So get, set and the chunk
   # lookups call to_i before they use index or slot, and the generator and
