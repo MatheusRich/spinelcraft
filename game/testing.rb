@@ -796,7 +796,7 @@ class Game
     with_fancy = @faces_drawn
     check("the GRAPHICS button starts at FANCY", menu_label(M_GRAPHICS) == "GRAPHICS: FANCY")
     click_menu(M_GRAPHICS)
-    @chunk_meshes.flush_all
+    check("the GRAPHICS button remeshes the chunks at once", !@chunk_meshes.queued?(ex >> 4, ez >> 4))
     render
     with_fast = @faces_drawn
     check("the GRAPHICS button switches to FAST", menu_label(M_GRAPHICS) == "GRAPHICS: FAST" && @options.graphics.equal?(GraphicsMode::FAST))

@@ -161,8 +161,8 @@ class ChunkMeshes
     nil
   end
 
-  # Sets the GraphicsMode of the meshes. The meshes that exist change in the
-  # frames that follow, as the remeshes of torch light do.
+  # Sets the GraphicsMode of the meshes and queues the meshes that exist for
+  # a remesh. The caller can flush_all to remesh them at once.
   def graphics=(mode)
     return if mode.equal?(@mesher.graphics)
 
