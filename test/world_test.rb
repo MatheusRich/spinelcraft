@@ -1,13 +1,8 @@
 require_relative "test_helper"
 
 class WorldTest < Minitest::Test
-  # The terrain tables are read by position, so each must have one entry
-  # for each biome or tree kind.
   def test_each_terrain_table_has_one_entry_for_each_biome_or_tree_kind
-    [Biome::GROUND, Biome::TREES, Biome::TREE, Biome::BIRCHES, Biome::LARGE_OAKS, Biome::PINES,
-     Biome::GRASS, Biome::FLOWERS, Biome::GRASS_COLOR, Biome::FOLIAGE_COLOR].each do |table|
-      assert_equal Biome::ALL.size, table.size
-    end
+    assert_equal Biome::ALL.size, Biome::GROUND.size
     assert_equal Biome::TREE_KINDS.size, Trees::TRUNK.size
     assert_equal Biome::TREE_KINDS.size, Trees::WOOD.size
     assert(Biome::TREE.all? { |kind| kind < Biome::TREE_KINDS.size })

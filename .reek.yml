@@ -105,6 +105,7 @@ detectors:
     - "/\\AArrow\\#initialize\\z/"
     - "/\\ABed\\#self\\.monster_near\\?\\z/"
     - "/\\ABed\\#self\\.use\\z/"
+    - "/\\ABiome\\#self\\.define_biome\\z/"
     - "/\\ABlockTarget\\#box_distance\\z/"
     - "/\\ABlock\\#self\\.define_block\\z/"
     - "/\\ABlock\\#self\\.define_door\\z/"
