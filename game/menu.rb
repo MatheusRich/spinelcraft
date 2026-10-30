@@ -111,6 +111,7 @@ class Game
       @chunk_meshes.graphics = @options.graphics
       @clouds.graphics = @options.graphics
       @weather.graphics = @options.graphics
+      @snowfall.graphics = @options.graphics
       @chunk_meshes.flush_all
     elsif i == M_FULLSCREEN
       toggle_fullscreen

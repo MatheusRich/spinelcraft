@@ -78,6 +78,7 @@ require_relative "game/held_item"
 require_relative "game/particles"
 require_relative "game/spell"
 require_relative "game/weather"
+require_relative "game/snowfall"
 require_relative "game/lightning"
 require_relative "game/storm"
 require_relative "game/clock"
@@ -253,6 +254,8 @@ class Game
     @music = Music.new(Noise.hash3(Time.now.to_i, 0, 0, 60))
     @weather = Weather.new(@seed * 3 + 2)
     @weather.graphics = @options.graphics
+    @snowfall = Snowfall.new(@seed * 5 + 3)
+    @snowfall.graphics = @options.graphics
     @console = Console.new(self, @chat, @clock, @weather)
     start_weather_switch
     # STRIKE=1 makes lightning strike in front of the player near the last frame.
@@ -316,8 +319,7 @@ class Game
 
   def init_graphics
     vsync = ENV["NOVSYNC"] ? 0 : 1
-    Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines +
-                            Weather.shader_defines)
+    Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
     abort "cannot record to #{@record}" if @record != "" && !Gfx.gfx_record(@record)
@@ -577,6 +579,8 @@ class Game
   def update_weather_effects(dt)
     @weather.update_weather(dt)
     @weather.splash(@particles, @world, @player, dt)
+    @snowfall.strength = @weather.rain.strength
+    @snowfall.update(@world, @player, dt)
     Gfx.au_loop(Sfx::RAIN, @weather.sound(@world, @player) * @options.volume) if @sound
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
   end

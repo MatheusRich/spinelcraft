@@ -118,24 +118,18 @@ class WeatherTest < Minitest::Test
     assert_operator color[2], :>, color[0]
   end
 
-  def test_snow_falls_as_snowflakes_and_rain_as_streaks_and_a_desert_stays_dry
+  def test_only_a_column_with_rain_has_streaks
     @weather.graphics = GraphicsMode::FAST
     @weather.rain.start.settle
-    assert_equal [Tex::SNOWFLAKE_1, Tex::SNOWFLAKE_2], quad_layers(quads_over(-70, -70))
     assert_equal [Tex::RAIN], quad_layers(quads_over(-70, -47))
+    assert_empty quads_over(-70, -70)
     assert_empty quads_over(-8, 16)
   end
 
-  def test_the_snowflake_texture_repeats_more_often_down_a_column_than_the_streak_texture
+  def test_the_streak_texture_repeats_every_4_blocks_down_a_column
     @weather.graphics = GraphicsMode::FAST
     @weather.rain.start.settle
-    assert_in_delta 1 / 0.7, repeats_per_block(quads_over(-70, -70)), 1.0e-6
     assert_in_delta 1 / 4.0, repeats_per_block(quads_over(-70, -47)), 1.0e-6
-  end
-
-  def test_the_shader_finds_both_snowflake_layers_from_the_first_one
-    assert_equal Tex::SNOWFLAKE_1 + 1, Tex::SNOWFLAKE_2
-    assert_match(/\A#define SNOWFLAKE_FIRST #{Tex::SNOWFLAKE_1}\.0\n\z/, Weather.shader_defines)
   end
 
   def test_snow_and_dry_land_make_no_splash_and_no_rain_sound

@@ -1847,6 +1847,10 @@ class Game
     @player.vitals.ignite(5.0)
     update_survival(1.0 / 60.0)
     check("snow does not put out the fire of the player", @player.vitals.burning?)
+    180.times { update_weather_effects(1.0 / 60.0) }
+    flakes = Mesh3.new
+    @snowfall.draw(flakes, @player)
+    check("flakes of snow fall around the player in a snow chunk in strong rain", flakes.count > 0)
     @player.y = ground + 60.0
     zombie = Monster.new(Mob::ZOMBIE, snow_x + 0.5, ground, snow_z + 0.5, 9)
     @mobs << zombie

@@ -112,6 +112,7 @@ class Game
     rx = Math.cos(@player.yaw)
     rz = Math.sin(@player.yaw)
     @particles.draw(@dyn, rx, rz, -rz * fy, rz * fx - rx * fz, rx * fy)
+    @snowfall.draw(@dyn, @player)
     if @target_block.hit? && current_screen.in_game? && !mob_in_view? && !boat_in_view?
       aimed = targeted_block
       # The outline lines are max(2.5, width / 1920 * 2.5) pixels wide, as
