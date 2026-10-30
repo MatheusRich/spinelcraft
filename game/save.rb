@@ -8,6 +8,7 @@ class Game
     return_held
     @chests.close
     land_falling
+    began = Gfx.gfx_ns
     file = Log.measure(Log::SAVE, "sections") { save_sections }
     chunks = @world.edited_chunks
     keys = chunks.keys
@@ -19,6 +20,7 @@ class Game
       end
     end
     @changed = false
+    perf_event("world saved in #{step_ms(began, Gfx.gfx_ns)} ms")
     say("WORLD SAVED")
     Log.debug(Log::SAVE) do
       "#{head.bytesize + keys.size * CHUNK_BYTES} bytes: #{keys.size} edited chunks, #{@chests.size} chests, #{@items.size} items, " \

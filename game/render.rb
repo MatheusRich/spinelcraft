@@ -43,7 +43,7 @@ class Game
     end
     Gfx.gfx_end
     # The frame's CPU time includes the draw calls, but not the waits.
-    @cpu_end = Gfx.gfx_ns - Gfx.gfx_wait_ns
+    @stamps[STAMP_END] = Gfx.gfx_ns - Gfx.gfx_wait_ns
   end
 
   # Uniforms 16 to 27: the eye, the animation clock, the sky and fog colors,

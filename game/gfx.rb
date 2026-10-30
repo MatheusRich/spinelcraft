@@ -108,6 +108,18 @@ module Gfx
     static int quit_requested, focus_lost;
     /* 1 when the window entered fullscreen in this poll, 0 when it left it, else -1. */
     static int fullscreen_change = -1;
+    /* The text of the window and display events of the last poll, which the perf
+       log writes. An event that repeats the one before it (a window that is
+       dragged sends a resize for each step) counts once. */
+    #define WINDOW_EVENT_CAP 16
+    static char window_events[WINDOW_EVENT_CAP][64];
+    static long window_event_count;
+    static const char *present_name = "vsync";
+    static void note_window_event(const char *text) {
+      if (window_event_count >= WINDOW_EVENT_CAP) return;
+      if (window_event_count > 0 && strcmp(window_events[window_event_count - 1], text) == 0) return;
+      snprintf(window_events[window_event_count++], sizeof window_events[0], "%s", text);
+    }
     /* The keys typed since the last poll, for the chat line: printable
        ASCII from text input, and the codes of TYPED_* for the edit keys,
        with key repeat. */
@@ -549,9 +561,11 @@ module Gfx
       if (!dev) return fail("SDL_CreateGPUDevice");
       if (!SDL_ClaimWindowForGPUDevice(dev, win)) return fail("SDL_ClaimWindowForGPUDevice");
       SDL_GPUPresentMode mode = SDL_GPU_PRESENTMODE_VSYNC;
-      if (!vsync && SDL_WindowSupportsGPUPresentMode(dev, win, SDL_GPU_PRESENTMODE_IMMEDIATE))
+      if (!vsync && SDL_WindowSupportsGPUPresentMode(dev, win, SDL_GPU_PRESENTMODE_IMMEDIATE)) {
         mode = SDL_GPU_PRESENTMODE_IMMEDIATE;
-      SDL_SetGPUSwapchainParameters(dev, win, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, mode);
+        present_name = "immediate";
+      }
+      if (!SDL_SetGPUSwapchainParameters(dev, win, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, mode)) present_name = "not set";
       depth_fmt = SDL_GPUTextureSupportsFormat(dev, SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
         SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET)
         ? SDL_GPU_TEXTUREFORMAT_D32_FLOAT : SDL_GPU_TEXTUREFORMAT_D16_UNORM;
@@ -1421,6 +1435,14 @@ module Gfx
       return text;
     }
 
+    /* The refresh rate of the display that holds the window, in Hz, or 0. */
+    double gfx_refresh_hz(void) {
+      const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(win));
+      return mode ? mode->refresh_rate : 0.0;
+    }
+
+    const char *gfx_present_mode(void) { return present_name; }
+
     /* The memory that the system charges to the game, in MB. It counts the
        graphics memory, which the resident size leaves out. */
     long gfx_footprint_mb(void) {
@@ -1451,6 +1473,7 @@ module Gfx
       mouse_dx = mouse_dy = wheel = 0;
       focus_lost = 0;
       fullscreen_change = -1;
+      window_event_count = 0;
       ntyped = 0;
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
@@ -1458,7 +1481,20 @@ module Gfx
           case SDL_EVENT_QUIT: quit_requested = 1; break;
           case SDL_EVENT_MOUSE_MOTION: mouse_dx += e.motion.xrel; mouse_dy += e.motion.yrel; break;
           case SDL_EVENT_MOUSE_WHEEL: wheel += e.wheel.y != 0 ? e.wheel.y : e.wheel.x; break; /* macOS sends Shift+scroll as horizontal. */
-          case SDL_EVENT_WINDOW_FOCUS_LOST: focus_lost = 1; break;
+          case SDL_EVENT_WINDOW_FOCUS_LOST: focus_lost = 1; note_window_event("focus lost"); break;
+          case SDL_EVENT_WINDOW_FOCUS_GAINED: note_window_event("focus gained"); break;
+          case SDL_EVENT_WINDOW_OCCLUDED: note_window_event("window hidden by another window"); break;
+          case SDL_EVENT_WINDOW_EXPOSED: note_window_event("window needs a redraw"); break;
+          case SDL_EVENT_WINDOW_MINIMIZED: note_window_event("window minimized"); break;
+          case SDL_EVENT_WINDOW_RESTORED: note_window_event("window restored"); break;
+          case SDL_EVENT_WINDOW_DISPLAY_CHANGED: note_window_event("window moved to another display"); break;
+          case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: note_window_event("window size changed"); break;
+          case SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED: {
+            char text[64];
+            snprintf(text, sizeof text, "display mode changed, the window display now runs at %.1f Hz", gfx_refresh_hz());
+            note_window_event(text);
+            break;
+          }
           case SDL_EVENT_WINDOW_ENTER_FULLSCREEN: fullscreen_change = 1; break;
           case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN: fullscreen_change = 0; break;
           case SDL_EVENT_TEXT_INPUT:
@@ -1500,6 +1536,11 @@ module Gfx
       return clipboard ? clipboard : "";
     }
     void in_text(long on) { if (on) SDL_StartTextInput(win); else SDL_StopTextInput(win); }
+    /* The window events of the last poll, for the perf log: their count, and
+       the text of each. */
+    long in_window_event_count(void) { return window_event_count; }
+    const char *in_window_event(long index) { return index >= 0 && index < window_event_count ? window_events[index] : ""; }
+
     /* The self-test presses keys and mouse buttons through these, in the state that in_poll fills. */
     void in_test_key(long sc, long on) { keys_now[sc] = on != 0; }
     void in_test_button(long b, long on) {
@@ -1568,6 +1609,10 @@ module Gfx
   ffi_func :gfx_ns, [], :long
   ffi_func :gfx_machine, [:long], :str
   ffi_func :gfx_footprint_mb, [], :long
+  ffi_func :gfx_refresh_hz, [], :double
+  ffi_func :gfx_present_mode, [], :str
+  ffi_func :in_window_event_count, [], :long
+  ffi_func :in_window_event, [:long], :str
   ffi_func :gfx_quit, [], :void
   ffi_func :in_poll, [], :bool
   ffi_func :in_key, [:long], :bool

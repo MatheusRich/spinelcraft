@@ -3,6 +3,7 @@ require_relative "game/gfx"
 require_relative "game/log"
 require_relative "game/time_histogram"
 require_relative "game/frame_stats"
+require_relative "game/line_limit"
 require_relative "game/perf_log"
 require_relative "game/rng"
 require_relative "game/textures"
@@ -191,12 +192,12 @@ class Game
     @max_cpu = 0.0
     @max_frame = 0.0
     @slow_frames = 0
-    @stamps = Array.new(4, 0)
+    @stamps = Array.new(STAMP_COUNT, 0)
+    # The stamps and the wait for the swapchain of the last frame, which the
+    # perf log reads one frame later.
+    @previous_stamps = Array.new(STAMP_COUNT, 0)
+    @previous_wait_ns = 0
     @faces_drawn = 0
-    @cpu_end = 0
-    @frame_began = 0
-    @previous_cpu = 0.0
-    @previous_steps = ""
     @game_mode = ENV["MODE"] == "survival" ? GameMode::SURVIVAL : GameMode::CREATIVE
     @loaded = SaveFile.new
     @load_error = ""
@@ -354,6 +355,7 @@ class Game
     loaded = !fresh && load
     keep_bad_save if !loaded && !fresh
     reset_world unless loaded
+    perf_event(loaded ? "world loaded, seed #{@seed}" : "new world, seed #{@seed}")
     if loaded
       apply_loaded
     else
@@ -387,6 +389,7 @@ class Game
   def new_world(seed)
     @seed = seed
     reset_world
+    perf_event("new world, seed #{@seed}")
     @inv.clear
     @armor.slots.clear
     @hotbar = HOTBAR_START.dup
@@ -468,9 +471,7 @@ class Game
       Gfx.au_music_stop
       return
     end
-    y = @player.eye_y
-    underground = y < SEA && !@world.under_sky?(@player.x, y, @player.z)
-    track = @music.next_track(dt, Gfx.au_music_playing, underground, @clock.time_of_day >= 0.5)
+    track = @music.next_track(dt, Gfx.au_music_playing, underground?, @clock.time_of_day >= 0.5)
     Music.start(track) if track >= 0
     Gfx.au_music_feed(volume)
   end
@@ -788,7 +789,8 @@ class Game
       last = now
       cpu = frame(dt, now, frames)
       record_frame(frames, dt, cpu)
-      write_perf_log(interval_ms, cpu) if frames > WARMUP_FRAMES && !@scripted
+      write_perf_log(interval_ms) if frames > WARMUP_FRAMES && !@scripted
+      remember_frame unless @scripted
       frames += 1
       Gfx.gfx_screenshot(@shot) if @shot != "" && frames == @max_frames - 1
       break if @max_frames > 0 && frames >= @max_frames
@@ -804,7 +806,7 @@ class Game
 
   # One frame of the game. Returns the milliseconds of CPU that it took.
   def frame(dt, now, frames)
-    @frame_began = now
+    @stamps[STAMP_BEGIN] = now
     strike_ahead if @strike_shot && frames == @max_frames - 3
     advance(dt)
     stamp(STAMP_STREAM)
@@ -815,7 +817,7 @@ class Game
     @chunk_meshes.flush
     stamp(STAMP_RENDER)
     render
-    cpu = (@cpu_end - now) / 1.0e6
+    cpu = cpu_ms(@stamps)
     log_slow_frame(frames, cpu) if cpu > Log::SLOW_MS
     cpu
   end
@@ -823,7 +825,9 @@ class Game
   def advance(dt)
     handle_input(dt) unless @scripted
     demo(dt) if @demo
+    stamp(STAMP_GAME)
     update_game(dt)
+    stamp(STAMP_SOUND)
     send_sounds
     Gfx.au_record_mix(dt)
     update_music(dt)
@@ -842,17 +846,19 @@ class Game
   end
 
   def log_slow_frame(frames, cpu)
-    Log.debug(Log::FRAME) { "frame #{frames}: #{cpu.round(2)} ms of CPU. #{frame_steps}" }
+    Log.debug(Log::FRAME) { "frame #{frames}: #{cpu.round(2)} ms of CPU. #{frame_steps(@stamps)}" }
   end
 
-  # The milliseconds of each step of the last frame.
-  def frame_steps
-    "update #{step_ms(@frame_began, @stamps[STAMP_STREAM])}, " \
-      "chunks #{step_ms(@stamps[STAMP_STREAM], @stamps[STAMP_FAR])}, far tiles #{step_ms(@stamps[STAMP_FAR], @stamps[STAMP_FLUSH])}, " \
-      "remesh #{step_ms(@stamps[STAMP_FLUSH], @stamps[STAMP_RENDER])}, render #{step_ms(@stamps[STAMP_RENDER], @cpu_end)}"
+  def frame_steps(stamps)
+    "input #{step_ms(stamps[STAMP_BEGIN], stamps[STAMP_GAME])}, game #{step_ms(stamps[STAMP_GAME], stamps[STAMP_SOUND])}, " \
+      "sound #{step_ms(stamps[STAMP_SOUND], stamps[STAMP_STREAM])}, " \
+      "chunks #{step_ms(stamps[STAMP_STREAM], stamps[STAMP_FAR])}, far tiles #{step_ms(stamps[STAMP_FAR], stamps[STAMP_FLUSH])}, " \
+      "remesh #{step_ms(stamps[STAMP_FLUSH], stamps[STAMP_RENDER])}, render #{step_ms(stamps[STAMP_RENDER], stamps[STAMP_END])}"
   end
 
   def step_ms(from, to) = ((to - from) / 1.0e6).round(2)
+
+  def cpu_ms(stamps) = (stamps[STAMP_END] - stamps[STAMP_BEGIN]) / 1.0e6
 
   # The first frames are not counted in the maximum values: they load the
   # world.
@@ -871,33 +877,53 @@ class Game
 
   # The interval is the time from the start of the last frame to the start of
   # this one, with no limit. It belongs to the last frame, so it goes with the
-  # CPU time and the steps of the last frame. The steps are only for a frame
-  # with enough CPU time to have a slow step.
-  def write_perf_log(interval_ms, cpu)
-    @perf_log.add(interval_ms, @previous_cpu)
-    @perf_log.write_stutter(interval_ms, stutter_detail(interval_ms)) if @perf_log.stutter?(interval_ms)
+  # CPU time, the wait for the swapchain and the steps of the last frame.
+  def write_perf_log(interval_ms)
+    previous_cpu = cpu_ms(@previous_stamps)
+    @perf_log.add(interval_ms, previous_cpu)
+    @perf_log.write_stutter(interval_ms, stutter_detail(interval_ms, previous_cpu)) if @perf_log.stutter?(interval_ms)
+    write_window_events
     @perf_log.write_stretch(perf_state) if @perf_log.due?
-    @previous_cpu = cpu
-    @previous_steps = cpu > Log::SLOW_MS ? frame_steps : ""
   end
 
-  def stutter_detail(interval_ms)
-    detail = "#{@previous_cpu.round(1)} ms of CPU, #{(interval_ms - @previous_cpu).round(1)} ms of wait"
-    return detail if @previous_steps == ""
+  # Keeps this frame for the perf log of the next one. The stamps of the last
+  # frame are the old ones, which the next frame writes again.
+  def remember_frame
+    @previous_wait_ns = Gfx.gfx_wait_ns
+    @stamps, @previous_stamps = @previous_stamps, @stamps
+  end
 
-    "#{detail}. #{@previous_steps}"
+  # The wait is the time that the swapchain made the frame wait, which is the
+  # display when it is most of the wait. The rest is the event poll, the
+  # present call and the system.
+  def stutter_detail(interval_ms, previous_cpu)
+    "#{previous_cpu.round(1)} ms of CPU, #{(interval_ms - previous_cpu).round(1)} ms of wait " \
+      "(#{(@previous_wait_ns / 1.0e6).round(1)} ms for the swapchain). #{frame_steps(@previous_stamps)}"
+  end
+
+  def write_window_events
+    Gfx.in_window_event_count.times { |index| @perf_log.write_window_event(Gfx.in_window_event(index)) }
+  end
+
+  def perf_event(text)
+    @perf_log.write_event(text) unless @scripted
   end
 
   # What the game knows at the end of a stretch of play, for the perf log.
   def perf_state
-    "window #{Gfx.gfx_width}x#{Gfx.gfx_height}, memory #{Gfx.gfx_footprint_mb} MB, #{@world.loaded_chunk_count} chunks, #{@mobs.size} mobs"
+    "window #{Gfx.gfx_width}x#{Gfx.gfx_height}, memory #{Gfx.gfx_footprint_mb} MB, #{@world.loaded_chunk_count} chunks, #{@mobs.size} mobs, " \
+      "#{@options.graphics.name}, #{underground? ? "underground" : "above ground"}, time of day #{@clock.time_of_day.round(2)}, " \
+      "at x #{@player.x.round}, eye y #{@player.eye_y.round}, z #{@player.z.round}"
   end
+
+  def underground? = @player.eye_y < SEA && !@world.under_sky?(@player.x, @player.eye_y, @player.z)
 
   def perf_log_header
     started = Time.now
     "session #{started.strftime("%Y-%m-%d %H:%M:%S")}\n" \
       "machine #{Gfx.gfx_machine(2)}, #{Gfx.gfx_machine(1)}, macOS #{Gfx.gfx_machine(3)}, GPU #{Gfx.gfx_machine(0)}\n" \
-      "settings view #{@options.view.round}, fov #{@options.fov_degrees.round}"
+      "settings view #{@options.view.round}, fov #{@options.fov_degrees.round}, graphics #{@options.graphics.name}\n" \
+      "display #{Gfx.gfx_refresh_hz.round(1)} Hz, present #{Gfx.gfx_present_mode}"
   end
 
   # The fps and the CPU time that the HUD shows are the mean of the last

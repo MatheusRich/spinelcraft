@@ -77,11 +77,17 @@ class Game
   SYNC_R = 8
   STREAM_BUDGET_NS = 2_500_000
   # The moments of a frame that `stamp` records, as indexes in @stamps. Each
-  # one is the start of the step with its name.
-  STAMP_STREAM = 0
-  STAMP_FAR = 1
-  STAMP_FLUSH = 2
-  STAMP_RENDER = 3
+  # one is the start of the step with its name, except STAMP_BEGIN and
+  # STAMP_END, which are the start and the end of the CPU work of the frame.
+  STAMP_BEGIN = 0
+  STAMP_GAME = 1
+  STAMP_SOUND = 2
+  STAMP_STREAM = 3
+  STAMP_FAR = 4
+  STAMP_FLUSH = 5
+  STAMP_RENDER = 6
+  STAMP_END = 7
+  STAMP_COUNT = 8
   # The first frames of a run load the world, so the numbers of the run do
   # not count them.
   WARMUP_FRAMES = 10
