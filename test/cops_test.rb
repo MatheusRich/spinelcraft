@@ -14,7 +14,7 @@ class CopsTest < Minitest::Test
   def test_a_comparison_with_the_strength_of_the_rain_is_an_offense
     cop = RuboCop::Cop::Spinelcraft::RainStrength
     assert_equal 2, offenses(cop, "douse if @weather.rain.strength > 0.5\nsplash if 0.0 < weather.rain.strength\n").size
-    assert_empty offenses(cop, "fog = 1.0 - @weather.rain.strength\ndouse if @weather.wet?\nrain = 1.0\nsplash if rain > 0.5\n")
+    assert_empty offenses(cop, "fog = 1.0 - @weather.rain.strength\ndouse if @weather.wet_at?(world, x, z)\nrain = 1.0\nsplash if rain > 0.5\n")
   end
 
   private

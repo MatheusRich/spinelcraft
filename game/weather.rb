@@ -79,8 +79,9 @@ class Weather
   # True when the storm is strong enough for lightning.
   def striking? = thunderstorm_strength > STRIKING
 
-  # True when the rain is strong enough to wet.
-  def wet? = @rain.strength > WET
+  # True when rain wets the column x, z: the rain is strong enough, and the
+  # column has rain, not snow.
+  def wet_at?(world, x, z) = @rain.strength > WET && world.precipitation(x.floor, z.floor) == Biome::RAIN
 
   # Stops the rain and the thunder.
   def clear

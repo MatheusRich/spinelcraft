@@ -164,6 +164,7 @@ class Game
     test_monsters
     test_fire
     test_rain
+    test_snow_fire
     test_thunder
     test_weather_fade
     test_cactus
@@ -1824,6 +1825,36 @@ class Game
     roofed = rain_bottom(px + 3, pz)
     @world.set(px + 3, SKY_Y + 5, pz, Block::AIR)
     check("the rain in a column stops at the highest block", open < SKY_Y + 6.0 && roofed == SKY_Y + 6.0)
+    @weather.rain.stop.settle
+    @clock.time_of_day = 0.3
+  end
+
+  # In the snow chunk of seed 1337 at -1112, -1112, in strong rain: snow puts
+  # out no fire, and the sun burns a zombie.
+  def test_snow_fire
+    snow_x = -1112
+    snow_z = -1112
+    @world.load_chunk(snow_x >> 4, snow_z >> 4)
+    ground = @world.height_at(snow_x, snow_z).to_f
+    keep_pose
+    survivor
+    @mobs.clear
+    @clock.time_of_day = 0.25
+    @weather.rain.start.settle
+    @player.x = snow_x + 0.5
+    @player.y = ground
+    @player.z = snow_z + 0.5
+    @player.vitals.ignite(5.0)
+    update_survival(1.0 / 60.0)
+    check("snow does not put out the fire of the player", @player.vitals.burning?)
+    @player.y = ground + 60.0
+    zombie = Monster.new(Mob::ZOMBIE, snow_x + 0.5, ground, snow_z + 0.5, 9)
+    @mobs << zombie
+    60.times { update_mobs(1.0 / 60.0) }
+    check("the sun burns a zombie in the snow, in strong rain", zombie.fire > 0.0)
+    @player.vitals.douse
+    @mobs.clear
+    restore_pose
     @weather.rain.stop.settle
     @clock.time_of_day = 0.3
   end

@@ -9,9 +9,25 @@ class WeatherTest < Minitest::Test
     @weather.rain.start
     @weather.update_weather(Spell::FADE * 0.5)
     assert @weather.rain.on?
-    refute @weather.wet?
+    refute @weather.wet_at?(LevelGround.new(11), 8.5, 8.5)
     @weather.update_weather(Spell::FADE * 0.1)
-    assert @weather.wet?
+    assert @weather.wet_at?(LevelGround.new(11), 8.5, 8.5)
+  end
+
+  def test_snow_and_dry_land_do_not_wet_in_strong_rain
+    @weather.rain.start.settle
+    { [-70, -47] => true, [-70, -70] => false, [-8, 16] => false }.each do |(chunk_x, chunk_z), wet|
+      x = chunk_x * 16 + 8.5
+      z = chunk_z * 16 + 8.5
+      assert_equal wet, @weather.wet_at?(World.new(1337), x, z)
+    end
+  end
+
+  def test_a_position_wets_the_column_that_it_is_in_also_at_a_negative_x
+    @weather.rain.start.settle
+    world = World.new(1337)
+    assert @weather.wet_at?(world, -1110.5, -499.5)
+    refute @weather.wet_at?(world, -1109.5, -499.5)
   end
 
   def test_drops_splash_around_the_player_in_rain_and_not_when_dry

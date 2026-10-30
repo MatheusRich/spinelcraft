@@ -144,7 +144,7 @@ class Game
       ground = BlockSound.footstep(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))
       @sfx.play_at(ground, mob.x, mob.y, mob.z, 0.35)
     end
-    mob.douse if mob.fire > 0.0 && @weather.wet? && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
+    mob.douse if mob.fire > 0.0 && @weather.wet_at?(@world, mob.x, mob.z) && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
     @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.fire > 0.0
   end
 
@@ -171,13 +171,13 @@ class Game
   # The sun burns undead mobs while the sky light is at least
   # Monster::SUN_BURN_LIGHT and they are not wet. The wiki does not confirm
   # that rain stops the burning.
-  def sun_burns? = !@weather.wet? && @sky.light >= Monster::SUN_BURN_LIGHT
+  def sun_burns?(monster) = !@weather.wet_at?(@world, monster.x, monster.z) && @sky.light >= Monster::SUN_BURN_LIGHT
 
   # The turn of a monster: what it asked for in its last step, the sun
   # burn, and its step.
   def update_monster(monster, dt, held)
     attack(monster)
-    monster.burn_in_sun(@world) if sun_burns?
+    monster.burn_in_sun(@world) if sun_burns?(monster)
     step_mob(monster, dt, held)
   end
 
