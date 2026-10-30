@@ -125,6 +125,15 @@ Minecraft has no spinel. Its images are gold or emerald images with a red palett
 
 `tools/logo.rb` draws `spinel_block.png`: `stone.png` with its lightness on the red palette, from `#5E0C22` to `#D8304A` to `#FF9AA8`. The title screen of the game draws SPINEL with it. The tool also draws the icon of the game, `assets/icon.png`, from `spinel_ore.png`, and the title, `assets/logo.png`, from `spinel_block.png` and `cobble.png`. These two images also keep the license of this pack.
 
+## Snowflakes
+
+The two snowflakes are not from Pixel Perfection. They come from the same `textures/` folder, and the README of the VoxeLibre weather mod, `mods/ENVIRONMENT/mcl_weather/README.md`, names the author and the license: TeddyDesTodes, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Each source image is 5x5. Each file here is the source image with clear pixels around it, in a 16x16 image.
+
+| File | Source file | Place of the flake |
+| --- | --- | --- |
+| `snowflake_1.png` | `weather_pack_snow_snowflake1.png` | Column 2, row 3 |
+| `snowflake_2.png` | `weather_pack_snow_snowflake2.png` | Column 9, row 10 |
+
 ## Add an image
 
 1. Find the texture in the VoxeLibre `textures/` folder. Its raw URL is `https://git.minetest.land/VoxeLibre/VoxeLibre/raw/branch/master/textures/<name>.png`.

@@ -17,6 +17,13 @@ class Weather
   SPLASH_REACH = 0.8
   # The color of a rain streak.
   RAIN_COLOR = Color.new(0.75, 0.8, 0.95, 0.45)
+  # What the two quads of a column draw, by Biome::WEATHER. A dry column has
+  # no quads, so its entries are never read. TILES is the blocks down for each
+  # repeat of the texture.
+  COLORS = [RAIN_COLOR, RAIN_COLOR, Color.new(1.0, 1.0, 1.0, 0.85)]
+  ALONG_LAYERS = [Tex::RAIN, Tex::RAIN, Tex::SNOWFLAKE_1]
+  ACROSS_LAYERS = [Tex::RAIN, Tex::RAIN, Tex::SNOWFLAKE_2]
+  TILES = [4.0, 4.0, 0.7]
   # Seconds that a spell of rain lasts, and that the sky stays dry.
   RAIN_LASTS = 120.0..360.0
   RAIN_PAUSES = 300.0..900.0
@@ -30,6 +37,8 @@ class Weather
   # Minecraft strikes lightning when the strength of the storm is above 0.9.
   # The wiki does not confirm this value (Level#isThundering in the code).
   STRIKING = 0.9
+
+  def self.shader_defines = "#define SNOWFLAKE_FIRST #{Tex::SNOWFLAKE_1.to_f}\n"
 
   # The spells of rain and of thunder.
   attr_reader :rain, :thunder
@@ -149,15 +158,18 @@ class Weather
         bottom = (ground > cy - 10 ? ground : cy - 10).to_f
         next if bottom >= top
 
+        kind = world.precipitation(x, z)
+        next if kind == Biome::DRY
+
         # Each column starts its streaks at another place, so the columns do
-        # not fall in step. The texture repeats twice across a quad and every
-        # 4 blocks down.
+        # not fall in step. The texture repeats twice across a quad.
         v0 = ((x * 73856093) ^ (z * 19349663)) % 1024 / 256.0
-        v1 = v0 + (top - bottom) / 4.0
+        v1 = v0 + (top - bottom) / TILES[kind]
+        color = COLORS[kind]
         fx = x.to_f
         fz = z.to_f
-        @mesh.wall(fx, fz, fx + 1.0, fz + 1.0, bottom, top, 2.0, v0, v1, Tex::RAIN, RAIN_COLOR)
-        @mesh.wall(fx + 1.0, fz, fx, fz + 1.0, bottom, top, 2.0, v0 + 0.5, v1 + 0.5, Tex::RAIN, RAIN_COLOR)
+        @mesh.wall(fx, fz, fx + 1.0, fz + 1.0, bottom, top, 2.0, v0, v1, ALONG_LAYERS[kind], color)
+        @mesh.wall(fx + 1.0, fz, fx, fz + 1.0, bottom, top, 2.0, v0 + 0.5, v1 + 0.5, ACROSS_LAYERS[kind], color)
       end
     end
     true

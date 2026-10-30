@@ -102,6 +102,42 @@ class WeatherTest < Minitest::Test
     assert_operator color[2], :>, color[0]
   end
 
+  def test_snow_falls_as_snowflakes_and_rain_as_streaks_and_a_desert_stays_dry
+    @weather.graphics = GraphicsMode::FAST
+    @weather.rain.start.settle
+    assert_equal [Tex::SNOWFLAKE_1, Tex::SNOWFLAKE_2], quad_layers(quads_over(-70, -70))
+    assert_equal [Tex::RAIN], quad_layers(quads_over(-70, -47))
+    assert_empty quads_over(-8, 16)
+  end
+
+  def test_the_snowflake_texture_repeats_more_often_down_a_column_than_the_streak_texture
+    @weather.graphics = GraphicsMode::FAST
+    @weather.rain.start.settle
+    assert_in_delta 1 / 0.7, repeats_per_block(quads_over(-70, -70)), 1.0e-6
+    assert_in_delta 1 / 4.0, repeats_per_block(quads_over(-70, -47)), 1.0e-6
+  end
+
+  def test_the_shader_finds_both_snowflake_layers_from_the_first_one
+    assert_equal Tex::SNOWFLAKE_1 + 1, Tex::SNOWFLAKE_2
+    assert_match(/\A#define SNOWFLAKE_FIRST #{Tex::SNOWFLAKE_1}\.0\n\z/, Weather.shader_defines)
+  end
+
+  def quads_over(chunk_x, chunk_z)
+    world = World.new(1337)
+    world.load_chunk(chunk_x, chunk_z)
+    x = chunk_x * 16 + 8
+    z = chunk_z * 16 + 8
+    @weather.build_quads(world, Player.new(x + 0.5, world.height_at(x, z).to_f, z + 0.5), 0.0)
+    @weather.mesh.v.each_slice(11).to_a
+  end
+
+  def quad_layers(vertices) = vertices.map { |vertex| vertex[5].to_i }.uniq.sort
+
+  def repeats_per_block(vertices)
+    height = vertices[0][1] - vertices[2][1]
+    (vertices[2][4] - vertices[0][4]) / height
+  end
+
   def test_fast_graphics_make_a_smaller_rain_with_fewer_quads
     world = world_with_one_chunk
     player = Player.new(8.5, world.height_at(8, 8).to_f, 8.5)

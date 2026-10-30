@@ -91,6 +91,8 @@ module Tex
   PUFF = drawn(1, bleed: 1)
   # Streaks of rain on a clear background.
   RAIN = drawn(1, bleed: 1)
+  SNOWFLAKE_1 = image("snowflake_1", bleed: 1)
+  SNOWFLAKE_2 = image("snowflake_2", bleed: 1)
   DOOR_LOWER = image("door_lower")
   DOOR_UPPER = image("door_upper")
   OAK_SAPLING = image("oak_sapling", bleed: 1)

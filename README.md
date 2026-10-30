@@ -90,4 +90,4 @@ See [docs/DEVELOPING.md](docs/DEVELOPING.md) for the code layout, the test switc
 
 ## Credits
 
-The images in `assets/pixel-perfection` come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre and Mineclonia contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license. `assets/pixel-perfection/README.md` gives the sources.
+The images in `assets/pixel-perfection` come from Pixel Perfection by Hugh "XSSheep" Rutland, as changed by the VoxeLibre and Mineclonia contributors. They have the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license, except the two snowflakes, which have the [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) license. `assets/pixel-perfection/README.md` gives the sources.

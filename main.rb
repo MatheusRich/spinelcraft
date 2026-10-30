@@ -316,7 +316,8 @@ class Game
 
   def init_graphics
     vsync = ENV["NOVSYNC"] ? 0 : 1
-    Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines)
+    Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines +
+                            Weather.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
     abort "cannot record to #{@record}" if @record != "" && !Gfx.gfx_record(@record)
