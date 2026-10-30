@@ -8,7 +8,7 @@ class CloudsTest < Minitest::Test
 
   def test_the_clouds_cover_a_fifth_of_the_sky
     [1, 1337].each do |seed|
-      clouds = Clouds.new(seed)
+      clouds = Clouds.new(seed, GraphicsMode::FANCY)
       cells = 0
       Clouds::GRID.times { |i| Clouds::GRID.times { |j| cells += 1 if clouds.cloud?(i, j) } }
       assert_in_delta 0.2, cells.to_f / (Clouds::GRID * Clouds::GRID), 0.001
@@ -16,14 +16,14 @@ class CloudsTest < Minitest::Test
   end
 
   def test_the_cloud_boxes_are_four_blocks_tall
-    clouds = Clouds.new(1337)
+    clouds = Clouds.new(1337, GraphicsMode::FANCY)
     clouds.build(0.0, 0.0, 0.0)
     heights = vertices(clouds.mesh).map { |vertex| vertex[1] }.uniq.sort
     assert_equal [192.0, 196.0], heights
   end
 
   def test_the_far_layer_skips_the_cloud_cells_that_have_boxes
-    clouds = Clouds.new(1337)
+    clouds = Clouds.new(1337, GraphicsMode::FANCY)
     # The same clouds move from one place to the next.
     [[0, 0], [40, -70]].each do |ci, cj|
       clouds.build(ci * Clouds::CELL + 1.0, cj * Clouds::CELL + 1.0, 0.0)
@@ -34,7 +34,7 @@ class CloudsTest < Minitest::Test
   end
 
   def test_the_boxes_have_a_wall_only_where_a_cloud_cell_meets_a_cell_with_no_cloud
-    clouds = Clouds.new(1337)
+    clouds = Clouds.new(1337, GraphicsMode::FANCY)
     clouds.build(0.0, 0.0, 0.0)
     walls = flat_cells(clouds.mesh, Clouds::HEIGHT).flat_map do |i, j|
       [[1, 0, :x, i + 1, j], [-1, 0, :x, i, j], [0, 1, :z, j + 1, i], [0, -1, :z, j, i]].filter_map do |di, dj, *wall|
@@ -45,7 +45,7 @@ class CloudsTest < Minitest::Test
   end
 
   def test_a_cloud_larger_than_the_boxes_has_one_box_for_each_column_open_to_the_far_layer
-    clouds = Clouds.new(1337)
+    clouds = Clouds.new(1337, GraphicsMode::FANCY)
     clouds.instance_variable_set(:@cells, Array.new(Clouds::GRID * Clouds::GRID, 1))
     clouds.build(0.0, 0.0, 0.0)
     near = Clouds::NEAR
@@ -55,7 +55,7 @@ class CloudsTest < Minitest::Test
   end
 
   def test_only_the_walls_have_the_glow_that_makes_them_fade
-    clouds = Clouds.new(1337)
+    clouds = Clouds.new(1337, GraphicsMode::FANCY)
     clouds.build(0.0, 0.0, 0.0)
     faces(clouds.mesh).each do |face|
       wall = face.map { |vertex| vertex[1] }.uniq.size > 1
@@ -113,5 +113,24 @@ class CloudsTest < Minitest::Test
 
       (xs[0]...xs[1]).map { |i| [:z, zs[0], i] }
     end.sort
+  end
+
+  def test_the_flat_layer_alone_has_no_boxes_and_skips_no_cell
+    clouds = Clouds.new(1337, GraphicsMode::FAST)
+    assert clouds.build(500.0, -300.0, 0.0)
+    assert_equal 0, clouds.mesh.count
+    assert_empty skipped_cells(clouds)
+  end
+
+  def test_a_change_of_the_graphics_mode_makes_the_boxes_or_takes_them_away
+    clouds = Clouds.new(1337, GraphicsMode::FANCY)
+    clouds.build(0.0, 0.0, 0.0)
+    refute_equal 0, clouds.mesh.count
+    clouds.graphics = GraphicsMode::FAST
+    assert clouds.build(0.0, 0.0, 0.0)
+    assert_equal 0, clouds.mesh.count
+    clouds.graphics = GraphicsMode::FANCY
+    assert clouds.build(0.0, 0.0, 0.0)
+    refute_equal 0, clouds.mesh.count
   end
 end

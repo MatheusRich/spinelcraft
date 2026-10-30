@@ -6,8 +6,15 @@
 # The thunder spell turns on and off on its own timer, as in Minecraft. Rain
 # while the thunder spell is on is a thunderstorm. minecraft.wiki/w/Weather
 class Weather
-  # Rain falls in the columns within R blocks of the player.
+  # Rain falls in the columns within R blocks of the player, and FAST_R in
+  # FAST graphics.
   R = 10
+  FAST_R = 6
+  # The drops that splash in a second at full strength, in the rain of R
+  # blocks. A smaller rain has fewer, for the same drops in each block.
+  SPLASH_RATE = 90.0
+  # The drops splash within this share of the radius of the rain.
+  SPLASH_REACH = 0.8
   # The color of a rain streak.
   RAIN_COLOR = Color.new(0.75, 0.8, 0.95, 0.45)
   # Seconds that a spell of rain lasts, and that the sky stays dry.
@@ -26,14 +33,16 @@ class Weather
 
   # The spells of rain and of thunder.
   attr_reader :rain, :thunder
-  # The rain quads.
-  attr_reader :mesh
+  # The rain quads, and the radius of the rain in blocks.
+  attr_reader :mesh, :radius
 
   def initialize(seed)
     @rng = Rng.new(seed)
     @rain = Spell.new(@rng, RAIN_LASTS, RAIN_PAUSES)
     @thunder = Spell.new(@rng, THUNDER_LASTS, THUNDER_PAUSES)
     @mesh = Mesh3.new
+    @radius = R
+    @splash_rate = SPLASH_RATE
     # The block that the rain quads are for, and their age in seconds.
     @x = World::NONE
     @y = 0
@@ -41,6 +50,14 @@ class Weather
     @age = 0.0
     clear
     settle
+  end
+
+  # Sets the radius of the rain and the drops that splash from the graphics
+  # mode. The next build_quads makes the quads again.
+  def graphics=(mode)
+    @radius = mode.rain_radius
+    @splash_rate = SPLASH_RATE * (@radius * @radius).to_f / (R * R)
+    @x = World::NONE
   end
 
   # True when rain falls while the thunder spell is on.
@@ -84,10 +101,11 @@ class Weather
 
   # Drops that splash on the ground around the player.
   def splash(particles, world, player, dt)
-    n = (dt * 90.0 * @rain.strength + @rng.rand01).to_i
+    n = (dt * @splash_rate * @rain.strength + @rng.rand01).to_i
+    reach = @radius * SPLASH_REACH
     n.times do
-      x = player.x + (@rng.rand01 * 2.0 - 1.0) * 8.0
-      z = player.z + (@rng.rand01 * 2.0 - 1.0) * 8.0
+      x = player.x + (@rng.rand01 * 2.0 - 1.0) * reach
+      z = player.z + (@rng.rand01 * 2.0 - 1.0) * reach
       h = world.height_at(x.floor, z.floor)
       if h > player.y - 8.0 && h < player.y + 6.0
         particles.add(Particle::DROP, x, h + 0.05, z, 0.0, 1.2 + @rng.rand01, 0.0, 0.2 + @rng.rand01 * 0.1, Tex::PUFF)
@@ -121,9 +139,9 @@ class Weather
     @age = 0.0
     @mesh.clear
     top = (cy + 14).to_f
-    (-R..R).each do |dx|
-      (-R..R).each do |dz|
-        next if dx * dx + dz * dz > R * R
+    (-@radius..@radius).each do |dx|
+      (-@radius..@radius).each do |dz|
+        next if dx * dx + dz * dz > @radius * @radius
 
         x = cx + dx
         z = cz + dz

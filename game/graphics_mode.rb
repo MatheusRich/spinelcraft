@@ -22,6 +22,21 @@ class GraphicsMode
   # Water that hides what is under it, with no blend.
   def opaque_water? = equal?(FAST)
 
+  # The cells around the player that have cloud boxes. FAST has none: the
+  # clouds are the flat layer alone.
+  def cloud_reach
+    return Clouds::NO_BOXES if equal?(FAST)
+
+    Clouds::NEAR
+  end
+
+  # The radius in blocks of the rain around the player.
+  def rain_radius
+    return Weather::FAST_R if equal?(FAST)
+
+    Weather::R
+  end
+
   # The mode after this one in the pause menu.
   def next_mode = equal?(FANCY) ? FAST : FANCY
 

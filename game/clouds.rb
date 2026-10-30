@@ -19,6 +19,8 @@ class Clouds
   COLOR = Color.new(1.0, 1.0, 1.0, ALPHA)
   # Boxes go out to NEAR cells from the player's cell, about 800 blocks.
   NEAR = 66
+  # The reach of no boxes: the cells from -NO_BOXES to NO_BOXES are none.
+  NO_BOXES = -1
   # The walls of the boxes fade out over FADE blocks, and are gone at
   # NEAR * CELL, the nearest that a cell switches between a box and the
   # flat layer. So a switch shows no change.
@@ -27,8 +29,9 @@ class Clouds
   # The boxes for the cells around (built_i, built_j).
   attr_reader :mesh
 
-  def initialize(seed)
+  def initialize(seed, graphics)
     @mesh = Mesh3.new
+    @reach = graphics.cloud_reach
     @built = false
     @built_i = 0
     @built_j = 0
@@ -53,6 +56,13 @@ class Clouds
       end
     end
     values
+  end
+
+  # Changes the reach of the boxes. The next build makes the boxes or takes
+  # them away.
+  def graphics=(mode)
+    @reach = mode.cloud_reach
+    @built = false
   end
 
   # The fade of the walls as #defines for vcloud_box.
@@ -82,10 +92,12 @@ class Clouds
     u[at + 1] = py > HEIGHT + DEPTH / 2.0 ? HEIGHT + DEPTH : HEIGHT
     u[at + 2] = CELL.to_f
     u[at + 3] = GRID.to_f
-    u[at + 4] = (@built_i - NEAR).to_f
-    u[at + 5] = (@built_j - NEAR).to_f
-    u[at + 6] = (@built_i + NEAR).to_f
-    u[at + 7] = (@built_j + NEAR).to_f
+    # With no boxes, the first cell is after the last, and the far layer
+    # skips no cell.
+    u[at + 4] = (@built_i - @reach).to_f
+    u[at + 5] = (@built_j - @reach).to_f
+    u[at + 6] = (@built_i + @reach).to_f
+    u[at + 7] = (@built_j + @reach).to_f
   end
 
   # Makes the boxes again when the player's cell changes. Returns true when it did.
@@ -98,18 +110,18 @@ class Clouds
     @built_i = ci
     @built_j = cj
     @mesh.clear
-    (-NEAR..NEAR).each do |di|
+    (-@reach..@reach).each do |di|
       i = ci + di
       x0 = (i * CELL).to_f
-      dj = -NEAR
-      while dj <= NEAR
+      dj = -@reach
+      while dj <= @reach
         j = cj + dj
         if cloud?(i, j)
           # Join a run of cloud cells along z into one box. The box draws no
           # face inside the cloud: a z end only next to an empty cell, and
           # the x sides only where side finds empty cells.
           start = j
-          while dj < NEAR && cloud?(i, j + 1)
+          while dj < @reach && cloud?(i, j + 1)
             dj += 1
             j += 1
           end

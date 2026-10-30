@@ -101,4 +101,111 @@ class WeatherTest < Minitest::Test
     assert_operator color[3], :<, 1.0
     assert_operator color[2], :>, color[0]
   end
+
+  def test_fast_graphics_make_a_smaller_rain_with_fewer_quads
+    world = world_with_one_chunk
+    player = Player.new(8.5, world.height_at(8, 8).to_f, 8.5)
+    @weather.rain.start.settle
+    @weather.build_quads(world, player, 0.0)
+    fancy_floats = @weather.mesh.count
+    @weather.graphics = GraphicsMode::FAST
+    assert_equal Weather::FAST_R, @weather.radius
+    assert @weather.build_quads(world, player, 0.0)
+    assert_operator @weather.mesh.count, :<, fancy_floats / 2
+    farthest = @weather.mesh.v.each_slice(11).map { |vertex| [(vertex[0] - player.x).abs, (vertex[2] - player.z).abs].max }.max
+    assert_operator farthest, :<=, Weather::FAST_R + 1.0
+  end
+
+  def test_a_change_of_the_graphics_mode_makes_the_quads_again_where_the_player_stands
+    world = world_with_one_chunk
+    player = Player.new(8.5, world.height_at(8, 8).to_f, 8.5)
+    @weather.rain.start.settle
+    @weather.build_quads(world, player, 0.0)
+    refute @weather.build_quads(world, player, 0.0)
+    @weather.graphics = GraphicsMode::FAST
+    assert @weather.build_quads(world, player, 0.0)
+  end
+
+  def test_fast_graphics_splash_fewer_drops
+    world = world_with_one_chunk
+    player = Player.new(8.5, world.height_at(8, 8).to_f, 8.5)
+    drops = [GraphicsMode::FANCY, GraphicsMode::FAST].map do |mode|
+      weather = Weather.new(1)
+      weather.graphics = mode
+      weather.rain.start.settle
+      particles = Particles.new(1)
+      weather.splash(particles, world, player, 1.0)
+      particles.count(Particle::DROP)
+    end
+    assert_operator drops[1], :<, drops[0]
+    assert_operator drops[1], :>, 0
+  end
+
+  # The drops that a Weather gives to its particles, with where they fall.
+  class DropRecorder
+    attr_reader :spots
+
+    def initialize
+      @spots = []
+    end
+
+    def add(_kind, x, _y, z, *_motion)
+      @spots << [x, z]
+    end
+  end
+
+  # A world whose ground is one block above the feet of the player, so that
+  # each drop lands.
+  class LevelGround
+    def height_at(_x, _z) = 11
+  end
+
+  def splash_spots(mode)
+    weather = Weather.new(1)
+    weather.graphics = mode
+    weather.rain.start.settle
+    recorder = DropRecorder.new
+    weather.splash(recorder, LevelGround.new, Player.new(8.5, 10.0, 8.5), 1.0)
+    recorder.spots
+  end
+
+  # Each axis of the drops stays within reach of the player and goes out to
+  # both sides of the player, close to reach.
+  def assert_spread(spots, reach)
+    [0, 1].each do |axis|
+      offsets = spots.map { |spot| spot[axis] - 8.5 }
+      assert_operator offsets.map(&:abs).max, :<=, reach
+      assert_operator offsets.max, :>, reach * 0.6
+      assert_operator offsets.min, :<, -reach * 0.6
+    end
+  end
+
+  def test_a_second_of_full_rain_splashes_90_drops_within_8_blocks_of_the_player
+    spots = splash_spots(GraphicsMode::FANCY)
+    assert_equal 90, spots.size
+    assert_spread spots, 8.0
+  end
+
+  def test_fast_graphics_splash_the_same_drops_in_each_block_over_a_smaller_circle
+    spots = splash_spots(GraphicsMode::FAST)
+    assert_includes [32, 33], spots.size
+    assert_spread spots, Weather::FAST_R * Weather::SPLASH_REACH
+  end
+
+  def rain_columns(mode)
+    world = world_with_one_chunk
+    player = Player.new(8.5, world.height_at(8, 8).to_f, 8.5)
+    @weather.graphics = mode
+    @weather.rain.start.settle
+    @weather.build_quads(world, player, 0.0)
+    @weather.mesh.v.each_slice(11).each_slice(12).map { |wall| [wall[0][0].to_i - 8, wall[0][2].to_i - 8] }
+  end
+
+  def test_the_rain_falls_in_the_columns_of_a_circle_that_includes_its_edge
+    [GraphicsMode::FANCY, GraphicsMode::FAST].each do |mode|
+      radius = mode.rain_radius
+      circle = (-radius..radius).to_a.product((-radius..radius).to_a).select { |dx, dz| dx * dx + dz * dz <= radius * radius }
+      assert_equal circle.sort, rain_columns(mode).sort, mode.name
+    end
+  end
 end

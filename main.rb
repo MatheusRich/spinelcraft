@@ -212,7 +212,7 @@ class Game
     @options.read_file if @save_on_quit
     read_option_overrides
     @sound = false
-    @clouds = Clouds.new(@seed)
+    @clouds = Clouds.new(@seed, @options.graphics)
     @cloud_drift = 0.0
     @bob = 0.0
     # The half angle of the view in radians. It follows the option and widens in a sprint.
@@ -252,6 +252,7 @@ class Game
     # mixes the seconds first.
     @music = Music.new(Noise.hash3(Time.now.to_i, 0, 0, 60))
     @weather = Weather.new(@seed * 3 + 2)
+    @weather.graphics = @options.graphics
     @console = Console.new(self, @chat, @clock, @weather)
     start_weather_switch
     # STRIKE=1 makes lightning strike in front of the player near the last frame.
@@ -402,7 +403,7 @@ class Game
     @items.clear
     @boats.clear
     @riding = -1
-    @clouds = Clouds.new(@seed)
+    @clouds = Clouds.new(@seed, @options.graphics)
     upload_clouds
     @clock.day = 0
     spawn

@@ -109,6 +109,8 @@ class Game
     elsif i == M_GRAPHICS
       @options.graphics = @options.graphics.next_mode
       @chunk_meshes.graphics = @options.graphics
+      @clouds.graphics = @options.graphics
+      @weather.graphics = @options.graphics
     elsif i == M_FULLSCREEN
       toggle_fullscreen
     elsif i == M_DEBUG

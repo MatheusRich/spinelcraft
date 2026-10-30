@@ -16,6 +16,16 @@ class GraphicsModeTest < Minitest::Test
     refute_predicate GraphicsMode::FANCY, :opaque_water?
   end
 
+  def test_only_fast_has_no_cloud_boxes
+    assert_equal Clouds::NO_BOXES, GraphicsMode::FAST.cloud_reach
+    assert_equal Clouds::NEAR, GraphicsMode::FANCY.cloud_reach
+  end
+
+  def test_fast_has_a_smaller_rain
+    assert_operator GraphicsMode::FAST.rain_radius, :<, GraphicsMode::FANCY.rain_radius
+    assert_equal Weather::R, GraphicsMode::FANCY.rain_radius
+  end
+
   def test_the_next_mode_goes_around
     assert_same GraphicsMode::FAST, GraphicsMode::FANCY.next_mode
     assert_same GraphicsMode::FANCY, GraphicsMode::FAST.next_mode

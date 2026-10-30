@@ -68,7 +68,7 @@ class Game
     @uniforms[27] = h
     @clouds.write_uniforms(@uniforms, CLOUD_UNIFORMS, ey, @cloud_drift)
     @uniforms[RAIN_UNIFORMS] = @weather.rain.strength
-    @uniforms[RAIN_UNIFORMS + 1] = Weather::R.to_f
+    @uniforms[RAIN_UNIFORMS + 1] = @weather.radius.to_f
     @uniforms[OPTION_UNIFORMS] = @options.brightness
   end
 
