@@ -122,12 +122,34 @@ class WeatherTest < Minitest::Test
     assert_match(/\A#define SNOWFLAKE_FIRST #{Tex::SNOWFLAKE_1}\.0\n\z/, Weather.shader_defines)
   end
 
-  def quads_over(chunk_x, chunk_z)
+  def test_snow_and_dry_land_make_no_splash_and_no_rain_sound
+    @weather.graphics = GraphicsMode::FAST
+    @weather.rain.start.settle
+    { [-70, -47] => true, [-70, -70] => false, [-8, 16] => false }.each do |(chunk_x, chunk_z), rains|
+      world = chunk_world(chunk_x, chunk_z)
+      player = player_over(world, chunk_x, chunk_z)
+      particles = Particles.new(1)
+      @weather.splash(particles, world, player, 1.0)
+      assert_equal rains, particles.count(Particle::DROP).positive?
+      assert_equal rains, @weather.sound(world, player).positive?
+    end
+  end
+
+  def chunk_world(chunk_x, chunk_z)
     world = World.new(1337)
     world.load_chunk(chunk_x, chunk_z)
+    world
+  end
+
+  def player_over(world, chunk_x, chunk_z)
     x = chunk_x * 16 + 8
     z = chunk_z * 16 + 8
-    @weather.build_quads(world, Player.new(x + 0.5, world.height_at(x, z).to_f, z + 0.5), 0.0)
+    Player.new(x + 0.5, world.height_at(x, z).to_f, z + 0.5)
+  end
+
+  def quads_over(chunk_x, chunk_z)
+    world = chunk_world(chunk_x, chunk_z)
+    @weather.build_quads(world, player_over(world, chunk_x, chunk_z), 0.0)
     @weather.mesh.v.each_slice(11).to_a
   end
 
@@ -190,10 +212,13 @@ class WeatherTest < Minitest::Test
     end
   end
 
-  # A world whose ground is one block above the feet of the player, so that
-  # each drop lands.
   class LevelGround
-    def height_at(_x, _z) = 11
+    def initialize(height)
+      @height = height
+    end
+
+    def height_at(_x, _z) = @height
+    def precipitation(_x, _z) = Biome::RAIN
   end
 
   def splash_spots(mode)
@@ -201,8 +226,17 @@ class WeatherTest < Minitest::Test
     weather.graphics = mode
     weather.rain.start.settle
     recorder = DropRecorder.new
-    weather.splash(recorder, LevelGround.new, Player.new(8.5, 10.0, 8.5), 1.0)
+    weather.splash(recorder, LevelGround.new(11), Player.new(8.5, 10.0, 8.5), 1.0)
     recorder.spots
+  end
+
+  def test_drops_land_only_on_ground_from_8_blocks_below_to_6_blocks_above_the_player
+    @weather.rain.start.settle
+    { -50 => false, 2 => false, 3 => true, 15 => true, 16 => false, 100 => false }.each do |ground, lands|
+      recorder = DropRecorder.new
+      @weather.splash(recorder, LevelGround.new(ground), Player.new(8.5, 10.0, 8.5), 1.0)
+      assert_equal lands, recorder.spots.any?, "ground at #{ground}"
+    end
   end
 
   # Each axis of the drops stays within reach of the player and goes out to

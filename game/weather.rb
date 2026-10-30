@@ -116,16 +116,18 @@ class Weather
       x = player.x + (@rng.rand01 * 2.0 - 1.0) * reach
       z = player.z + (@rng.rand01 * 2.0 - 1.0) * reach
       h = world.height_at(x.floor, z.floor)
-      if h > player.y - 8.0 && h < player.y + 6.0
+      if h > player.y - 8.0 && h < player.y + 6.0 && world.precipitation(x.floor, z.floor) == Biome::RAIN
         particles.add(Particle::DROP, x, h + 0.05, z, 0.0, 1.2 + @rng.rand01, 0.0, 0.2 + @rng.rand01 * 0.1, Tex::PUFF)
       end
     end
   end
 
-  # The volume of the rain sound now. It follows the strength of the rain.
-  # Under a roof it is quieter, and 10 blocks under the ground it stops.
+  # The volume of the rain sound now. It follows the strength of the rain,
+  # and snow makes none. Under a roof it is quieter, and 10 blocks under the
+  # ground it stops.
   def sound(world, player)
     return 0.0 if @rain.strength <= 0.0
+    return 0.0 if world.precipitation(player.x.floor, player.z.floor) != Biome::RAIN
 
     cover = world.height_at(player.x.floor, player.z.floor) - player.eye_y
     (cover <= 0.0 ? 0.3 : (cover < 10.0 ? 0.1 : 0.0)) * @rain.strength
