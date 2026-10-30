@@ -25,12 +25,12 @@ class IconRow
     part = Tex::ICON_PART
     ICONS.times do |icon|
       x = left + icon * ICON_STEP * @scale
-      @ui.quad(x, top, ICON_SIZE * @scale, ICON_SIZE * @scale, @empty, part, part, Color::SOLID_WHITE)
+      @ui.quad(x, top, ICON_SIZE * @scale, ICON_SIZE * @scale, @empty, part, part, Color::WHITE)
       icon_points = points - icon * 2
       if icon_points >= 2
-        @ui.quad(x, top, ICON_SIZE * @scale, ICON_SIZE * @scale, @full, part, part, Color::SOLID_WHITE)
+        @ui.quad(x, top, ICON_SIZE * @scale, ICON_SIZE * @scale, @full, part, part, Color::WHITE)
       elsif icon_points == 1
-        @ui.quad(x, top, HALF_ICON_WIDTH * @scale, ICON_SIZE * @scale, @full, HALF_ICON_COLUMNS, part, Color::SOLID_WHITE)
+        @ui.quad(x, top, HALF_ICON_WIDTH * @scale, ICON_SIZE * @scale, @full, HALF_ICON_COLUMNS, part, Color::WHITE)
       end
     end
   end

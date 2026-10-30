@@ -21,9 +21,9 @@ class EffectIcon
     left = frame_width - size - MARGIN * scale
     top = MARGIN * scale
     part = Tex::ICON_PART
-    @ui.quad(left, top, size, size, @texture, part, part, Color::SOLID_WHITE)
+    @ui.quad(left, top, size, size, @texture, part, part, Color::WHITE)
     text = seconds.ceil.to_s
     text_scale = TEXT_SCALE * scale
-    @ui.text(left + (size - @ui.text_width(text, text_scale)) / 2.0, top + size + TEXT_GAP * scale, text, text_scale, Color::SOLID_WHITE)
+    @ui.text(left + (size - @ui.text_width(text, text_scale)) / 2.0, top + size + TEXT_GAP * scale, text, text_scale, Color::WHITE)
   end
 end

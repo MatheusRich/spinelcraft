@@ -108,7 +108,7 @@ class Sky
   def build_sky(w, h, s)
     @mesh.clear
     draw_sky_body(w, h, s, 1.0, Tex::WHITE, SUN_COLOR, 70.0, 1.0)
-    draw_sky_body(w, h, s, -1.0, Tex::MOON + @clock.moon_phase, Color::SOLID_WHITE, 46.0, @clock.moon_lit)
+    draw_sky_body(w, h, s, -1.0, Tex::MOON + @clock.moon_phase, Color::WHITE, 46.0, @clock.moon_lit)
     draw_stars(w, h, s)
     nil
   end

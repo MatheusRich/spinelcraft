@@ -185,7 +185,7 @@ class Lightning
     return unless visible? && lit?
 
     mesh.glow = 1.0
-    line_quads(mesh, eye_x, eye_y, eye_z, CORE, Color::SOLID_WHITE)
+    line_quads(mesh, eye_x, eye_y, eye_z, CORE, Color::WHITE)
     line_quads(mesh, eye_x, eye_y, eye_z, GLOW, GLOW_COLOR)
     mesh.glow = 0.0
   end

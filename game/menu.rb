@@ -246,7 +246,7 @@ class Game
       shade = i == hover ? 0.42 : 0.26
       @ui.rect(c[0], c[1], c[2], c[3], Color.new(shade, shade, shade, 0.95))
       label = title_label(i)
-      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, Color::SOLID_WHITE)
+      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, Color::WHITE)
     end
   end
 
@@ -282,7 +282,7 @@ class Game
   def draw_pause_screen(w, h, s)
     @ui.rect(0.0, 0.0, w, h, Ui::PAUSE_BACKDROP)
     title = "PAUSED"
-    @ui.text((w - @ui.text_width(title, 6.0 * s)) / 2.0, menu_title_y(h, s), title, 6.0 * s, Color::SOLID_WHITE)
+    @ui.text((w - @ui.text_width(title, 6.0 * s)) / 2.0, menu_title_y(h, s), title, 6.0 * s, Color::WHITE)
     hover = @menu_drag >= 0 ? @menu_drag : menu_hover(w, h, s)
     MENU_ITEMS.times do |i|
       c = menu_cell(i, w, h, s)
@@ -294,7 +294,7 @@ class Game
         @ui.rect(c[0] + (c[2] - 6.0 * s) * t, c[1], 6.0 * s, c[3], Ui::MENU_KNOB)
       end
       label = menu_label(i)
-      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, Color::SOLID_WHITE)
+      @ui.text(c[0] + (c[2] - @ui.text_width(label, 3.0 * s)) / 2.0, c[1] + (c[3] - 15.0 * s) / 2.0, label, 3.0 * s, Color::WHITE)
     end
     MENU_HELP.size.times do |i|
       line = MENU_HELP[i]

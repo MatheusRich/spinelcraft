@@ -131,7 +131,7 @@ class Game
         z = @mine_z.to_f
         stage = (@mine_progress * Tex::CRACK_STAGES).to_i
         stage = Tex::CRACK_STAGES - 1 if stage >= Tex::CRACK_STAGES
-        @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, Color::SOLID_WHITE)
+        @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, Color::WHITE)
       end
     end
     @hand_at = @dyn.count

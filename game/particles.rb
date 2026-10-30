@@ -105,7 +105,7 @@ class Particle
       mesh.glow = 0.0
     when HEART
       # The heart of the HUD, whose icon fills the top left of its layer.
-      mesh.billboard(@x, @y, @z, 0.12, rx, rz, ux, uy, uz, 0.0, 0.0, Tex::ICON_PART, Tex::HEART, Color::SOLID_WHITE)
+      mesh.billboard(@x, @y, @z, 0.12, rx, rz, ux, uy, uz, 0.0, 0.0, Tex::ICON_PART, Tex::HEART, Color::WHITE)
     when BLAST
       c = 0.55 + 0.45 * t
       mesh.billboard(@x, @y, @z, 1.5 - 0.75 * t, rx, rz, ux, uy, uz, 0.0, 0.0, 1.0, Tex::PUFF, Color.new(c, c, c, 1.0))

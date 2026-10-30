@@ -225,18 +225,18 @@ class Mesh3
       shape_model(block)
     elsif Block::FACING[block] >= 0
       # The front is on the -x face, which faces the view in the hand.
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], Color::SOLID_WHITE)
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 2, Block::FRONT[block], Block::FRONT[block], Block::FRONT[block], Color::SOLID_WHITE)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 61, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], Color::WHITE)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 2, Block::FRONT[block], Block::FRONT[block], Block::FRONT[block], Color::WHITE)
     else
-      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], Color::SOLID_WHITE)
+      frame_box(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 63, Block::TOP[block], Block::SIDE[block], Block::BOTTOM[block], Color::WHITE)
     end
   end
 
   # A flat item with the image of texture layer layer.
   def sprite_model(layer)
     frame_corners(-0.5, -0.5, -ITEM_T, 0.5, 0.5, ITEM_T)
-    face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, Color::SOLID_WHITE)
-    face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, Color::SOLID_WHITE)
+    face_quad(4, layer, 0.0, 1.0, 0.0, 1.0, Color::WHITE)
+    face_quad(5, layer, 1.0, 0.0, 0.0, 1.0, Color::WHITE)
     item_edges(layer)
   end
 
@@ -318,12 +318,12 @@ class Mesh3
     y1 = Block::SHAPE_BOX[s + 4] / 16.0
     z1 = Block::SHAPE_BOX[s + 5] / 16.0
     frame_corners(x0 - 0.5, y0 - 0.5, z0 - 0.5, x1 - 0.5, y1 - 0.5, z1 - 0.5)
-    face_quad(0, Block::SIDE[block], z0, z1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
-    face_quad(1, Block::FRONT[block], z0, z1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
-    face_quad(2, Block::TOP[block], x0, x1, z0, z1, Color::SOLID_WHITE)
-    face_quad(3, Block::BOTTOM[block], x0, x1, z0, z1, Color::SOLID_WHITE)
-    face_quad(4, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
-    face_quad(5, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, Color::SOLID_WHITE)
+    face_quad(0, Block::SIDE[block], z0, z1, 1.0 - y1, 1.0 - y0, Color::WHITE)
+    face_quad(1, Block::FRONT[block], z0, z1, 1.0 - y1, 1.0 - y0, Color::WHITE)
+    face_quad(2, Block::TOP[block], x0, x1, z0, z1, Color::WHITE)
+    face_quad(3, Block::BOTTOM[block], x0, x1, z0, z1, Color::WHITE)
+    face_quad(4, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, Color::WHITE)
+    face_quad(5, Block::SIDE[block], x0, x1, 1.0 - y1, 1.0 - y0, Color::WHITE)
   end
 
   # The faces in mask of the box with the corners in @cx, @cy and @cz.
