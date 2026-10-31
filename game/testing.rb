@@ -330,6 +330,7 @@ class Game
     previous_mode = game_mode
     day = @clock.day
     @chat = Chat.new
+    @chat_view = ChatView.new(@ui, @chat)
     @console = Console.new(self, @chat, @clock, @weather)
     @console.submit("/time set midnight")
     midnight = @clock.ticks == 18000

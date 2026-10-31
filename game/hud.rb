@@ -26,8 +26,13 @@ class Game
     draw_survival_bars(x0, y0, total, s) if game_mode.survival?
     @fire_resistance_icon.draw(@player.vitals.fire_resistance, w, s) if game_mode.survival? && @player.vitals.fire_resistant?
     draw_messages(w, y0, s)
-    draw_chat_lines(w, y0, s)
-    draw_chat_line(w, h, s) if current_screen.typing?
+    @chat_view.scale = s
+    if current_screen.typing?
+      @chat_view.draw_all_lines(w, y0)
+      @chat_view.draw_input(w, h, @anim_time)
+    else
+      @chat_view.draw_lines(w, y0)
+    end
     draw_debug(s) if @options.debug
     draw_open_screen(w, h, s)
   end
@@ -142,73 +147,6 @@ class Game
     if @message_time > 0.0
       tw = @ui.text_width(@message, 3.0 * s)
       @ui.text((w - tw) / 2.0, y0 - 64.0 * s - lift, @message, 3.0 * s, Color.new(1.0, 1.0, 1.0, @message_time > 1.0 ? 1.0 : @message_time))
-    end
-  end
-
-  # The chat lines at the left, above the hotbar and the bars, the newest
-  # at the bottom. A long line wraps at half the width of the screen. While
-  # the chat is open, all lines show.
-  def draw_chat_lines(w, y0, s)
-    ts = 2.0 * s
-    row = 12.0 * s
-    per = [(w * 0.5 / (4.0 * ts)).to_i, 20].max
-    y = y0 - 120.0 * s
-    (@chat.lines.size - 1).downto(0) do |i|
-      # All lines show while the player types.
-      a = current_screen.typing? ? 1.0 : @chat.fade(i)
-      if a > 0.0
-        line = @chat.lines[i]
-        rows = (line.size + per - 1) / per
-        (rows - 1).downto(0) do |k|
-          part = line[k * per, per]
-          @ui.rect(4.0 * s, y - 2.0 * s, @ui.text_width(part, ts) + 6.0 * s, row, Color.new(0.0, 0.0, 0.0, 0.4 * a))
-          if @chat.error?(i)
-            @ui.text(6.0 * s, y, part, ts, Color.new(1.0, 0.35, 0.3, a))
-          else
-            @ui.text(6.0 * s, y, part, ts, Color.new(1.0, 1.0, 1.0, a))
-          end
-          y -= row
-        end
-      end
-    end
-  end
-
-  # The line that the player types, at the bottom of the screen, and the
-  # names that Tab can complete above it.
-  def draw_chat_line(w, h, s)
-    ts = 2.0 * s
-    @ui.rect(4.0 * s, h - 18.0 * s, w - 8.0 * s, 14.0 * s, Ui::CHAT_INPUT_BACKDROP)
-    cursor = (@anim_time * 3.0).to_i % 2 == 0 ? "_" : ""
-    shown = @chat.text.upcase + cursor
-    # A line wider than the screen shows its end.
-    fit = ((w - 16.0 * s) / (4.0 * ts)).to_i
-    shown = shown[shown.size - fit, fit] if shown.size > fit
-    @ui.text(8.0 * s, h - 15.0 * s, shown, ts, Color::WHITE)
-    draw_chat_matches(h, s, ts)
-  end
-
-  # The names that Tab can complete, above the chat line, as the
-  # suggestions of Minecraft. The name on the line is yellow.
-  def draw_chat_matches(h, s, ts)
-    names = @chat.matches
-    return if names.empty?
-
-    shown = names.size < Chat::MATCHES ? names.size : Chat::MATCHES
-    current = @chat.current_match
-    first = current >= shown ? current - shown + 1 : 0
-    x = (8.0 + 4.0 * Command.last_word_at(@chat.text) * 2.0) * s
-    wide = 0.0
-    names.each { |n| wide = @ui.text_width(n, ts) if @ui.text_width(n, ts) > wide }
-    y = h - 18.0 * s - shown * 12.0 * s
-    @ui.rect(x - 2.0 * s, y - 2.0 * s, wide + 4.0 * s, shown * 12.0 * s, Ui::CHAT_MATCHES_BACKDROP)
-    shown.times do |k|
-      i = first + k
-      name = names[i].upcase
-      if i == current
-        @ui.text(x, y + k * 12.0 * s, name, ts, Ui::MATCH_CURRENT)
-      else
-        @ui.text(x, y + k * 12.0 * s, name, ts, Ui::MATCH_OTHER)
-      end
     end
   end
 

@@ -92,6 +92,7 @@ require_relative "game/options"
 require_relative "game/menu"
 require_relative "game/command"
 require_relative "game/chat"
+require_relative "game/chat_view"
 require_relative "game/console"
 require_relative "game/testing"
 require_relative "game/house"
@@ -184,6 +185,7 @@ class Game
     @message = ""
     @message_time = 0.0
     @chat = Chat.new
+    @chat_view = ChatView.new(@ui, @chat)
     @fps = 0.0
     @cpu_ms = 0.0
     @fps_frames = 0

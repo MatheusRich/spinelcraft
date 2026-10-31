@@ -1,5 +1,7 @@
 # Vertex builder for the HUD, in pixels (2D).
 class Ui
+  # The pixels from one character of text to the next at text scale 1.
+  CHARACTER_WIDTH = 4.0
   # The gap between the armor row and the grid, and between the grid and the
   # hotbar row, in pixels at scale 1.
   PACK_ROW_GAP = 14.0
@@ -159,11 +161,11 @@ class Ui
       glyph = Tex.glyph(ch)
       quad(cx + scale, y + scale, 3.0 * scale, 5.0 * scale, glyph, 9.0 / 16.0, 15.0 / 16.0, shadow)
       quad(cx, y, 3.0 * scale, 5.0 * scale, glyph, 9.0 / 16.0, 15.0 / 16.0, color)
-      cx += 4.0 * scale
+      cx += CHARACTER_WIDTH * scale
     end
   end
 
-  def text_width(s, scale) = s.size * 4.0 * scale
+  def text_width(s, scale) = s.size * CHARACTER_WIDTH * scale
 
   # Text in the font of the game, where each pixel of a glyph is a square
   # of the side cell with the texture layer. A dark edge goes below and to
