@@ -95,22 +95,38 @@ class ChatViewTest < Minitest::Test
   def test_a_line_wraps_at_half_the_width_of_a_wide_screen
     row_size = 30
     @chat.post("a" * row_size + "b")
-    frame_width = row_size * Ui::CHARACTER_WIDTH * ChatView::TEXT_SCALE / ChatView::WRAP_PART_OF_WIDTH
+    frame_width = row_size * character_width / ChatView::WRAP_PART_OF_WIDTH
     assert_equal ["B", "A" * row_size], draw_lines(frame_width: frame_width).texts.map(&:text)
   end
 
-  def test_the_input_line_shows_the_typed_text_and_a_blinking_cursor
+  def test_the_input_line_shows_the_typed_text_and_a_blinking_cursor_at_its_end
     @chat.start("/time")
-    assert_equal ["/TIME_"], draw_input(CURSOR_SHOWN).texts.map(&:text)
+    input, cursor = draw_input(CURSOR_SHOWN).texts
+    assert_equal ["/TIME", "_"], [input.text, cursor.text]
+    assert_equal input.right, cursor.x
     assert_equal ["/TIME"], draw_input(CURSOR_HIDDEN).texts.map(&:text)
   end
 
-  def test_an_input_line_wider_than_the_screen_shows_its_end
-    @chat.start("a" * Chat::MAX)
+  def test_a_cursor_inside_the_line_is_a_bar_between_two_characters
+    @chat.start("/tme")
+    @chat.move(-2)
+    input, cursor = draw_input(CURSOR_SHOWN).texts
+    assert_equal ["/TME", "|"], [input.text, cursor.text]
+    assert_equal input.x + 2 * character_width, cursor.x + character_width / 2.0
+  end
+
+  def test_an_input_line_wider_than_the_screen_shows_the_part_around_the_cursor
+    @chat.start("a" * (Chat::MAX - 1) + "b")
     [1.0, 2.0].each do |scale|
-      width = (Ui::CHARACTER_WIDTH * ChatView::TEXT_SCALE * 10.0 + 2.0 * ChatView::INPUT_TEXT_LEFT) * scale
+      width = (character_width * 10.0 + 2.0 * ChatView::INPUT_TEXT_LEFT) * scale
+      @chat.move(Chat::MAX)
       ui = draw(scale: scale) { |view| view.draw_input(width, FRAME_HEIGHT, CURSOR_SHOWN) }
-      assert_equal ["A" * 9 + "_"], ui.texts.map(&:text)
+      input, cursor = ui.texts
+      assert_equal ["A" * 8 + "B", "_"], [input.text, cursor.text]
+      assert_equal input.right, cursor.x
+      @chat.move(-Chat::MAX)
+      ui = draw(scale: scale) { |view| view.draw_input(width, FRAME_HEIGHT, CURSOR_SHOWN) }
+      assert_equal ["A" * 10, "|"], ui.texts.map(&:text)
     end
   end
 
@@ -129,7 +145,7 @@ class ChatViewTest < Minitest::Test
     input, *names = ui.texts
     assert_equal ["TELEPORT", "TIME", "TP"], names.map(&:text)
     assert_equal [Ui::MATCH_CURRENT, Ui::MATCH_OTHER, Ui::MATCH_OTHER], names.map(&:color)
-    word_x = input.x + Ui::CHARACTER_WIDTH * ChatView::TEXT_SCALE
+    word_x = input.x + character_width
     assert_equal [word_x], names.map(&:x).uniq
     assert_operator names.last.bottom, :<=, ui.rects.first.y
     names.each_cons(2) { |above, below| assert_operator above.bottom, :<=, below.y }
@@ -139,7 +155,7 @@ class ChatViewTest < Minitest::Test
     @chat.start("/summon c")
     input, name = draw_input(CURSOR_HIDDEN).texts
     assert_equal "CREEPER", name.text
-    assert_equal input.x + "/summon ".size * Ui::CHARACTER_WIDTH * ChatView::TEXT_SCALE, name.x
+    assert_equal input.x + "/summon ".size * character_width, name.x
   end
 
   def test_past_the_names_that_fit_the_list_moves_with_the_name_on_the_line
@@ -176,6 +192,8 @@ class ChatViewTest < Minitest::Test
   end
 
   private
+
+  def character_width = Ui::CHARACTER_WIDTH * ChatView::TEXT_SCALE
 
   def draw(scale: 1.0)
     ui = Recorder.new

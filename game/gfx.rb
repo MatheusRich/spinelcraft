@@ -1504,7 +1504,8 @@ module Gfx
           case SDL_EVENT_KEY_DOWN: {
             SDL_Scancode sc = e.key.scancode;
             long code = sc == SDL_SCANCODE_BACKSPACE ? 8 : sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_KP_ENTER ? 13 :
-                        sc == SDL_SCANCODE_ESCAPE ? 27 : sc == SDL_SCANCODE_UP ? 1 : sc == SDL_SCANCODE_DOWN ? 2 : sc == SDL_SCANCODE_TAB ? 9 : 0;
+                        sc == SDL_SCANCODE_ESCAPE ? 27 : sc == SDL_SCANCODE_UP ? 1 : sc == SDL_SCANCODE_DOWN ? 2 :
+                        sc == SDL_SCANCODE_LEFT ? 3 : sc == SDL_SCANCODE_RIGHT ? 4 : sc == SDL_SCANCODE_TAB ? 9 : 0;
             if (e.key.key == SDLK_V && (e.key.mod & PASTE_MOD)) code = 22;
             if (code && ntyped < TYPED_CAP) typed[ntyped++] = code;
             break;
@@ -1543,6 +1544,7 @@ module Gfx
 
     /* The self-test presses keys and mouse buttons through these, in the state that in_poll fills. */
     void in_test_key(long sc, long on) { keys_now[sc] = on != 0; }
+    void in_test_typed(long code) { if (ntyped < TYPED_CAP) typed[ntyped++] = code; }
     void in_test_button(long b, long on) {
       Uint32 bit = 1u << (b - 1);
       buttons_now = on ? buttons_now | bit : buttons_now & ~bit;
@@ -1630,6 +1632,7 @@ module Gfx
   ffi_func :in_clipboard, [], :str
   ffi_func :in_text, [:long], :void
   ffi_func :in_test_key, [:long, :long], :void
+  ffi_func :in_test_typed, [:long], :void
   ffi_func :in_test_button, [:long, :long], :void
   ffi_func :in_test_fullscreen, [:long], :void
   ffi_func :in_test_frame, [], :void
@@ -1646,6 +1649,8 @@ module Key
   # other codes are the printable ASCII characters.
   TYPED_UP = 1
   TYPED_DOWN = 2
+  TYPED_LEFT = 3
+  TYPED_RIGHT = 4
   TYPED_BACKSPACE = 8
   TYPED_TAB = 9
   TYPED_ENTER = 13

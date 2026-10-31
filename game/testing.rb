@@ -407,6 +407,14 @@ class Game
     @chat.recall(1)
     check("Up and Down walk through the lines typed before", back && further && @chat.text == "")
     close_chat
+    open_chat("/tme")
+    Gfx.in_test_typed(Key::TYPED_LEFT)
+    Gfx.in_test_typed(Key::TYPED_LEFT)
+    "i".each_char { |c| Gfx.in_test_typed(c.ord) }
+    Gfx.in_test_typed(Key::TYPED_RIGHT)
+    handle_chat
+    check("Left and Right move the chat cursor, and a key types at the cursor", @chat.text == "/time" && @chat.cursor == 4)
+    close_chat
     @clock.time_of_day = 0.3
   end
 

@@ -36,6 +36,65 @@ class ChatTest < Minitest::Test
     assert_equal Chat::MAX, chat.text.size
   end
 
+  def test_left_and_right_move_the_cursor_inside_the_line
+    chat = Chat.new
+    chat.start("ab")
+    assert_equal 2, chat.cursor
+    chat.move(1)
+    assert_equal 2, chat.cursor
+    chat.move(-1)
+    assert_equal 1, chat.cursor
+    chat.move(-1)
+    chat.move(-1)
+    assert_equal 0, chat.cursor
+  end
+
+  def test_typing_goes_to_the_cursor
+    chat = Chat.new
+    chat.start("ac")
+    chat.move(-1)
+    chat.type("b")
+    assert_equal "abc", chat.text
+    assert_equal 2, chat.cursor
+  end
+
+  def test_backspace_takes_the_character_before_the_cursor
+    chat = Chat.new
+    chat.start("abc")
+    chat.move(-1)
+    chat.backspace
+    assert_equal "ac", chat.text
+    assert_equal 1, chat.cursor
+    chat.move(-1)
+    chat.backspace
+    assert_equal "ac", chat.text
+    assert_equal 0, chat.cursor
+  end
+
+  def test_a_paste_goes_to_the_cursor_up_to_the_longest_line
+    chat = Chat.new
+    chat.start("/tp 3")
+    chat.move(-1)
+    chat.paste("1 2 ")
+    assert_equal "/tp 1 2 3", chat.text
+    assert_equal 8, chat.cursor
+    chat.paste("x" * Chat::MAX)
+    assert_equal "/tp 1 2 " + "x" * (Chat::MAX - 9) + "3", chat.text
+  end
+
+  def test_up_tab_and_a_new_line_put_the_cursor_at_the_end
+    chat = Chat.new
+    chat.remember("/spawn")
+    chat.start("/t")
+    assert_equal 2, chat.cursor
+    chat.move(-1)
+    chat.tab
+    assert_equal "/teleport".size, chat.cursor
+    chat.move(-1)
+    chat.recall(-1)
+    assert_equal "/spawn".size, chat.cursor
+  end
+
   def test_up_and_down_walk_through_the_lines_typed_before
     chat = Chat.new
     chat.remember("one")
@@ -115,6 +174,15 @@ class ChatTest < Minitest::Test
     chat.tab
     chat.backspace
     assert_equal ["teleport"], chat.matches
+    chat.tab
+    assert_equal "/teleport", chat.text
+  end
+
+  def test_a_move_after_tab_completes_the_word_again
+    chat = Chat.new
+    chat.start("/t")
+    chat.tab
+    chat.move(-1)
     chat.tab
     assert_equal "/teleport", chat.text
   end

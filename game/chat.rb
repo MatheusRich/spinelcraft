@@ -15,12 +15,14 @@ class Chat
   # The lines that Up and Down walk through.
   HISTORY = 50
 
-  attr_reader :text, :lines
+  attr_reader :text, :cursor, :lines
 
   def initialize
-    # The line that the player types, the lines typed before, and the
-    # place in them that Up and Down reached.
+    # The line that the player types, the place on it where the next
+    # character goes, the lines typed before, and the place in them that
+    # Up and Down reached.
     @text = ""
+    @cursor = 0
     @history = [""]
     @history.clear
     @back = 0
@@ -40,28 +42,45 @@ class Chat
   # Starts a line with text on it, after the newest line of the history.
   def start(text)
     @text = text
+    @cursor = text.size
     @back = @history.size
     @tab_matches.clear
     nil
   end
 
-  # Puts the character c at the end of the line, up to MAX characters.
-  # Each key but Tab stops the names that Tab cycles through.
+  # Puts the character c at the cursor, up to MAX characters. Each key
+  # but Tab stops the names that Tab cycles through.
   def type(c)
     @tab_matches.clear
-    @text += c if @text.size < MAX
+    return if @text.size >= MAX
+
+    @text = before_cursor + c + after_cursor
+    @cursor += 1
     nil
   end
 
   def backspace
     @tab_matches.clear
-    @text = @text[0, @text.size - 1].to_s if @text.size > 0
+    return if @cursor == 0
+
+    @text = @text[0, @cursor - 1].to_s + after_cursor
+    @cursor -= 1
     nil
   end
 
   def paste(clipboard)
     @tab_matches.clear
-    @text = Command.paste(@text, clipboard, MAX)
+    after = after_cursor
+    pasted = Command.paste(before_cursor, clipboard, MAX - after.size)
+    @text = pasted + after
+    @cursor = pasted.size
+    nil
+  end
+
+  # Moves the cursor step characters left or right, inside the line.
+  def move(step)
+    @tab_matches.clear
+    @cursor = (@cursor + step).clamp(0, @text.size)
     nil
   end
 
@@ -71,6 +90,7 @@ class Chat
     @tab_matches.clear
     @back = (@back + step).clamp(0, @history.size)
     @text = @back < @history.size ? @history[@back].to_s : ""
+    @cursor = @text.size
     nil
   end
 
@@ -86,6 +106,7 @@ class Chat
       @tab_at = 0
     end
     @text = @tab_base + @tab_matches[@tab_at]
+    @cursor = @text.size
     @tab_at = (@tab_at + 1) % @tab_matches.size
     nil
   end
@@ -138,6 +159,9 @@ class Chat
   # How much line i shows: a line fades out in the last second of SHOW
   # seconds.
   def fade(index) = (SHOW - @ages[index]).clamp(0.0, 1.0)
+
+  def before_cursor = @text[0, @cursor].to_s
+  def after_cursor = @text[@cursor, @text.size - @cursor].to_s
 
   def age(dt)
     @ages.size.times { |i| @ages[i] += dt }

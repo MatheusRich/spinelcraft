@@ -47,14 +47,17 @@ class ChatView
 
   # The line that the player types, at the bottom of the screen, and the
   # names that Tab can complete above it. A line wider than the screen
-  # shows its end.
+  # shows the part around the cursor.
   def draw_input(frame_width, frame_height, time)
     @ui.rect(EDGE_MARGIN * @scale, frame_height - INPUT_TOP * @scale, frame_width - 2.0 * EDGE_MARGIN * @scale, INPUT_HEIGHT * @scale, Ui::CHAT_INPUT_BACKDROP)
-    cursor = (time * CURSOR_CHANGES_PER_SECOND).to_i.even? ? "_" : ""
-    shown = @chat.text.upcase + cursor
-    fit = ((frame_width - 2.0 * INPUT_TEXT_LEFT * @scale) / (Ui::CHARACTER_WIDTH * text_scale)).to_i
-    shown = shown[shown.size - fit, fit] if shown.size > fit
-    @ui.text(INPUT_TEXT_LEFT * @scale, frame_height - INPUT_TEXT_TOP * @scale, shown, text_scale, Color::WHITE)
+    text = @chat.text.upcase
+    cursor = @chat.cursor
+    fit = ((frame_width - 2.0 * INPUT_TEXT_LEFT * @scale) / character_width).to_i
+    first = (text.size + 1 - fit).clamp(0, cursor)
+    left = INPUT_TEXT_LEFT * @scale
+    top = frame_height - INPUT_TEXT_TOP * @scale
+    @ui.text(left, top, text[first, fit].to_s, text_scale, Color::WHITE)
+    draw_cursor(left + (cursor - first) * character_width, top) if (time * CURSOR_CHANGES_PER_SECOND).to_i.even?
     draw_matches(frame_height)
   end
 
@@ -62,11 +65,21 @@ class ChatView
 
   def text_scale = TEXT_SCALE * @scale
   def row_height = ROW_HEIGHT * @scale
+  def character_width = Ui::CHARACTER_WIDTH * text_scale
+
+  # The cursor is a _ at the end of the line, as in Minecraft, and a |
+  # between two characters. The | is in the middle column of its glyph, so
+  # it moves left by half a character.
+  def draw_cursor(x, y)
+    return @ui.text(x, y, "_", text_scale, Color::WHITE) if @chat.cursor == @chat.text.size
+
+    @ui.text(x - character_width / 2.0, y, "|", text_scale, Color::WHITE)
+  end
 
   # The block gives the alpha of the line at each index. A line that does
   # not fit in a row wraps.
   def draw_lines_with_alpha(frame_width, hotbar_top)
-    row_size = [(frame_width * WRAP_PART_OF_WIDTH / (Ui::CHARACTER_WIDTH * text_scale)).to_i, FEWEST_CHARACTERS_IN_A_ROW].max
+    row_size = [(frame_width * WRAP_PART_OF_WIDTH / character_width).to_i, FEWEST_CHARACTERS_IN_A_ROW].max
     y = hotbar_top - NEWEST_LINE_ABOVE_HOTBAR * @scale
     (@chat.lines.size - 1).downto(0) do |index|
       alpha = yield index
