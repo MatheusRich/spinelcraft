@@ -1,6 +1,6 @@
 # The rules of flowing water and lava. Fluids does not change the world.
 # Game#set_block wakes the cells next to each change. Water and lava each
-# take steps at their own speed (see FlowQueue). next_water and next_lava
+# take steps at their own speed (see Flow). next_water and next_lava
 # give the changes of a step one at a time, as four Integers (x, y, z and
 # the new block). Game puts each one in the world with Game#pour before it
 # asks for the next one, so each cell sees the cells that changed before
@@ -10,11 +10,13 @@ class Fluids
   # every 30 ticks. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
   WATER_STEP = 0.25
   LAVA_STEP = 1.5
+  WATER = Fluid.new(Block::WATER_LEVEL, Block::WATER, Block::FLOW)
+  LAVA = Fluid.new(Block::LAVA_LEVEL, Block::LAVA, Block::LAVA_FLOW)
 
   def initialize(world)
     @world = world
-    @water = FlowQueue.new(WATER_STEP)
-    @lava = FlowQueue.new(LAVA_STEP)
+    @water = Flow.new(world, WATER, WATER_STEP)
+    @lava = Flow.new(world, LAVA, LAVA_STEP)
     nil
   end
 
@@ -33,36 +35,18 @@ class Fluids
 
   # True when a step of water starts after dt more seconds (see
   # FlowQueue#start?).
-  def water_step?(dt) = @water.start?(dt)
+  def water_step?(dt) = @water.step?(dt)
 
   # True when a step of lava starts after dt more seconds.
-  def lava_step?(dt) = @lava.start?(dt)
+  def lava_step?(dt) = @lava.step?(dt)
 
   # Adds the next change of the step of water to changes and gives true,
   # or gives false at the end of the step.
-  def next_water(changes)
-    while @water.next?
-      block = water_wanted(@water.x, @water.y, @water.z)
-      next if block < 0
-
-      changes << @water.x << @water.y << @water.z << block
-      return true
-    end
-    false
-  end
+  def next_water(changes) = @water.next_change(changes) { |x, y, z| water_wanted(x, y, z) }
 
   # Adds the next change of the step of lava to changes and gives true,
   # or gives false at the end of the step.
-  def next_lava(changes)
-    while @lava.next?
-      block = lava_wanted(@lava.x, @lava.y, @lava.z)
-      next if block < 0
-
-      changes << @lava.x << @lava.y << @lava.z << block
-      return true
-    end
-    false
-  end
+  def next_lava(changes) = @lava.next_change(changes) { |x, y, z| lava_wanted(x, y, z) }
 
   # The block that the cell x, y, z should change to in a step of water,
   # or -1 when it stays. Water cools lava next to it into cobblestone.
@@ -73,14 +57,11 @@ class Fluids
 
     block = @world.get(x, y, z)
     return Block::COBBLE if Block.lava?(block) && @world.touches_water?(x, y, z)
+    return -1 unless WATER.passes?(block)
 
-    level = Block::WATER_LEVEL[block]
-    return -1 unless block == Block::AIR || Block.plant?(block) || (level > 0 && level < 8)
-
-    water = flow_target(x, y, z, Block::WATER_LEVEL, 8)
-    want = water > 0 ? Block::FLOW + water - 1 : Block::AIR
+    want = @water.flowing_block(x, y, z)
     return -1 if want == block
-    return -1 if want == Block::AIR && level == 0
+    return -1 if want == Block::AIR && WATER.level(block) == 0
 
     want
   end
@@ -92,36 +73,12 @@ class Fluids
     return -1 unless @world.inside?(x, y, z)
 
     block = @world.get(x, y, z)
-    level = Block::LAVA_LEVEL[block]
-    water = Block::WATER_LEVEL[block]
-    return -1 unless block == Block::AIR || Block.plant?(block) || (level > 0 && level < 4) || (water > 0 && water < 8)
+    return -1 unless LAVA.passes?(block) || WATER.passes?(block)
 
-    lava = flow_target(x, y, z, Block::LAVA_LEVEL, 4)
-    want = lava > 0 ? Block::LAVA_FLOW + lava - 1 : Block::AIR
+    want = @lava.flowing_block(x, y, z)
     return -1 if want == block
-    return -1 if want == Block::AIR && level == 0
+    return -1 if want == Block::AIR && LAVA.level(block) == 0
 
     want
-  end
-
-  # The level of a fluid that the cell x, y, z should have. levels is the
-  # level table of the fluid (Block::WATER_LEVEL or Block::LAVA_LEVEL),
-  # and source is the level of its source. The level is one less than a
-  # source under falling fluid, else one less than the best neighbor that
-  # spreads sideways (a source, or fluid resting on a solid block). Water
-  # spreads 7 blocks and lava 3.
-  def flow_target(x, y, z, levels, source)
-    return source - 1 if levels[@world.get(x, y + 1, z)] > 0
-
-    best = 0
-    dir = 0
-    while dir < 4
-      nx = x + Block::DIR_DX[dir]
-      nz = z + Block::DIR_DZ[dir]
-      level = levels[@world.get(nx, y, nz)]
-      best = level - 1 if level - 1 > best && (level == source || Block.solid?(@world.get(nx, y - 1, nz)))
-      dir += 1
-    end
-    best
   end
 end

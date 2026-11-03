@@ -134,7 +134,6 @@ detectors:
     - "/\\AFarTerrain\\#build_tiles\\z/"
     - "/\\AFarTerrain\\#cull_tiles\\z/"
     - "/\\AFarTerrain\\#skip_square\\z/"
-    - "/\\AFluids\\#flow_target\\z/"
     - "/\\AFurnaces\\#smelt\\z/"
     - "/\\AGame\\#bed_fits\\?\\z/"
     - "/\\AGame\\#board_on\\?\\z/"
