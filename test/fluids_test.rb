@@ -189,6 +189,102 @@ class FluidsTest < Minitest::Test
     assert_equal Block::FLOW + 6, @fluids.water_wanted(4, Y, Z)
   end
 
+  def test_water_flows_only_toward_the_nearest_way_down
+    @world.set(7, Y - 1, Z, Block::AIR)
+    put(4, Y, Z, Block::WATER)
+    steps(3)
+    assert_equal [0, 8, 7, 6], levels(3..6)
+    assert_equal([0, 0], [Z - 1, Z + 1].map { |z| Block::WATER_LEVEL[@world.get(4, Y, z)] })
+  end
+
+  def test_water_looks_for_a_way_down_4_blocks_past_the_cell_next_to_it
+    @world.set(9, Y - 1, Z, Block::AIR)
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal(-1, @fluids.water_wanted(3, Y, Z))
+  end
+
+  def test_water_does_not_see_a_way_down_5_blocks_past_the_cell_next_to_it
+    @world.set(10, Y - 1, Z, Block::AIR)
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal Block::FLOW + 6, @fluids.water_wanted(3, Y, Z)
+  end
+
+  # A search keeps its directions for the rest of the step.
+  def test_a_new_step_sees_a_new_way_down
+    put(4, Y, Z, Block::WATER)
+    steps(1)
+    @world.set(7, Y - 1, Z, Block::AIR)
+    put(3, Y, Z, Block::AIR)
+    steps(1)
+    assert_equal 0, levels([3]).first
+  end
+
+  def test_water_flows_toward_each_way_down_at_the_same_distance
+    [2, 6].each { |x| @world.set(x, Y - 1, Z, Block::AIR) }
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal([Block::FLOW + 6] * 2, [3, 5].map { |x| @fluids.water_wanted(x, Y, Z) })
+    assert_equal([-1, -1], [Z - 1, Z + 1].map { |z| @fluids.water_wanted(4, Y, z) })
+  end
+
+  # A wall at x = 5 makes the way down at x = 6 farther along x than
+  # around the wall along +z.
+  def test_the_search_for_a_way_down_goes_around_a_wall
+    @world.set(5, Y, Z, Block::STONE)
+    @world.set(6, Y - 1, Z + 1, Block::AIR)
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal([-1, -1, Block::FLOW + 6], [[3, Z], [4, Z - 1], [4, Z + 1]].map { |x, z| @fluids.water_wanted(x, Y, z) })
+  end
+
+  def test_water_falls_into_water_or_lava_below_as_a_way_down
+    @world.set(4, Y, Z, Block::WATER)
+    [Block::WATER, Block::LAVA].each do |below|
+      @world.set(6, Y - 1, Z, below)
+      assert_equal(-1, @fluids.water_wanted(3, Y, Z), below)
+    end
+  end
+
+  def test_the_nearer_of_two_ways_down_wins
+    [1, 6].each { |x| @world.set(x, Y - 1, Z, Block::AIR) }
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal([-1, Block::FLOW + 6], [3, 5].map { |x| @fluids.water_wanted(x, Y, Z) })
+  end
+
+  def test_the_search_does_not_pass_a_wall_next_to_the_fluid
+    @world.set(5, Y, Z, Block::STONE)
+    @world.set(6, Y - 1, Z, Block::AIR)
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal([-1, Block::FLOW + 6, Block::FLOW + 6], [[3, Z], [4, Z - 1], [4, Z + 1]].map { |x, z| @fluids.water_wanted(x, Y, z) })
+  end
+
+  def test_the_search_does_not_pass_a_wall_farther_away
+    @world.set(6, Y, Z, Block::STONE)
+    @world.set(7, Y - 1, Z, Block::AIR)
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal([-1, Block::FLOW + 6, Block::FLOW + 6], [[3, Z], [5, Z], [4, Z + 1]].map { |x, z| @fluids.water_wanted(x, Y, z) })
+  end
+
+  # The way down at x = 6 is 2 blocks away, but walls make the path to it
+  # 6 steps long.
+  def test_water_does_not_see_a_way_down_past_a_wall_that_makes_the_path_too_long
+    [[5, Z], [5, Z - 1], [5, Z + 1]].each { |x, z| @world.set(x, Y, z, Block::STONE) }
+    @world.set(6, Y - 1, Z, Block::AIR)
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal Block::FLOW + 6, @fluids.water_wanted(3, Y, Z)
+  end
+
+  # Both the +x and the +z neighbor are 2 steps from the way down.
+  def test_water_flows_along_each_shortest_path_to_a_way_down
+    @world.set(5, Y - 1, Z + 1, Block::AIR)
+    @world.set(4, Y, Z, Block::WATER)
+    assert_equal([-1, -1, Block::FLOW + 6, Block::FLOW + 6], [[3, Z], [4, Z - 1], [5, Z], [4, Z + 1]].map { |x, z| @fluids.water_wanted(x, Y, z) })
+  end
+
+  def test_lava_flows_only_toward_the_nearest_way_down
+    @world.set(6, Y - 1, Z, Block::AIR)
+    @world.set(4, Y, Z, Block::LAVA)
+    assert_equal([-1, Block::LAVA_FLOW + 2], [3, 5].map { |x| @fluids.lava_wanted(x, Y, Z) })
+  end
+
   def test_water_on_a_side_cools_lava_into_cobblestone
     put(4, Y, Z, Block::LAVA)
     put(5, Y, Z, Block::WATER)

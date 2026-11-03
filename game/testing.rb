@@ -5129,10 +5129,7 @@ class Game
   def test_water
     wx = @spawn_x.floor
     wz = @spawn_z.floor + 3
-    (-10..10).each do |i|
-      set_block(wx + i, SKY_Y - 5, wz, Block::STONE)
-      set_block(wx + i, SKY_Y - 4, wz, Block::AIR)
-    end
+    channel(wx, wz, Block::STONE)
     @fluids.clear
     @items.clear
     set_block(wx + 2, SKY_Y - 4, wz, Block::TORCH)
@@ -5154,6 +5151,20 @@ class Game
     set_block(wx, SKY_Y - 4, wz, Block::AIR)
     40.times { update_fluids(Fluids::LAVA_STEP) }
     check("lava drains when its source is gone", @world.get(wx + 2, SKY_Y - 4, wz) == Block::AIR && @world.get(wx - 3, SKY_Y - 4, wz) == Block::AIR)
+    channel(wx, wz, Block::AIR)
+  end
+
+  # The ends of the channel of test_water, from its middle.
+  CHANNEL_END = 11
+
+  # A channel along x at height SKY_Y - 4 with walls of wall on its sides
+  # and its ends, so that fluid in it finds no way down.
+  def channel(wx, wz, wall)
+    (-CHANNEL_END..CHANNEL_END).each do |i|
+      set_block(wx + i, SKY_Y - 5, wz, Block::STONE)
+      set_block(wx + i, SKY_Y - 4, wz, i.abs == CHANNEL_END ? wall : Block::AIR)
+      [wz - 1, wz + 1].each { |z| set_block(wx + i, SKY_Y - 4, z, wall) }
+    end
   end
 
   # Stacks spill into the backpack, and clicks move and merge them.

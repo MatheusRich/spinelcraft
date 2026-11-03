@@ -22,4 +22,6 @@ class Fluid
     level = @levels[block]
     block == Block::AIR || Block.plant?(block) || (level > 0 && level < @source)
   end
+
+  def falls_into?(block) = passes?(block) || Block.water?(block) || Block.lava?(block)
 end

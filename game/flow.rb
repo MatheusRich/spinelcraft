@@ -4,6 +4,7 @@ class Flow
     @world = world
     @fluid = fluid
     @queue = FlowQueue.new(step)
+    @search = DropSearch.new(self)
     nil
   end
 
@@ -11,7 +12,12 @@ class Flow
 
   def clear = @queue.clear
 
-  def step?(dt) = @queue.start?(dt)
+  def step?(dt)
+    return false unless @queue.start?(dt)
+
+    @search.forget
+    true
+  end
 
   # The block yields the block that the cell should change to, or -1.
   def next_change(changes)
@@ -33,8 +39,10 @@ class Flow
     best = 0
     dir = 0
     while dir < 4
-      level = spread_level(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
-      best = level - 1 if level - 1 > best
+      nx = x + Block::DIR_DX[dir]
+      nz = z + Block::DIR_DZ[dir]
+      level = spread_level(nx, y, nz)
+      best = level - 1 if level - 1 > best && (@search.directions(nx, y, nz) >> (dir ^ 1)) & 1 == 1
       dir += 1
     end
     best
@@ -51,6 +59,11 @@ class Flow
 
     level
   end
+
+  def passes?(x, y, z) = @fluid.passes?(@world.get(x, y, z))
+
+  # World#get gives air outside the loaded world, which is no way down.
+  def way_down?(x, y, z) = @world.loaded?(x, z) && @fluid.falls_into?(@world.get(x, y - 1, z))
 
   def falling?(x, y, z) = @fluid.level(@world.get(x, y + 1, z)) > 0
 end
