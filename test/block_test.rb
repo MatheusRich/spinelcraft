@@ -66,10 +66,10 @@ class BlockTest < Minitest::Test
     end
   end
 
-  def test_a_spinel_mattock_digs_each_kind_of_block_fast_at_the_iron_tier
-    [Block::STONE, Block::OAK_LOG, Block::DIRT].each do |b|
+  def test_a_spinel_mattock_digs_each_kind_of_block_fast_at_the_diamond_tier
+    [Block::STONE, Block::OAK_LOG, Block::DIRT, Block::OBSIDIAN].each do |b|
       assert_equal 12.0, Block.dig_speed(Block::SPINEL_MATTOCK, b)
-      assert_equal Block.dig_tier(Block::IRON_PICK, Block::STONE), Block.dig_tier(Block::SPINEL_MATTOCK, b)
+      assert_equal Block.dig_tier(Block::DIAMOND_PICK, Block::STONE), Block.dig_tier(Block::SPINEL_MATTOCK, b)
     end
     assert_equal 1.0, Block.dig_speed(Block::SPINEL_MATTOCK, Block::GLASS)
     assert_equal 0, Block.dig_tier(Block::SPINEL_MATTOCK, Block::GLASS)

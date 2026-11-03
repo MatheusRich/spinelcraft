@@ -697,8 +697,11 @@ module Block
   TOOL_SPEED = [2.0, 4.0, 6.0, 8.0]
   # Minecraft has no mattock. The spinel mattock digs as fast as a gold
   # tool of Minecraft (minecraft.wiki/w/Breaking). The wiki does not
-  # confirm its iron tier and its uses: they are a choice for balance.
+  # confirm its tiers and its uses: they are a choice for balance. It
+  # mines all that a diamond pickaxe mines, and it hits and wears as an
+  # iron axe.
   MATTOCK_SPEED = 12.0
+  MATTOCK_DIG_TIER = 4
   # How fast tool digs block. A hand has speed 1, and so has a tool on a
   # block that it does not dig fast. minecraft.wiki/w/Breaking
   def self.dig_speed(tool, block)
@@ -714,7 +717,7 @@ module Block
   # The tier of tool when it is the kind that digs block fast, else 0.
   def self.dig_tier(tool, block)
     return 0 if DIG_KIND[block] == 0
-    return tool_tier(tool) if tool == SPINEL_MATTOCK
+    return MATTOCK_DIG_TIER if tool == SPINEL_MATTOCK
     return 0 if tool_kind(tool) != DIG_KIND[block]
 
     tool_tier(tool)

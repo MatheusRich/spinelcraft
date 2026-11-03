@@ -1636,7 +1636,9 @@ class Game
            frames_to_mine(x, ground + 1, z, Block::DIRT, Block::SPINEL_MATTOCK) < frames_to_mine(x, ground + 1, z, Block::DIRT, Block::IRON_SHOVEL)
     @items.clear
     frames_to_mine(x, ground + 1, z, Block::DIAMOND, Block::SPINEL_MATTOCK)
-    check("a spinel mattock digs stone, logs and dirt fast, and it mines diamond ore", fast && ground_count(Block::DIAMOND) == 1)
+    frames_to_mine(x, ground + 1, z, Block::OBSIDIAN, Block::SPINEL_MATTOCK)
+    check("a spinel mattock digs stone, logs and dirt fast, and it mines diamond ore and obsidian",
+          fast && ground_count(Block::DIAMOND) == 1 && ground_count(Block::OBSIDIAN) == 1)
     @items.clear
     @inv.set(5, Block::COOKED_PORKCHOP, 2)
     @slot = 5
