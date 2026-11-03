@@ -59,6 +59,28 @@ class Mesher
   # The last value of the shape field. The shapes of blocks (Block::SHAPE)
   # come below it.
   TORCH_SHAPE = (1 << SHAPE_BITS) - 1
+  # Fire on a floor is 4 planes that lean in, two along x and two along z.
+  # Fire with no floor is a plane on each side where a block burns. Each
+  # plane has a front face and a back face. The facing field holds the
+  # plane: a direction of Block::DIR_DX, the way that a plane leans or the
+  # side that it is on.
+  FIRE_FLOOR_SHAPE = TORCH_SHAPE - 1
+  FIRE_SIDE_SHAPE = TORCH_SHAPE - 2
+  FIRE_FRONT = 6
+  FIRE_BACK = 7
+  # A fire plane is 1.4 blocks high. A plane of the floor fire is 0.26 from
+  # the middle of its cell at the bottom, and 0.32 past it at the top, and
+  # a plane of the side fire is 0.49 from the middle. The wiki does not
+  # give the shape of fire. These values come from the models of the Java
+  # game (fire_floor and fire_side: planes 22.4 pixels high, 0.8 pixels
+  # from the middle, turned 22.5 degrees).
+  FIRE_HEIGHT = 1.4
+  FIRE_FOOT = 0.26
+  FIRE_LEAN = 0.32
+  FIRE_WALL = 0.49
+  # The frames of fire play in 1 second, as in VoxeLibre (mcl_fire). The
+  # wiki does not give the speed.
+  FIRE_FPS = Tex::FIRE_FRAMES
   # Records hold columns of a ring as wide as the x field. The shaders wrap
   # at the same width (COLUMNS in gfx.rb).
   COLUMNS = 1 << X_BITS
@@ -97,6 +119,9 @@ class Mesher
   # NAME_MASK for each, TORCH_SHAPE, and the texture layers of the fluids.
   def self.shader_defines
     "#define TORCH_SHAPE #{TORCH_SHAPE}u\n#define WATER_LAYER #{Tex::WATER}u\n#define LAVA_LAYER #{Tex::LAVA}u\n" +
+      "#define FIRE_FLOOR_SHAPE #{FIRE_FLOOR_SHAPE}u\n#define FIRE_SIDE_SHAPE #{FIRE_SIDE_SHAPE}u\n#define FIRE_BACK #{FIRE_BACK}u\n" +
+      "#define FIRE_LAYER #{Tex::FIRE}u\n#define FIRE_FRAMES #{Tex::FIRE_FRAMES}u\n#define FIRE_FPS #{FIRE_FPS}.0\n" +
+      "#define FIRE_HEIGHT #{FIRE_HEIGHT}\n#define FIRE_FOOT #{FIRE_FOOT}\n#define FIRE_LEAN #{FIRE_LEAN}\n#define FIRE_WALL #{FIRE_WALL}\n" +
       Mesher.define_field("X", X_AT, X_BITS) + Mesher.define_field("Y", Y_AT, Y_BITS) + Mesher.define_field("Z", Z_AT, Z_BITS) +
       Mesher.define_field("FACE", FACE_AT, FACE_BITS) + Mesher.define_field("TEX", TEX_AT, TEX_BITS) + Mesher.define_field("AO", AO_AT, AO_BITS) +
       Mesher.define_field("FLIP", FLIP_AT, FLIP_BITS) + Mesher.define_field("SKY", SKY_AT, SKY_BITS) +
@@ -393,6 +418,27 @@ class Mesher
     @block_bits[c] & (~shut | @always_bits[c])
   end
 
+  # The planes of the fire in cell index (see FIRE_FLOOR_SHAPE). place is
+  # the first word of a record for the cell, with face 0, and look the
+  # second word, with the light and the texture of the fire. Fire on a
+  # solid block or on a block that burns stands on the floor, and so does
+  # fire with no block that burns beside it. minecraft.wiki/w/Fire
+  def mesh_fire(index, place, look)
+    below = cell(index + @delta[3])
+    sides = (0...Block::DIR_FACE.size).select { |dir| Block.flammable?(cell(index + @delta[Block::DIR_FACE[dir]])) }
+    floor = Block.solid?(below) || Block.flammable?(below) || sides.empty?
+    shape = floor ? FIRE_FLOOR_SHAPE : FIRE_SIDE_SHAPE
+    (floor ? (0...Block::DIR_FACE.size).to_a : sides).each { |dir| fire_plane(place, look | (dir << FACING_AT) | (shape << SHAPE_AT)) }
+    nil
+  end
+
+  def fire_plane(place, look)
+    plants = @lists[6]
+    plants << (place | (FIRE_FRONT << FACE_AT)) << look
+    plants << (place | (FIRE_BACK << FACE_AT)) << look
+    nil
+  end
+
   # The faces of the block in cell i, at x, y, z (see build). lit is true
   # when torch light reaches the chunk.
   def mesh_cell(x, y, z, i, lit) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
@@ -404,6 +450,8 @@ class Mesher
       sky = y >= @world.height[lx * WZ + lz] ? 1 : 0
       w1 = Block::TOP[id] | (255 << AO_AT) | (sky << SKY_AT) | Mesher.tint_w1(Block::TOP[id])
       w1 |= torch_light(x, y, z) << LIGHT_AT if lit
+      return mesh_fire(i, Mesher.pack(lx, y, lz, 0), w1) if id == Block::FIRE
+
       w1 |= (Block::FACING[id] << FACING_AT) | (TORCH_SHAPE << SHAPE_AT) if Block.wall_torch?(id)
       plants = @lists[6]
       (6...10).each do |f|

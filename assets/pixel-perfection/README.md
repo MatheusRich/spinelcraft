@@ -40,7 +40,8 @@ These files are copies with no changes.
 | `door_lower.png`, `door_upper.png`, `door_item.png` | `mcl_doors_door_wood_lower.png`, `mcl_doors_door_wood_upper.png`, `doors_item_wood.png` |
 | `furnace.png`, `furnace_side.png`, `furnace_top.png`, `furnace_lit.png` | `default_furnace_front.png`, `default_furnace_side.png`, `default_furnace_top.png`, `default_furnace_front_active.png` |
 | `bed_item.png` | `mcl_beds_bed_red_inv.png` |
-| `torch.png`, `ladder.png`, `fire.png` | `default_torch_on_floor.png`, `default_ladder.png`, `fire_basic_flame.png` |
+| `torch.png`, `ladder.png` | `default_torch_on_floor.png`, `default_ladder.png` |
+| `fire_0.png` to `fire_7.png` | The 8 frames of `fire_basic_flame_animated.png` (Muadtralk, CC BY-SA 3.0), one 16x16 image each |
 | `apple.png`, `bread.png`, `wheat.png` | `default_apple.png`, `farming_bread.png`, `farming_wheat_harvested.png` |
 | `porkchop.png`, `cooked_porkchop.png`, `iron_ingot.png` | `mcl_mobitems_porkchop_raw.png`, `mcl_mobitems_porkchop_cooked.png`, `default_steel_ingot.png` |
 | `rotten_flesh.png` | `mcl_mobitems_rotten_flesh.png` |
@@ -121,7 +122,7 @@ Minecraft has no spinel. Its images are gold or emerald images with a red palett
 | --- | --- |
 | `spinel_ore.png` | `mcl_core_gold_ore.png` in red |
 | `spinel.png` | `mcl_core_emerald.png` in red |
-| `fire_resistance.png` | A 9x9 HUD icon drawn for this game, in the five colors of `fire.png` (`#911F0E`, `#B73B0B`, `#E05D31`, `#ED9E2F`, `#FFCF3F`): a flame in a ring. |
+| `fire_resistance.png` | A 9x9 HUD icon drawn for this game, in the five colors of the old `fire.png` (`fire_basic_flame.png`) (`#911F0E`, `#B73B0B`, `#E05D31`, `#ED9E2F`, `#FFCF3F`): a flame in a ring. |
 | `spinel_helmet.png`, `spinel_chestplate.png`, `spinel_leggings.png`, `spinel_boots.png` | The diamond pieces of armor, with the four blues of the diamond (`#5397C1`, `#5FAED8`, `#A8E2FF`, `#EDF7FF`) turned into the reds of the same lightness (`#A51A33`, `#D8304A`, `#F57D8C`, `#FF9AA8`). The gray edge stays. |
 | `spinel_mattock.png` | `default_tool_goldpick.png` without its top-left arm (columns 0-12 of rows 0-2), with the blade of `default_tool_goldaxe.png` (columns 7-12 of rows 0-3) in its place, in red. The axe blade is on one side of the handle, and the point of the pickaxe on the other. |
 

@@ -1,5 +1,5 @@
 require "fileutils"
-# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, SHOWBOATS and STRIKE.
+# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, SHOWBOATS, SHOWFIRE and STRIKE.
 class Game
   # A height above the land and the trees, where the tests and the
   # screenshot scenes build in open air.
@@ -78,6 +78,33 @@ class Game
     @player.pitch = -0.3
     board_boat(0)
     @clock.time_of_day = 0.3
+  end
+
+  # The time of day of SHOWFIRE: 20:24, after dusk, so that the light of the
+  # fire shows.
+  SHOW_FIRE_TIME = 0.6
+
+  # SHOWFIRE=1 lights fire in front of the player at night: on stone, on
+  # planks, and in the air beside a wall of planks and a log.
+  def show_fire
+    bx = @player.x.floor
+    bz = @player.z.floor - 6
+    y = SKY_Y - 10
+    fill_box(bx - 5, y, bz - 3, bx + 5, y, bz + 3, Block::STONE)
+    set_block(bx - 3, y + 1, bz, Block::FIRE)
+    set_block(bx - 1, y, bz, Block::OAK_PLANKS)
+    set_block(bx - 1, y + 1, bz, Block::FIRE)
+    fill_box(bx + 2, y + 1, bz - 1, bx + 2, y + 4, bz + 1, Block::OAK_PLANKS)
+    set_block(bx + 1, y + 3, bz, Block::FIRE)
+    fill_box(bx + 4, y + 1, bz, bx + 4, y + 4, bz, Block::OAK_LOG)
+    set_block(bx + 4, y + 3, bz + 1, Block::FIRE)
+    @player.x = bx + 0.5
+    @player.y = y + 2.5
+    @player.z = bz + 6.5
+    @player.yaw = 0.0
+    @player.pitch = -0.2
+    @player.flying = true
+    @clock.time_of_day = SHOW_FIRE_TIME
   end
 
   # SHOWITEMS=1 lays a row of dropped items on a stone floor in front of the

@@ -381,6 +381,7 @@ class Game
     show_mobs if ENV["SHOWMOBS"]
     show_items if ENV["SHOWITEMS"]
     show_boats if ENV["SHOWBOATS"]
+    show_fire if ENV["SHOWFIRE"]
   end
 
   def open_first_screen

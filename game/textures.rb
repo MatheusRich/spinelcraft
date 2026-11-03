@@ -19,9 +19,9 @@ module Tex
   def self.image(file, bleed: 0) = add_layer(file, bleed)
 
   # A layer from each image, in a row; it gives the number of the first.
-  def self.image_series(files)
+  def self.image_series(files, bleed: 0)
     first = LAYER_FILES.size
-    files.each { |file| add_layer(file, 0) }
+    files.each { |file| add_layer(file, bleed) }
     first
   end
 
@@ -87,7 +87,9 @@ module Tex
   CHEST_TOP = image("chest_top", bleed: 1)
   CHEST_SIDE = image("chest_side", bleed: 1)
   # Flame tongues, and a round puff for smoke.
-  FIRE = image("fire", bleed: 1)
+  # The frames of fire, which play in a loop (Mesher::FIRE_FPS).
+  FIRE_FRAMES = 8
+  FIRE = image_series(Array.new(FIRE_FRAMES) { |frame| "fire_#{frame}" }, bleed: 1)
   PUFF = drawn(1, bleed: 1)
   # Streaks of rain on a clear background.
   RAIN = drawn(1, bleed: 1)

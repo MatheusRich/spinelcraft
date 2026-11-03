@@ -36,6 +36,42 @@ class MesherTest < Minitest::Test
     faces - before
   end
 
+  # The planes of the fire at CUBE_X, y, CUBE_Z, as [shape, facing, face].
+  def fire_planes(y)
+    @mesher.build(0, 0)
+    @mesher.opaque.each_slice(2).filter_map do |w0, w1|
+      next unless Mesher.face_x(w0) == CUBE_X && Mesher.face_y(w0) == y && Mesher.face_z(w0) == CUBE_Z
+
+      [Mesher.field(w1, Mesher::SHAPE_AT, Mesher::SHAPE_BITS), Mesher.field(w1, Mesher::FACING_AT, Mesher::FACING_BITS),
+       Mesher.field(w0, Mesher::FACE_AT, Mesher::FACE_BITS)]
+    end.sort
+  end
+
+  def planes(shape, facings) = facings.flat_map { |facing| [[shape, facing, Mesher::FIRE_FRONT], [shape, facing, Mesher::FIRE_BACK]] }.sort
+
+  # minecraft.wiki/w/Fire
+  def test_fire_on_a_floor_is_four_planes_that_lean_in
+    @world.set(CUBE_X, SKY_Y - 1, CUBE_Z, Block::STONE)
+    @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::FIRE)
+    assert_equal planes(Mesher::FIRE_FLOOR_SHAPE, [0, 1, 2, 3]), fire_planes(SKY_Y)
+    @world.set(CUBE_X, SKY_Y - 1, CUBE_Z, Block::OAK_PLANKS)
+    assert_equal planes(Mesher::FIRE_FLOOR_SHAPE, [0, 1, 2, 3]), fire_planes(SKY_Y)
+  end
+
+  def test_fire_with_no_floor_is_a_plane_on_each_side_that_burns
+    @world.set(CUBE_X + 1, SKY_Y, CUBE_Z, Block::OAK_PLANKS)
+    @world.set(CUBE_X, SKY_Y, CUBE_Z - 1, Block::WOOL)
+    @world.set(CUBE_X - 1, SKY_Y, CUBE_Z, Block::STONE)
+    @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::FIRE)
+    assert_equal planes(Mesher::FIRE_SIDE_SHAPE, [0, 3]), fire_planes(SKY_Y)
+  end
+
+  def test_fire_with_no_block_that_burns_beside_it_stands_as_on_a_floor
+    @world.set(CUBE_X, SKY_Y + 1, CUBE_Z, Block::OAK_PLANKS)
+    @world.set(CUBE_X, SKY_Y, CUBE_Z, Block::FIRE)
+    assert_equal planes(Mesher::FIRE_FLOOR_SHAPE, [0, 1, 2, 3]), fire_planes(SKY_Y)
+  end
+
   def test_fancy_leaves_make_a_face_on_every_side_of_every_leaf_block
     assert_equal 6 * 9 + 108, faces_added_by(Block::OAK_LEAVES, 3)
   end
