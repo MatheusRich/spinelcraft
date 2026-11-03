@@ -103,6 +103,22 @@ class WorldTest < Minitest::Test
     end
   end
 
+  def test_flowing_lava_is_a_light_once_a_cell_next_to_it_opens
+    world = world_with_one_chunk
+    [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].each do |dx, dy, dz|
+      world.set(8 + dx, SKY_Y + dy, 8 + dz, Block::STONE)
+    end
+    world.set(8, SKY_Y, 8, Block::LAVA_FLOW)
+    world.load_chunk(0, 0)
+    refute_includes lights(world), [8, SKY_Y, 8]
+    world.set(9, SKY_Y, 8, Block::AIR)
+    assert_includes lights(world), [8, SKY_Y, 8]
+    world.load_chunk(0, 0)
+    assert_includes lights(world), [8, SKY_Y, 8]
+  end
+
+  def lights(world) = world.torches_of(0, 0).each_slice(3).to_a
+
   def test_water_on_a_side_or_above_touches_a_cell_and_water_below_does_not
     world = world_with_one_chunk
     [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, -1]].each do |dx, dy, dz|

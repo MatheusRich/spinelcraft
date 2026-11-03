@@ -7,7 +7,8 @@ class Light
   # Light in Minecraft: a torch has 14, lava and a jack o'lantern 15, and a
   # cell under the open sky 15 by day. Light goes down by 1 for each step
   # to a cell that is not opaque, so walls stop it. minecraft.wiki/w/Light
-  # and /w/Jack_o'Lantern
+  # and /w/Jack_o'Lantern. The wiki gives one light for all lava, and does
+  # not name flowing lava, so flowing lava also has 15.
   TORCH = 14
   LAVA = 15
   # The farthest that the search goes from its cell. Sky light at most 15
@@ -87,7 +88,7 @@ class Light
         if ny >= 0 && ny < WY && @seen[next_cell] != stamp
           @seen[next_cell] = stamp
           block = @world.get(nx, ny, nz)
-          return -1 if lamp && (block == Block::LAVA || Block.jack_o_lantern?(block)) && steps + 1 < LAVA
+          return -1 if lamp && (Block.lava?(block) || Block.jack_o_lantern?(block)) && steps + 1 < LAVA
 
           queue << next_cell << steps + 1 if Block::OPAQUE[block] == 0
         end

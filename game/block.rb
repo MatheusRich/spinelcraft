@@ -775,6 +775,6 @@ module Block
   def self.pumpkin?(block) = block >= PUMPKIN && block < SHEARS
   # Dirt, grass and snowy grass: the soil of HOLD_SOIL.
   def self.soil?(block) = block == DIRT || block == GRASS || block == SNOW_GRASS
-  # Torches, lava sources and jack o'lanterns light their surroundings.
-  def self.emits?(block) = torch?(block) || block == LAVA || jack_o_lantern?(block)
+  # Torches, lava and jack o'lanterns light their surroundings.
+  def self.emits?(block) = torch?(block) || lava?(block) || jack_o_lantern?(block)
 end

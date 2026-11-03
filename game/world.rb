@@ -510,7 +510,7 @@ class World
       nx = x + (d == 0 ? 1 : (d == 1 ? -1 : 0))
       ny = y + (d == 2 ? 1 : (d == 3 ? -1 : 0))
       nz = z + (d == 4 ? 1 : (d == 5 ? -1 : 0))
-      if inside?(nx, ny, nz) && block(World.index(nx, ny, nz)) == Block::LAVA && !listed?(nx, ny, nz)
+      if inside?(nx, ny, nz) && Block.lava?(block(World.index(nx, ny, nz))) && !listed?(nx, ny, nz)
         add_torch(nx, ny, nz)
       end
     end
@@ -549,7 +549,7 @@ class World
         base = World.index(x, 0, z)
         top.times do |y|
           b = block(base + y)
-          add_torch(x, y, z) if Block.torch?(b) || Block.jack_o_lantern?(b) || (b == Block::LAVA && exposed?(base + y))
+          add_torch(x, y, z) if Block.torch?(b) || Block.jack_o_lantern?(b) || (Block.lava?(b) && exposed?(base + y))
         end
         z += 1
       end
