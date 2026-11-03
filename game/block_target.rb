@@ -45,10 +45,11 @@ class BlockTarget
     nil
   end
 
-  # Air, water and lava let the ray pass, and so does a plant or a shaped
-  # block when the ray misses its box.
+  # Air, water, lava and fire let the ray pass, and so does a plant or a
+  # shaped block when the ray misses its box. A hit on the block behind a
+  # fire puts the fire out (Game#left_button).
   def stops_view?(block)
-    return false if block == Block::AIR || Block.water?(block) || Block.lava?(block)
+    return false if block == Block::AIR || Block.water?(block) || Block.lava?(block) || block == Block::FIRE
     return true unless Block.plant?(block) || Block::SHAPE[block] > 0
 
     in_box?(block)

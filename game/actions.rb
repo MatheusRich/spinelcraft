@@ -175,8 +175,9 @@ class Game
   # button breaks the next block in creative.
   ACTION_COOLDOWN = 0.22
 
-  # The left button hits the mob in the crosshair, or else breaks the block:
-  # at once in creative, over time in survival.
+  # The left button hits the mob in the crosshair, or puts out the fire in
+  # front of the block, or else breaks the block: at once in creative, over
+  # time in survival.
   def left_button(dt, held, pressed)
     if held && mob_in_view?
       attack_mob(viewed_mob) if pressed
@@ -184,6 +185,8 @@ class Game
     elsif held && boat_in_view?
       hit_boat(@target_boat) if pressed
       @mining = false
+    elsif pressed && fire_in_front?
+      put_out_fire
     elsif held && @target_block.hit?
       break_target(dt)
     else
@@ -203,6 +206,17 @@ class Game
     @player.vitals.exhaust(Vitals::ATTACK_COST) if game_mode.survival?
     mob.by_player = true
     @sfx.play(Sfx::HIT, 0.8)
+    @swing = SWING
+  end
+
+  # True when fire is in front of the face of the block in view.
+  def fire_in_front? = @target_block.hit? && @world.get(@target_block.front_x, @target_block.front_y, @target_block.front_z) == Block::FIRE
+
+  # A hit on a block puts out the fire in front of the face that it hits.
+  # minecraft.wiki/w/Fire
+  def put_out_fire
+    set_block(@target_block.front_x, @target_block.front_y, @target_block.front_z, Block::AIR)
+    @sfx.play(Sfx::FIZZ, 0.6)
     @swing = SWING
   end
 

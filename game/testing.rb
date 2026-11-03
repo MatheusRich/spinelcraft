@@ -1896,6 +1896,19 @@ class Game
     lightning = @storm.lightning
     check("lightning lights a fire where it strikes", @world.get(lightning.x, lightning.y, lightning.z) == Block::FIRE)
     lightning.thunder_arrived?(1.0)
+    wall_x = x - 3
+    set_block(wall_x, g + 1, z - 2, Block::OAK_PLANKS)
+    set_block(wall_x, g + 1, z - 1, Block::FIRE)
+    @player.x = wall_x + 0.5
+    @player.y = g.to_f
+    @player.z = z + 1.5
+    @player.yaw = 0.0
+    @player.pitch = 0.0
+    @target_block.trace(@world, @player)
+    aimed = @target_block.hit? && @target_block.z == z - 2
+    left_button(1.0 / 60.0, true, true)
+    check("the view passes a fire on a wall, and a hit on the wall puts the fire out",
+          aimed && @world.get(wall_x, g + 1, z - 1) == Block::AIR && @world.get(wall_x, g + 1, z - 2) == Block::OAK_PLANKS)
     fill_box(x - 5, g, z - 5, x + 5, g + 3, z + 5, Block::AIR)
     @inv.load(kept_inventory, 0)
     @slot = kept_slot

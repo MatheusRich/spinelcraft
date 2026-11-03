@@ -11,6 +11,16 @@ class BlockTargetTest < Minitest::Test
     @target = BlockTarget.new
   end
 
+  # The ray passes a fire and hits the wall behind it, and the fire is in
+  # front of the wall.
+  def test_the_ray_passes_fire
+    @world.set(8, EYE_CELL, 6, Block::FIRE)
+    @world.set(8, EYE_CELL, 5, Block::STONE)
+    trace
+    assert_equal [8, EYE_CELL, 5], [@target.x, @target.y, @target.z]
+    assert_equal [8, EYE_CELL, 6], [@target.front_x, @target.front_y, @target.front_z]
+  end
+
   def test_a_new_target_has_no_hit
     assert_equal false, @target.hit?
   end
