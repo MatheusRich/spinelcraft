@@ -220,7 +220,8 @@ class Game
     bx = @spawn_x.floor
     bz = @spawn_z.floor
     test_bow(bx, bz)
-    test_sneak_and_bed(bx, bz)
+    test_sleep(bx, bz)
+    test_sneak(bx, bz)
     test_bow_on_stations
     test_water
     test_inventory_clicks
@@ -3512,8 +3513,8 @@ class Game
     check("a bow in hand opens a furnace or a crafting table, and does not draw", opened)
   end
 
-  # Sneaking, walking off an edge, and the bed, on the platform from test_bow.
-  def test_sneak_and_bed(bx, bz)
+  # Sneaking and walking off an edge, on the platform from test_bow.
+  def test_sneak(bx, bz)
     # The platform is one block wide in z: sneaking toward its edge stays on it.
     @player.move_to(bx + 4.5, SKY_Y - 1.0, bz + 0.5)
     @player.yaw = 3.14159
@@ -3522,36 +3523,155 @@ class Game
     @player.controls.hold(1.0, 0.0, jump: false, sneak: true, sprint: false)
     120.times { @player.update(@world, 1.0 / 60.0) }
     low = (@player.eye_y - @player.y - Player::SNEAK_EYE).abs < 0.01
-    @mobs.clear
-    set_block(bx + 6, SKY_Y - 1, bz, Block.bed_id(0, true))
-    @clock.time_of_day = 0.75
-    day = @clock.day
-    use_bed(bx + 6, SKY_Y - 1, bz)
-    check("sleeping in a bed skips the night and sets spawn", @clock.time_of_day == Clock::MORNING && @spawn_x == bx + 6.5 && @clock.day == day + 1)
-    @clock.set_ticks(12200)
-    evening = @clock.time_of_day
-    use_bed(bx + 6, SKY_Y - 1, bz)
-    dusk = @clock.time_of_day == evening
-    @weather.rain.start.settle
-    use_bed(bx + 6, SKY_Y - 1, bz)
-    @weather.rain.stop.settle
-    check("a bed works earlier in the evening in rain", dusk && @clock.time_of_day == Clock::MORNING)
-    awake = [[3.0, 0.0], [0.0, 6.0], [9.0, 0.0]].map do |(across, up)|
-      @mobs.clear
-      @mobs << Monster.new(Mob::ZOMBIE, bx + 6.5 + across, SKY_Y - 1.0 + up, bz + 0.5, 9)
-      @clock.time_of_day = 0.75
-      use_bed(bx + 6, SKY_Y - 1, bz)
-      @clock.time_of_day == 0.75
-    end
-    @mobs.clear
-    check("a zombie 3 blocks from a bed keeps the player awake, but not 6 blocks up or 9 blocks away", awake == [true, false, false])
-    set_block(bx + 6, SKY_Y - 1, bz, Block::AIR)
-    @clock.time_of_day = 0.3
     check("sneaking stops at an edge", @player.y > SKY_Y - 1.1 && @player.z < bz + 1.4)
     @player.controls.hold(1.0, 0.0, jump: false, sneak: false, sprint: false)
     120.times { @player.update(@world, 1.0 / 60.0) }
     check("walking without sneaking falls off", @player.y < SKY_Y - 2.0)
     check("a sneaking player's eyes are lower, and come back up", low && (@player.eye_y - @player.y - Player::EYE).abs < 0.01)
+  end
+
+  # The bed on the platform from test_bow: its foot at bx + 5 and its head
+  # at bx + 6. The player gets in from the foot end.
+  def test_sleep(bx, bz)
+    keep_pose
+    @mobs.clear
+    set_block(bx + 5, SKY_Y - 1, bz, Block.bed_id(1, false))
+    set_block(bx + 6, SKY_Y - 1, bz, Block.bed_id(0, true))
+    test_sleep_through_the_night(bx, bz)
+    test_bed_by_day_and_in_rain(bx, bz)
+    test_monster_keeps_awake(bx, bz)
+    test_wake_early(bx, bz)
+    test_dawn_wakes(bx, bz)
+    test_no_flight_in_bed(bx, bz)
+    test_bed_from_a_boat(bx, bz)
+    set_block(bx + 6, SKY_Y - 1, bz, Block::AIR)
+    @clock.time_of_day = 0.3
+    restore_pose
+  end
+
+  def lie_in_bed(bx, bz)
+    @player.move_to(bx + 4.5, SKY_Y - 1.0, bz + 0.5)
+    @clock.time_of_day = 0.75
+    use_bed(bx + 5, SKY_Y - 1, bz)
+  end
+
+  def stands_by_the_bed?(bx, bz)
+    (@player.x - bx - 4.5).abs < 0.01 && (@player.y - SKY_Y + 1.0).abs < 0.01 && (@player.z - bz - 0.5).abs < 0.01 &&
+      (@player.eye_y - @player.y - Player::EYE).abs < 0.01
+  end
+
+  def sleep_shade
+    build_ui(1280, 720)
+    shade = 0.0
+    (0...@ui.v.size).step(UI_VERTEX_FLOATS) do |index|
+      next if @ui.v[index + UI_LAYER_OFFSET + 3] != Ui::SLEEP_SHADE.blue || @ui.v[index + UI_LAYER_OFFSET + 1] != Ui::SLEEP_SHADE.red
+
+      shade = @ui.v[index + UI_LAYER_OFFSET + 4]
+    end
+    shade
+  end
+
+  def test_sleep_through_the_night(bx, bz)
+    day = @clock.day
+    lie_in_bed(bx, bz)
+    lying = (@player.eye_y - SKY_Y).abs < 0.5 && (@player.x - bx - 6.5).abs < 0.01 && @player.fx < -0.99
+    5.times { update_game(1.0) }
+    night = @clock.day == day && sleep_shade > 0.8
+    update_game(0.1)
+    morning = @clock.time_of_day < 0.03 && @clock.day == day + 1 && stands_by_the_bed?(bx, bz) && @player.fx > 0.99
+    dark = sleep_shade
+    update_game(Sleep::WAKE_FADE)
+    check("a bed lays the player down, darkens the screen for 5 seconds, then passes the night and sets spawn",
+          lying && night && morning && dark > 0.5 && sleep_shade == 0.0 && @spawn_x == bx + 5.5)
+  end
+
+  def test_bed_by_day_and_in_rain(bx, bz)
+    @player.move_to(bx + 4.5, SKY_Y - 1.0, bz + 0.5)
+    @clock.set_ticks(12200)
+    use_bed(bx + 5, SKY_Y - 1, bz)
+    dusk = stands_by_the_bed?(bx, bz)
+    @weather.rain.start.settle
+    use_bed(bx + 5, SKY_Y - 1, bz)
+    @weather.rain.stop.settle
+    rain = !stands_by_the_bed?(bx, bz)
+    @player.sleep.stop(@world)
+    check("a bed works earlier in the evening in rain", dusk && rain)
+  end
+
+  def test_monster_keeps_awake(bx, bz)
+    awake = [[3.0, 0.0], [0.0, 6.0], [9.0, 0.0]].map do |(across, up)|
+      @mobs.clear
+      @mobs << Monster.new(Mob::ZOMBIE, bx + 6.5 + across, SKY_Y - 1.0 + up, bz + 0.5, 9)
+      lie_in_bed(bx, bz)
+      awake = stands_by_the_bed?(bx, bz)
+      @player.sleep.stop(@world)
+      awake
+    end
+    @mobs.clear
+    check("a zombie 3 blocks from a bed keeps the player awake, but not 6 blocks up or 9 blocks away", awake == [true, false, false])
+  end
+
+  def test_wake_early(bx, bz)
+    wakes = [-> { press_in_play(Key::LSHIFT) }, -> { press_in_play(Key::ESCAPE) }, -> { hurt(1.0, Sfx::HURT) },
+             -> { set_block(bx + 5, SKY_Y - 1, bz, Block::AIR) }]
+    woken = wakes.map do |wake|
+      survivor
+      lie_in_bed(bx, bz)
+      update_game(2.0)
+      wake.call
+      update_game(4.0)
+      set_block(bx + 5, SKY_Y - 1, bz, Block.bed_id(1, false))
+      set_block(bx + 6, SKY_Y - 1, bz, Block.bed_id(0, true))
+      @clock.time_of_day > 0.5 && stands_by_the_bed?(bx, bz) && sleep_shade == 0.0 && current_screen.playing?
+    end
+    @player.revive
+    check("Shift, Esc, a hurt or a broken bed wakes the player and the night goes on", woken == [true, true, true, true])
+  end
+
+  def press_in_play(key)
+    Gfx.in_test_key(key, 1)
+    handle_input(0.05)
+    Gfx.in_test_frame
+    Gfx.in_test_key(key, 0)
+    Gfx.in_test_frame
+  end
+
+  def test_dawn_wakes(bx, bz)
+    @weather.rain.start.settle
+    @player.move_to(bx + 4.5, SKY_Y - 1.0, bz + 0.5)
+    @clock.set_ticks(23950)
+    day = @clock.day
+    use_bed(bx + 5, SKY_Y - 1, bz)
+    lying = @player.in_bed?
+    6.times { update_game(1.0) }
+    @weather.rain.stop.settle
+    check("daylight gets the player out of bed without a second new day", lying && !@player.in_bed? && @clock.day == day + 1)
+  end
+
+  def test_no_flight_in_bed(bx, bz)
+    previous_mode = @game_mode
+    @game_mode = GameMode::CREATIVE
+    lie_in_bed(bx, bz)
+    2.times do
+      key_frame(Key::SPACE, true, 0.05)
+      key_frame(Key::SPACE, false, 0.05)
+    end
+    in_bed = !@player.flying
+    6.times { update_game(1.0) }
+    @game_mode = previous_mode
+    check("two taps of Space in bed do not start a flight", in_bed && !@player.flying)
+  end
+
+  def test_bed_from_a_boat(bx, bz)
+    @boats.clear
+    @boats << Boat.new(Block::OAK_BOAT, bx + 3.5, SKY_Y - 1.0, bz + 0.5, 0.0)
+    @riding = 0
+    lie_in_bed(bx, bz)
+    update_game(0.05)
+    in_bed = @player.in_bed? && !riding? && (@player.x - bx - 6.5).abs < 0.01
+    @player.sleep.stop(@world)
+    @boats.clear
+    check("a player in a boat gets into the bed and out of the boat", in_bed)
   end
 
   # A jump against the shore of a pool 2 deep lifts the player out of the

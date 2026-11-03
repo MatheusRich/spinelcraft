@@ -72,6 +72,9 @@ class Game
     if @damage_flash > 0.0
       @ui.rect(0.0, 0.0, w, h, Color.new(0.8, 0.0, 0.0, @damage_flash))
     end
+    darkness = @player.sleep.darkness
+    shade = Ui::SLEEP_SHADE
+    @ui.rect(0.0, 0.0, w, h, Color.new(shade.red, shade.green, shade.blue, darkness)) if darkness > 0.0
     # crosshair
     @ui.rect(w / 2.0 - 9.0 * s, h / 2.0 - 1.0 * s, 18.0 * s, 2.0 * s, Ui::CROSSHAIR)
     @ui.rect(w / 2.0 - 1.0 * s, h / 2.0 - 9.0 * s, 2.0 * s, 18.0 * s, Ui::CROSSHAIR)

@@ -7,6 +7,9 @@ class Player
   EYE = 1.62
   # A sneaking player's eyes are 0.35 lower. minecraft.wiki/w/Sneaking
   SNEAK_EYE = 1.27
+  # The wiki gives 0.2 blocks for the box of a sleeping player, not for the
+  # eyes. minecraft.wiki/w/Player
+  LYING_EYE = 0.2
   # How far the player reaches blocks, and mobs, in survival.
   # minecraft.wiki/w/Player
   REACH = 4.5
@@ -44,7 +47,7 @@ class Player
   attr_reader :jumped
   # The keys that move the player (Controls).
   attr_reader :controls
-  attr_reader :vitals, :melee_attack
+  attr_reader :vitals, :melee_attack, :sleep
 
   def initialize(x, y, z)
     @x = x
@@ -70,6 +73,7 @@ class Player
     @controls = Controls.new
     @vitals = Vitals.new
     @melee_attack = MeleeAttack.new
+    @sleep = Sleep.new(self)
     @fall_start = y
   end
 
@@ -88,6 +92,21 @@ class Player
     @vy = 0.0
     @vz = 0.0
     @fall_start = y
+  end
+
+  def in_bed? = !@sleep.over?
+
+  def lie_down
+    @eye = LYING_EYE
+    @pitch = 0.0
+    @flying = false
+    @on_ground = false
+    nil
+  end
+
+  def stand_up
+    @eye = EYE
+    nil
   end
 
   # The rider sits in the vehicle at its seat, and does not fall or swim.

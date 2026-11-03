@@ -20,6 +20,9 @@ class Sky
   # A thunderstorm takes 10 from the sky light of a clear day for the spawn
   # of monsters, so they spawn by day. minecraft.wiki/w/Thunderstorm
   STORM_DARKEN = 10
+  # The player can sleep from tick 12542, or from tick 12010 in rain.
+  # minecraft.wiki/w/Bed
+  SLEEP_LIGHT = 11
   # A thunderstorm takes away 5/16 more of the daylight, as in Minecraft's
   # code (Level#getSkyDarken). The wiki does not give this value.
   STORM_DAYLIGHT = 5.0 / 16.0
@@ -58,6 +61,8 @@ class Sky
 
     TOP_CLEAR - passed(DUSK_CLEAR, tick)
   end
+
+  def sleep_time? = light <= SLEEP_LIGHT
 
   # The sky light under the open sky for the spawn of monsters. In a
   # thunderstorm it is at most the clear sky light of a day less

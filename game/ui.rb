@@ -20,6 +20,9 @@ class Ui
   WATER_TINT = Color.new(0.1, 0.25, 0.6, 0.25)
   LAVA_TINT = Color.new(0.9, 0.3, 0.05, 0.75)
   DEATH_TINT = Color.new(0.5, 0.0, 0.0, 0.5)
+  # The color 0x101020 of Java Edition (Gui, not on the wiki). Sleep sets
+  # the opacity.
+  SLEEP_SHADE = Color.new(16.0 / 255.0, 16.0 / 255.0, 32.0 / 255.0, 1.0)
   FIRE_OVERLAY = Color.new(1.0, 1.0, 1.0, 0.85)
   CROSSHAIR = Color.new(1.0, 1.0, 1.0, 0.8)
   CHARGE_FILL = Color.new(1.0, 1.0, 1.0, 0.8)

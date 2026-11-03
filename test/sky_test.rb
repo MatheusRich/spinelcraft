@@ -268,6 +268,24 @@ class SkyTest < Minitest::Test
     assert_operator light_at(23460), :>=, Monster::SUN_BURN_LIGHT
   end
 
+  # minecraft.wiki/w/Bed
+  def test_the_time_to_sleep_starts_at_tick_12542_or_at_tick_12010_in_rain
+    refute sleep_time_at(12541)
+    assert sleep_time_at(12542)
+    refute sleep_time_at(12009, raining: true)
+    assert sleep_time_at(12010, raining: true)
+  end
+
+  def test_the_time_to_sleep_ends_at_dawn
+    assert sleep_time_at(23459)
+    refute sleep_time_at(23460)
+  end
+
+  def sleep_time_at(tick, raining: false)
+    light_at(tick, raining: raining)
+    @sky.sleep_time?
+  end
+
   # The sky light at the tick of the day, in rain or not.
   def light_at(tick, raining: false)
     @clock.set_ticks(tick)

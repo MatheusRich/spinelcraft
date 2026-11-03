@@ -24,6 +24,7 @@ require_relative "game/tint"
 require_relative "game/ray"
 require_relative "game/controls"
 require_relative "game/player"
+require_relative "game/sleep"
 require_relative "game/voxel_walk"
 require_relative "game/block_target"
 require_relative "game/vitals"
@@ -500,6 +501,7 @@ class Game
     read_move_keys
     fly_autopilot(dt) if @autopilot
     move_player(dt)
+    update_sleep(dt)
     update_boats(dt)
     @target_block.trace(@world, @player)
     play_move_sounds(dt)
@@ -533,7 +535,7 @@ class Game
     @player.slowed = using_item?
     # Shift gets out of a boat. minecraft.wiki/w/Boat
     leave_boat if riding? && @player.controls.sneak
-    remaining = riding? ? 0.0 : dt
+    remaining = riding? || @player.in_bed? ? 0.0 : dt
     while remaining > 0.0
       step = remaining > 0.02 ? 0.02 : remaining
       fell = @player.update(@world, step)
@@ -620,10 +622,11 @@ class Game
   end
 
   # The movement keys of this frame, in the controls of the player. No key
-  # counts when the mouse is free, the player is dead or the chat is open.
+  # counts when the mouse is free, the player is dead or in bed, or the chat
+  # is open.
   def read_move_keys
     controls = @player.controls
-    unless current_screen.playing?
+    if !current_screen.playing? || @player.in_bed?
       controls.release_keys
       return
     end
@@ -946,6 +949,7 @@ class Game
 
   def shutdown(started, frames)
     if @save_on_quit
+      @player.sleep.stop(@world)
       save
       @options.write_file
     end

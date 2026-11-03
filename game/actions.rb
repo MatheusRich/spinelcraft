@@ -21,13 +21,15 @@ class Game
   def handle_world(dt)
     current = current_screen
     escape = Gfx.in_key_pressed(Key::ESCAPE)
-    if (escape && current.playing?) || Gfx.in_focus_lost
+    if @player.in_bed? && current.playing? && (escape || Gfx.in_key_pressed(Key::LSHIFT))
+      @player.sleep.stop(@world)
+    elsif (escape && current.playing?) || Gfx.in_focus_lost
       pause_game
     elsif current.death_screen?
       handle_death
     elsif current.pause_menu?
       handle_menu(escape)
-    else
+    elsif !@player.in_bed?
       handle_play(dt)
     end
   end
@@ -36,6 +38,7 @@ class Game
   def pause_game
     return unless current_screen.playing?
 
+    @player.sleep.stop(@world)
     # Saving takes tens of milliseconds, so it happens when the game pauses,
     # not mid-play.
     save if @changed && @save_on_quit
@@ -569,11 +572,19 @@ class Game
     @mining = false
   end
 
-  # A bed sets the spawn point; at night with no monster close by, it skips to morning.
   def use_bed(x, y, z)
     @spawn_x = x + 0.5
     @spawn_z = z + 0.5
-    say(Bed.use(x, y, z, @sky.light, @mobs, @clock))
+    Bed.new(@world, x, y, z).use(@player, @sky, @mobs) { |reason| say(reason) }
+    # The bed puts the player in place, so the boat lets go without a move.
+    @riding = -1 if @player.in_bed?
+  end
+
+  def update_sleep(dt)
+    return unless @player.sleep.advance(dt, @world, @sky)
+
+    @clock.skip_night
+    say("GOOD MORNING")
   end
 
   # Opens or closes the door at x, y, z and the other half above or below it.

@@ -46,6 +46,7 @@ class Game
   # The sound and the red flash of a hit. At zero health the player dies, or a
   # full set of spinel armor rescues the player.
   def felt_hurt(sound)
+    @player.sleep.stop(@world)
     show_hurt(sound)
     return unless @player.vitals.dead?
     return spinel_rescue if @armor.spinel_set?
@@ -70,6 +71,7 @@ class Game
 
   # The player dies and drops the inventory.
   def die
+    @player.sleep.stop(@world)
     toggle_inventory if current_screen.inventory?
     close_chat if current_screen.typing?
     drop_inventory

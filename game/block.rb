@@ -583,6 +583,7 @@ module Block
   def self.bed?(block) = block >= BED_BLOCK && block < BED_BLOCK + 8
   def self.wall_item?(block) = block == TORCH || block == LADDER
   def self.bed_id(facing, head) = BED_BLOCK + (head ? 4 : 0) + facing
+  def self.bed_head?(block) = block >= BED_BLOCK + 4
   def self.chest_left?(block) = block >= CHEST_LEFT && block < CHEST_LEFT + 4
   def self.chest_right?(block) = block >= CHEST_RIGHT && block < CHEST_RIGHT + 4
   # The direction from a half of a large chest to the other half.

@@ -141,6 +141,7 @@ class Game
   # Adds the held item to @dyn, in the frame of the eye at ex, ey, ez.
   def draw_hand(ex, ey, ez)
     return unless current_screen.in_game?
+    return if @player.in_bed?
 
     @held_item.place(@dyn, @player, ex, ey, ez, @fov, @swing / SWING, @draw_time, @eat_time)
   end
