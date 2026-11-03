@@ -4,7 +4,8 @@ require_relative "test_helper"
 # Minetest Game plays it.
 class FireSoundTest < Minitest::Test
   X = 8
-  Y = SKY_Y - 20
+  # Low enough for a fire RANGE above the player.
+  Y = SKY_Y - 60
   Z = 8
 
   def setup
@@ -16,20 +17,34 @@ class FireSoundTest < Minitest::Test
   def light(x, y, z) = @fires.add(World.key(x, y, z), 0)
 
   def test_no_fire_near_is_silent
-    light(X + FireSound::REACH + 1, Y, Z)
-    light(X, Y - FireSound::REACH - 1, Z)
-    light(X, Y, Z + FireSound::REACH + 1)
+    far = FireSound::RANGE.to_i + 1
+    light(X + far, Y, Z)
+    light(X, Y - far, Z)
+    light(X, Y, Z - far)
+    light(X + 20, Y - 20, Z + 20)
     @sound.update_sound(@fires, @player)
+    assert_equal 0.0, @sound.gain
+  end
+
+  # The player stands at the middle of a cell, so each of these fires is
+  # exactly RANGE away, where the loop fades to silence.
+  def test_a_fire_at_the_range_is_not_heard
+    player = Player.new(X + 0.5, Y + 0.5, Z + 0.5)
+    far = FireSound::RANGE.to_i
+    light(X + far, Y, Z)
+    light(X, Y + far, Z)
+    light(X, Y, Z + far)
+    @sound.update_sound(@fires, player)
     assert_equal 0.0, @sound.gain
   end
 
   # One fire plays at (1 + 0.125) / 3 of the full volume, in the middle of
   # its cell.
   def test_one_fire_plays_in_its_cell
-    light(X + FireSound::REACH, Y - FireSound::REACH, Z - FireSound::REACH)
+    light(X + 18, Y - 18, Z - 18)
     @sound.update_sound(@fires, @player)
     assert_in_delta 1.125 / 3.0 * FireSound::VOLUME, @sound.gain, 1e-9
-    assert_equal [X + FireSound::REACH + 0.5, Y - FireSound::REACH + 0.5, Z - FireSound::REACH + 0.5], [@sound.x, @sound.y, @sound.z]
+    assert_equal [X + 18.5, Y - 17.5, Z - 17.5], [@sound.x, @sound.y, @sound.z]
   end
 
   # The loop plays in the middle of the box around the fires, louder with
