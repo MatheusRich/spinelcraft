@@ -5,9 +5,8 @@
 class DropSearch
   REACH = 4
   RADIUS = REACH + 1
-  # A place in a square of SIDE x SIDE for each cell, at x & MASK and
-  # z & MASK. The search spans 2 * RADIUS + 1 cells, fewer than SIDE, so no
-  # two cells share a place.
+  # The search spans 2 * RADIUS + 1 cells, fewer than SIDE, so x & MASK and
+  # z & MASK give each cell its own place.
   MASK = 15
   SIDE = MASK + 1
   ALL_DIRECTIONS = 0b1111
@@ -18,48 +17,46 @@ class DropSearch
   def initialize(flow)
     @flow = flow
     @seen = Array.new(SIDE * SIDE, 0)
-    # x and z of each seen cell, in the order of its steps.
     @cells = Array.new(0, 0)
-    # The directions of each cell that a search of this step looked at, by
-    # World.key. A change in the step can make one stale until the next
-    # step, as fluid in Minecraft looks only when it moves.
-    @found = {}
+    # Kept until the next step, as fluid in Minecraft looks only when it
+    # moves.
+    @directions = {}
     nil
   end
 
-  def forget = @found.clear
+  def forget = @directions.clear
 
   def self.place(x, z) = (x & MASK) * SIDE + (z & MASK)
 
   def directions(x, y, z)
     key = World.key(x, y, z)
-    return @found[key] if @found.key?(key)
+    return @directions[key] if @directions.key?(key)
 
-    @found[key] = search(x, y, z)
+    @directions[key] = search(x, y, z)
   end
 
   def search(x, y, z)
     return ALL_DIRECTIONS unless way_down_near?(x, y, z)
 
     start(x, y, z)
-    found = 0
-    found_steps = 0
+    nearest = 0
+    nearest_steps = 0
     index = 0
     while index < @cells.size
       seen = @seen[DropSearch.place(@cells[index], @cells[index + 1])]
-      break if found > 0 && seen / STEPS > found_steps
+      break if nearest > 0 && seen / STEPS > nearest_steps
 
       if @flow.way_down?(@cells[index], y, @cells[index + 1])
-        found |= seen % STEPS
-        found_steps = seen / STEPS
+        nearest |= seen % STEPS
+        nearest_steps = seen / STEPS
       elsif seen / STEPS <= RADIUS
         expand(index, y)
       end
       index += 2
     end
-    return ALL_DIRECTIONS if found == 0
+    return ALL_DIRECTIONS if nearest == 0
 
-    found
+    nearest
   end
 
   def start(x, y, z)
@@ -97,7 +94,6 @@ class DropSearch
     end
   end
 
-  # A cheap test before the search: a way down under any cell in reach.
   def way_down_near?(x, y, z)
     (-RADIUS..RADIUS).any? do |along_x|
       along_z = RADIUS - along_x.abs

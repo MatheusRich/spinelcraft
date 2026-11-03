@@ -19,7 +19,6 @@ class Flow
     true
   end
 
-  # The block yields the block that the cell should change to, or -1.
   def next_change(changes)
     while @queue.next?
       block = yield @queue.x, @queue.y, @queue.z

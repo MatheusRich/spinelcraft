@@ -2,10 +2,10 @@
 class Fluid
   attr_reader :source
 
-  # flow is the flowing block of level 1. The higher levels follow it.
-  def initialize(levels, source_block, flow)
+  # The flowing blocks of the higher levels follow first_flowing.
+  def initialize(levels, source_block, first_flowing)
     @levels = levels
-    @flow = flow
+    @first_flowing = first_flowing
     @source = levels[source_block]
     nil
   end
@@ -15,7 +15,7 @@ class Fluid
   def flowing_block(level)
     return Block::AIR if level == 0
 
-    @flow + level - 1
+    @first_flowing + level - 1
   end
 
   def passes?(block)
