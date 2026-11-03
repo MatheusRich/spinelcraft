@@ -72,6 +72,7 @@ class Vitals
     # Seconds until the next point of fire damage, of lava damage, and of
     # cactus damage.
     @fire_tick = 0.0
+    @flame_tick = 0.0
     @lava_tick = 0.0
     @cactus_tick = 0.0
     # Seconds toward the next heal, or toward the next starve damage.
@@ -163,6 +164,20 @@ class Vitals
   # has fire resistance.
   def ignite(seconds)
     @fire = seconds if @fire < seconds && !fire_resistant?
+  end
+
+  # dt seconds in a fire block. The fire block hurts, and the burning that
+  # it starts waits until the player leaves it.
+  def stand_in_fire(dt)
+    return if fire_resistant?
+
+    ignite(Fires::BURN_SECONDS)
+    @fire_tick = 1.0
+    @flame_tick -= dt
+    return if @flame_tick > 0.0
+
+    @flame_tick = Fires::FLAME_WAIT
+    @armorable_damage += Fires::FLAME_DAMAGE
   end
 
   # dt seconds of lava, fire, cactus, air, hunger and healing. in_lava is

@@ -81,6 +81,8 @@ class Game
     @plants = Plants.new(@world, @seed * 13 + 3)
     @breeding = Breeding.new(@seed * 17 + 9)
     @fluids = Fluids.new(@world)
+    @fires = Fires.new(FireSpread.new(@world, @weather, Rng.new(@seed * 19 + 7)))
+    @lava_fire = LavaFire.new(@world, @changes, Rng.new(@seed * 23 + 11))
     @treasure = Treasure.new(@world.treasure_map, @seed)
     @falling.clear
   end

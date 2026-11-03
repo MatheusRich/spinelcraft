@@ -265,13 +265,17 @@ class Game
   end
 
   # True when a boat or a mob in view takes the click.
-  def target_click? = boat_click? || shear_click? || feed_click?
+  def target_click? = boat_click? || shear_click? || fuse_click? || feed_click?
 
   # True when a boat is in view and the player is not in one.
   def boat_click? = boat_in_view? && !riding?
 
   # True when the player holds shears and a sheep with wool is in view.
   def shear_click? = current_block == Block::SHEARS && mob_in_view? && viewed_mob.shearable?
+
+  # True when the player holds flint and steel and a creeper is in view.
+  # minecraft.wiki/w/Flint_and_Steel
+  def fuse_click? = current_block == Block::FLINT_AND_STEEL && mob_in_view? && viewed_mob.fuse_to_light?
 
   # True when the mob in view eats the item in the hand.
   def feed_click? = mob_in_view? && viewed_mob.food?(current_block.to_i)
@@ -283,6 +287,8 @@ class Game
       board_boat(@target_boat)
     elsif shear_click?
       shear(viewed_mob)
+    elsif fuse_click?
+      light_fuse(viewed_mob)
     else
       feed_animal(viewed_mob)
     end
@@ -351,11 +357,21 @@ class Game
       place_boat
     elsif current_block == Block::SHEARS && viewed_block == Block::PUMPKIN
       carve_pumpkin(@target_block.x, @target_block.y, @target_block.z)
-    elsif current_block == Block::BONE_MEAL && block_in_view?
-      use_bone_meal
     elsif current_block == Block::EGG && (game_mode.creative? || !@inv.empty?(@slot))
       throw_egg
     elsif block_in_view?
+      use_on_block
+    end
+  end
+
+  # Bone meal and flint and steel act on the block in view. Any other block
+  # goes next to it.
+  def use_on_block
+    if current_block == Block::BONE_MEAL
+      use_bone_meal
+    elsif current_block == Block::FLINT_AND_STEEL
+      strike_flint
+    else
       place
     end
   end
@@ -645,6 +661,23 @@ class Game
     return false unless Block.solid?(@world.get(x, y - 1, z)) && Block.solid?(@world.get(hx, y - 1, hz))
 
     !@player.overlaps?(hx, y, hz) && !mob_in?(hx, y, hz, 1)
+  end
+
+  # Flint and steel puts fire in front of the face in view, in the cell
+  # where a block would go. Each use wears it, also when no fire comes.
+  # minecraft.wiki/w/Flint_and_Steel
+  def strike_flint
+    @sfx.play(Sfx::IGNITE, 0.8) if light_fire(@target_block.front_x, @target_block.front_y, @target_block.front_z)
+    @swing = SWING
+    wear_tool(1)
+  end
+
+  # Flint and steel lights the fuse of a creeper.
+  def light_fuse(creeper)
+    creeper.light_fuse
+    play_from(creeper, Sfx::IGNITE, 0.8)
+    @swing = SWING
+    wear_tool(1)
   end
 
   # Bone meal on the block in view: it spends one in survival when the

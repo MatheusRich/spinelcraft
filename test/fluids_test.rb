@@ -40,6 +40,13 @@ class FluidsTest < Minitest::Test
   def levels(row, y = Y) = row.map { |x| Block::WATER_LEVEL[@world.get(x, y, Z)] }
   def lava_levels(row) = row.map { |x| Block::LAVA_LEVEL[@world.get(x, Y, Z)] }
 
+  def test_water_flows_into_fire
+    @world.set(6, Y, Z, Block::FIRE)
+    put(4, Y, Z, Block::WATER)
+    steps(4)
+    assert_equal [8, 7, 6], levels(4..6)
+  end
+
   def test_water_spreads_7_blocks_over_a_floor
     put(4, Y, Z, Block::WATER)
     steps(10)

@@ -21,6 +21,56 @@ class MobTest < Minitest::Test
     assert_operator creeper.fuse, :>, 0.0
   end
 
+  # Flint and steel lights the fuse, and the fuse burns down with the
+  # player far away. minecraft.wiki/w/Flint_and_Steel
+  def test_a_creeper_whose_fuse_is_lit_explodes_with_the_player_far_away
+    lay_floor
+    player = Player.new(1.5, SKY_Y - 1.0, 1.5)
+    creeper = Monster.new(Mob::CREEPER, 14.5, SKY_Y - 1.0, 14.5, 3)
+    assert creeper.fuse_to_light?
+    creeper.light_fuse
+    refute creeper.fuse_to_light?
+    ((Monster::FUSE / DT).ceil + 1).times { creeper.update_mob(@world, DT, player, Block::AIR) }
+    assert creeper.explode
+  end
+
+  # A creeper lights its fuse when the player is closer than 3 blocks and
+  # less than 2.5 blocks up or down. minecraft.wiki/w/Creeper
+  def test_a_creeper_lights_its_fuse_when_the_player_comes_near
+    assert lit?(2.9, 0.0)
+    refute lit?(3.0, 0.0)
+    assert lit?(2.0, 2.4)
+    refute lit?(2.0, 2.5)
+    refute lit?(5.0, 0.0)
+  end
+
+  # A lit fuse burns on while the player stays closer than 7 blocks, and
+  # burns back down when the player goes farther.
+  def test_a_lit_fuse_burns_on_while_the_player_stays_within_7_blocks
+    assert_operator fuse_after_the_player_steps_back(6.9), :>, fuse_after_the_player_steps_back(7.0)
+  end
+
+  def test_a_dying_creeper_has_no_fuse_to_light
+    creeper = Monster.new(Mob::CREEPER, 8.5, SKY_Y - 1.0, 8.5, 3)
+    creeper.hp = 0.0
+    refute creeper.fuse_to_light?
+  end
+
+  def test_only_a_creeper_has_a_fuse_to_light
+    refute Monster.new(Mob::ZOMBIE, 1.5, SKY_Y - 1.0, 1.5, 3).fuse_to_light?
+    refute Animal.new(Mob::PIG, 1.5, SKY_Y - 1.0, 1.5, 3).fuse_to_light?
+  end
+
+  # A fire block hurts a mob in it and sets it on fire. minecraft.wiki/w/Fire
+  def test_a_fire_block_hurts_a_mob_in_it_and_sets_it_on_fire
+    lay_floor
+    @world.set(8, SKY_Y - 1, 8, Block::FIRE)
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 3)
+    pig.update_mob(@world, DT, Player.new(1.5, SKY_Y - 1.0, 1.5), Block::AIR)
+    assert_equal Mob::HP[Mob::PIG] - Fires::FLAME_DAMAGE, pig.hp
+    assert_equal Fires::BURN_SECONDS - DT, pig.fire
+  end
+
   # Keeps the color that a mob draws each of its boxes with.
   class ColorLog
     attr_reader :colors
@@ -686,6 +736,25 @@ class MobTest < Minitest::Test
   private
 
   # A stone floor under SKY_Y - 1 over the whole chunk, in open air.
+  # True when a creeper lights its fuse in one step with the player
+  # distance blocks to its side and up blocks above it.
+  def lit?(distance, up)
+    lay_floor
+    creeper = Monster.new(Mob::CREEPER, 8.5, SKY_Y - 1.0, 8.5, 3)
+    creeper.update_mob(@world, DT, Player.new(8.5 + distance, SKY_Y - 1.0 + up, 8.5), Block::AIR)
+    creeper.fuse > 0.0
+  end
+
+  # The fuse of a creeper that lit it with the player 1.5 blocks away, after
+  # the player steps to distance blocks away and one more step.
+  def fuse_after_the_player_steps_back(distance)
+    lay_floor
+    creeper = Monster.new(Mob::CREEPER, 8.5, SKY_Y - 1.0, 8.5, 3)
+    5.times { creeper.update_mob(@world, DT, Player.new(10.0, SKY_Y - 1.0, 8.5), Block::AIR) }
+    creeper.update_mob(@world, DT, Player.new(creeper.x + distance, SKY_Y - 1.0, creeper.z), Block::AIR)
+    creeper.fuse
+  end
+
   def lay_floor
     16.times { |x| 16.times { |z| @world.set(x, SKY_Y - 2, z, Block::STONE) } }
   end

@@ -163,12 +163,16 @@ module Block
   SPINEL_BOOTS = 181
   OBSIDIAN = 182
   FLINT = 183
+  FIRE = 184
+  FLINT_AND_STEEL = 185
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
   LEAVES = [OAK_LEAVES, SPRUCE_LEAVES, BIRCH_LEAVES]
   PLACED_LEAVES = [PLACED_OAK_LEAVES, PLACED_SPRUCE_LEAVES, PLACED_BIRCH_LEAVES]
   PLANKS = [OAK_PLANKS, SPRUCE_PLANKS, BIRCH_PLANKS]
+  # The plants that catch fire and burn away at once. minecraft.wiki/w/Fire
+  TINDER = [TALL_GRASS, DRY_GRASS, ROSE, DANDELION]
   SAPLINGS = [OAK_SAPLING, SPRUCE_SAPLING, BIRCH_SAPLING]
   # A recipe ingredient that the planks of any wood fill, as the planks tag
   # in Minecraft. It is not a block, so no table has an entry for it.
@@ -275,6 +279,9 @@ module Block
   # but a falling block passes it (see lets_fall?). Without a block under
   # it, it falls (see Game#start_fall).
   HOLD_FALL = 6
+  # A solid block under it, or a block that burns beside it, above it or
+  # under it. minecraft.wiki/w/Fire
+  HOLD_FIRE = 7
   # 1 for a thing that lives in the inventory but is never placed.
   ITEM = []
   # Hunger points that eating the block gives back; 0 for what is not food.
@@ -559,15 +566,17 @@ module Block
   # minecraft.wiki/w/Obsidian
   define_block OBSIDIAN, "OBSIDIAN", Tex::OBSIDIAN, hardness: 50.0, needs_pick: 4, dig: DIG_PICK
   define_item FLINT, "FLINT", Tex::FLINT
+  define_block FIRE, "FIRE", Tex::FIRE, opaque: 0, solid: 0, plant: 1, drops: AIR, hold: HOLD_FIRE
+  define_item FLINT_AND_STEEL, "FLINT AND STEEL", Tex::FLINT_AND_STEEL
   COUNT = NAMES.size
 
   def self.blocks_light(block) = block != AIR && block != GLASS && !door?(block) && BASE[block] != LADDER && !plant?(block)
   def self.solid?(block) = SOLID[block] == 1
   def self.plant?(block) = PLANT[block] == 1
-  # A placed block takes the cell of air, water, lava, tall grass or dry
-  # grass. Each half of a bed and of a door does too. The wiki does not
+  # A placed block takes the cell of air, water, lava, tall grass, dry
+  # grass or fire. Each half of a bed and of a door does too. The wiki does not
   # list the blocks that a placed block takes the place of.
-  def self.replaceable?(block) = block == AIR || water?(block) || lava?(block) || block == TALL_GRASS || block == DRY_GRASS
+  def self.replaceable?(block) = block == AIR || water?(block) || lava?(block) || block == TALL_GRASS || block == DRY_GRASS || block == FIRE
   def self.water?(block) = WATER_LEVEL[block] > 0
   def self.falls?(block) = HOLD[block] == HOLD_FALL
   # A falling block passes air, water, lava and plants. The wiki does not
@@ -579,6 +588,26 @@ module Block
   def self.leaves?(block) = LEAVES.include?(BASE[block])
   def self.placed_leaves?(block) = PLACED_LEAVES.include?(block)
   def self.planks?(block) = PLANKS.include?(block)
+  # How easily fire spreads to block, and how fast fire burns it away. Both
+  # are 0 for a block that does not burn. minecraft.wiki/w/Fire
+  def self.ignite_odds(block)
+    return 5 if planks?(block) || log?(block)
+    return 30 if leaves?(block) || block == WOOL
+    return 60 if TINDER.include?(block)
+
+    0
+  end
+
+  def self.burn_odds(block)
+    return 20 if planks?(block)
+    return 5 if log?(block)
+    return 60 if leaves?(block) || block == WOOL
+    return 100 if TINDER.include?(block)
+
+    0
+  end
+
+  def self.flammable?(block) = ignite_odds(block) > 0
   def self.sapling?(block) = SAPLINGS.include?(block)
   # The blocks that fill the recipe ingredient ing.
   def self.fillers(ing) = ing == ANY_PLANKS ? PLANKS : Array.new(1, ing.to_i)
@@ -777,7 +806,11 @@ module Block
     return ARMOR_USES[block - IRON_HELMET] if armor?(block)
 
     # minecraft.wiki/w/Item_durability
-    block == BOW ? 384 : (block == SHEARS ? 238 : 0)
+    return 384 if block == BOW
+    return 238 if block == SHEARS
+    return 64 if block == FLINT_AND_STEEL
+
+    0
   end
   # The kind of a digging tool, as in DIG_KIND; 0 for anything else. The
   # spinel mattock is an axe here, so it hits and wears as an axe.
@@ -820,6 +853,6 @@ module Block
   def self.pumpkin?(block) = block >= PUMPKIN && block < SHEARS
   # Dirt, grass and snowy grass: the soil of HOLD_SOIL.
   def self.soil?(block) = block == DIRT || block == GRASS || block == SNOW_GRASS
-  # Torches, lava and jack o'lanterns light their surroundings.
-  def self.emits?(block) = torch?(block) || lava?(block) || jack_o_lantern?(block)
+  # Torches, lava, jack o'lanterns and fire light their surroundings.
+  def self.emits?(block) = torch?(block) || lava?(block) || jack_o_lantern?(block) || block == FIRE
 end

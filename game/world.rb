@@ -44,6 +44,9 @@ class World
     # Bytes of edited chunks that are not loaded, by chunk key.
     @store = {}
     @no_torches = Array.new(0, 0)
+    # The fires in the chunks that loaded since Game took them (see
+    # take_loaded_fires): x, y and z for each one.
+    @loaded_fires = Array.new(0, 0)
     @generator = ChunkGenerator.new(self, seed)
   end
 
@@ -101,6 +104,9 @@ class World
   # A unique Integer for a block anywhere in the world (chest keys). The
   # to_i lets Spinel type the key when the position is untyped, as in index.
   def self.key(x, y, z) = (((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y).to_i
+  def self.key_x(key) = (key >> 34) - KEY_OFF
+  def self.key_y(key) = key & 255
+  def self.key_z(key) = ((key >> 8) & ((1 << 26) - 1)) - KEY_OFF
   def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)
 
   def chunk_loaded?(cx, cz)
@@ -178,6 +184,7 @@ class World
     return wall_holds?(ix, iy, iz, Block::FACING[block]) if hold == Block::HOLD_WALL
 
     ground = get(ix, iy - 1, iz)
+    return Block.solid?(ground) || next_to_flammable?(ix, iy, iz) if hold == Block::HOLD_FIRE
     return Block.solid?(ground) if hold == Block::HOLD_FLOOR
     return Block.soil?(ground) if hold == Block::HOLD_SOIL
     return Block.soil?(ground) || ground == Block::SAND if hold == Block::HOLD_SOIL_OR_SAND
@@ -185,6 +192,14 @@ class World
     return false unless ground == Block::SAND || ground == Block::CACTUS
 
     cactus_room?(ix, iy, iz)
+  end
+
+  # True when a block that burns is next to x, y, z, on any of its six
+  # sides.
+  def next_to_flammable?(x, y, z) = Block.flammable?(get(x, y - 1, z)) || Block.flammable?(get(x, y + 1, z)) || flammable_beside?(x, y, z)
+
+  def flammable_beside?(x, y, z)
+    (0...Block::DIR_DX.size).any? { |dir| Block.flammable?(get(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])) }
   end
 
   # True when the wall of a block at x, y, z that faces dir is solid, or
@@ -247,6 +262,12 @@ class World
 
   # The light list of a loaded chunk, else an empty list. (An Array-or-nil
   # return makes Spinel box the elements.)
+  def take_loaded_fires
+    fires = @loaded_fires
+    @loaded_fires = Array.new(0, 0)
+    fires
+  end
+
   def torches_of(cx, cz) = chunk_loaded?(cx, cz) ? @chunk_torches[World.slot(cx.to_i, cz.to_i)] : @no_torches
 
   def get(x, y, z)
@@ -538,8 +559,8 @@ class World
     end
   end
 
-  # Lists the torches, the jack o'lanterns and the exposed lava below
-  # height top.
+  # Lists the blocks that give light (Block.emits?) below height top. Lava
+  # gives light only where air touches it.
   def find_torches(cx, cz, top)
     @chunk_torches[World.slot(cx, cz)].clear
     x = cx * CHUNK
@@ -549,7 +570,8 @@ class World
         base = World.index(x, 0, z)
         top.times do |y|
           b = block(base + y)
-          add_torch(x, y, z) if Block.torch?(b) || Block.jack_o_lantern?(b) || (Block.lava?(b) && exposed?(base + y))
+          add_torch(x, y, z) if Block.lava?(b) ? exposed?(base + y) : Block.emits?(b)
+          @loaded_fires << x << y << z if b == Block::FIRE
         end
         z += 1
       end

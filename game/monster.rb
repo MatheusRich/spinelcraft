@@ -48,6 +48,7 @@ class Monster < Mob
     @explode = false
     @hiss = false
     @fuse = 0.0
+    @fuse_lit = false
     @attack_wait = 0.0
     @idle = 0.0
     @head = 0
@@ -125,6 +126,15 @@ class Monster < Mob
     dist > 12.0 ? 2.0 : (dist < 7.0 ? -1.6 : 0.0)
   end
 
+  # True for a creeper whose fuse flint and steel can light.
+  def fuse_to_light? = @kind == CREEPER && !@fuse_lit && !dying?
+
+  # Flint and steel lights the fuse, and nothing puts it out.
+  # minecraft.wiki/w/Flint_and_Steel
+  def light_fuse
+    @fuse_lit = true
+  end
+
   # A creeper walks up to the player, then stands still while the fuse burns.
   def act_creeper(dt, player, dx, dz, dist)
     speed = 0.0
@@ -132,7 +142,7 @@ class Monster < Mob
       face(dx, dz)
       speed = dist > 2.2 && @fuse == 0.0 ? 2.2 : 0.0
     end
-    lit = @fuse > 0.0 ? dist < FUSE_REACH : dist < LIGHT_REACH && (player.y - @y).abs < 2.5
+    lit = @fuse_lit || (@fuse > 0.0 ? dist < FUSE_REACH : dist < LIGHT_REACH && (player.y - @y).abs < 2.5)
     if lit
       @hiss = true if @fuse == 0.0
       @fuse += dt

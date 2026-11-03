@@ -154,6 +154,30 @@ class VitalsTest < Minitest::Test
     assert_equal 14.0, vitals.health
   end
 
+  # A fire block does 1 each half second, which armor lowers, and the
+  # burning that it starts hurts only after the player leaves it.
+  # minecraft.wiki/w/Fire
+  def test_a_fire_block_gives_1_each_half_second_for_armor_and_the_burning_waits
+    vitals = unhealing
+    damages = Array.new(4) do
+      vitals.stand_in_fire(QUARTER)
+      refute vitals.update_vitals(QUARTER, false, false, false)
+      vitals.take_armorable_damage
+    end
+    assert_equal [[1.0, 0.0, 1.0, 0.0], 20.0, Fires::BURN_SECONDS - QUARTER], [damages, vitals.health, vitals.fire]
+    2.times { refute vitals.update_vitals(QUARTER, false, false, false) }
+    assert vitals.update_vitals(QUARTER, false, false, false)
+    assert_equal 19.0, vitals.health
+  end
+
+  def test_fire_resistance_keeps_a_fire_block_from_the_player
+    vitals = Vitals.new
+    vitals.survive_death
+    vitals.stand_in_fire(QUARTER)
+    assert_equal 0.0, vitals.take_armorable_damage
+    refute vitals.burning?
+  end
+
   def test_the_fire_goes_out_after_15_seconds_or_when_doused
     vitals = unhealing
     vitals.update_vitals(QUARTER, true, false, false)

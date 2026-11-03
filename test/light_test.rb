@@ -72,6 +72,15 @@ class LightTest < Minitest::Test
     assert_operator @light.level(X, Y, Z, 0, true, 0), :>=, 0
   end
 
+  def test_fire_lights_cells_fewer_than_15_steps_away
+    @world.set(X + 14, Y, Z, Block::FIRE)
+    assert @light.lamp_near?(X, Y, Z)
+    assert_equal(-1, @light.level(X, Y, Z, 0, true, 0))
+    @world.set(X + 14, Y, Z, Block::AIR)
+    @world.set(X + 15, Y, Z, Block::FIRE)
+    assert_operator @light.level(X, Y, Z, 0, true, 0), :>=, 0
+  end
+
   def test_flowing_lava_lights_cells_fewer_than_15_steps_away
     @world.set(X + 14, Y, Z, Block::LAVA_FLOW)
     assert @light.lamp_near?(X, Y, Z)

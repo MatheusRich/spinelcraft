@@ -180,6 +180,8 @@ class Mob
   def baby? = false
   def food?(_block) = false
   def shearable? = false
+  def fuse_to_light? = false
+  def light_fuse = nil
   # Only a Monster can be a guard of a treasure chest.
   def guard = false
 
@@ -231,6 +233,13 @@ class Mob
   # Sets the mob on fire for seconds, unless it burns for longer.
   def ignite(seconds)
     @fire = seconds if @fire < seconds
+  end
+
+  # A fire block hurts the mob, and the immunity after a hit (IMMUNE) sets
+  # the pace.
+  def stand_in_fire
+    ignite(Fires::BURN_SECONDS)
+    wound(Fires::FLAME_DAMAGE)
   end
 
   def blocked?(world) = world.solid_in_box?(@x, @y, @z, @half, @tall)
@@ -293,6 +302,7 @@ class Mob
     @fire = LAVA_FIRE if Block.lava?(feet)
     @fire = 0.0 if Block.water?(feet)
     wound(4.0) if Block.lava?(feet)
+    stand_in_fire if feet == Block::FIRE
     # A cactus takes 1 each half second. minecraft.wiki/w/Cactus
     wound(1.0) if world.cactus_in_box?(@x, @y, @z, @half, @tall)
     if @fire > 0.0

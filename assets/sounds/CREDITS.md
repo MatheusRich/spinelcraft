@@ -81,6 +81,7 @@ Each file keeps its license.
 | `watersplash.ogg` | tran5ient | CC0 1.0 | <https://freesound.org/people/tran5ient/sounds/190080/> |
 | `fire_extinguish_flame.1.ogg` | Perttu Ahola (celeron55) | CC BY-SA 3.0 | Minetest Game `fire` mod |
 | `fire_fire.1.ogg` | Dynamicell | CC BY 3.0 | <http://www.freesound.org/people/Dynamicell/sounds/17548/> |
+| `fire_flint_and_steel.ogg` | Benboncan | CC BY 3.0 | <https://www.freesound.org/people/Benboncan/sounds/66457/> |
 | `env_sounds_lava.1.ogg` | Halion | CC0 1.0 | <https://freesound.org/people/Halion/sounds/17785/> |
 | `env_sounds_water.1.ogg` | Yuval | CC0 1.0 | <https://freesound.org/people/Yuval/sounds/197023/> |
 | `tnt_explode.ogg` | Jose Ortiz "MindChamber" | CC0 1.0 | VoxeLibre `mcl_tnt` |

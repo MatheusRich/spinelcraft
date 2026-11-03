@@ -22,3 +22,13 @@ def world_with_one_chunk
   world.load_chunk(0, 0)
   world
 end
+
+# An Rng that gives the rolls of a list in order, then the last one again
+# and again.
+class Rolls
+  def initialize(*rolls)
+    @rolls = rolls
+  end
+
+  def rand01 = @rolls.size > 1 ? @rolls.shift : @rolls.first
+end

@@ -35,6 +35,8 @@ class RecipeBook
                 Recipe.new(Block::SPINEL, 5, Block::SPINEL_HELMET, 1, Recipe::AT_TABLE), Recipe.new(Block::SPINEL, 8, Block::SPINEL_CHESTPLATE, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::SPINEL, 7, Block::SPINEL_LEGGINGS, 1, Recipe::AT_TABLE), Recipe.new(Block::SPINEL, 4, Block::SPINEL_BOOTS, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::COAL, 1, Block::TORCH, 4, Recipe::BY_HAND),
+                # minecraft.wiki/w/Flint_and_Steel
+                Recipe.new(Block::IRON_INGOT, 1, Block::FLINT_AND_STEEL, 1, Recipe::BY_HAND, Block::FLINT, 1),
                 # Minecraft makes 4 arrows of a flint, a stick and a feather
                 # (minecraft.wiki/w/Arrow). The game has no sticks.
                 Recipe.new(Block::FEATHER, 1, Block::ARROW, 4, Recipe::AT_TABLE, Block::FLINT, 1),

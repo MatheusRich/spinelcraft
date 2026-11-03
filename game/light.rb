@@ -1,13 +1,13 @@
 # The light of a cell for the rules of the game: monster spawns, the
 # spread of grass and the cave sounds. Light comes from the open sky (at
-# the sky light of Sky#light), torches, lava and jack o'lanterns. The
+# the sky light of Sky#light), torches, lava, jack o'lanterns and fire. The
 # Mesher has its own light for the faces of the chunks.
 # minecraft.wiki/w/Light
 class Light
-  # Light in Minecraft: a torch has 14, lava and a jack o'lantern 15, and a
-  # cell under the open sky 15 by day. Light goes down by 1 for each step
-  # to a cell that is not opaque, so walls stop it. minecraft.wiki/w/Light
-  # and /w/Jack_o'Lantern. The wiki gives one light for all lava, and does
+  # Light in Minecraft: a torch has 14, lava, a jack o'lantern and fire 15,
+  # and a cell under the open sky 15 by day. Light goes down by 1 for each
+  # step to a cell that is not opaque, so walls stop it.
+  # minecraft.wiki/w/Light, /w/Jack_o'Lantern and /w/Fire. The wiki gives one light for all lava, and does
   # not name flowing lava, so flowing lava also has 15.
   TORCH = 14
   LAVA = 15
@@ -26,7 +26,7 @@ class Light
     nil
   end
 
-  # True when a torch or lava is close enough to light x, y, z if no wall
+  # True when a torch, lava or fire is close enough to light x, y, z if no wall
   # were in the way: the steps along x, y and z are a shortest path.
   def lamp_near?(x, y, z)
     cx = (x - LAVA) >> 4
@@ -44,11 +44,11 @@ class Light
     false
   end
 
-  # The sky light of the cell x, y, z, or -1 when a torch or lava lights it.
+  # The sky light of the cell x, y, z, or -1 when a torch, lava or fire lights it.
   # A search goes out from the cell through the cells that are not opaque,
   # the way that light comes in. The sky light is sky minus the steps to
   # the nearest cell under the open sky. It is 0 when no such cell is fewer
-  # than sky_reach steps away. The search looks for torches and lava only
+  # than sky_reach steps away. The search looks for torches, lava and fire only
   # when lamp is true.
   def level(x, y, z, sky, lamp, sky_reach) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     reach = lamp ? REACH : sky_reach - 1
@@ -88,7 +88,7 @@ class Light
         if ny >= 0 && ny < WY && @seen[next_cell] != stamp
           @seen[next_cell] = stamp
           block = @world.get(nx, ny, nz)
-          return -1 if lamp && (Block.lava?(block) || Block.jack_o_lantern?(block)) && steps + 1 < LAVA
+          return -1 if lamp && (Block.lava?(block) || Block.jack_o_lantern?(block) || block == Block::FIRE) && steps + 1 < LAVA
 
           queue << next_cell << steps + 1 if Block::OPAQUE[block] == 0
         end

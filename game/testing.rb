@@ -163,6 +163,7 @@ class Game
     test_survival(x, z, ground)
     test_monsters
     test_fire
+    test_fire_block
     test_rain
     test_snow_fire
     test_thunder
@@ -1803,6 +1804,77 @@ class Game
     check("the player burns on after lava, and water puts the fire out", burned && @player.vitals.fire == 0.0)
     @clock.time_of_day = 0.3
     @player.vitals.health = Vitals::MAX_HEALTH
+  end
+
+  # On a stone floor high in the air: flint and steel lights a fire, the
+  # fire hurts the player and a zombie in it, flint and steel lights the
+  # fuse of a creeper, and lightning lights a fire where it strikes.
+  # minecraft.wiki/w/Fire, /w/Flint_and_Steel, /w/Lightning
+  def test_fire_block
+    x = @spawn_x.floor - 60
+    z = @spawn_z.floor + 60
+    g = SKY_Y - 20
+    fill_box(x - 5, g - 1, z - 5, x + 5, g - 1, z + 5, Block::STONE)
+    fill_box(x - 5, g, z - 5, x + 5, g + 3, z + 5, Block::AIR)
+    keep_pose
+    previous_mode = game_mode
+    @game_mode = GameMode::SURVIVAL
+    survivor
+    @mobs.clear
+    kept_inventory = @inv.to_a
+    kept_slot = @slot
+    @inv.clear
+    @inv.add(Block::FLINT_AND_STEEL)
+    @slot = 0
+    flint = @recipe_book.recipe(recipe_for(Block::FLINT_AND_STEEL))
+    aim_down(x, g - 1, z)
+    @action_cooldown = 0.0
+    right_button(0.05, true)
+    check("an iron ingot and a flint make flint and steel, which lights a fire on the block in view for 1 use",
+          flint.need == "1 IRON INGOT + 1 FLINT" && flint.where == Recipe::BY_HAND &&
+          @world.get(x, g, z) == Block::FIRE && @fires.age_at(x, g, z) == 0 && @inv.count(0) == Block.uses(Block::FLINT_AND_STEEL) - 1)
+    @player.x = x + 0.5
+    @player.y = g.to_f
+    @player.z = z + 0.5
+    60.times { update_survival(1.0 / 60.0) }
+    in_fire = @player.vitals.health
+    @player.x = x + 3.5
+    120.times { update_survival(1.0 / 60.0) }
+    check("fire hurts the player in it 1 each half second, and the player burns on after it",
+          in_fire.between?(Vitals::MAX_HEALTH - 3.0, Vitals::MAX_HEALTH - 2.0) && @player.vitals.health < in_fire && @player.vitals.burning?)
+    @player.vitals.douse
+    4.times { |dir| fill_box(x + Block::DIR_DX[dir], g, z + Block::DIR_DZ[dir], x + Block::DIR_DX[dir], g + 1, z + Block::DIR_DZ[dir], Block::STONE) }
+    zombie = Monster.new(Mob::ZOMBIE, x + 0.5, g.to_f, z + 0.5, 9)
+    zombie.head = Block::CARVED_PUMPKIN
+    @mobs << zombie
+    60.times { update_mobs(1.0 / 60.0) }
+    check("fire hurts a zombie in it and sets it on fire", zombie.hp <= Mob::HP[Mob::ZOMBIE] - 2.0 && zombie.fire > 0.0)
+    @mobs.clear
+    set_block(x, g, z, Block::AIR)
+    creeper = Monster.new(Mob::CREEPER, x + 4.5, g.to_f, z + 0.5, 9)
+    @mobs << creeper
+    @player.x = x - 4.5
+    @player.z = z + 0.5
+    @target_boat = -1
+    @target_mob = 0
+    @action_cooldown = 0.0
+    right_button(0.05, true)
+    30.times { update_mobs(1.0 / 60.0) }
+    check("flint and steel lights the fuse of a creeper, which burns with the player far away",
+          creeper.fuse >= 0.45 && @inv.count(0) == Block.uses(Block::FLINT_AND_STEEL) - 2)
+    @mobs.clear
+    @target_mob = -1
+    @storm.strike(x + 2, z + 2, @player, @particles)
+    light_strike_fires if @storm.struck
+    lightning = @storm.lightning
+    check("lightning lights a fire where it strikes", @world.get(lightning.x, lightning.y, lightning.z) == Block::FIRE)
+    lightning.thunder_arrived?(1.0)
+    fill_box(x - 5, g, z - 5, x + 5, g + 3, z + 5, Block::AIR)
+    @inv.load(kept_inventory, 0)
+    @slot = kept_slot
+    @player.revive
+    @game_mode = previous_mode
+    restore_pose
   end
 
   # On the sky platform from test_monsters: rain stops the sun from burning a
@@ -4032,7 +4104,7 @@ class Game
     @player.z = z + 0.5
     @player.yaw = Math::PI / 2.0
     @player.pitch = -Math.atan(Player::EYE / 2.0)
-    placed = [Block::WATER, Block::TALL_GRASS].map do |cell|
+    placed = [Block::WATER, Block::TALL_GRASS, Block::FIRE].map do |cell|
       bed = place_with_cell(Block::BED, x + 1, g, z, cell, x, g, z) == Block.bed_id(1, false)
       door = place_with_cell(Block::DOOR, x, g + 1, z, cell, x, g, z) == Block.door_id(1, false, false)
       bed && door
@@ -4040,7 +4112,7 @@ class Game
     @fluids.clear
     @game_mode = previous_mode
     @inv.clear
-    check("each half of a bed and of a door takes the place of water and of tall grass", placed == [true, true])
+    check("each half of a bed and of a door takes the place of water, of tall grass and of fire", placed == [true, true, true])
   end
 
   # Puts cell at cx, cy, cz, places block from the hand, and gives the block

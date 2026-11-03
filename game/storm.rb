@@ -20,9 +20,13 @@ class Storm
   STRIKE_ABOVE = 9.0
   # A body in the 3 x 3 columns around a strike draws it to itself.
   DRAW_REACH = 1
+  # The fires that a strike tries beside its own (see Game#light_strike_fires).
+  STRIKE_FIRE_TRIES = 4
   SMOKE_PUFFS = 12
 
   attr_reader :lightning
+  # True after the advance that struck; Lightning has the cell.
+  attr_reader :struck
 
   def initialize(seed, world, weather, mobs)
     @rng = Rng.new(seed)
@@ -30,6 +34,7 @@ class Storm
     @world = world
     @weather = weather
     @mobs = mobs
+    @struck = false
   end
 
   # The strikes of dt seconds, and the bolt that fades. Returns true when a
@@ -37,6 +42,7 @@ class Storm
   # creative.
   def advance(dt, player, particles)
     @lightning.update_lightning(dt)
+    @struck = false
     return false unless @weather.striking?
 
     chunks = STRIKE_CHUNKS * 2 + 1
@@ -61,6 +67,7 @@ class Storm
       x, y, z = cells[(@rng.rand01 * cells.size).to_i]
     end
     @lightning.strike(x, y, z, player.x.to_f, player.eye_y.to_f, player.z.to_f)
+    @struck = true
     particles.smoke(x + 0.5, y + 0.5, z + 0.5, SMOKE_PUFFS, 1.0)
     burn_mobs(x + 0.5, y.to_f, z + 0.5)
     struck?(player, x + 0.5, y.to_f, z + 0.5)

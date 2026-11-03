@@ -27,6 +27,7 @@ class Game
       mark_light_area(x, z)
     end
     @world.set(x, y, z, block)
+    @fires.add(World.key(x, y, z), 0) if block == Block::FIRE
     @chunk_meshes.mark_block(x, z)
     release_unheld(x, y, z)
     release_if_unheld(x, y, z) if Block.falls?(block)
@@ -195,6 +196,22 @@ class Game
       ((z.to_i - r) / CHUNK..(z.to_i + r) / CHUNK).each { |cz| @chunk_meshes.mark_later(cx, cz) }
     end
     nil
+  end
+
+  # The lava in the chunks near the player lights fires (see LavaFire), and
+  # the fires burn, spread and go out (see Fires). Fires keeps the fires of
+  # the chunks that load, and the ones that set_block puts.
+  def update_fires(dt)
+    @fires.add_each(@world.take_loaded_fires)
+    player_x = @player.x.floor.to_i >> 4
+    player_z = @player.z.floor.to_i >> 4
+    reach = LavaFire::REACH_CHUNKS
+    (-reach..reach).each do |side_x|
+      (-reach..reach).each { |side_z| @lava_fire.tick_lava(@world.torches_of(player_x + side_x, player_z + side_z), dt) }
+    end
+    apply_changes
+    @fires.update_fires(dt, @changes)
+    apply_changes
   end
 
   # Puts the changes of the steps of water and lava that start after dt

@@ -48,6 +48,9 @@ require_relative "game/fluid"
 require_relative "game/drop_search"
 require_relative "game/flow"
 require_relative "game/fluids"
+require_relative "game/fire_spread"
+require_relative "game/fires"
+require_relative "game/lava_fire"
 require_relative "game/arrow"
 require_relative "game/egg"
 require_relative "game/item"
@@ -252,7 +255,7 @@ class Game
     # the fear that the darkness built up.
     @cave_timer = 0.0
     @cave_fear = 0.0
-    @ambient_wait = [0.0, 0.0, 0.0]
+    @ambient_wait = Array.new(AMBIENT.size, 0.0)
     @rng = Rng.new(@seed * 7 + 1)
     # The clock seeds the music, so each session plays its own order, as
     # in Minecraft. Near seeds give near first numbers in Rng, so a hash
@@ -518,6 +521,7 @@ class Game
     update_survival(dt)
     update_mobs(dt)
     update_fluids(dt)
+    update_fires(dt)
     find_targets
   end
 
@@ -592,13 +596,37 @@ class Game
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
   end
 
-  # The strikes of a thunderstorm, and the thunder that reaches the player.
+  # The strikes of a thunderstorm, their fires, and the thunder that
+  # reaches the player.
   def update_storm(dt)
     lightning_hit_player if @storm.advance(dt, @player, @particles)
+    light_strike_fires if @storm.struck
     return unless @storm.lightning.thunder_arrived?(dt)
 
     lightning = @storm.lightning
     @sfx.play_at(Sfx::THUNDER + (@rng.rand01 * Sfx::THUNDERS).to_i, lightning.heard_x, lightning.heard_y, lightning.heard_z, 1.0)
+  end
+
+  # A strike lights a fire in its cell, and tries STRIKE_FIRE_TRIES more
+  # cells up to 1 block from it. The wiki says only that lightning makes
+  # fire up to 2 blocks away on Normal; the tries and the reach are the ones
+  # of the Java code (LightningBolt#spawnFire). minecraft.wiki/w/Lightning
+  def light_strike_fires
+    lightning = @storm.lightning
+    light_fire(lightning.x, lightning.y, lightning.z)
+    Storm::STRIKE_FIRE_TRIES.times do
+      light_fire(lightning.x + random_side, lightning.y + random_side, lightning.z + random_side)
+    end
+  end
+
+  def random_side = (@rng.rand01 * 3).to_i - 1
+
+  # Puts fire at x, y, z when the cell is air and can hold fire.
+  def light_fire(x, y, z)
+    return false unless @world.inside?(x, y, z) && @world.get(x, y, z) == Block::AIR && @world.can_hold?(Block::FIRE, x, y, z)
+
+    set_block(x, y, z, Block::FIRE)
+    true
   end
 
   def lightning_hit_player
@@ -670,6 +698,7 @@ class Game
     eyes = p.at_eyes(@world)
     in_lava = Block.lava?(feet) || Block.lava?(eyes)
     under_water = Block.water?(eyes)
+    @player.vitals.stand_in_fire(dt) if only_fire?(feet, eyes)
     # Water and rain put the fire out.
     if !in_lava && @player.vitals.burning? && (under_water || Block.water?(feet) || (@weather.wet_at?(@world, p.x, p.z) && @world.under_sky?(p.x, p.eye_y, p.z)))
       @player.vitals.douse
@@ -687,6 +716,9 @@ class Game
     end
     @particles.hunger(p.x, p.eye_y, p.z, p.yaw, dt) if @player.vitals.hunger_effect?
   end
+
+  # True when fire, and no lava, is at the feet or the eyes of the player.
+  def only_fire?(feet, eyes) = (feet == Block::FIRE || eyes == Block::FIRE) && !Block.lava?(feet) && !Block.lava?(eyes)
 
   # The screen that the player sees now.
   def current_screen = @screen
@@ -752,6 +784,7 @@ class Game
     return 0 if Block.lava?(block) && @world.get(x, y + 1, z) == Block::AIR
     return 1 if Block.water?(block) && block != Block::WATER
     return 2 if Block.furnace_lit?(block)
+    return 3 if block == Block::FIRE
 
     -1
   end
