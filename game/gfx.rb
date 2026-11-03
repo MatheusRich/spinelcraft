@@ -1144,9 +1144,11 @@ module Gfx
     static SDL_AudioStream *voice[VOICES];
     /* The stream of the music (au_music_play). */
     static SDL_AudioStream *music;
-    /* The stream of the loop (au_loop), and the next sample of the loop. */
-    static SDL_AudioStream *loop;
-    static int loop_pos;
+    /* The loops (au_loop): a stream for each of LOOPS slots, and the next
+       sample of each. The rain and the fire each take a slot. */
+    #define LOOPS 2
+    static SDL_AudioStream *loops[LOOPS];
+    static int loop_pos[LOOPS];
     static float *sound_data[SOUNDS];
     static int sound_len[SOUNDS];
     static int next_voice;
@@ -1162,8 +1164,8 @@ module Gfx
     static double rec_time;
     static int rec_id[REC_VOICES], rec_pos[REC_VOICES], rec_next;
     static float rec_l[REC_VOICES], rec_r[REC_VOICES];
-    static int rec_loop_id = -1;
-    static float rec_loop_volume;
+    static int rec_loop_id[LOOPS] = {-1, -1};
+    static float rec_loop_l[LOOPS], rec_loop_r[LOOPS];
 
     /* The header of a WAV file of samples stereo samples of 16 bits. */
     static void rec_header(long samples) {
@@ -1203,11 +1205,13 @@ module Gfx
           r += sample * rec_r[i];
           if (++rec_pos[i] >= sound_len[id]) rec_id[i] = -1;
         }
-        if (rec_loop_id >= 0) {
-          float sample = sound_data[rec_loop_id][loop_pos] * rec_loop_volume;
-          l += sample;
-          r += sample;
-          if (++loop_pos >= sound_len[rec_loop_id]) loop_pos = 0;
+        for (int s = 0; s < LOOPS; s++) {
+          int id = rec_loop_id[s];
+          if (id < 0) continue;
+          float sample = sound_data[id][loop_pos[s]];
+          l += sample * rec_loop_l[s];
+          r += sample * rec_loop_r[s];
+          if (++loop_pos[s] >= sound_len[id]) loop_pos[s] = 0;
         }
         Sint16 lr[2] = {(Sint16)(SDL_clamp(l, -1.0f, 1.0f) * 32767.0f), (Sint16)(SDL_clamp(r, -1.0f, 1.0f) * 32767.0f)};
         fwrite(lr, 2, 2, rec_out);
@@ -1226,8 +1230,10 @@ module Gfx
       }
       music = SDL_CreateAudioStream(&spec, NULL);
       if (!music || !SDL_BindAudioStream(audio_dev, music)) return fail("SDL_BindAudioStream");
-      loop = SDL_CreateAudioStream(&spec, NULL);
-      if (!loop || !SDL_BindAudioStream(audio_dev, loop)) return fail("SDL_BindAudioStream");
+      for (int s = 0; s < LOOPS; s++) {
+        loops[s] = SDL_CreateAudioStream(&spec, NULL);
+        if (!loops[s] || !SDL_BindAudioStream(audio_dev, loops[s])) return fail("SDL_BindAudioStream");
+      }
       return true;
     }
 
@@ -1294,11 +1300,15 @@ module Gfx
     /* Plays sound id. Pan goes from -1.0 (left) to 1.0 (right). The near
        ear stays at full volume, and the far ear drops by up to FAR_EAR. */
     #define FAR_EAR 0.7f
+    static float ear(double pan, float side) {
+      float p = SDL_clamp((float)pan, -1.0f, 1.0f) * side;
+      return p < 0.0f ? 1.0f + FAR_EAR * p : 1.0f;
+    }
+
     void au_play(long id, double volume, double pan) {
       if (id < 0 || id >= SOUNDS || !sound_data[id] || volume <= 0.01) return;
-      float p = SDL_clamp((float)pan, -1.0f, 1.0f);
-      float l = p > 0.0f ? 1.0f - FAR_EAR * p : 1.0f;
-      float r = p < 0.0f ? 1.0f + FAR_EAR * p : 1.0f;
+      float l = ear(pan, -1.0f);
+      float r = ear(pan, 1.0f);
       if (rec_out) {
         /* A free voice, or else the voices in turn, as the device does. */
         int v = 0;
@@ -1327,19 +1337,24 @@ module Gfx
       SDL_free(lr);
     }
 
-    /* Loop: one stream plays sound id again and again, for the rain. The
-       game calls au_loop each frame. It sets the volume of the stream at
-       once, and it keeps LOOP_AHEAD seconds of the sound in the stream. At
-       a volume of 0 the loop stops. */
+    /* Loop: the stream of slot plays sound id again and again, as the rain
+       and the fire. The game calls au_loop each frame. It sets the volume
+       of the stream at once, and it keeps LOOP_AHEAD seconds of the sound,
+       with the pan of the call, in the stream. At a volume of 0 the loop
+       stops. */
     #define LOOP_AHEAD 0.25
     #define LOOP_CHUNK 4096
-    void au_loop(long id, double volume) {
-      if (id < 0 || id >= SOUNDS || !sound_data[id]) return;
+    void au_loop(long slot, long id, double volume, double pan) {
+      if (slot < 0 || slot >= LOOPS || id < 0 || id >= SOUNDS || !sound_data[id]) return;
+      float l = ear(pan, -1.0f);
+      float r = ear(pan, 1.0f);
       if (rec_out) {
-        rec_loop_id = volume > 0.0 ? (int)id : -1;
-        rec_loop_volume = (float)volume;
+        rec_loop_id[slot] = volume > 0.0 ? (int)id : -1;
+        rec_loop_l[slot] = l * (float)volume;
+        rec_loop_r[slot] = r * (float)volume;
         return;
       }
+      SDL_AudioStream *loop = loops[slot];
       if (!loop) return;
       if (volume <= 0.0) {
         SDL_ClearAudioStream(loop);
@@ -1350,11 +1365,14 @@ module Gfx
       int ahead = (int)(LOOP_AHEAD * AU_RATE) * 2 * (int)sizeof(float);
       float lr[LOOP_CHUNK * 2];
       while (SDL_GetAudioStreamQueued(loop) < ahead) {
-        if (loop_pos >= n) loop_pos = 0;
-        int k = SDL_min(n - loop_pos, LOOP_CHUNK);
-        for (int i = 0; i < k; i++) lr[i * 2] = lr[i * 2 + 1] = sound_data[id][loop_pos + i];
+        if (loop_pos[slot] >= n) loop_pos[slot] = 0;
+        int k = SDL_min(n - loop_pos[slot], LOOP_CHUNK);
+        for (int i = 0; i < k; i++) {
+          lr[i * 2] = sound_data[id][loop_pos[slot] + i] * l;
+          lr[i * 2 + 1] = sound_data[id][loop_pos[slot] + i] * r;
+        }
         SDL_PutAudioStreamData(loop, lr, k * 2 * (int)sizeof(float));
-        loop_pos += k;
+        loop_pos[slot] += k;
       }
     }
 
@@ -1611,7 +1629,7 @@ module Gfx
   ffi_func :au_seconds, [:long], :double
   ffi_func :au_peak_seconds, [:long], :double
   ffi_func :au_play, [:long, :double, :double], :void
-  ffi_func :au_loop, [:long, :double], :void
+  ffi_func :au_loop, [:long, :long, :double, :double], :void
   ffi_func :au_music_play, [:str, :double], :long
   ffi_func :au_music_stop, [], :void
   ffi_func :au_music_playing, [], :bool

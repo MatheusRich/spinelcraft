@@ -54,16 +54,15 @@ class Game
   CHEW_START = 0.35
   CHEW_EVERY = 0.2
   # Blocks near the player make these sounds now and then (Game#block_sound):
-  # lava under air, flowing water, a lit furnace and fire. The wiki says
-  # only that they play at random (minecraft.wiki/w/Lava,
-  # minecraft.wiki/w/Water, minecraft.wiki/w/Furnace, minecraft.wiki/w/Fire).
-  # It does not confirm the chances. They are those of the code of Java
-  # Edition: each time that Minecraft looks at a block, lava plays its sound
-  # at a chance of 1 in 200, flowing water 1 in 64, a lit furnace 1 in 10,
-  # and fire 1 in 24.
-  AMBIENT = [Sfx::LAVA, Sfx::FLOWING, Sfx::CRACKLE, Sfx::CRACKLE]
-  AMBIENT_CHANCE = [1.0 / 200.0, 1.0 / 64.0, 0.1, 1.0 / 24.0]
-  AMBIENT_VOLUME = [0.4, 0.3, 0.5, 0.5]
+  # lava under air, flowing water, and a lit furnace. The wiki says only
+  # that they play at random (minecraft.wiki/w/Lava, minecraft.wiki/w/Water,
+  # minecraft.wiki/w/Furnace). It does not confirm the chances. They are
+  # those of the code of Java Edition: each time that Minecraft looks at a
+  # block, lava plays its sound at a chance of 1 in 200, flowing water 1 in
+  # 64, and a lit furnace 1 in 10. Fire plays a loop (FireSound).
+  AMBIENT = [Sfx::LAVA, Sfx::FLOWING, Sfx::CRACKLE]
+  AMBIENT_CHANCE = [1.0 / 200.0, 1.0 / 64.0, 0.1]
+  AMBIENT_VOLUME = [0.4, 0.3, 0.5]
   # Each second, Game#update_block_sounds looks at this many random blocks
   # near the player. Minecraft looks at MC_AMBIENT_SAMPLES of them (667 in
   # each tick), so the chances grow to make up the difference. The wiki

@@ -51,6 +51,7 @@ require_relative "game/fluids"
 require_relative "game/fire_spread"
 require_relative "game/fires"
 require_relative "game/lava_fire"
+require_relative "game/fire_sound"
 require_relative "game/arrow"
 require_relative "game/egg"
 require_relative "game/item"
@@ -256,6 +257,7 @@ class Game
     @cave_timer = 0.0
     @cave_fear = 0.0
     @ambient_wait = Array.new(AMBIENT.size, 0.0)
+    @fire_sound = FireSound.new
     @rng = Rng.new(@seed * 7 + 1)
     # The clock seeds the music, so each session plays its own order, as
     # in Minecraft. Near seeds give near first numbers in Rng, so a hash
@@ -523,6 +525,7 @@ class Game
     update_mobs(dt)
     update_fluids(dt)
     update_fires(dt)
+    play_fire_sound
     find_targets
   end
 
@@ -593,7 +596,7 @@ class Game
     @weather.splash(@particles, @world, @player, dt)
     @snowfall.strength = @weather.rain.strength
     @snowfall.update(@world, @player, dt)
-    Gfx.au_loop(Sfx::RAIN, @weather.sound(@world, @player) * @options.volume) if @sound
+    Gfx.au_loop(Sfx::RAIN_LOOP, Sfx::RAIN, @weather.sound(@world, @player) * @options.volume, 0.0) if @sound
     Gfx.gfx_rain(@weather.mesh.v, @weather.mesh.count) if @weather.build_quads(@world, @player, dt)
   end
 
@@ -772,6 +775,14 @@ class Game
     end
   end
 
+  # The loop of the crackle of the fires near the player (see FireSound).
+  def play_fire_sound
+    @fire_sound.update_sound(@fires, @player)
+    sound = @fire_sound
+    volume = @sfx.near_volume(sound.x, sound.y, sound.z, sound.gain, FireSound::RANGE)
+    Gfx.au_loop(Sfx::FIRE_LOOP, Sfx::CRACKLE, volume * @options.volume, @sfx.pan_to(sound.x, sound.y, sound.z)) if @sound
+  end
+
   # A random offset from the player along one axis for update_block_sounds,
   # from 1 - Sfx::RANGE to Sfx::RANGE - 1. An offset near 0 comes more
   # often than one far from it.
@@ -783,7 +794,6 @@ class Game
     return 0 if Block.lava?(block) && @world.get(x, y + 1, z) == Block::AIR
     return 1 if Block.water?(block) && block != Block::WATER
     return 2 if Block.furnace_lit?(block)
-    return 3 if block == Block::FIRE
 
     -1
   end

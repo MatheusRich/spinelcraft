@@ -77,6 +77,9 @@ class Sfx
   # A sound from a point fades to silence at RANGE blocks, and an  # explosion at EXPLOSION_RANGE. The wiki gives 64 blocks for TNT. It does
   # not say if a creeper explosion carries as far. minecraft.wiki/w/Sound
   RANGE = 16.0
+  # The slot of each loop (Gfx.au_loop): the rain and the fire.
+  RAIN_LOOP = 0
+  FIRE_LOOP = 1
   EXPLOSION_RANGE = 64.0
   # Thunder carries over the 17 x 17 chunks where lightning strikes. Minecraft
   # plays thunder at full volume in the whole dimension, so this range is not

@@ -12,6 +12,9 @@ class Fires
   FLAME_DAMAGE = 1.0
   FLAME_WAIT = 0.5
 
+  # The key (World.key) of each fire.
+  attr_reader :keys
+
   def initialize(spread)
     @spread = spread
     @keys = Array.new(0, 0)
