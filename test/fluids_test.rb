@@ -82,11 +82,11 @@ class FluidsTest < Minitest::Test
     assert_equal([-1] * 5, (4..8).map { |x| @fluids.lava_wanted(x, Y, Z) })
   end
 
-  def test_lava_flows_into_a_plant_and_into_water_of_each_flowing_level
+  def test_lava_flows_into_a_plant_and_not_into_flowing_water_beside_it
     @world.set(5, Y, Z, Block::ROSE)
     @world.set(3, Y, Z, Block::FLOW)
     @world.set(4, Y, Z, Block::LAVA)
-    assert_equal [Block::LAVA_FLOW + 2] * 2, [@fluids.lava_wanted(5, Y, Z), @fluids.lava_wanted(3, Y, Z)]
+    assert_equal [Block::LAVA_FLOW + 2, -1], [@fluids.lava_wanted(5, Y, Z), @fluids.lava_wanted(3, Y, Z)]
   end
 
   def test_no_fluid_flows_out_of_the_world
@@ -285,28 +285,42 @@ class FluidsTest < Minitest::Test
     assert_equal([-1, Block::LAVA_FLOW + 2], [3, 5].map { |x| @fluids.lava_wanted(x, Y, Z) })
   end
 
-  def test_water_on_a_side_cools_lava_into_cobblestone
+  def test_water_on_a_side_of_a_lava_source_makes_obsidian
     put(4, Y, Z, Block::LAVA)
     put(5, Y, Z, Block::WATER)
     steps(1)
-    assert_equal Block::COBBLE, @world.get(4, Y, Z)
+    assert_equal Block::OBSIDIAN, @world.get(4, Y, Z)
   end
 
-  # Lava that falls onto flowing water takes its place, and the water
-  # next to it cools it.
-  def test_lava_takes_the_place_of_flowing_water_and_the_water_cools_it
-    @world.set(2, Y, Z, Block::WATER)
-    @world.set(3, Y, Z, Block::FLOW + 6)
-    put(3, Y + 1, Z, Block::LAVA)
-    assert_equal Block::LAVA_FLOW + 2, @fluids.lava_wanted(3, Y, Z)
-    steps(2)
-    assert_equal Block::COBBLE, @world.get(3, Y, Z)
+  def test_water_above_a_lava_source_makes_obsidian
+    @world.set(4, Y, Z, Block::LAVA)
+    @world.set(4, Y + 1, Z, Block::FLOW + 6)
+    assert_equal Block::OBSIDIAN, @fluids.water_wanted(4, Y, Z)
   end
 
-  def test_lava_does_not_take_the_place_of_a_water_source
-    @world.set(4, Y, Z, Block::WATER)
-    @world.set(4, Y + 1, Z, Block::LAVA)
-    assert_equal(-1, @fluids.lava_wanted(4, Y, Z))
+  def test_water_beside_flowing_lava_makes_cobblestone
+    @world.set(4, Y, Z, Block::LAVA_FLOW + 2)
+    @world.set(5, Y, Z, Block::FLOW + 6)
+    assert_equal Block::COBBLE, @fluids.water_wanted(4, Y, Z)
+  end
+
+  def test_water_under_lava_does_not_cool_it
+    @world.set(4, Y, Z, Block::LAVA)
+    @world.set(4, Y - 1, Z, Block::WATER)
+    assert_equal(-1, @fluids.water_wanted(4, Y, Z))
+  end
+
+  def test_lava_that_falls_into_water_of_any_level_makes_stone
+    [Block::WATER, Block::FLOW].each do |water|
+      @world.set(4, Y, Z, water)
+      @world.set(4, Y + 1, Z, Block::LAVA_FLOW)
+      assert_equal Block::STONE, @fluids.lava_wanted(4, Y, Z), water
+    end
+  end
+
+  def test_the_blocks_that_water_and_lava_make_where_they_meet
+    assert([Block::COBBLE, Block::OBSIDIAN, Block::STONE].all? { |block| Fluids.mixed?(block) })
+    refute([Block::AIR, Block::WATER, Block::LAVA_FLOW, Block::GLASS].any? { |block| Fluids.mixed?(block) })
   end
 
   # Water moves 1 block in each 0.25 s, and lava 1 block in each 1.5 s.

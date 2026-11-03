@@ -225,21 +225,30 @@ class Game
   end
 
   # Puts the changes of a step of water in the world, one at a time. Water
-  # that cools lava hisses once in a step.
+  # and lava that meet hiss once in a step.
   def flow_water
-    hiss = false
+    hissed = false
     while @fluids.next_water(@changes)
-      if @changes[3] == Block::COBBLE && !hiss
-        @sfx.play_at(Sfx::FIZZ, @changes[0] + 0.5, @changes[1] + 0.5, @changes[2] + 0.5, 0.6)
-        hiss = true
-      end
+      hissed ||= hiss_where_fluids_meet
       pour_change
     end
   end
 
-  # Puts the changes of a step of lava in the world, one at a time.
   def flow_lava
-    pour_change while @fluids.next_lava(@changes)
+    hissed = false
+    while @fluids.next_lava(@changes)
+      hissed ||= hiss_where_fluids_meet
+      pour_change
+    end
+  end
+
+  # Gives true when the change in @changes is a block that water and lava
+  # make, after it plays the hiss there.
+  def hiss_where_fluids_meet
+    return false unless Fluids.mixed?(@changes[3])
+
+    @sfx.play_at(Sfx::FIZZ, @changes[0] + 0.5, @changes[1] + 0.5, @changes[2] + 0.5, 0.6)
+    true
   end
 
   # Pours the one change in @changes (x, y, z and the block), and clears

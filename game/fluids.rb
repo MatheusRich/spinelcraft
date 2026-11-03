@@ -15,6 +15,9 @@ class Fluids
   WATER = Fluid.new(Block::WATER_LEVEL, Block::WATER, Block::FLOW)
   LAVA = Fluid.new(Block::LAVA_LEVEL, Block::LAVA, Block::LAVA_FLOW)
 
+  # The blocks that water and lava make where they meet.
+  def self.mixed?(block) = block == Block::COBBLE || block == Block::OBSIDIAN || block == Block::STONE
+
   def initialize(world)
     @world = world
     @water = Flow.new(world, WATER, WATER_STEP)
@@ -51,13 +54,15 @@ class Fluids
   def next_lava(changes) = @lava.next_change(changes) { |x, y, z| lava_wanted(x, y, z) }
 
   # The block that the cell x, y, z should change to in a step of water,
-  # or -1 when it stays. Water cools lava next to it into cobblestone.
+  # or -1 when it stays. Water on a lava source makes obsidian, and water
+  # beside flowing lava makes cobblestone (minecraft.wiki/w/Fluid).
   # Water flows into air and plants, and flowing water with no water to
   # feed it drains. A source stays, and water does not flow into lava.
   def water_wanted(x, y, z)
     return -1 unless @world.inside?(x, y, z)
 
     block = @world.get(x, y, z)
+    return Block::OBSIDIAN if block == Block::LAVA && @world.touches_water?(x, y, z)
     return Block::COBBLE if Block.lava?(block) && @world.touches_water?(x, y, z)
     return -1 unless WATER.passes?(block)
     return Block::WATER if renews?(x, y, z)
@@ -81,13 +86,16 @@ class Fluids
   end
 
   # The block that the cell x, y, z should change to in a step of lava,
-  # or -1 when it stays. Lava flows into air, plants and flowing water,
-  # and flowing lava with no lava to feed it drains. A source stays.
+  # or -1 when it stays. Lava flows into air and plants, and flowing lava
+  # with no lava to feed it drains. A source stays. Lava that falls into
+  # water turns it into stone, and lava does not flow into water from the
+  # side. minecraft.wiki/w/Fluid
   def lava_wanted(x, y, z)
     return -1 unless @world.inside?(x, y, z)
 
     block = @world.get(x, y, z)
-    return -1 unless LAVA.passes?(block) || WATER.passes?(block)
+    return Block::STONE if Block.water?(block) && Block.lava?(@world.get(x, y + 1, z))
+    return -1 unless LAVA.passes?(block)
 
     want = @lava.flowing_block(x, y, z)
     return -1 if want == block

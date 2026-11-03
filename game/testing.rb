@@ -3419,10 +3419,22 @@ class Game
     mesher.build(lx / CHUNK, lz / CHUNK)
     check("lava lights its surroundings", mesher.torch_light(lx, SKY_Y - 3, lz) == 14)
     set_block(lx + 1, SKY_Y - 4, lz, Block::WATER)
+    @sfx.listen(lx + 0.5, SKY_Y - 3.0, lz + 0.5, 0.0)
+    @sfx.clear
     20.times { update_fluids(Fluids::LAVA_STEP) }
-    check("water turns lava into cobblestone", @world.get(lx, SKY_Y - 4, lz) == Block::COBBLE)
-    set_block(lx + 1, SKY_Y - 4, lz, Block::AIR)
-    set_block(lx, SKY_Y - 4, lz, Block::AIR)
+    check("water turns a lava source into obsidian", @world.get(lx, SKY_Y - 4, lz) == Block::OBSIDIAN)
+    check("water and a lava source hiss where they meet", @sfx.ids.include?(Sfx::FIZZ))
+    # Glass around the lava keeps it from spreading, so it only falls.
+    glass = [[lx - 2, lz], [lx, lz], [lx - 1, lz - 1], [lx - 1, lz + 1]]
+    glass.each { |x, z| set_block(x, SKY_Y - 3, z, Block::GLASS) }
+    set_block(lx - 1, SKY_Y - 4, lz, Block::WATER)
+    set_block(lx - 1, SKY_Y - 3, lz, Block::LAVA)
+    @sfx.clear
+    20.times { update_fluids(Fluids::LAVA_STEP) }
+    check("lava that falls into water turns it into stone", @world.get(lx - 1, SKY_Y - 4, lz) == Block::STONE)
+    check("lava that falls into water hisses", @sfx.ids.include?(Sfx::FIZZ))
+    glass.each { |x, z| set_block(x, SKY_Y - 3, z, Block::AIR) }
+    [[lx - 1, SKY_Y - 3], [lx - 1, SKY_Y - 4], [lx, SKY_Y - 4], [lx + 1, SKY_Y - 4]].each { |x, y| set_block(x, y, lz, Block::AIR) }
     20.times { update_fluids(Fluids::LAVA_STEP) }
   end
 

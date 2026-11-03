@@ -209,6 +209,7 @@ module Tex
   SPINEL_CHESTPLATE = image("spinel_chestplate")
   SPINEL_LEGGINGS = image("spinel_leggings")
   SPINEL_BOOTS = image("spinel_boots")
+  OBSIDIAN = image("obsidian")
   ARMOR = hud_icon("armor")
   ARMOR_EMPTY = hud_icon("armor_empty")
   # The red blocks of SPINEL in the title (tools/logo.rb).

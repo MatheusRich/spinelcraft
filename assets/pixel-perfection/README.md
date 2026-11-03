@@ -4,7 +4,7 @@ These images come from Pixel Perfection, a 16x16 resource pack for Minecraft by 
 
 - License: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The changed images below keep this license.
 - Original pack: <https://www.planetminecraft.com/texture_pack/131pixel-perfection/>
-- Source of these files: the `textures/` folder of <https://git.minetest.land/VoxeLibre/VoxeLibre> (the `master` branch, October 2026). VoxeLibre's `LEGAL.md` gives the license.
+- Source of these files: the `textures/` folder of <https://git.minetest.land/VoxeLibre/VoxeLibre> (the `master` branch, October 2026). VoxeLibre's `LEGAL.md` gives the license. Since November 2026, Mesehub asks for a sign-in before it gives a raw file. The GitHub mirror <https://github.com/VoxeLibre/VoxeLibre> has the same files.
 
 Each file has the name of its layer in `Tex` (`iron_pick.png` is `Tex::IRON_PICK`). `Tex::IMAGE_FILES` and `Tex::ICON_FILES` in `game/textures.rb` list the files that the game loads.
 
@@ -31,6 +31,7 @@ These files are copies with no changes.
 | `spruce_log_side.png`, `spruce_log_top.png`, `spruce_planks.png`, `spruce_sapling.png` | `mcl_core_log_spruce.png`, `mcl_core_log_spruce_top.png`, `mcl_core_planks_spruce.png`, `mcl_core_sapling_spruce.png` |
 | `birch_log_side.png`, `birch_log_top.png`, `birch_planks.png`, `birch_sapling.png` | `mcl_core_log_birch.png`, `mcl_core_log_birch_top.png`, `mcl_core_planks_birch.png`, `mcl_core_sapling_birch.png` |
 | `cobble.png`, `brick.png`, `glass.png`, `wool.png` | `default_cobble.png`, `default_brick.png`, `default_glass.png`, `wool_white.png` |
+| `obsidian.png` | `default_obsidian.png` |
 | `cactus_side.png`, `cactus_top.png` | `mcl_core_cactus_side.png`, `mcl_core_cactus_top.png` |
 | `rose.png`, `dandelion.png`, `oak_sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
 | `seeds.png`, `wheat_1.png`, `wheat_2.png`, `wheat_ripe.png` | `mcl_farming_wheat_stage_1.png`, `mcl_farming_wheat_stage_3.png`, `mcl_farming_wheat_stage_5.png`, `mcl_farming_wheat_stage_7.png` |

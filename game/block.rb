@@ -161,6 +161,7 @@ module Block
   SPINEL_CHESTPLATE = 179
   SPINEL_LEGGINGS = 180
   SPINEL_BOOTS = 181
+  OBSIDIAN = 182
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -232,7 +233,7 @@ module Block
   HARDNESS = []
   # What breaking the block gives in survival.
   DROPS = []
-  # Pickaxe tier a block needs to drop anything: 1 wood, 2 stone, 3 iron.
+  # Pickaxe tier a block needs to drop anything: 1 wood, 2 stone, 3 iron, 4 diamond.
   NEEDS_PICK = []
   # The tool that digs the block fast: DIG_PICK, DIG_AXE, DIG_SHOVEL, or 0.
   DIG_KIND = []
@@ -517,6 +518,8 @@ module Block
   define_item SPINEL_CHESTPLATE, "SPINEL CHESTPLATE", Tex::SPINEL_CHESTPLATE
   define_item SPINEL_LEGGINGS, "SPINEL LEGGINGS", Tex::SPINEL_LEGGINGS
   define_item SPINEL_BOOTS, "SPINEL BOOTS", Tex::SPINEL_BOOTS
+  # minecraft.wiki/w/Obsidian
+  define_block OBSIDIAN, "OBSIDIAN", Tex::OBSIDIAN, hardness: 50.0, needs_pick: 4, dig: DIG_PICK
   COUNT = NAMES.size
 
   def self.blocks_light(block) = block != AIR && block != GLASS && !door?(block) && BASE[block] != LADDER && !plant?(block)
