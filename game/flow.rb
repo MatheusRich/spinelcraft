@@ -28,18 +28,29 @@ class Flow
   def flowing_block(x, y, z) = @fluid.flowing_block(flow_target(x, y, z))
 
   def flow_target(x, y, z)
-    source = @fluid.source
-    return source - 1 if @fluid.level(@world.get(x, y + 1, z)) > 0
+    return @fluid.source - 1 if falling?(x, y, z)
 
     best = 0
     dir = 0
     while dir < 4
-      nx = x + Block::DIR_DX[dir]
-      nz = z + Block::DIR_DZ[dir]
-      level = @fluid.level(@world.get(nx, y, nz))
-      best = level - 1 if level - 1 > best && (level == source || Block.solid?(@world.get(nx, y - 1, nz)))
+      level = spread_level(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])
+      best = level - 1 if level - 1 > best
       dir += 1
     end
     best
   end
+
+  # Flowing fluid spreads sideways only on a solid block. Falling fluid
+  # spreads there as a source: Minecraft gives falling water level 8.
+  # minecraft.wiki/w/Water
+  def spread_level(x, y, z)
+    level = @fluid.level(@world.get(x, y, z))
+    return level if level == @fluid.source || level == 0
+    return 0 unless Block.solid?(@world.get(x, y - 1, z))
+    return @fluid.source if falling?(x, y, z)
+
+    level
+  end
+
+  def falling?(x, y, z) = @fluid.level(@world.get(x, y + 1, z)) > 0
 end

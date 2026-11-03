@@ -124,14 +124,27 @@ class FluidsTest < Minitest::Test
   end
 
   # Falling water has level 7 and spreads only where it rests on a solid
-  # block. Glass around the source keeps it from spreading in the air.
-  def test_water_falls_and_spreads_where_it_lands
+  # block. There it spreads 7 blocks, as a source. Glass around the source
+  # keeps it from spreading in the air.
+  def test_water_falls_and_spreads_7_blocks_where_it_lands
     [[3, Z], [5, Z], [4, Z - 1], [4, Z + 1]].each { |x, z| @world.set(x, Y + 3, z, Block::GLASS) }
     put(4, Y + 3, Z, Block::WATER)
     steps(12)
     assert_equal([7, 7, 7], [Y + 2, Y + 1, Y].map { |y| Block::WATER_LEVEL[@world.get(4, y, Z)] })
     assert_equal [0, 0], levels(5..6, Y + 1)
-    assert_equal [6, 5, 1, 0], levels([5, 6, 10, 11])
+    assert_equal [7, 6, 2, 1, 0], levels([5, 6, 10, 11, 12])
+  end
+
+  def test_air_that_water_is_about_to_fall_into_does_not_spread
+    @world.set(5, Y + 1, Z, Block::WATER)
+    assert_equal(-1, @fluids.water_wanted(4, Y, Z))
+  end
+
+  def test_lava_falls_and_spreads_3_blocks_where_it_lands
+    [[3, Z], [5, Z], [4, Z - 1], [4, Z + 1]].each { |x, z| @world.set(x, Y + 1, z, Block::GLASS) }
+    put(4, Y + 1, Z, Block::LAVA)
+    steps(6)
+    assert_equal [3, 3, 2, 1, 0], lava_levels(4..8)
   end
 
   def test_water_on_a_side_cools_lava_into_cobblestone
