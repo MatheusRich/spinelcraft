@@ -79,31 +79,14 @@ class Game
   # Drops what block drops when tool breaks it at x, y, z. Block::AIR is no
   # tool, as when water washes a plant away. Leaves or grass that shears
   # cut drop themselves (see Block.shears_cut?). Any other block drops its
-  # Block::DROPS and its extras (see drop_extra). The pickaxe tier counts
-  # only when the player mines, so mine checks it.
+  # Block.dropped_items, and ripe wheat also 1 to 4 seeds. The pickaxe tier
+  # counts only when the player mines, so mine checks it.
   def drop_broken(block, x, y, z, tool)
     if tool == Block::SHEARS && Block.shears_cut?(block)
       drop_from_block(Block::BASE[block], 1, x, y, z)
     else
-      drop_from_block(Block::DROPS[block], 1, x, y, z)
-      drop_extra(block, x, y, z)
-    end
-  end
-
-  # What a broken block drops besides Block::DROPS: leaves now and then a
-  # sapling of their wood, oak leaves also now and then an apple, tall
-  # grass now and then seeds, and ripe wheat 1 to 4 seeds.
-  def drop_extra(block, x, y, z)
-    if Block.leaves?(block)
-      # Leaves drop a sapling 1 time in 20, and oak leaves also an apple 1
-      # time in 200. Leaves also drop a stick 1 time in 50, but the game
-      # has no sticks. minecraft.wiki/w/Leaves
-      drop_from_block(Block::SAPLINGS[Block.wood(block)], 1, x, y, z) if @rng.rand01 < 0.05
-      drop_from_block(Block::APPLE, 1, x, y, z) if Block::BASE[block] == Block::OAK_LEAVES && @rng.rand01 < 0.005
-    elsif block == Block::TALL_GRASS
-      drop_from_block(Block::SEEDS, 1, x, y, z) if @rng.rand01 < 0.125
-    elsif block == Block::WHEAT_RIPE
-      drop_from_block(Block::SEEDS, ripe_wheat_seeds, x, y, z)
+      Block.dropped_items(block, @rng).each { |item| drop_from_block(item, 1, x, y, z) }
+      drop_from_block(Block::SEEDS, ripe_wheat_seeds, x, y, z) if block == Block::WHEAT_RIPE
     end
   end
 

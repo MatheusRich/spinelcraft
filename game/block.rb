@@ -280,14 +280,20 @@ module Block
   FOOD = []
   # Saturation points that eating the block gives back.
   SATURATION = []
+  # The chance drops: one row for each item that a block drops with a
+  # chance (see dropped_items).
+  CHANCE_DROP_OF = []
+  CHANCE_DROP_ITEM = []
+  CHANCE_DROP = []
 
   # Adds block id to the tables above, which name its arguments. The
   # blocks come in the order of their ids. A block is an opaque, solid
   # cube with the texture side on each face, and it drops itself, unless
-  # the arguments say something else.
+  # the arguments say something else. chance_drops maps an item to the
+  # chance that the block drops it.
   def self.define_block(id, name, side, top: side, bottom: top, front: side, facing: -1, base: id, shape: 0, opaque: 1,
                         occludes: opaque, solid: 1, plant: 0, hardness: 0.0, drops: id, needs_pick: 0, dig: 0, pick_tier: 0,
-                        water: 0, lava: 0, hold: HOLD_NONE, item: 0, food: 0, saturation: 0.0)
+                        water: 0, lava: 0, hold: HOLD_NONE, item: 0, food: 0, saturation: 0.0, chance_drops: {})
     abort "Block.define_block: block #{id} comes out of order" if id != NAMES.size
     NAMES << name
     TOP << top
@@ -312,6 +318,33 @@ module Block
     ITEM << item
     FOOD << food
     SATURATION << saturation
+    define_chance_drops(id, chance_drops)
+  end
+
+  # Adds a row to the chance drops for each item of chance_drops. The rows
+  # of a block are found by its BASE, so only a block that is its own base
+  # can have them.
+  def self.define_chance_drops(id, chance_drops)
+    abort "Block.define_chance_drops: block #{id} is not its own base" if BASE[id] != id && !chance_drops.empty?
+    chance_drops.each do |item, chance|
+      CHANCE_DROP_OF << id
+      CHANCE_DROP_ITEM << item.to_i
+      CHANCE_DROP << chance.to_f
+    end
+    # A nil return keeps Spinel from boxing it.
+    nil
+  end
+
+  # The items that block drops when it breaks: each of its chance drops
+  # that hits, or its main drop (DROPS) when none hits.
+  def self.dropped_items(block, rng)
+    base = BASE[block]
+    items = []
+    CHANCE_DROP_OF.size.times do |row|
+      items << CHANCE_DROP_ITEM[row] if CHANCE_DROP_OF[row] == base && rng.rand01 < CHANCE_DROP[row]
+    end
+    items << DROPS[block] if items.empty? && DROPS[block] != AIR
+    items
   end
 
   # A thing that lives in the inventory, but never in the world.
@@ -321,8 +354,8 @@ module Block
 
   # A plant: two crossed quads that do not stop the player and break at once.
   # It stands on soil, unless hold says else.
-  def self.define_plant(id, name, tex, drops: id, hold: HOLD_SOIL) =
-    define_block(id, name, tex, opaque: 0, solid: 0, plant: 1, drops: drops, hold: hold)
+  def self.define_plant(id, name, tex, drops: id, hold: HOLD_SOIL, chance_drops: {}) =
+    define_block(id, name, tex, opaque: 0, solid: 0, plant: 1, drops: drops, hold: hold, chance_drops: chance_drops)
 
   # The blocks first, first + 1 and so on: block of turned to each direction
   # after its own facing, up to direction 3.
@@ -340,8 +373,10 @@ module Block
 
   # Leaves let light through, but darken ambient occlusion corners. base is
   # the leaves of the tree for leaves that the player placed.
-  def self.define_leaves(id, name, tex, base: id) =
-    define_block(id, name, tex, base: base, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR)
+  # Leaves drop a sapling 1 time in 20. Leaves also drop a stick 1 time in
+  # 50, but the game has no sticks. minecraft.wiki/w/Leaves
+  def self.define_leaves(id, name, tex, base: id, chance_drops: {}) =
+    define_block(id, name, tex, base: base, opaque: 0, occludes: 1, hardness: 0.2, drops: AIR, chance_drops: chance_drops)
 
   # A door half (see DOOR_BLOCK) that faces +x, and its turns. The lower
   # half stands on a solid block (minecraft.wiki/w/Door). The upper half
@@ -363,7 +398,8 @@ module Block
   define_block SAND, "SAND", Tex::SAND, hardness: 0.5, dig: DIG_SHOVEL, hold: HOLD_FALL
   define_block WATER, "WATER", Tex::WATER, opaque: 0, solid: 0, hardness: -1.0, drops: AIR, water: 8
   define_block OAK_LOG, "OAK LOG", Tex::OAK_LOG_SIDE, top: Tex::OAK_LOG_TOP, hardness: 2.0, dig: DIG_AXE
-  define_leaves OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES
+  # Oak leaves also drop an apple 1 time in 200. minecraft.wiki/w/Leaves
+  define_leaves OAK_LEAVES, "OAK LEAVES", Tex::OAK_LEAVES, chance_drops: { OAK_SAPLING => 0.05, APPLE => 0.005 }
   define_block OAK_PLANKS, "OAK PLANKS", Tex::OAK_PLANKS, hardness: 2.0, dig: DIG_AXE
   define_block COBBLE, "COBBLESTONE", Tex::COBBLE, hardness: 2.0, needs_pick: 1, dig: DIG_PICK
   define_block GLASS, "GLASS", Tex::GLASS, opaque: 0, hardness: 0.3, drops: AIR
@@ -377,7 +413,7 @@ module Block
   define_block CACTUS, "CACTUS", Tex::CACTUS_SIDE, top: Tex::CACTUS_TOP, shape: 6, opaque: 0, hardness: 0.4,
                hold: HOLD_CACTUS
   define_block SNOW, "SNOW", Tex::SNOW, hardness: 0.2, dig: DIG_SHOVEL
-  define_plant TALL_GRASS, "TALL GRASS", Tex::TALL_GRASS, drops: AIR
+  define_plant TALL_GRASS, "TALL GRASS", Tex::TALL_GRASS, drops: AIR, chance_drops: { SEEDS => 0.125 }
   define_plant ROSE, "ROSE", Tex::ROSE
   define_plant DANDELION, "DANDELION", Tex::DANDELION
   define_plant TORCH, "TORCH", Tex::TORCH, hold: HOLD_FLOOR
@@ -450,11 +486,11 @@ module Block
   define_turns BED_BLOCK + 5, BED_BLOCK + 4
   define_item ROTTEN_FLESH, "ROTTEN FLESH", Tex::ROTTEN_FLESH, food: 4, saturation: 0.8 # minecraft.wiki/w/Rotten_Flesh
   define_block SPRUCE_LOG, "SPRUCE LOG", Tex::SPRUCE_LOG_SIDE, top: Tex::SPRUCE_LOG_TOP, hardness: 2.0, dig: DIG_AXE
-  define_leaves SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES
+  define_leaves SPRUCE_LEAVES, "SPRUCE LEAVES", Tex::SPRUCE_LEAVES, chance_drops: { SPRUCE_SAPLING => 0.05 }
   define_block SPRUCE_PLANKS, "SPRUCE PLANKS", Tex::SPRUCE_PLANKS, hardness: 2.0, dig: DIG_AXE
   define_plant SPRUCE_SAPLING, "SPRUCE SAPLING", Tex::SPRUCE_SAPLING
   define_block BIRCH_LOG, "BIRCH LOG", Tex::BIRCH_LOG_SIDE, top: Tex::BIRCH_LOG_TOP, hardness: 2.0, dig: DIG_AXE
-  define_leaves BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES
+  define_leaves BIRCH_LEAVES, "BIRCH LEAVES", Tex::BIRCH_LEAVES, chance_drops: { BIRCH_SAPLING => 0.05 }
   define_block BIRCH_PLANKS, "BIRCH PLANKS", Tex::BIRCH_PLANKS, hardness: 2.0, dig: DIG_AXE
   define_plant BIRCH_SAPLING, "BIRCH SAPLING", Tex::BIRCH_SAPLING
   define_item MUTTON, "MUTTON", Tex::MUTTON, food: 2, saturation: 1.2 # minecraft.wiki/w/Raw_Mutton

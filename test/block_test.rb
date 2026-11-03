@@ -1,6 +1,21 @@
 require_relative "test_helper"
 
 class BlockTest < Minitest::Test
+  FixedRoll = Struct.new(:rand01)
+  EVERY_ROLL_HITS = FixedRoll.new(0.0)
+  NO_ROLL_HITS = FixedRoll.new(0.999)
+
+  def test_a_block_with_no_chance_drops_drops_its_main_drop
+    assert_equal [Block::COBBLE], Block.dropped_items(Block::STONE, NO_ROLL_HITS)
+    assert_equal [], Block.dropped_items(Block::GLASS, NO_ROLL_HITS)
+  end
+
+  def test_placed_oak_leaves_drop_each_chance_drop_that_hits
+    assert_equal [Block::OAK_SAPLING, Block::APPLE], Block.dropped_items(Block::PLACED_OAK_LEAVES, EVERY_ROLL_HITS)
+    assert_equal [Block::SPRUCE_SAPLING], Block.dropped_items(Block::SPRUCE_LEAVES, EVERY_ROLL_HITS)
+    assert_equal [], Block.dropped_items(Block::OAK_LEAVES, NO_ROLL_HITS)
+  end
+
   # Sand that lands on a block that it falls into falls again at once, so
   # Game#update_falling would never end.
   def test_a_falling_block_passes_each_block_that_sand_falls_into
