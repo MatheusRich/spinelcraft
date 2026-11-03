@@ -735,7 +735,6 @@ class MobTest < Minitest::Test
 
   private
 
-  # A stone floor under SKY_Y - 1 over the whole chunk, in open air.
   # True when a creeper lights its fuse in one step with the player
   # distance blocks to its side and up blocks above it.
   def lit?(distance, up)
@@ -755,6 +754,7 @@ class MobTest < Minitest::Test
     creeper.fuse
   end
 
+  # A stone floor under SKY_Y - 1 over the whole chunk, in open air.
   def lay_floor
     16.times { |x| 16.times { |z| @world.set(x, SKY_Y - 2, z, Block::STONE) } }
   end

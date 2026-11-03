@@ -615,11 +615,9 @@ class Game
     lightning = @storm.lightning
     light_fire(lightning.x, lightning.y, lightning.z)
     Storm::STRIKE_FIRE_TRIES.times do
-      light_fire(lightning.x + random_side, lightning.y + random_side, lightning.z + random_side)
+      light_fire(lightning.x + @rng.between(-1, 1), lightning.y + @rng.between(-1, 1), lightning.z + @rng.between(-1, 1))
     end
   end
-
-  def random_side = (@rng.rand01 * 3).to_i - 1
 
   # Puts fire at x, y, z when the cell is air and can hold fire.
   def light_fire(x, y, z)

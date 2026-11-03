@@ -7,6 +7,7 @@ class FireSpread
   # A fire updates every 30 to 40 ticks. minecraft.wiki/w/Fire
   WAIT = 1.5
   WAIT_SPREAD = 0.5
+  # Fire has 16 ages. minecraft.wiki/w/Fire
   MAX_AGE = 15
   # Each update, the age grows by 1 with this chance. minecraft.wiki/w/Fire
   AGE_CHANCE = 1.0 / 3.0
@@ -152,9 +153,7 @@ class FireSpread
     z = World.key_z(key)
     return 0 unless @world.get(x, y, z) == Block::AIR
 
-    odds = [Block.ignite_odds(@world.get(x, y - 1, z)), Block.ignite_odds(@world.get(x, y + 1, z))].max
-    Block::DIR_DX.size.times { |dir| odds = [odds, Block.ignite_odds(@world.get(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir]))].max }
-    odds
+    @world.ignite_odds_around(x, y, z)
   end
 
   def new_age(age) = @rng.rand01 < NEW_FIRE_OLDER ? [age + 1, MAX_AGE].min : age

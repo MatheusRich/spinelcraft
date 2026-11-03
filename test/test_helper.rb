@@ -25,8 +25,9 @@ end
 
 # An Rng that gives the rolls of a list in order, then the last one again
 # and again.
-class Rolls
+class Rolls < Rng
   def initialize(*rolls)
+    super(0)
     @rolls = rolls
   end
 

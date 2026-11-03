@@ -7,7 +7,7 @@ class LavaFireTest < Minitest::Test
   X = 8
   Y = SKY_Y - 20
   Z = 8
-  # Rolls of side_step: one block back, none, and one block on.
+  # Rolls of a side step (Rng#between): one block back, none, and one block on.
   BACK = 0.0
   STAY = 0.5
   ON = 0.999

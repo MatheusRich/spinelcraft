@@ -26,8 +26,9 @@ class LavaFire
   end
 
   # The random ticks of dt seconds of the lava in lamps, the lamp list of a
-  # chunk (World#torches_of). Only lava that air touches is in the list,
-  # and only that lava can light a fire.
+  # chunk (World#torches_of). Each lamp gets its share of the ticks, and a
+  # tick on a lamp that is not lava does nothing. Lava is in the list only
+  # where air touches it, and only that lava can light a fire.
   def tick_lava(lamps, dt)
     count = lamps.size / 3
     ticks = (count * dt / RANDOM_TICK + @rng.rand01).to_i
@@ -48,9 +49,9 @@ class LavaFire
     return light_beside_lava(x, y, z) if steps == 0
 
     steps.times do
-      x += side_step
+      x += @rng.between(-1, 1)
       y += 1
-      z += side_step
+      z += @rng.between(-1, 1)
       return unless @world.inside?(x, y, z)
 
       block = @world.get(x, y, z)
@@ -62,16 +63,14 @@ class LavaFire
 
   def light_beside_lava(x, y, z)
     SIDE_TRIES.times do
-      side_x = x + side_step
-      side_z = z + side_step
+      side_x = x + @rng.between(-1, 1)
+      side_z = z + @rng.between(-1, 1)
       next unless @world.inside?(side_x, y + 1, side_z) && @world.get(side_x, y + 1, side_z) == Block::AIR
 
       light(side_x, y + 1, side_z) if Block.flammable?(@world.get(side_x, y, side_z))
     end
     nil
   end
-
-  def side_step = (@rng.rand01 * 3).to_i - 1
 
   def light(x, y, z)
     @changes << x << y << z << Block::FIRE

@@ -21,6 +21,8 @@ class Storm
   # A body in the 3 x 3 columns around a strike draws it to itself.
   DRAW_REACH = 1
   # The fires that a strike tries beside its own (see Game#light_strike_fires).
+  # The wiki does not give the count. It is the one of the Java code
+  # (LightningBolt#spawnFire). minecraft.wiki/w/Lightning
   STRIKE_FIRE_TRIES = 4
   SMOKE_PUFFS = 12
 

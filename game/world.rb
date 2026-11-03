@@ -194,13 +194,14 @@ class World
     cactus_room?(ix, iy, iz)
   end
 
-  # True when a block that burns is next to x, y, z, on any of its six
-  # sides.
-  def next_to_flammable?(x, y, z) = Block.flammable?(get(x, y - 1, z)) || Block.flammable?(get(x, y + 1, z)) || flammable_beside?(x, y, z)
-
-  def flammable_beside?(x, y, z)
-    (0...Block::DIR_DX.size).any? { |dir| Block.flammable?(get(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir])) }
+  # The highest ignite odds of the blocks on the six sides of x, y, z.
+  def ignite_odds_around(x, y, z)
+    odds = [Block.ignite_odds(get(x, y - 1, z)), Block.ignite_odds(get(x, y + 1, z))].max
+    Block::DIR_DX.size.times { |dir| odds = [odds, Block.ignite_odds(get(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir]))].max }
+    odds
   end
+
+  def next_to_flammable?(x, y, z) = ignite_odds_around(x, y, z) > 0
 
   # True when the wall of a block at x, y, z that faces dir is solid, or
   # is in a chunk that is not loaded. get gives air there, but the wall
@@ -260,14 +261,14 @@ class World
     end
   end
 
-  # The light list of a loaded chunk, else an empty list. (An Array-or-nil
-  # return makes Spinel box the elements.)
   def take_loaded_fires
     fires = @loaded_fires
     @loaded_fires = Array.new(0, 0)
     fires
   end
 
+  # The light list of a loaded chunk, else an empty list. (An Array-or-nil
+  # return makes Spinel box the elements.)
   def torches_of(cx, cz) = chunk_loaded?(cx, cz) ? @chunk_torches[World.slot(cx.to_i, cz.to_i)] : @no_torches
 
   def get(x, y, z)
