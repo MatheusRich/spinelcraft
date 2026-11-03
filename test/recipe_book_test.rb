@@ -143,7 +143,7 @@ class RecipeBookTest < Minitest::Test
     assert_equal 0, book.top
   end
 
-  def test_a_feather_and_a_plank_make_four_arrows_at_a_crafting_table
+  def test_a_feather_and_a_flint_make_four_arrows_at_a_crafting_table
     book = RecipeBook.new
     assert_equal "", book.see(Block::GRAVEL)
     assert_equal "NEW RECIPE: ARROW - AT A CRAFTING TABLE", book.see(Block::FEATHER)
@@ -151,9 +151,11 @@ class RecipeBookTest < Minitest::Test
     slots = Slots.new(36)
     2.times { slots.add(Block::FEATHER) }
     slots.add(Block::BIRCH_PLANKS)
-    assert_equal "1 FEATHER + 1 PLANKS", arrow.need
+    assert_equal 0, arrow.craftable(slots)
+    slots.add(Block::FLINT)
+    assert_equal "1 FEATHER + 1 FLINT", arrow.need
     assert_equal 4, arrow.craft(2, slots)
-    assert_equal [4, 1, 0], [slots.total(Block::ARROW), slots.total(Block::FEATHER), slots.total(Block::BIRCH_PLANKS)]
+    assert_equal [4, 1, 0, 1], [slots.total(Block::ARROW), slots.total(Block::FEATHER), slots.total(Block::FLINT), slots.total(Block::BIRCH_PLANKS)]
   end
 
   def test_a_bed_takes_three_wool_and_three_planks_of_any_wood

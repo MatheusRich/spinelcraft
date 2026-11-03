@@ -32,6 +32,7 @@ These files are copies with no changes.
 | `birch_log_side.png`, `birch_log_top.png`, `birch_planks.png`, `birch_sapling.png` | `mcl_core_log_birch.png`, `mcl_core_log_birch_top.png`, `mcl_core_planks_birch.png`, `mcl_core_sapling_birch.png` |
 | `cobble.png`, `brick.png`, `glass.png`, `wool.png` | `default_cobble.png`, `default_brick.png`, `default_glass.png`, `wool_white.png` |
 | `obsidian.png` | `default_obsidian.png` |
+| `flint.png` | `default_flint.png` |
 | `cactus_side.png`, `cactus_top.png` | `mcl_core_cactus_side.png`, `mcl_core_cactus_top.png` |
 | `rose.png`, `dandelion.png`, `oak_sapling.png` | `mcl_flowers_poppy.png`, `flowers_dandelion_yellow.png`, `default_sapling.png` |
 | `seeds.png`, `wheat_1.png`, `wheat_2.png`, `wheat_ripe.png` | `mcl_farming_wheat_stage_1.png`, `mcl_farming_wheat_stage_3.png`, `mcl_farming_wheat_stage_5.png`, `mcl_farming_wheat_stage_7.png` |

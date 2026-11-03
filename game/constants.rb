@@ -25,7 +25,7 @@ class Game
                     Block::COAL, Block::IRON_INGOT, Block::SPINEL, Block::WHEAT, Block::APPLE, Block::BREAD, Block::PORKCHOP,
                     Block::COOKED_PORKCHOP, Block::MUTTON, Block::COOKED_MUTTON, Block::BEEF, Block::STEAK,
                     Block::RAW_CHICKEN, Block::COOKED_CHICKEN, Block::ROTTEN_FLESH, Block::LEATHER, Block::MILK_BUCKET,
-                    Block::FEATHER, Block::EGG,
+                    Block::FEATHER, Block::EGG, Block::FLINT,
                     Block::OAK_BOAT, Block::SPRUCE_BOAT, Block::BIRCH_BOAT,
                     Block::PUMPKIN, Block::CARVED_PUMPKIN, Block::JACK_O_LANTERN, Block::PUMPKIN_SEEDS, Block::PUMPKIN_PIE, Block::SHEARS,
                     Block::BONE, Block::BONE_MEAL]

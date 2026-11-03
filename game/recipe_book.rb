@@ -36,9 +36,8 @@ class RecipeBook
                 Recipe.new(Block::SPINEL, 7, Block::SPINEL_LEGGINGS, 1, Recipe::AT_TABLE), Recipe.new(Block::SPINEL, 4, Block::SPINEL_BOOTS, 1, Recipe::AT_TABLE),
                 Recipe.new(Block::COAL, 1, Block::TORCH, 4, Recipe::BY_HAND),
                 # Minecraft makes 4 arrows of a flint, a stick and a feather
-                # (minecraft.wiki/w/Arrow). The game has no flint and no
-                # sticks, so a plank takes the place of both.
-                Recipe.new(Block::FEATHER, 1, Block::ARROW, 4, Recipe::AT_TABLE, Block::ANY_PLANKS, 1),
+                # (minecraft.wiki/w/Arrow). The game has no sticks.
+                Recipe.new(Block::FEATHER, 1, Block::ARROW, 4, Recipe::AT_TABLE, Block::FLINT, 1),
                 Recipe.new(Block::STONE, 2, Block::BRICK, 1, Recipe::AT_TABLE),
                 # minecraft.wiki/w/Bed shows 3 wool over 3 planks of any wood
                 # in the grid. Its text does not give the counts.

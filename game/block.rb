@@ -162,6 +162,7 @@ module Block
   SPINEL_LEGGINGS = 180
   SPINEL_BOOTS = 181
   OBSIDIAN = 182
+  FLINT = 183
   WOODS = [OAK_WOOD = 0, SPRUCE_WOOD = 1, BIRCH_WOOD = 2]
   # The blocks of each wood, one entry for each of WOODS.
   LOGS = [OAK_LOG, SPRUCE_LOG, BIRCH_LOG]
@@ -408,7 +409,8 @@ module Block
   define_block BRICK, "BRICKS", Tex::BRICK, hardness: 2.0, needs_pick: 1, dig: DIG_PICK
   define_block COAL_ORE, "COAL ORE", Tex::COAL_ORE, hardness: 3.0, drops: COAL, needs_pick: 1, dig: DIG_PICK
   define_block IRON, "IRON ORE", Tex::IRON, hardness: 3.0, needs_pick: 2, dig: DIG_PICK
-  define_block GRAVEL, "GRAVEL", Tex::GRAVEL, hardness: 0.6, dig: DIG_SHOVEL, hold: HOLD_FALL
+  # Gravel drops flint in place of itself 1 time in 10. minecraft.wiki/w/Gravel
+  define_block GRAVEL, "GRAVEL", Tex::GRAVEL, hardness: 0.6, dig: DIG_SHOVEL, hold: HOLD_FALL, chance_drops: { FLINT => 0.1 }
   define_block DIAMOND, "DIAMOND ORE", Tex::DIAMOND, hardness: 3.0, needs_pick: 3, dig: DIG_PICK
   define_block CACTUS, "CACTUS", Tex::CACTUS_SIDE, top: Tex::CACTUS_TOP, shape: 6, opaque: 0, hardness: 0.4,
                hold: HOLD_CACTUS
@@ -556,6 +558,7 @@ module Block
   define_item SPINEL_BOOTS, "SPINEL BOOTS", Tex::SPINEL_BOOTS
   # minecraft.wiki/w/Obsidian
   define_block OBSIDIAN, "OBSIDIAN", Tex::OBSIDIAN, hardness: 50.0, needs_pick: 4, dig: DIG_PICK
+  define_item FLINT, "FLINT", Tex::FLINT
   COUNT = NAMES.size
 
   def self.blocks_light(block) = block != AIR && block != GLASS && !door?(block) && BASE[block] != LADDER && !plant?(block)

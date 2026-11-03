@@ -10,6 +10,11 @@ class BlockTest < Minitest::Test
     assert_equal [], Block.dropped_items(Block::GLASS, NO_ROLL_HITS)
   end
 
+  def test_gravel_drops_flint_in_place_of_itself_when_the_roll_hits
+    assert_equal [Block::FLINT], Block.dropped_items(Block::GRAVEL, EVERY_ROLL_HITS)
+    assert_equal [Block::GRAVEL], Block.dropped_items(Block::GRAVEL, NO_ROLL_HITS)
+  end
+
   def test_placed_oak_leaves_drop_each_chance_drop_that_hits
     assert_equal [Block::OAK_SAPLING, Block::APPLE], Block.dropped_items(Block::PLACED_OAK_LEAVES, EVERY_ROLL_HITS)
     assert_equal [Block::SPRUCE_SAPLING], Block.dropped_items(Block::SPRUCE_LEAVES, EVERY_ROLL_HITS)

@@ -3262,18 +3262,22 @@ class Game
   # Oak leaves drop a sapling 1 time in 20 and an apple 1 time in 200,
   # and spruce leaves never drop an apple (minecraft.wiki/w/Leaves). Ripe
   # wheat drops 1 to 4 seeds, about 2 5/7 on average
-  # (minecraft.wiki/w/Wheat_Seeds). The bounds are more than 3 standard
-  # deviations wide, and the seed of @rng is fixed.
+  # (minecraft.wiki/w/Wheat_Seeds). Gravel drops flint 1 time in 10, and
+  # itself otherwise (minecraft.wiki/w/Gravel). The bounds are more than 3
+  # standard deviations wide, and the seed of @rng is fixed.
   def test_drop_rates
     @rng = Rng.new(11)
     oak = [0, 0]
     spruce = [0, 0]
+    gravel = [0, 0]
     seeds = [0, 0, 0, 0, 0]
     4000.times do
       oak[0] += drops_of(Block::OAK_LEAVES, Block::OAK_SAPLING)
       oak[1] += ground_count(Block::APPLE)
       spruce[0] += drops_of(Block::SPRUCE_LEAVES, Block::SPRUCE_SAPLING)
       spruce[1] += ground_count(Block::APPLE)
+      gravel[0] += drops_of(Block::GRAVEL, Block::FLINT)
+      gravel[1] += ground_count(Block::GRAVEL)
     end
     2000.times do
       count = drops_of(Block::WHEAT_RIPE, Block::SEEDS)
@@ -3283,6 +3287,7 @@ class Game
     average = (seeds[1] + seeds[2] * 2 + seeds[3] * 3 + seeds[4] * 4) / 2000.0
     check("oak leaves drop a sapling 1 time in 20 and an apple 1 time in 200, and spruce leaves no apple",
           oak[0].between?(160, 240) && oak[1].between?(8, 34) && spruce[0].between?(160, 240) && spruce[1] == 0)
+    check("gravel drops flint 1 time in 10, and gravel otherwise", gravel[0].between?(340, 460) && gravel.sum == 4000)
     check("ripe wheat drops 1 to 4 seeds, about 2 5/7 on average",
           seeds.sum == 2000 && seeds[0] == 0 && seeds[1] > 0 && seeds[4] > 0 && (average - 2.714).abs < 0.1)
   end
