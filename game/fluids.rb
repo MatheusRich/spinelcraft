@@ -10,6 +10,8 @@ class Fluids
   # every 30 ticks. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
   WATER_STEP = 0.25
   LAVA_STEP = 1.5
+  # minecraft.wiki/w/Water
+  RENEW_SOURCES = 2
   WATER = Fluid.new(Block::WATER_LEVEL, Block::WATER, Block::FLOW)
   LAVA = Fluid.new(Block::LAVA_LEVEL, Block::LAVA, Block::LAVA_FLOW)
 
@@ -58,12 +60,24 @@ class Fluids
     block = @world.get(x, y, z)
     return Block::COBBLE if Block.lava?(block) && @world.touches_water?(x, y, z)
     return -1 unless WATER.passes?(block)
+    return Block::WATER if renews?(x, y, z)
 
     want = @water.flowing_block(x, y, z)
     return -1 if want == block
     return -1 if want == Block::AIR && WATER.level(block) == 0
 
     want
+  end
+
+  # Water becomes a source between RENEW_SOURCES sources on a solid block
+  # or a source, or beside a source with a source above it.
+  # minecraft.wiki/w/Water
+  def renews?(x, y, z)
+    sources = Block::DIR_DX.each_index.count { |dir| @world.get(x + Block::DIR_DX[dir], y, z + Block::DIR_DZ[dir]) == Block::WATER }
+    return sources > 0 if @world.get(x, y + 1, z) == Block::WATER
+
+    below = @world.get(x, y - 1, z)
+    sources >= RENEW_SOURCES && (Block.solid?(below) || below == Block::WATER)
   end
 
   # The block that the cell x, y, z should change to in a step of lava,

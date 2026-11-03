@@ -147,6 +147,48 @@ class FluidsTest < Minitest::Test
     assert_equal [3, 3, 2, 1, 0], lava_levels(4..8)
   end
 
+  def test_water_between_two_sources_on_a_floor_becomes_a_source
+    @world.set(3, Y, Z, Block::WATER)
+    put(5, Y, Z, Block::WATER)
+    steps(1)
+    assert_equal Block::WATER, @world.get(4, Y, Z)
+  end
+
+  def test_a_pool_of_2_by_2_sources_fills_again_where_a_bucket_takes_one
+    [[4, Z], [5, Z], [4, Z + 1], [5, Z + 1]].each { |x, z| @world.set(x, Y, z, Block::WATER) }
+    put(4, Y, Z, Block::AIR)
+    steps(1)
+    assert_equal Block::WATER, @world.get(4, Y, Z)
+  end
+
+  def test_water_between_two_sources_over_air_or_flowing_water_stays_flowing
+    [Block::AIR, Block::FLOW + 6].each do |below|
+      @world.set(4, Y - 1, Z, below)
+      [3, 5].each { |x| @world.set(x, Y, Z, Block::WATER) }
+      assert_equal Block::FLOW + 6, @fluids.water_wanted(4, Y, Z), below
+    end
+  end
+
+  def test_water_between_two_sources_over_a_source_becomes_a_source
+    @world.set(4, Y - 1, Z, Block::WATER)
+    [3, 5].each { |x| @world.set(x, Y, Z, Block::WATER) }
+    assert_equal Block::WATER, @fluids.water_wanted(4, Y, Z)
+  end
+
+  def test_water_beside_one_source_becomes_a_source_only_under_a_source
+    @world.set(3, Y, Z, Block::WATER)
+    assert_equal Block::FLOW + 6, @fluids.water_wanted(4, Y, Z)
+    @world.set(4, Y + 1, Z, Block::FLOW + 6)
+    assert_equal Block::FLOW + 6, @fluids.water_wanted(4, Y, Z)
+    @world.set(4, Y + 1, Z, Block::WATER)
+    assert_equal Block::WATER, @fluids.water_wanted(4, Y, Z)
+  end
+
+  def test_water_under_a_source_with_no_source_beside_it_stays_flowing
+    @world.set(4, Y + 1, Z, Block::WATER)
+    assert_equal Block::FLOW + 6, @fluids.water_wanted(4, Y, Z)
+  end
+
   def test_water_on_a_side_cools_lava_into_cobblestone
     put(4, Y, Z, Block::LAVA)
     put(5, Y, Z, Block::WATER)
