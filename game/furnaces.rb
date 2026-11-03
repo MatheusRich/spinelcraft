@@ -25,6 +25,13 @@ class Furnaces
   # The furnace at x, y, z. A cell that has none gets a new one.
   def furnace_at(x, y, z) = @furnaces[World.key(x, y, z)] ||= Furnace.new(x, y, z)
 
+  # The key of each furnace that burns (Furnace#lit?).
+  def lit_keys
+    keys = Array.new(0, 0)
+    @furnaces.each { |key, furnace| keys << key.to_i if furnace.lit? }
+    keys
+  end
+
   # Forgets the furnace with the key, and gives it, or nil.
   def remove_at(key) = @furnaces.delete(key)
 

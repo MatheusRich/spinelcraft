@@ -1217,8 +1217,8 @@ class Game
     @sfx.ids.include?(Sfx::SPLASH)
   end
 
-  # Lava under air, flowing water and a lit furnace make sounds, but
-  # covered lava and still water do not.
+  # Lava under air and flowing water make sounds, but covered lava and
+  # still water do not.
   def test_block_sounds
     x = @player.x.floor
     z = @player.z.floor
@@ -1231,18 +1231,14 @@ class Game
     flowing = block_sound(x, y, z)
     set_block(x, y, z, Block::WATER)
     still = block_sound(x, y, z)
-    set_block(x, y, z, Block.furnace_id(0, true))
-    furnace = block_sound(x, y, z)
     set_block(x, y, z, Block::AIR)
     set_block(x, y + 1, z, Block::AIR)
-    check("lava, flowing water and a lit furnace make sounds",
-          AMBIENT[open_lava] == Sfx::LAVA && covered_lava < 0 && AMBIENT[flowing] == Sfx::FLOWING &&
-          still < 0 && AMBIENT[furnace] == Sfx::CRACKLE)
+    check("lava and flowing water make sounds",
+          AMBIENT[open_lava] == Sfx::LAVA && covered_lava < 0 && AMBIENT[flowing] == Sfx::FLOWING && still < 0)
   end
 
-  # A lit furnace next to the player crackles about once in 3 seconds, as
-  # in Minecraft, not once in 25 seconds. The check counts the crackles in
-  # 2 minutes, with no wait for the end of the clip.
+  # A furnace that burns next to the player plays the crackle loop, and an
+  # idle one does not.
   def test_furnace_crackle
     x = @spawn_x.floor + 30
     z = @spawn_z.floor + 80
@@ -1250,16 +1246,16 @@ class Game
     set_block(x + 1, y, z, Block.furnace_id(0, true))
     player = [@player.x, @player.y, @player.z]
     @player.move_to(x + 0.5, y.to_f, z + 0.5)
-    crackles = 0
-    7200.times do
-      @ambient_wait[2] = 0.0
-      update_block_sounds(1.0 / 60.0)
-      crackles += 1 if @ambient_wait[2] > 0.0
-    end
-    @ambient_wait[2] = 0.0
+    furnace = @furnaces.furnace_at(x + 1, y, z)
+    play_fire_sound
+    idle = @fire_sound.gain
+    furnace.burn = 100
+    play_fire_sound
+    lit = @fire_sound.gain
     set_block(x + 1, y, z, Block::AIR)
+    play_fire_sound
     @player.move_to(player[0], player[1], player[2])
-    check("a lit furnace next to the player crackles every few seconds", crackles > 15)
+    check("a furnace that burns next to the player plays the crackle loop, and an idle one does not", idle == 0.0 && lit > 0.0)
   end
 
   # In a dark pocket deep in the rock, the fear grows and a cave sound

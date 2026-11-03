@@ -775,9 +775,10 @@ class Game
     end
   end
 
-  # The loop of the crackle of the fires near the player (see FireSound).
+  # The loop of the crackle of the fires and the lit furnaces near the
+  # player (see FireSound).
   def play_fire_sound
-    @fire_sound.update_sound(@fires, @player)
+    @fire_sound.update_sound(@fires, @furnaces, @player)
     sound = @fire_sound
     volume = @sfx.near_volume(sound.x, sound.y, sound.z, sound.gain, FireSound::RANGE)
     Gfx.au_loop(Sfx::FIRE_LOOP, Sfx::CRACKLE, volume * @options.volume, @sfx.pan_to(sound.x, sound.y, sound.z)) if @sound
@@ -793,7 +794,6 @@ class Game
     block = @world.get(x, y, z)
     return 0 if Block.lava?(block) && @world.get(x, y + 1, z) == Block::AIR
     return 1 if Block.water?(block) && block != Block::WATER
-    return 2 if Block.furnace_lit?(block)
 
     -1
   end

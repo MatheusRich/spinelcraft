@@ -125,4 +125,11 @@ class FurnacesTest < Minitest::Test
     furnace.slots.set(Furnace::INPUT, Block::IRON, 1)
     furnace.slots.set(Furnace::FUEL, Block::COAL, 1)
   end
+
+  def test_lit_keys_lists_the_furnaces_that_burn
+    @furnaces.furnace_at(1, 70, 2)
+    @furnaces.furnace_at(5, 71, 6).burn = 100
+    assert_equal [World.key(5, 71, 6)], @furnaces.lit_keys
+  end
+
 end

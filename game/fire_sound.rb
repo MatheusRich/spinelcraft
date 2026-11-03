@@ -1,16 +1,17 @@
-# The crackle of the fires near the player, as Minetest Game plays it (the
-# flame sound of its fire mod): one loop of the crackle at the middle of
-# the box around the fires that the player hears, louder with each fire.
-# Minecraft plays a crackle now and then from each fire
-# (minecraft.wiki/w/Fire). The crackle of the game is the loop of Minetest
+# The crackle of the fires and the lit furnaces near the player, as
+# Minetest Game plays the crackle of fire (the flame sound of its fire
+# mod): one loop of the crackle at the middle of the box around the fires
+# that the player hears, louder with each fire. A lit furnace counts as a
+# fire. Minecraft plays a crackle now and then from each fire and each lit
+# furnace (minecraft.wiki/w/Fire, /w/Furnace). The crackle of the game is the loop of Minetest
 # Game, so it plays as there. Minetest Game counts only the fires up to 8
 # blocks away, so the loop stops at once past them. This loop counts the
 # fires up to RANGE, so it fades out.
 class FireSound
   # The loop plays at (1 + fires * PER_FIRE) / MOST of VOLUME, at most at
   # VOLUME, as the gain min(0.06 * (1 + fires * 0.125), 0.18) of Minetest
-  # Game. VOLUME is the volume of the crackle of a lit furnace
-  # (Game::AMBIENT_VOLUME).
+  # Game. At VOLUME the loop is as loud as the crackle of a lit furnace
+  # before the loop.
   PER_FIRE = 0.125
   MOST = 3.0
   VOLUME = 0.5
@@ -29,9 +30,10 @@ class FireSound
     nil
   end
 
-  # Counts the fires (Fires#keys) near the player again.
-  def update_sound(fires, player)
-    near = fires.keys.select { |key| near?(key, player) }
+  # Counts the fires (Fires#keys) and the lit furnaces near the player
+  # again.
+  def update_sound(fires, furnaces, player)
+    near = (fires.keys + furnaces.lit_keys).select { |key| near?(key, player) }
     @gain = near.empty? ? 0.0 : [(1.0 + near.size * PER_FIRE) / MOST, 1.0].min * VOLUME
     return if near.empty?
 
