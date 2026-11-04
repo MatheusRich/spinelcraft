@@ -72,6 +72,15 @@ class Terrain
   ].freeze
   # The size of the erosion noise in blocks.
   EROSION_SCALE = 1500.0
+  # The landforms that pick biomes (Biome::LANDFORMS): rough land below the
+  # erosion ROUGH_EROSION, low land up to SWAMP_TOP, flat land above
+  # FLAT_EROSION, and plateau tops in the plateau band of EROSION,
+  # PLATEAU_TOP or more above the sea.
+  ROUGH_EROSION = EROSION[2]
+  PLATEAU_LOW_EROSION = EROSION[3]
+  PLATEAU_HIGH_EROSION = EROSION[4]
+  PLATEAU_TOP = 30
+  FLAT_EROSION = EROSION[8]
   # Islands rise in open ocean where the island noise is above ISLE. ISLE_RISE
   # is the height of a dome for each step of the noise above ISLE, and
   # ISLE_SCALE is the size of the noise in blocks.
@@ -146,9 +155,12 @@ class Terrain
     @warp_nz = SHIFT
     @wx = warp_x(SHIFT, SHIFT)
     @wz = warp_z(SHIFT, SHIFT)
-    # The continent noise of the last column, once continent reads it.
+    # The continent and erosion noise of the last column, once continent
+    # and erosion read them.
     @continent = 0.0
     @continent_read = false
+    @erosion = 0.0
+    @erosion_read = false
     # The 8 grid points around a block (carved?) and the 4 edges of a cell (trilinear).
     @corner_a = Array.new(8, 0.0)
     @corner_b = Array.new(8, 0.0)
@@ -188,6 +200,7 @@ class Terrain
     @wx = warp_x(nx, nz)
     @wz = warp_z(nx, nz)
     @continent_read = false
+    @erosion_read = false
     nil
   end
 
@@ -215,7 +228,7 @@ class Terrain
     continent = continent(x, z)
     wx = @wx
     wz = @wz
-    erosion = erosion(wx, wz)
+    erosion = erosion(x, z)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
     h = hills * Terrain.land(LAND_HILLS, continent, erosion)
     if continent < LAND_CONTINENT[0]
@@ -251,7 +264,16 @@ class Terrain
     h.to_i.clamp(4, TOP.to_i)
   end
 
-  def erosion(wx, wz) = @noise4.fbm2(wx / EROSION_SCALE + 30.0, wz / EROSION_SCALE, 3)
+  # The erosion noise of column x, z (see EROSION). The last column is kept,
+  # as biome follows surface_height on the same column.
+  def erosion(x, z)
+    warp(x + SHIFT, z + SHIFT)
+    unless @erosion_read
+      @erosion = @noise4.fbm2(@wx / EROSION_SCALE + 30.0, @wz / EROSION_SCALE, 3)
+      @erosion_read = true
+    end
+    @erosion
+  end
 
   # The height of the ridges, spurs and peaks of a mountain range at the
   # warped position wx, wz.
@@ -309,7 +331,18 @@ class Terrain
     t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2
     t -= (h - COLD_LINE) * COOLING if h > COLD_LINE
     w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2
-    Biome.pick(t, w, h <= SWAMP_TOP)
+    Biome.pick(t, w, Terrain.landform(erosion(x, z), h))
+  end
+
+  # The landform (Biome::LANDFORMS) of a column with the erosion noise
+  # erosion and the height.
+  def self.landform(erosion, height)
+    return Biome::ROUGH if erosion < ROUGH_EROSION
+    return Biome::LOW if height <= SWAMP_TOP
+    return Biome::FLAT if erosion > FLAT_EROSION
+    return Biome::PLATEAU if erosion.between?(PLATEAU_LOW_EROSION, PLATEAU_HIGH_EROSION) && height >= SEA + PLATEAU_TOP
+
+    Biome::MIDDLE
   end
 
   # Height bands. top is the y of the column's top block.

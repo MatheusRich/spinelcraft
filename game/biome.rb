@@ -89,25 +89,43 @@ module Biome
   # The most trees of any biome, so a roll at or above it needs no biome.
   MAX_TREES = TREES.max
 
-  # The biome for temperature t and humidity w. low is true near sea
-  # level, the only land where swamps grow.
-  def self.pick(t, w, low)
-    if t < -0.32
-      w > 0.1 ? SNOWY_TAIGA : TUNDRA
-    elsif t < -0.14
-      w > -0.1 ? TAIGA : PLAINS
-    elsif t < 0.22
-      if w < -0.1
-        PLAINS
-      elsif w > 0.14 && low
-        SWAMP
-      else
-        FOREST
-      end
-    elsif w < -0.05
-      DESERT
-    else
-      w > 0.16 ? JUNGLE : SAVANNA
-    end
+  # The shape of the land at a column, from Terrain#landform: mountains and
+  # rough hills, plateau tops, low land near the sea, flat land, and the
+  # land between.
+  LANDFORMS = [ROUGH = 0, PLATEAU = 1, LOW = 2, FLAT = 3, MIDDLE = 4]
+  CLIMATES = [COLD = 0, COOL = 1, TEMPERATE = 2, WARM = 3]
+  # The temperature at which each climate after the first starts.
+  CLIMATE_STARTS = [-0.32, -0.14, 0.22].freeze
+  # For each climate, the humidity below which the land is dry and above
+  # which it is wet.
+  DRY_BELOW = [0.1, -0.1, -0.08, -0.05].freeze
+  WET_ABOVE = [0.1, -0.1, 0.14, 0.16].freeze
+  # The biome for each climate, landform and humidity (dry, middle, wet).
+  # The climate picks a set of biomes, and the landform picks one of the
+  # set, as in Minecraft 1.18: forests and taigas on rough land, plains and
+  # deserts on flat land, swamps only on low land.
+  BIOMES = [
+    [[SNOWY_TAIGA, SNOWY_TAIGA, SNOWY_TAIGA], [TUNDRA, TUNDRA, TUNDRA], [TUNDRA, TUNDRA, TUNDRA],
+     [TUNDRA, TUNDRA, TUNDRA], [TUNDRA, TUNDRA, SNOWY_TAIGA]],
+    [[TAIGA, TAIGA, TAIGA], [PLAINS, PLAINS, PLAINS], [PLAINS, PLAINS, PLAINS],
+     [PLAINS, PLAINS, PLAINS], [PLAINS, TAIGA, TAIGA]],
+    [[FOREST, FOREST, FOREST], [PLAINS, PLAINS, PLAINS], [PLAINS, PLAINS, SWAMP],
+     [PLAINS, PLAINS, PLAINS], [PLAINS, FOREST, FOREST]],
+    [[SAVANNA, SAVANNA, JUNGLE], [SAVANNA, SAVANNA, SAVANNA], [DESERT, DESERT, JUNGLE],
+     [DESERT, DESERT, DESERT], [DESERT, SAVANNA, JUNGLE]]
+  ].freeze
+  HUMIDITIES = [ARID = 0, MOIST = 1, WET = 2]
+
+  # The biome for the temperature, the humidity and the landform.
+  def self.pick(temperature, humidity, landform)
+    climate = CLIMATE_STARTS.count { |start| temperature >= start }
+    BIOMES[climate][landform][humidity_band(climate, humidity)]
+  end
+
+  def self.humidity_band(climate, humidity)
+    return ARID if humidity < DRY_BELOW[climate]
+    return WET if humidity > WET_ABOVE[climate]
+
+    MOIST
   end
 end
