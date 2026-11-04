@@ -344,8 +344,8 @@ class TreasureMapTest < Minitest::Test
 
   def test_a_cell_of_land_has_no_site
     map = TreasureMap.new(terrain)
-    assert terrain.land?(0, 0)
-    refute map.site_at(0, 0).found?
+    assert terrain.land?(0, -1024)
+    refute map.site_at(0, -1024).found?
   end
 
   def test_the_same_seed_gives_the_same_sites

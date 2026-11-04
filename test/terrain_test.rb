@@ -1,9 +1,37 @@
 require_relative "test_helper"
 
 class TerrainTest < Minitest::Test
-  def test_the_continent_spline_has_rising_points_and_one_height_for_each
+  def test_the_sea_floor_spline_has_rising_points_and_one_height_for_each
     assert(Terrain::CONTINENT.each_cons(2).all? { |a, b| b > a })
-    assert_equal Terrain::CONTINENT.size, Terrain::BASE.size
+    assert_equal Terrain::CONTINENT.size, Terrain::SEA_FLOOR.size
+  end
+
+  def test_each_land_table_has_one_value_for_each_continent_and_erosion_point
+    assert(Terrain::LAND_CONTINENT.each_cons(2).all? { |a, b| b > a })
+    assert(Terrain::EROSION.each_cons(2).all? { |a, b| b > a })
+    [Terrain::LAND_BASE, Terrain::LAND_HILLS, Terrain::LAND_RIDGES].each do |table|
+      assert_equal Terrain::LAND_CONTINENT.size, table.size
+      assert(table.all? { |row| row.size == Terrain::EROSION.size })
+    end
+  end
+
+  def test_the_sea_floor_meets_the_coast
+    assert_equal Terrain::CONTINENT.last, Terrain::LAND_CONTINENT.first
+    assert_equal SEA, Terrain::SEA_FLOOR.last
+  end
+
+  # A table whose value at row r and column c is 100 * r + c.
+  def test_a_land_value_follows_a_line_between_the_table_points
+    table = Array.new(Terrain::LAND_CONTINENT.size) { |row| Array.new(Terrain::EROSION.size) { |column| 100.0 * row + column } }
+    continents = Terrain::LAND_CONTINENT
+    erosions = Terrain::EROSION
+    assert_in_delta 203.0, Terrain.land(table, continents[2], erosions[3])
+    assert_in_delta 203.5, Terrain.land(table, continents[2], (erosions[3] + erosions[4]) / 2)
+    assert_in_delta 253.0, Terrain.land(table, (continents[2] + continents[3]) / 2, erosions[3])
+    assert_in_delta 225.0, Terrain.land(table, continents[2] * 0.75 + continents[3] * 0.25, erosions[0])
+    assert_in_delta 50.0, Terrain.land(table, (continents[0] + continents[1]) / 2, erosions[0])
+    assert_in_delta 0.0, Terrain.land(table, continents[0] - 1.0, erosions[0] - 1.0)
+    assert_in_delta 100.0 * (continents.size - 1) + erosions.size - 1, Terrain.land(table, continents.last + 1.0, erosions.last + 1.0)
   end
 
   # The spawn search looks for land: a column whose noise surface is more

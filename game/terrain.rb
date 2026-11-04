@@ -32,10 +32,46 @@ class Terrain
   # surface and opens a separate, rarer set of entrances.
   ENTRANCE = 0.25
   ENTRANCE_SCALE = 48.0
-  # The base height of the land (BASE) at each continent noise value
-  # (CONTINENT): deep ocean, ocean, coast, lowland, then highland.
-  CONTINENT = [-0.25, -0.17, -0.135, -0.12, -0.07, 0.06, 0.2, 0.34]
-  BASE = [SEA - 34.0, SEA - 26.0, SEA - 8.0, SEA + 0.0, SEA + 8.0, SEA + 14.0, SEA + 28.0, SEA + 40.0]
+  # The height of the sea floor (SEA_FLOOR) at each continent noise value
+  # (CONTINENT): deep ocean, ocean, shelf, then the coast.
+  CONTINENT = [-0.25, -0.17, -0.135, -0.12]
+  SEA_FLOOR = [SEA - 34.0, SEA - 26.0, SEA - 8.0, SEA + 0.0]
+  # The land from the coast inland takes its shape from two noise fields:
+  # the continent noise (rows, at LAND_CONTINENT) and the erosion noise
+  # (columns, at EROSION). Low erosion is rough, high land, and high
+  # erosion is flat, low land. Each table gives a value at each point, and
+  # the land between the points takes the value along a straight line.
+  # LAND_BASE is the height above the sea, LAND_HILLS the height of the
+  # hills, and LAND_RIDGES the part of RIDGE_RISE that mountain ridges
+  # reach. Far inland, a narrow band of erosion lifts plateaus with steep
+  # sides. The shape follows the terrain splines of Minecraft 1.18, as
+  # Henrik Kniberg showed them in "Reinventing Minecraft world generation"
+  # (2022). The values are ours.
+  LAND_CONTINENT = [-0.12, -0.08, -0.02, 0.06, 0.18]
+  EROSION = [-0.2, -0.09, -0.05, -0.047, -0.015, -0.012, 0.03, 0.045, 0.06, 0.2]
+  LAND_BASE = [
+    [3.0, 2.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [24.0, 16.0, 7.0, 6.0, 6.0, 5.0, 5.0, 4.0, 3.0, 2.0],
+    [14.0, 12.0, 13.0, 12.0, 12.0, 11.0, 10.0, 8.0, 5.0, 3.0],
+    [20.0, 18.0, 20.0, 45.0, 45.0, 18.0, 15.0, 12.0, 8.0, 5.0],
+    [28.0, 26.0, 28.0, 68.0, 68.0, 50.0, 44.0, 34.0, 26.0, 22.0]
+  ].freeze
+  LAND_HILLS = [
+    [30.0, 20.0, 14.0, 12.0, 10.0, 9.0, 7.0, 6.0, 4.0, 2.0],
+    [50.0, 40.0, 32.0, 28.0, 26.0, 24.0, 18.0, 14.0, 6.0, 3.0],
+    [45.0, 45.0, 40.0, 32.0, 30.0, 28.0, 22.0, 16.0, 7.0, 3.0],
+    [45.0, 45.0, 40.0, 8.0, 8.0, 30.0, 24.0, 18.0, 7.0, 4.0],
+    [45.0, 45.0, 42.0, 8.0, 8.0, 32.0, 26.0, 20.0, 9.0, 5.0]
+  ].freeze
+  LAND_RIDGES = [
+    [0.9, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [0.8, 0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  ].freeze
+  # The size of the erosion noise in blocks.
+  EROSION_SCALE = 1500.0
   # Islands rise in open ocean where the island noise is above ISLE. ISLE_RISE
   # is the height of a dome for each step of the noise above ISLE, and
   # ISLE_SCALE is the size of the noise in blocks.
@@ -63,27 +99,6 @@ class Terrain
   # The size of the temperature and humidity noise in blocks. A climate
   # zone is a few hundred blocks or more across.
   CLIMATE_SCALE = 1600.0
-  # The landscape noise picks the kind of land inland, in regions of
-  # LANDSCAPE_SCALE blocks. Below MOUNTAINS it makes mountain ranges, from
-  # PLATEAU_LOW to PLATEAU_HIGH plateaus PLATEAU_RISE above the sea, and
-  # above FLATLAND flat lowland. Rolling hills fill the bands between.
-  # Each kind fades in over LANDSCAPE_EDGE of the noise, and a plateau over
-  # the shorter PLATEAU_EDGE, so its sides are steep.
-  LANDSCAPE_SCALE = 1500.0
-  MOUNTAINS = -0.1
-  PLATEAU_LOW = -0.06
-  PLATEAU_HIGH = 0.02
-  FLATLAND = 0.08
-  LANDSCAPE_EDGE = 0.02
-  PLATEAU_EDGE = 0.006
-  PLATEAU_RISE = 55.0
-  # How tall the hills are on each kind of land: HILLS on rolling hills,
-  # and the others in mountain ranges, on plateaus and on flat lowland.
-  # The hill noise goes from about -1 to 1.
-  HILLS = 9.0
-  MOUNTAIN_HILLS = 35.0
-  PLATEAU_HILLS = 3.0
-  FLAT_HILLS = 4.5
   # The ridges of a mountain range follow the lines where the ridge noise
   # is zero. RIDGE_SCALE is the size of that noise in blocks, and the
   # highest ridge is RIDGE_RISE above the land around it. Smaller spurs
@@ -94,13 +109,9 @@ class Terrain
   SPUR = 0.4
   # The lines of a ridge close into loops. The peak noise, of PEAK_SCALE
   # blocks, breaks them: it lifts some stretches of a ridge into peaks,
-  # and lowers the others to saddles SADDLE as tall. A range is lowest at
-  # its edge, RANGE_EDGE as tall, and reaches its full height RANGE_CORE
-  # of the landscape noise inside it.
+  # and lowers the others to saddles SADDLE as tall.
   PEAK_SCALE = 120.0
   SADDLE = 0.2
-  RANGE_EDGE = 0.45
-  RANGE_CORE = 0.12
   # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
@@ -195,30 +206,25 @@ class Terrain
   end
 
   # The height of the column's top block plus one, after Minecraft 1.18.
-  # The continent noise picks ocean, coast, lowland or highland, and a
-  # spline turns it into a base height. Inland, the landscape noise picks
-  # mountain ranges with ridges, plateaus with flat tops, rolling hills or
-  # flat lowland. Rivers cut valleys down to the sea where the river noise
-  # is near zero.
+  # The continent noise picks ocean, coast, lowland or highland, and the
+  # erosion noise picks how rough the land is (see LAND_BASE). Rivers cut
+  # valleys down to the sea where the river noise is near zero.
   def surface_height(x, z) # rubocop:todo Metrics/MethodLength
     nx = x + SHIFT
     nz = z + SHIFT
     continent = continent(x, z)
     wx = @wx
     wz = @wz
-    land = @noise4.fbm2(wx / LANDSCAPE_SCALE + 30.0, wz / LANDSCAPE_SCALE, 3)
-    inland = Terrain.smooth((continent + 0.1) / 0.2)
-    mountains = Terrain.smooth((MOUNTAINS - land) / LANDSCAPE_EDGE) * inland
-    plateau = Terrain.smooth((land - PLATEAU_LOW) / PLATEAU_EDGE) *
-              Terrain.smooth((PLATEAU_HIGH - land) / PLATEAU_EDGE) * inland
-    flat = Terrain.smooth((land - FLATLAND) / LANDSCAPE_EDGE)
+    erosion = erosion(wx, wz)
     hills = @noise.fbm2(nx / 55.0 + 40.0, nz / 55.0, 4)
-    hill_height = HILLS + (MOUNTAIN_HILLS - HILLS) * mountains + (PLATEAU_HILLS - HILLS) * plateau + (FLAT_HILLS - HILLS) * flat
-    h = Terrain.spline(CONTINENT, BASE, continent) + hills * hill_height
-    h += ridges(wx, wz, land) * mountains if mountains > 0.0
-    # A plateau lifts the land to a flat top.
-    top = SEA + PLATEAU_RISE + hills * PLATEAU_HILLS
-    h += (top - h) * plateau if top > h
+    h = hills * Terrain.land(LAND_HILLS, continent, erosion)
+    if continent < LAND_CONTINENT[0]
+      h += Terrain.spline(CONTINENT, SEA_FLOOR, continent)
+    else
+      h += SEA + Terrain.land(LAND_BASE, continent, erosion)
+      ridges = Terrain.land(LAND_RIDGES, continent, erosion)
+      h += ridges(wx, wz) * ridges if ridges > 0.0
+    end
     # Away from the coast, the island noise lifts domes out of the deep
     # ocean. Lower domes stay under the water as shoals.
     ocean = Terrain.smooth((CONTINENT[2] - continent) / (CONTINENT[2] - CONTINENT[1]))
@@ -245,22 +251,41 @@ class Terrain
     h.to_i.clamp(4, TOP.to_i)
   end
 
+  def erosion(wx, wz) = @noise4.fbm2(wx / EROSION_SCALE + 30.0, wz / EROSION_SCALE, 3)
+
   # The height of the ridges, spurs and peaks of a mountain range at the
-  # warped position wx, wz, where the landscape noise is land.
-  def ridges(wx, wz, land)
+  # warped position wx, wz.
+  def ridges(wx, wz)
     ridge = 1.0 - @noise2.noise2(wx / RIDGE_SCALE, wz / RIDGE_SCALE).abs * 1.6
     ridge = ridge < 0.0 ? 0.0 : ridge
     spur = 1.0 - @noise3.noise2(wx / SPUR_SCALE + 70.0, wz / SPUR_SCALE).abs * 1.6
     spur = spur < 0.0 ? 0.0 : spur
     peak = Terrain.smooth((@noise.noise2(wx / PEAK_SCALE + 120.0, wz / PEAK_SCALE) + 0.1) / 0.5)
-    core = Terrain.smooth((MOUNTAINS - land) / RANGE_CORE)
-    (ridge * ridge + SPUR * spur * spur * ridge) * (SADDLE + (1.0 - SADDLE) * peak) * (RANGE_EDGE + (1.0 - RANGE_EDGE) * core) * RIDGE_RISE
+    (ridge * ridge + SPUR * spur * spur * ridge) * (SADDLE + (1.0 - SADDLE) * peak) * RIDGE_RISE
   end
 
   # 0 below 0, 1 above 1, and an S curve between.
   def self.smooth(t)
     t = t.clamp(0.0, 1.0)
     t * t * (3.0 - 2.0 * t)
+  end
+
+  # The value of a land table (see LAND_BASE) at the continent noise
+  # continent and the erosion noise erosion. Between the points, the value
+  # follows a line along the erosion, then along the continent.
+  def self.land(table, continent, erosion)
+    return spline(EROSION, table[0], erosion) if continent <= LAND_CONTINENT[0]
+
+    (1...LAND_CONTINENT.size).each do |row|
+      above = LAND_CONTINENT[row]
+      next unless continent < above
+
+      below = LAND_CONTINENT[row - 1]
+      low = spline(EROSION, table[row - 1], erosion)
+      high = spline(EROSION, table[row], erosion)
+      return low + (high - low) * (continent - below) / (above - below)
+    end
+    spline(EROSION, table[LAND_CONTINENT.size - 1], erosion)
   end
 
   # The y of v on the line through the points xs, ys (xs in rising order).

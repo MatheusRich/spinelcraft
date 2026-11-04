@@ -3869,8 +3869,7 @@ class Game
     @player.x = x + 0.5
     @player.y = y.to_f
     @player.z = z - 0.5
-    @player.move(@world, 0.0, 0.0, 0.6)
-    @player.move(@world, 0.0, 0.0, 0.6)
+    3.times { @player.move(@world, 0.0, 0.0, 0.6) }
     stops = (@player.z - (z + 1 - Player::HALF - 0.001)).abs < 0.0001
     # The board of a closed door that faces +z is on the far edge of its cell.
     set_block(x, y, z + 1, Block.door_id(2, false, false))
