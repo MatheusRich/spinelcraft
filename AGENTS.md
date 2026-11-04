@@ -10,7 +10,8 @@ Spinelcraft is pre-alpha. No player, save or tool depends on old behavior yet.
 - Write idiomatic Ruby where it costs no speed. When the speed is not known, measure it. Use `each`, `find` and the other `Enumerable` methods by default. Use `while` only with a measurement that shows the gain, and name that measurement in the commit.
 - Name things so that a reader who did not see the diff understands them. A class name is a noun. A method name is not a verb in disguise. Do not abbreviate (`ox`, `dy`, `m`). Give each relevant numeric literal a named constant.
 - Keep comments to a bare minimum, ideally none: the names and the structure explain the code. Write a comment only for what the code cannot say: a wiki citation, a value that the wiki does not confirm, or a reason that is not obvious. When code is unclear, give it a better name instead of a comment.
-- After a refactor or an extraction, leave the change uncommitted in the working tree and stop. The user reads the code in the files before the commit. Do not paste the diff into the chat.
+- Finish work unattended. Run the checks in this file, then run `/adversarial-review light` and fix each finding that is worth a fix. Then leave the change uncommitted in the working tree and stop. The user reads the code in the files and decides when to commit. Do not paste the diff into the chat.
+- When the next step stays inside the task (a test, a follow-up fix, a second measurement, a review finding), take it. Ask only for a design choice or for new scope.
 - Run `mise exec -- rubocop` and `mise exec -- reek main.rb game tools` before each commit, and fix each offense. Do not add a `# rubocop:todo`, `# rubocop:disable` or `:reek:` comment to new code. When a change makes an old method short enough, remove its `# rubocop:todo` comment. When a fix removes the last Reek offense of a method, run `mise exec -- ruby tools/reek_todo.rb`.
 - Balance values (damage, durability, mining time, hunger, mob health, drops) copy Minecraft Java Edition on Normal difficulty. Take each value from minecraft.wiki, and cite its page in a comment beside the value, for example `# minecraft.wiki/w/Hunger`. When the wiki does not confirm a value, the comment says so.
 
@@ -19,6 +20,7 @@ Spinelcraft is pre-alpha. No player, save or tool depends on old behavior yet.
 - A check that needs no `Game` and no `Gfx` goes in `test/` as a Minitest test, and `rake test` runs it under CRuby. Every other check goes in the self-test (`tools/selftest.sh`), which runs the compiled game.
 - Run `tools/selftest.sh` itself and read its last line. Do not pipe it into `grep -c`. That hides the exit status and a crash. The run passes only when it prints `ALL n PASS`.
 - Check what the player sees, such as the health, a sound or a mob that moves. A check of the internal state only (a flag or a helper) can pass while the game is wrong.
+- When a change shows on screen, look at it before you hand it over. Take shots with `tools/shot.sh out.png NEW=1 MUTE=1 CAM=x,y,z,yaw,pitch` (pitch in radians) and read them. For motion, take shots at a few `FRAMES` values. Fix what looks wrong, then open the game for the user once.
 - A bug fix comes with a regression check. Make sure that the check fails without the fix.
 - After you change a file in `game/` that a Minitest test covers, or the test itself, mutation test that pair with mutineer:
 
