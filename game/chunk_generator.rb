@@ -89,6 +89,8 @@ class ChunkGenerator
     Block::STONE
   end
 
+  def self.pumpkin_patch?(cx, cz) = Noise.hash3(cx, 0, cz, 40) < PATCH_ODDS
+
   def place_ores(x0, z0, highest)
     roll_coal(x0, z0, highest)
     CHUNK.times do |lx|
@@ -136,10 +138,10 @@ class ChunkGenerator
     nil
   end
 
-  # A pumpkin patch 1 time in 32 chunks (minecraft.wiki/w/Pumpkin). The
+  # A pumpkin patch 1 time in 300 chunks (minecraft.wiki/w/Pumpkin). The
   # wiki does not give the size of a patch. The center stays PATCH_REACH
   # from the chunk edges, so the patch does not need the chunks next door.
-  PATCH_ODDS = 65536 / 32
+  PATCH_ODDS = 65536 / 300
   PATCH_REACH = 3
   PATCH_FILL = 65536 / 4
 
@@ -147,7 +149,7 @@ class ChunkGenerator
   def decorate(cx, cz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     x0 = cx * CHUNK
     z0 = cz * CHUNK
-    patch = Noise.hash3(cx, 0, cz, 40) < PATCH_ODDS
+    patch = ChunkGenerator.pumpkin_patch?(cx, cz)
     span = CHUNK - PATCH_REACH * 2
     patch_x = x0 + PATCH_REACH + Noise.hash3(cx, 1, cz, 40) % span
     patch_z = z0 + PATCH_REACH + Noise.hash3(cx, 2, cz, 40) % span

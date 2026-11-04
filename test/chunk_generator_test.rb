@@ -13,6 +13,26 @@ class ChunkGeneratorTest < Minitest::Test
     assert_equal 5, blocks.count(Block::WATER)
   end
 
+  def test_one_chunk_in_about_300_has_a_pumpkin_patch
+    side = 600
+    expected = side * side / 300.0
+    patches = (-side / 2...side / 2).sum { |cx| (-side / 2...side / 2).count { |cz| ChunkGenerator.pumpkin_patch?(cx, cz) } }
+    assert_in_delta expected, patches, expected * 0.05
+  end
+
+  def test_pumpkins_grow_only_in_a_patch_chunk
+    world = World.new(1337)
+    patch = [23, -5]
+    neighborhood = (-1..1).to_a.product((-1..1).to_a).map { |dx, dz| [patch[0] + dx, patch[1] + dz] }
+    pumpkins = neighborhood.to_h do |chunk|
+      world.load_chunk(*chunk)
+      [chunk, world.chunk_bytes(*chunk).count(Block::PUMPKIN.chr)]
+    end
+    assert ChunkGenerator.pumpkin_patch?(*patch)
+    assert_operator pumpkins.delete(patch), :>, 0
+    assert_equal [0], pumpkins.values.uniq
+  end
+
   def test_the_soil_under_a_stony_shore_is_stone
     top = SEA + 10
     [Block::STONE, Block::GRAVEL].each { |surface| assert_equal Block::STONE, ChunkGenerator.ground_block(top - 1, top, surface) }
