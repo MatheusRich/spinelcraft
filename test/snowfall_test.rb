@@ -4,31 +4,31 @@ class SnowfallTest < Minitest::Test
   FRAME = 1.0 / 60.0
 
   def test_flakes_fall_over_snow_and_not_over_rain_or_a_desert
-    assert_operator flakes_over(-70, -70).size, :>, 20
-    assert_empty flakes_over(-70, -47)
+    assert_operator flakes_over(18, -10).size, :>, 20
+    assert_empty flakes_over(0, 0)
     assert_empty flakes_over(-8, 16)
   end
 
   def test_no_flake_falls_without_rain
-    assert_empty flakes_over(-70, -70, strength: 0.0)
+    assert_empty flakes_over(18, -10, strength: 0.0)
   end
 
   def test_a_stronger_rain_has_more_flakes
-    weak = flakes_over(-70, -70, strength: 0.3).size
-    strong = flakes_over(-70, -70, strength: 1.0).size
+    weak = flakes_over(18, -10, strength: 0.3).size
+    strong = flakes_over(18, -10, strength: 1.0).size
     assert_operator weak, :>, 0
     assert_operator strong, :>, weak
   end
 
   def test_the_fast_graphics_have_fewer_flakes
-    fancy = flakes_over(-70, -70, mode: GraphicsMode::FANCY).size
-    fast = flakes_over(-70, -70, mode: GraphicsMode::FAST).size
+    fancy = flakes_over(18, -10, mode: GraphicsMode::FANCY).size
+    fast = flakes_over(18, -10, mode: GraphicsMode::FAST).size
     assert_operator fast, :<, fancy
     assert_operator fancy, :<=, Snowfall::FLAKES
   end
 
   def test_each_flake_falls_down
-    snowfall, world, player = snow_in(-70, -70)
+    snowfall, world, player = snow_in(18, -10)
     before = heights(snowfall, player)
     snowfall.update(world, player, 0.1)
     after = heights(snowfall, player)
@@ -38,7 +38,7 @@ class SnowfallTest < Minitest::Test
   end
 
   def test_a_flake_that_lands_goes_away
-    snowfall, world, player = snow_in(-70, -70)
+    snowfall, world, player = snow_in(18, -10)
     ground = world.height_at(player.x.floor, player.z.floor)
     player.y = ground.to_f - 30.0
     before = flakes(snowfall, player).size
@@ -47,7 +47,7 @@ class SnowfallTest < Minitest::Test
   end
 
   def test_the_flakes_stay_in_the_box_around_the_player
-    snowfall, world, player = snow_in(-70, -70)
+    snowfall, world, player = snow_in(18, -10)
     player.x += 5.0
     300.times { snowfall.update(world, player, FRAME) }
     xs = flakes(snowfall, player).flatten(1).map { |vertex| vertex[0] }
@@ -57,7 +57,7 @@ class SnowfallTest < Minitest::Test
   end
 
   def test_a_new_flake_grows_from_nothing
-    snowfall, world, player = snow_in(-70, -70, seconds: 0.0)
+    snowfall, world, player = snow_in(18, -10, seconds: 0.0)
     snowfall.update(world, player, FRAME)
     widths = flakes(snowfall, player).map { |quad| (quad[0][0] - quad[1][0]).abs + (quad[0][2] - quad[1][2]).abs }
     assert_operator widths.size, :>, 0
@@ -65,7 +65,7 @@ class SnowfallTest < Minitest::Test
   end
 
   def test_the_flakes_of_a_slot_sway_at_their_own_pace
-    snowfall, world, player = snow_in(-70, -70)
+    snowfall, world, player = snow_in(18, -10)
     first = flakes(snowfall, player).map { |quad| quad[0][0] }
     snowfall.update(world, player, 0.5)
     second = flakes(snowfall, player).map { |quad| quad[0][0] }
@@ -75,8 +75,8 @@ class SnowfallTest < Minitest::Test
   def test_the_first_frame_starts_a_fixed_number_of_flakes
     _snowfall, _world, _player = nil
     world = World.new(1337)
-    world.load_chunk(-70, -70)
-    player = Player.new(-1111.5, 90.0, -1111.5)
+    world.load_chunk(18, -10)
+    player = Player.new(296.5, 149.0, -151.5)
     snowfall = Snowfall.new(1)
     snowfall.graphics = GraphicsMode::FAST
     snowfall.strength = 1.0
@@ -87,8 +87,8 @@ class SnowfallTest < Minitest::Test
   def test_a_new_snowfall_has_no_rain_and_the_radius_of_the_fancy_graphics
     default = Snowfall.new(1)
     world = World.new(1337)
-    world.load_chunk(-70, -70)
-    player = Player.new(-1111.5, 80.0, -1111.5)
+    world.load_chunk(18, -10)
+    player = Player.new(296.5, 139.0, -151.5)
     10.times { default.update(world, player, FRAME) }
     assert_empty flakes(default, player)
     fancy = Snowfall.new(1)
@@ -97,7 +97,7 @@ class SnowfallTest < Minitest::Test
   end
 
   def test_the_flakes_appear_on_both_sides_of_the_player_and_far_from_it
-    snowfall, _world, player = snow_in(-70, -70)
+    snowfall, _world, player = snow_in(18, -10)
     xs = flakes(snowfall, player).map { |quad| quad[0][0] - player.x }
     zs = flakes(snowfall, player).map { |quad| quad[0][2] - player.z }
     [xs, zs].each do |offsets|
@@ -108,13 +108,13 @@ class SnowfallTest < Minitest::Test
 
   def test_the_flakes_appear_from_10_blocks_below_the_player_to_14_above_and_not_under_the_ground
     world = World.new(1337)
-    world.load_chunk(-70, -70)
-    grounds = (-1118..-1105).flat_map { |x| (-1118..-1105).map { |z| world.height_at(x, z) } }
+    world.load_chunk(18, -10)
+    grounds = (290..303).flat_map { |x| (-158..-145).map { |z| world.height_at(x, z) } }
     { grounds.max + 40.0 => grounds.max + 30.0, grounds.min + 5.0 => grounds.min.to_f }.each do |height, lowest|
       snowfall = Snowfall.new(1)
       snowfall.graphics = GraphicsMode::FAST
       snowfall.strength = 1.0
-      player = Player.new(-1111.5, height, -1111.5)
+      player = Player.new(296.5, height, -151.5)
       ys = (0...60).flat_map do
         snowfall.update(world, player, 0.0)
         flakes(snowfall, player).map { |quad| quad[0][1] }
@@ -133,7 +133,7 @@ class SnowfallTest < Minitest::Test
   end
 
   def test_a_flake_sways_toward_a_higher_x_as_it_ages
-    snowfall, world, player = snow_in(-70, -70, seconds: 0.2)
+    snowfall, world, player = snow_in(18, -10, seconds: 0.2)
     before = flakes(snowfall, player).to_h { |quad| [quad[0][2], center_x(quad)] }
     snowfall.update(world, player, 0.1)
     after = flakes(snowfall, player).to_h { |quad| [quad[0][2], center_x(quad)] }
@@ -143,7 +143,7 @@ class SnowfallTest < Minitest::Test
   end
 
   def test_a_flake_faces_the_camera
-    snowfall, _world, player = snow_in(-70, -70)
+    snowfall, _world, player = snow_in(18, -10)
     player.yaw = 0.7
     player.pitch = 0.4
     view = [player.fx, player.fy, player.fz]
@@ -163,7 +163,7 @@ class SnowfallTest < Minitest::Test
 
   def count_in(snowfall, strength: 1.0)
     snowfall.strength = strength
-    fall_in(snowfall, -70, -70, strength).size
+    fall_in(snowfall, 18, -10, strength).size
   end
 
   def fall_in(snowfall, chunk_x, chunk_z, strength)

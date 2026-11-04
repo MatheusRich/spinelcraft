@@ -18,12 +18,16 @@ class Game
   # The length of each scene in seconds, in the order of Game#play_scene.
   SCENE_SECONDS = [8.0, 9.0, 13.0, 14.0, 10.0, 7.0]
   # The place of the mine, under the spawn of seed 1337.
-  MINE_X = 6
+  MINE_X = 1926
   MINE_Y = 40
-  MINE_Z = -6
+  MINE_Z = 1850
   # The blocks that the miner breaks, one after the other: x, y and z from
   # the mine.
   MINE_ORDER = [-1, 1, -2, 2, 1, -2, 0, 1, -2, 0, 0, -2, 0, 1, -3, 0, 0, -3]
+  # The meadow of the animals: flat plains with no tree, next to the spawn
+  # of seed 1337.
+  MEADOW_X = 1920
+  MEADOW_Z = 1848
   # The sheep to shear comes in here, out of view behind the player, when
   # the player turns to it, so that it has no time to walk away.
   SHEEP_X = 4.0
@@ -141,7 +145,7 @@ class Game
   # Cows and sheep in the meadow. The player feeds two cows, which breed,
   # and shears a sheep.
   def stage_animals
-    stand_at(0, @world.height_at(0, 0), 0)
+    stand_at(MEADOW_X, @world.height_at(MEADOW_X, MEADOW_Z), MEADOW_Z)
     @player.yaw = 0.0
     @player.pitch = -0.2
     demo_survival(Block::WHEAT, 16)

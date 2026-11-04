@@ -32,12 +32,13 @@ class TreasureMapTest < Minitest::Test
   M = 3 * S
   CELLS = -2..2
 
-  # The terrain and the sites of the 5 x 5 cells around x = z = 0.
+  # The terrain and the sites of the 5 x 5 cells around cell 1, 0: the
+  # nearest to spawn with a peak and an island in open ocean.
   def self.area
     @area ||= begin
       terrain = Terrain.new(1337)
       map = TreasureMap.new(terrain)
-      sites = CELLS.flat_map { |cell_x| CELLS.map { |cell_z| map.site(cell_x, cell_z) } }
+      sites = CELLS.flat_map { |cell_x| CELLS.map { |cell_z| map.site(cell_x + 1, cell_z) } }
       [terrain, sites.select(&:found?)]
     end
   end
@@ -45,7 +46,7 @@ class TreasureMapTest < Minitest::Test
   def terrain = self.class.area[0]
   def sites = self.class.area[1]
 
-  def test_the_cells_around_spawn_have_sites
+  def test_the_cells_near_spawn_have_sites
     assert_operator sites.size, :>=, 5
   end
 
@@ -344,8 +345,8 @@ class TreasureMapTest < Minitest::Test
 
   def test_a_cell_of_land_has_no_site
     map = TreasureMap.new(terrain)
-    assert terrain.land?(0, -1024)
-    refute map.site_at(0, -1024).found?
+    assert_operator terrain.surface_height(0, 1024), :>, SEA + 4
+    refute map.site_at(0, 1024).found?
   end
 
   def test_the_same_seed_gives_the_same_sites
@@ -376,7 +377,7 @@ class TreasureMapTest < Minitest::Test
   # Two cells of seed 7 on the ground: the leaves of a tree next to it
   # fill one, and dry grass of the desert grows in the other.
   def test_the_chest_takes_the_place_of_leaves_and_no_plant_takes_its_place
-    [[-4055, 83, -879], [3644, 79, -776]].each do |x, y, z|
+    [[1, 128, 8], [174, 72, 165]].each do |x, y, z|
       refute_equal Block::AIR, self.class.block_with_site(TreasureSite.none, x, y, z)
       chest = self.class.block_with_site(TreasureSite.new(x, y, z), x, y, z)
       assert_equal Block::CHEST, Block::BASE[chest], "the site at #{x} #{z}"

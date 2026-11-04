@@ -43,7 +43,7 @@ class NaturalSpawnerTest < Minitest::Test
     mobs = []
     @spawner.spawn_monsters(mobs, @player, 0, 0.0)
     assert_empty mobs
-    @spawner.spawn_monsters(mobs, @player, 0, 0.5)
+    @spawner.spawn_monsters(mobs, @player, 0, 1.0)
     refute_empty mobs
     # One tick has about 9 pack centers in the loaded chunks, and most of
     # them are in the ground.

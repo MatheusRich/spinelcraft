@@ -34,48 +34,74 @@ class TerrainTest < Minitest::Test
     assert_in_delta 100.0 * (continents.size - 1) + erosions.size - 1, Terrain.land(table, continents.last + 1.0, erosions.last + 1.0)
   end
 
-  # The spawn search looks for land: a column whose noise surface is more
-  # than 4 blocks above the sea.
-  def test_land_rises_more_than_four_blocks_above_the_sea
+  # The spawn search looks for low land: a column whose noise surface is
+  # more than 4 and at most 16 blocks above the sea.
+  def test_low_land_is_above_the_beach_and_below_the_hills
     terrain = Terrain.new(1337)
-    [[SEA + 5, true], [SEA + 4, false], [SEA - 10, false]].each do |surface, land|
+    [[SEA + 5, true], [SEA + 16, true], [SEA + 4, false], [SEA + 17, false], [SEA - 10, false]].each do |surface, land|
       terrain.define_singleton_method(:surface_height) { |_x, _z| surface }
-      assert_equal land, terrain.land?(3, 4), "surface #{surface}"
+      assert_equal land, terrain.low_land?(3, 4), "surface #{surface}"
     end
   end
 
+  # A low column is no spawn when the land 48 blocks to one side is high,
+  # as in a valley in the mountains.
+  def test_spawn_land_is_low_land_with_low_land_around_it
+    reach = Terrain::SPAWN_REACH
+    assert valley_terrain.spawn_land?(0, 0)
+    [[reach, 0], [-reach, 0], [0, reach], [0, -reach]].each do |high|
+      refute valley_terrain(high).spawn_land?(0, 0), "high land at #{high}"
+    end
+  end
+
+  def test_spawn_land_is_open_grassland
+    assert valley_terrain(biome: Biome::PLAINS).spawn_land?(0, 0)
+    assert valley_terrain(biome: Biome::SAVANNA).spawn_land?(0, 0)
+    refute valley_terrain(biome: Biome::DESERT).spawn_land?(0, 0)
+    refute valley_terrain(biome: Biome::FOREST).spawn_land?(0, 0)
+    refute valley_terrain(biome: Biome::JUNGLE).spawn_land?(0, 0)
+  end
+
+  # A terrain of low land of the biome, with hills at the high columns.
+  def valley_terrain(*high, biome: Biome::PLAINS)
+    terrain = Terrain.new(1337)
+    terrain.define_singleton_method(:surface_height) { |x, z| high.include?([x, z]) ? SEA + Terrain::SPAWN_TOP + 1 : SEA + 8 }
+    terrain.define_singleton_method(:biome) { |_x, _z, _height| biome }
+    terrain
+  end
+
   def test_the_land_near_the_origin_is_the_origin_when_it_is_land
-    assert_equal [0, 0], terrain_with_land([0, 0], [64, 0]).land_near_origin
+    assert_equal [0, 0], terrain_with_land([0, 0], [64, 0]).spawn_near_origin
   end
 
   # Each side of the square has one land point. The point is the only land.
   def test_the_land_near_the_origin_is_found_on_each_side_of_the_square
     [[0, -64], [0, 64], [-64, 0], [64, 0]].each do |point|
-      assert_equal point, terrain_with_land(point).land_near_origin, "land at #{point}"
+      assert_equal point, terrain_with_land(point).spawn_near_origin, "land at #{point}"
     end
   end
 
   def test_the_land_near_the_origin_is_found_in_each_corner_of_the_square
     [[-64, -64], [64, -64], [-64, 64], [64, 64]].each do |point|
-      assert_equal point, terrain_with_land(point).land_near_origin, "land at #{point}"
+      assert_equal point, terrain_with_land(point).spawn_near_origin, "land at #{point}"
     end
   end
 
   def test_the_land_near_the_origin_is_found_along_a_side_of_a_larger_square
     [[64, -128], [-128, 64], [-64, 128], [128, -64]].each do |point|
-      assert_equal point, terrain_with_land(point).land_near_origin, "land at #{point}"
+      assert_equal point, terrain_with_land(point).spawn_near_origin, "land at #{point}"
     end
   end
 
   def test_the_land_near_the_origin_is_on_the_nearest_square
-    assert_equal [0, 64], terrain_with_land([128, 0], [0, 64], [0, 192]).land_near_origin
+    assert_equal [0, 64], terrain_with_land([128, 0], [0, 64], [0, 192]).spawn_near_origin
   end
 
   # The squares are 64 blocks apart and reach 4096 blocks from the origin.
   def test_the_land_near_the_origin_is_on_the_grid_up_to_4096_blocks_out
-    assert_equal [4096, 0], terrain_with_land([4096, 0]).land_near_origin
-    assert_equal [0, 0], terrain_with_land([4160, 0]).land_near_origin
-    assert_equal [0, 0], terrain_with_land([32, 0], [0, 65], [32, -32], [-65, -65]).land_near_origin
+    assert_equal [4096, 0], terrain_with_land([4096, 0]).spawn_near_origin
+    assert_equal [0, 0], terrain_with_land([4160, 0]).spawn_near_origin
+    assert_equal [0, 0], terrain_with_land([32, 0], [0, 65], [32, -32], [-65, -65]).spawn_near_origin
   end
 
   # surface_height and biome keep the warp of the last column. The biome of
@@ -160,7 +186,9 @@ class TerrainTest < Minitest::Test
         CHUNK.times.any? do |z|
           column_x = i * CHUNK + x
           column_z = j * CHUNK + z
-          terrain.entrance?(column_x, column_z) && (2...terrain.surface_height(column_x, column_z)).any? { |y| terrain.carved?(column_x, y, column_z) }
+          top = terrain.surface_height(column_x, column_z)
+          terrain.entrance?(column_x, column_z) &&
+            (top - 1 - Terrain::ROOM_ROOF...top).any? { |y| y >= 2 && terrain.carved?(column_x, y, column_z) }
         end
       end
     end
@@ -213,8 +241,8 @@ class TerrainTest < Minitest::Test
 
   def test_swamps_grow_up_to_the_swamp_top
     terrain = Terrain.new(1337)
-    assert_equal Biome::SWAMP, terrain.biome(555, -795, Terrain::SWAMP_TOP)
-    refute_equal Biome::SWAMP, terrain.biome(555, -795, Terrain::SWAMP_TOP + 1)
+    assert_equal Biome::SWAMP, terrain.biome(-1456, -1984, Terrain::SWAMP_TOP)
+    refute_equal Biome::SWAMP, terrain.biome(-1456, -1984, Terrain::SWAMP_TOP + 1)
   end
 
   # The tree roll of column 0, 50 is 667, and that of column 72, 481 is 900.
@@ -272,7 +300,7 @@ class TerrainTest < Minitest::Test
   # A terrain where only these points are land.
   def terrain_with_land(*points)
     terrain = Terrain.new(1337)
-    terrain.define_singleton_method(:land?) { |x, z| points.include?([x, z]) }
+    terrain.define_singleton_method(:spawn_land?) { |x, z| points.include?([x, z]) }
     terrain
   end
 

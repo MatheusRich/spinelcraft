@@ -429,10 +429,10 @@ class Game
   end
 
   # Finds dry land near x = z = 0 and puts a new player there. The origin
-  # can be at sea, so the noise first finds land. Then the loaded blocks give
-  # dry land near that point.
+  # can be at sea or in the mountains, so the noise first finds low land.
+  # Then the loaded blocks give dry land near that point.
   def spawn
-    land_x, land_z = @world.terrain.land_near_origin
+    land_x, land_z = @world.terrain.spawn_near_origin
     @chunk_meshes.stream(land_x >> 4, land_z >> 4, -1, SYNC_R)
     start_x, start_z = @world.dry_spot_near(land_x, land_z, (SYNC_R - 1) * CHUNK)
     ground = @world.height_at(start_x, start_z)

@@ -21,14 +21,14 @@ class ChunkGeneratorTest < Minitest::Test
     end
   end
 
-  # The 3 x 3 chunks around x 1408, z -512 of seed 1337 are desert.
+  # The 3 x 3 chunks around x -1600, z 1408 of seed 1337 are desert.
   def test_desert_sand_grows_dry_grass_and_cacti
     world = World.new(1337)
     counts = Hash.new(0)
     (-1..1).each do |dx|
       (-1..1).each do |dz|
-        world.load_chunk((1408 >> 4) + dx, (-512 >> 4) + dz)
-        world.chunk_bytes((1408 >> 4) + dx, (-512 >> 4) + dz).each_byte { |block| counts[block] += 1 }
+        world.load_chunk((-1600 >> 4) + dx, (1408 >> 4) + dz)
+        world.chunk_bytes((-1600 >> 4) + dx, (1408 >> 4) + dz).each_byte { |block| counts[block] += 1 }
       end
     end
     assert_operator counts[Block::DRY_GRASS], :>, 20
@@ -72,7 +72,13 @@ class ChunkGeneratorTest < Minitest::Test
     world.load_chunk(*closed)
     x0 = closed[0] * CHUNK
     z0 = closed[1] * CHUNK
-    shallow = CHUNK.times.flat_map { |dx| CHUNK.times.flat_map { |dz| air_runs(world, x0 + dx, z0 + dz).flatten.select { |y| world.height_at(x0 + dx, z0 + dz) - 1 - y <= Terrain::ROOM_ROOF } } }
+    # The ground, not height_at: the air under the leaves of a tree is no tunnel.
+    shallow = CHUNK.times.flat_map do |dx|
+      CHUNK.times.flat_map do |dz|
+        ground = terrain.surface_height(x0 + dx, z0 + dz)
+        air_runs(world, x0 + dx, z0 + dz).flatten.select { |y| y < ground && ground - 1 - y <= Terrain::ROOM_ROOF }
+      end
+    end
     assert_empty shallow
   end
 

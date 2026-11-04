@@ -289,14 +289,18 @@ class Game
     check("the player spawns on dry land", h > SEA + 2 && Block.solid?(block) && !Block.leaves?(block) && !Block.water?(block))
   end
 
-  # Each sand column near spawn has SOIL_DEPTH of sand on SANDSTONE_DEPTH
-  # of sandstone, where no cave cuts it. 4 sand make a sandstone.
+  # Each sand column of the desert of seed 1337 at -1600, 1408 has
+  # SOIL_DEPTH of sand on SANDSTONE_DEPTH of sandstone, where no cave cuts
+  # it. 4 sand make a sandstone.
   def test_sandstone
     sand = 0
     held = 0
     depth = ChunkGenerator::SOIL_DEPTH + ChunkGenerator::SANDSTONE_DEPTH
-    (@spawn_x.floor - 128...@spawn_x.floor + 128).each do |x|
-      (@spawn_z.floor - 128...@spawn_z.floor + 128).each do |z|
+    desert_x = -1600
+    desert_z = 1408
+    (-2..1).each { |dx| (-2..1).each { |dz| @world.load_chunk((desert_x >> 4) + dx, (desert_z >> 4) + dz) } }
+    (desert_x - 32...desert_x + 32).each do |x|
+      (desert_z - 32...desert_z + 32).each do |z|
         top = @world.height_at(x, z) - 1
         if @world.loaded?(x, z) && @world.get(x, top, z) == Block::SAND && (1...depth).none? { |d| @world.get(x, top - d, z) == Block::AIR }
           sand += 1
@@ -1949,11 +1953,11 @@ class Game
     @clock.time_of_day = 0.3
   end
 
-  # In the snow chunk of seed 1337 at -1112, -1112, in strong rain: snow puts
+  # In the snow chunk of seed 1337 at 296, -152, in strong rain: snow puts
   # out no fire, and the sun burns a zombie.
   def test_snow_fire
-    snow_x = -1112
-    snow_z = -1112
+    snow_x = 296
+    snow_z = -152
     @world.load_chunk(snow_x >> 4, snow_z >> 4)
     ground = @world.height_at(snow_x, snow_z).to_f
     keep_pose
@@ -2563,6 +2567,10 @@ class Game
     apply_loaded if ok
     check("a save with a section that the game does not know, and without the others, loads", ok && @seed == 7)
     test_sparse_saves
+    # The rest of the self-test plays in the world of seed 7, near its spawn.
+    seven = Terrain.new(7)
+    seven_x, seven_z = seven.spawn_near_origin
+    here = [seven_x + 0.5, seven.surface_height(seven_x, seven_z) + 0.01, seven_z + 0.5, here[3], here[4]]
     File.write(@save_path, "#{SAVE_VERSION}\nseed 7\nplayer #{here.join(" ")}\nlife 0 #{here[0]} #{here[2]}\nchunks \n")
     ok = load
     apply_loaded if ok
@@ -4310,6 +4318,8 @@ class Game
           @inv.count(3) == 1 && @inv.block(3) == Block::BED && !last_chat_error?)
     @game_mode = was
     @mobs.clear
+    # Open air between the player and the cow, so that no leaf takes the click.
+    fill_box(x - 1, y, z - 3, x + 1, y + 2, z, Block::AIR)
     @mobs << Animal.new(Mob::COW, x + 0.5, y.to_f, z - 1.5, 5)
     @player.yaw = 0.0
     @player.pitch = -0.2

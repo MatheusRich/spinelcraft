@@ -11,15 +11,15 @@ class WorldTest < Minitest::Test
 
   def test_rain_falls_on_plains_and_no_precipitation_falls_on_a_desert
     world = World.new(1337)
-    assert_equal Biome::RAIN, world.precipitation(-960, 288)
-    assert_equal Biome::DESERT, world.terrain.biome(-128, 256, world.terrain.surface_height(-128, 256))
-    assert_equal Biome::DRY, world.precipitation(-128, 256)
+    assert_equal Biome::RAIN, world.precipitation(-1408, -1984)
+    assert_equal Biome::DESERT, world.terrain.biome(-1792, 1216, world.terrain.surface_height(-1792, 1216))
+    assert_equal Biome::DRY, world.precipitation(-1792, 1216)
   end
 
   def test_snow_falls_on_a_mountain_over_a_valley_that_has_rain
     world = World.new(1337)
-    assert_equal Biome::RAIN, Biome::PRECIPITATION[world.terrain.biome(-896, 832, Terrain::COLD_LINE)]
-    assert_equal Biome::SNOW, world.precipitation(-896, 832)
+    assert_equal Biome::RAIN, Biome::PRECIPITATION[world.terrain.biome(-1344, -1984, Terrain::COLD_LINE)]
+    assert_equal Biome::SNOW, world.precipitation(-1344, -1984)
   end
 
   def test_it_counts_the_loaded_chunks
@@ -132,6 +132,7 @@ class WorldTest < Minitest::Test
 
   def test_dry_land_is_ground_above_the_beach_with_no_leaves_or_water_on_top
     world = world_with_one_chunk
+    (SEA + 10...WY).each { |y| world.set(8, y, 8, Block::AIR) }
     world.set(8, SEA + 10, 8, Block::STONE)
     assert world.dry_land?(8, 8)
     world.set(8, SEA + 11, 8, Block::OAK_LEAVES)

@@ -16,7 +16,7 @@ class WeatherTest < Minitest::Test
 
   def test_snow_and_dry_land_do_not_wet_in_strong_rain
     @weather.rain.start.settle
-    { [-70, -47] => true, [-70, -70] => false, [-8, 16] => false }.each do |(chunk_x, chunk_z), wet|
+    { [0, 0] => true, [18, -10] => false, [4, 13] => false }.each do |(chunk_x, chunk_z), wet|
       x = chunk_x * 16 + 8.5
       z = chunk_z * 16 + 8.5
       assert_equal wet, @weather.wet_at?(World.new(1337), x, z)
@@ -26,8 +26,8 @@ class WeatherTest < Minitest::Test
   def test_a_position_wets_the_column_that_it_is_in_also_at_a_negative_x
     @weather.rain.start.settle
     world = World.new(1337)
-    assert @weather.wet_at?(world, -1110.5, -499.5)
-    refute @weather.wet_at?(world, -1109.5, -499.5)
+    assert @weather.wet_at?(world, -904.5, -499.5)
+    refute @weather.wet_at?(world, -903.5, -499.5)
   end
 
   def test_drops_splash_around_the_player_in_rain_and_not_when_dry
@@ -121,21 +121,21 @@ class WeatherTest < Minitest::Test
   def test_only_a_column_with_rain_has_streaks
     @weather.graphics = GraphicsMode::FAST
     @weather.rain.start.settle
-    assert_equal [Tex::RAIN], quad_layers(quads_over(-70, -47))
-    assert_empty quads_over(-70, -70)
-    assert_empty quads_over(-8, 16)
+    assert_equal [Tex::RAIN], quad_layers(quads_over(0, 0))
+    assert_empty quads_over(18, -10)
+    assert_empty quads_over(4, 13)
   end
 
   def test_the_streak_texture_repeats_every_4_blocks_down_a_column
     @weather.graphics = GraphicsMode::FAST
     @weather.rain.start.settle
-    assert_in_delta 1 / 4.0, repeats_per_block(quads_over(-70, -47)), 1.0e-6
+    assert_in_delta 1 / 4.0, repeats_per_block(quads_over(0, 0)), 1.0e-6
   end
 
   def test_snow_and_dry_land_make_no_splash_and_no_rain_sound
     @weather.graphics = GraphicsMode::FAST
     @weather.rain.start.settle
-    { [-70, -47] => true, [-70, -70] => false, [-8, 16] => false }.each do |(chunk_x, chunk_z), rains|
+    { [0, 0] => true, [18, -10] => false, [4, 13] => false }.each do |(chunk_x, chunk_z), rains|
       world = chunk_world(chunk_x, chunk_z)
       player = player_over(world, chunk_x, chunk_z)
       particles = Particles.new(1)

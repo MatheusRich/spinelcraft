@@ -47,7 +47,7 @@ class Terrain
   # sides. The shape follows the terrain splines of Minecraft 1.18, as
   # Henrik Kniberg showed them in "Reinventing Minecraft world generation"
   # (2022). The values are ours.
-  LAND_CONTINENT = [-0.12, -0.08, -0.02, 0.06, 0.18]
+  LAND_CONTINENT = [-0.12, -0.05, 0.13, 0.38, 0.73]
   EROSION = [-0.2, -0.09, -0.05, -0.047, -0.015, -0.012, 0.03, 0.045, 0.06, 0.2]
   LAND_BASE = [
     [3.0, 2.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -70,8 +70,12 @@ class Terrain
     [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   ].freeze
-  # The size of the erosion noise in blocks.
+  # The size of the erosion noise in blocks. A slower noise of
+  # EROSION_ZONE_SCALE blocks adds EROSION_ZONE_WEIGHT times its value, so
+  # some plains and mountain ranges grow thousands of blocks wide.
   EROSION_SCALE = 1500.0
+  EROSION_ZONE_SCALE = 6000.0
+  EROSION_ZONE_WEIGHT = 0.6
   # The landforms that pick biomes (Biome::LANDFORMS): rough land below the
   # erosion ROUGH_EROSION, low land up to SWAMP_TOP, flat land above
   # FLAT_EROSION, and plateau tops in the plateau band of EROSION,
@@ -87,6 +91,12 @@ class Terrain
   ISLE = 0.15
   ISLE_RISE = 180.0
   ISLE_SCALE = 220.0
+  # Islands grow only in archipelagos: where the archipelago noise of
+  # ARCHIPELAGO_SCALE blocks is above ARCHIPELAGO. They fade in over
+  # ARCHIPELAGO_EDGE of the noise. The rest of the ocean is open sea.
+  ARCHIPELAGO = 0.16
+  ARCHIPELAGO_EDGE = 0.1
+  ARCHIPELAGO_SCALE = 3000.0
   # How tall the hills on an island are.
   ISLE_HILLS = 5.0
   # How far the warp moves the positions of the large-scale noise, in blocks.
@@ -100,14 +110,22 @@ class Terrain
   RIVER_BED = SEA - 5.0
   # Rivers fade out over RIVER_FADE of the continent noise and end where it
   # reaches RIVER_INLAND, so the middle of a continent has no rivers.
-  RIVER_INLAND = 0.1
-  RIVER_FADE = 0.15
-  # The size of the continent noise in blocks: oceans and continents are
-  # a few thousand blocks across.
+  RIVER_INLAND = 0.48
+  RIVER_FADE = 0.42
+  # The size of the continent noise in blocks: coasts, bays and seas are
+  # a few thousand blocks across. A slower noise of BASIN_SCALE blocks adds
+  # BASIN_DEPTH times its value, so whole ocean basins sink and whole
+  # continents rise.
   CONTINENT_SCALE = 2000.0
+  BASIN_SCALE = 8000.0
+  BASIN_DEPTH = 2.6
   # The size of the temperature and humidity noise in blocks. A climate
-  # zone is a few hundred blocks or more across.
+  # zone is a few hundred blocks or more across. A slower noise of
+  # CLIMATE_ZONE_SCALE blocks adds CLIMATE_ZONE_WEIGHT times its value, so
+  # some climate zones grow thousands of blocks wide.
   CLIMATE_SCALE = 1600.0
+  CLIMATE_ZONE_SCALE = 6000.0
+  CLIMATE_ZONE_WEIGHT = 2.5
   # The ridges of a mountain range follow the lines where the ridge noise
   # is zero. RIDGE_SCALE is the size of that noise in blocks, and the
   # highest ridge is RIDGE_RISE above the land around it. Smaller spurs
@@ -125,9 +143,22 @@ class Terrain
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
   SHIFT = 5000.5
-  # land_near_origin looks at squares 64 blocks apart, up to 4096 blocks out.
+  # spawn_near_origin looks at squares 64 blocks apart, up to 4096 blocks out.
   LAND_STEP = 64
   LAND_RADIUS = 4096
+  # A spawn stands on low land: more than SPAWN_BOTTOM and at most
+  # SPAWN_TOP blocks above the sea. Luanti spawns at most 16 blocks above
+  # its water level, so that a player starts on low ground and not in the
+  # mountains (MapgenV7::getSpawnLevelAtPoint in mapgen_v7.cpp). Luanti
+  # land is low on average, but the middle of a continent here is high, so
+  # the land SPAWN_REACH blocks to each side must be low too, and a valley
+  # in the mountains is no spawn.
+  SPAWN_BOTTOM = 4
+  SPAWN_TOP = 16
+  SPAWN_REACH = 48
+  # A spawn is in open grassland with a few trees, so a new player has the
+  # sky above, room to build, wood and animals.
+  SPAWN_BIOMES = [Biome::PLAINS, Biome::SAVANNA].freeze
   # Land never reaches TOP, and heights above PEAK squeeze toward it.
   TOP = WY - 14.0
   PEAK = SEA + 100.0
@@ -167,20 +198,28 @@ class Terrain
     @edges = Array.new(4, 0.0)
   end
 
-  # Land well above the sea, from the noise alone.
-  def land?(x, z) = surface_height(x, z) > SEA + 4
+  # Low land at column x, z, from the noise alone.
+  def low_land?(x, z) = (surface_height(x, z) - SEA).between?(SPAWN_BOTTOM + 1, SPAWN_TOP)
 
-  # The origin when it is land. Else the first land point on the squares
-  # around the origin, 64 blocks apart, or the origin when no land is near.
-  def land_near_origin
-    return [0, 0] if land?(0, 0)
+  # Open low land at x, z, and low land SPAWN_REACH away to each side.
+  def spawn_land?(x, z)
+    low_land?(x, z) && low_land?(x + SPAWN_REACH, z) && low_land?(x - SPAWN_REACH, z) &&
+      low_land?(x, z + SPAWN_REACH) && low_land?(x, z - SPAWN_REACH) &&
+      SPAWN_BIOMES.include?(biome(x, z, surface_height(x, z)))
+  end
+
+  # The origin when it is low land for a spawn. Else the first such point on
+  # the squares around the origin, 64 blocks apart, or the origin when none
+  # is near.
+  def spawn_near_origin
+    return [0, 0] if spawn_land?(0, 0)
 
     (LAND_STEP..LAND_RADIUS).step(LAND_STEP) do |radius|
       (-radius..radius).step(LAND_STEP) do |side|
-        return [side, -radius] if land?(side, -radius)
-        return [side, radius] if land?(side, radius)
-        return [-radius, side] if land?(-radius, side)
-        return [radius, side] if land?(radius, side)
+        return [side, -radius] if spawn_land?(side, -radius)
+        return [side, radius] if spawn_land?(side, radius)
+        return [-radius, side] if spawn_land?(-radius, side)
+        return [radius, side] if spawn_land?(radius, side)
       end
     end
     [0, 0]
@@ -212,7 +251,8 @@ class Terrain
   def continent(x, z)
     warp(x + SHIFT, z + SHIFT)
     unless @continent_read
-      @continent = @noise.fbm2(@wx / CONTINENT_SCALE, @wz / CONTINENT_SCALE, 4)
+      @continent = @noise.fbm2(@wx / CONTINENT_SCALE, @wz / CONTINENT_SCALE, 4) +
+                   @noise.noise2(@wx / BASIN_SCALE + 600.0, @wz / BASIN_SCALE) * BASIN_DEPTH
       @continent_read = true
     end
     @continent
@@ -241,6 +281,7 @@ class Terrain
     # Away from the coast, the island noise lifts domes out of the deep
     # ocean. Lower domes stay under the water as shoals.
     ocean = Terrain.smooth((CONTINENT[2] - continent) / (CONTINENT[2] - CONTINENT[1]))
+    ocean *= Terrain.smooth((@noise2.noise2(wx / ARCHIPELAGO_SCALE + 1100.0, wz / ARCHIPELAGO_SCALE) - ARCHIPELAGO) / ARCHIPELAGO_EDGE) if ocean > 0.0
     if ocean > 0.0
       dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * ISLE_HILLS
       h += (dome - h) * ocean if dome > h
@@ -269,7 +310,8 @@ class Terrain
   def erosion(x, z)
     warp(x + SHIFT, z + SHIFT)
     unless @erosion_read
-      @erosion = @noise4.fbm2(@wx / EROSION_SCALE + 30.0, @wz / EROSION_SCALE, 3)
+      @erosion = @noise4.fbm2(@wx / EROSION_SCALE + 30.0, @wz / EROSION_SCALE, 3) +
+                 @noise4.noise2(@wx / EROSION_ZONE_SCALE + 950.0, @wz / EROSION_ZONE_SCALE) * EROSION_ZONE_WEIGHT
       @erosion_read = true
     end
     @erosion
@@ -328,9 +370,11 @@ class Terrain
     warp(nx, nz)
     wx = @wx
     wz = @wz
-    t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2
+    t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2 +
+        @noise3.noise2(wx / CLIMATE_ZONE_SCALE + 800.0, wz / CLIMATE_ZONE_SCALE) * CLIMATE_ZONE_WEIGHT
     t -= (h - COLD_LINE) * COOLING if h > COLD_LINE
-    w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2
+    w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2 +
+        @noise4.noise2(wx / CLIMATE_ZONE_SCALE + 850.0, wz / CLIMATE_ZONE_SCALE) * CLIMATE_ZONE_WEIGHT
     Biome.pick(t, w, Terrain.landform(erosion(x, z), h))
   end
 
