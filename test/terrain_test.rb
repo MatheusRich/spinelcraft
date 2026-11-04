@@ -188,6 +188,16 @@ class TerrainTest < Minitest::Test
     assert_equal Biome::TUNDRA, terrain.biome(0, 0, Terrain::TOP.to_i)
   end
 
+  # The sea floor has no ridges, so ridges that start at the coast with any
+  # height make a wall. Seed 229189 had one 43 blocks tall at 2772, 3730.
+  def test_mountain_ridges_grow_from_nothing_at_the_coast
+    Terrain::EROSION.each do |erosion|
+      assert_equal 0.0, Terrain.land(Terrain::LAND_RIDGES, Terrain::LAND_CONTINENT[0], erosion)
+    end
+    terrain = Terrain.new(229189)
+    assert_operator (terrain.surface_height(2772, 3730) - terrain.surface_height(2771, 3730)).abs, :<, 8
+  end
+
   # Column 2060, 1316 of seed 229189 is a hill 13 blocks above the sea in a swamp.
   def test_a_hill_in_a_swamp_is_swamp
     terrain = Terrain.new(229189)
