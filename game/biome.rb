@@ -9,7 +9,7 @@ module Biome
 
   # The top block of a column away from beaches and peaks.
   GROUND = []
-  # Trees per 65536 columns.
+  # Trees per 65536 columns, on average (Terrain.tree_density).
   TREES = []
   TREE = []
   # Birches per 65536 trees of a biome with oaks.

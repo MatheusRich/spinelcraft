@@ -269,6 +269,31 @@ class TerrainTest < Minitest::Test
     assert_equal(-1, terrain.tree_top(72, 481))
   end
 
+  def test_meadows_thin_the_trees_and_the_land_between_them_grows_groves
+    assert_equal 1.0, Terrain.tree_density(0.0)
+    assert_in_delta 0.5, Terrain.tree_density(0.1), 1e-12
+    assert_equal 0.0, Terrain.tree_density(0.3)
+    assert_in_delta 1.5, Terrain.tree_density(-0.1), 1e-12
+    assert_equal 2.0, Terrain.tree_density(-0.5)
+  end
+
+  # The swamp grows 900 trees in 65536 columns: 450 at half the density,
+  # 1350 at one and a half.
+  def test_the_tree_density_of_a_column_scales_the_trees_of_the_biome
+    terrain = terrain_with(biome: Biome::SWAMP)
+    terrain.define_singleton_method(:meadow) { |x, z| x == 72 && z == 481 ? -0.1 : 0.1 }
+    assert_equal(-1, terrain.tree_top(0, 50))
+    assert_equal SEA + 9, terrain.tree_top(72, 481)
+  end
+
+  # The tree roll of column 0, 101 is 6062, above the 4200 trees of the
+  # jungle but below its 8400 in a grove.
+  def test_a_jungle_grove_grows_more_trees_than_any_biome_grows_outside_one
+    assert_equal 6062, Noise.hash3(0, 0, 101, 21)
+    assert_equal SEA + 9, terrain_with(meadow: -0.2).tree_top(0, 101)
+    assert_equal(-1, terrain_with.tree_top(0, 101))
+  end
+
   def test_a_tree_grows_on_grass_or_snowy_grass
     assert_equal SEA + 9, terrain_with(ground: Block::GRASS).tree_top(0, 50)
     assert_equal SEA + 9, terrain_with(ground: Block::SNOW_GRASS).tree_top(0, 50)
@@ -367,8 +392,9 @@ class TerrainTest < Minitest::Test
     terrain
   end
 
-  def terrain_with(height: SEA + 10, biome: Biome::JUNGLE, ground: Block::GRASS, cave: false)
+  def terrain_with(height: SEA + 10, biome: Biome::JUNGLE, ground: Block::GRASS, cave: false, meadow: 0.0)
     terrain = Terrain.new(1337)
+    terrain.define_singleton_method(:meadow) { |_x, _z| meadow }
     terrain.define_singleton_method(:surface_height) { |_x, _z| height }
     terrain.define_singleton_method(:biome) { |_x, _z, _h| biome }
     terrain.define_singleton_method(:top_block) { |_x, _z, _h, _biome| ground }

@@ -80,7 +80,7 @@ class Lod
     @top[k] = Block::TOP[block]
     @side[k] = Block::SIDE[block]
     @h[k] = h
-    if (block == Block::GRASS || block == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome]
+    if (block == Block::GRASS || block == Block::SNOW_GRASS) && Noise.hash3(cx, 0, cz, 26) >> 4 < Biome::TREES[biome] * Terrain.tree_density(@terrain.meadow(x, z))
       # About the height of the biome's trees: the trunk, plus the leaves above it.
       @h[k] = h + Trees::TRUNK[Biome::TREE[biome]] + 2
       leaves = Block::TOP[Block::LEAVES[Trees::WOOD[Biome::TREE[biome]]]]

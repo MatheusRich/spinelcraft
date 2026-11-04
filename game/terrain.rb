@@ -106,6 +106,9 @@ class Terrain
   SNOW_LINE = SEA + 110
   COLD_LINE = SEA + 30
   COOLING = 0.004
+  # Minecraft has no clearings or groves; these values are not from the wiki.
+  CLEARING_START = 0.2
+  GROVE = 2.0
 
   def initialize(seed)
     @noise = Noise.new(seed)
@@ -307,6 +310,7 @@ class Terrain
 
   def self.beach?(top) = top <= BEACH_TOP
   def self.bare_rock?(top) = top > ROCK_LINE
+  def self.tree_density(meadow) = (1.0 - meadow / CLEARING_START).clamp(0.0, GROVE)
 
   def shore?(x, z)
     continent = continent(x, z)
@@ -361,11 +365,15 @@ class Terrain
   # Reads only noise, so every chunk that a tree crosses gets the same tree.
   def tree_top(x, z)
     r = Noise.hash3(x, 0, z, 21)
-    return -1 if r >= Biome::MAX_TREES
+    # Most rolls fail even in a grove, so they skip the meadow noise.
+    return -1 if r >= Biome::MAX_TREES * GROVE
+
+    density = Terrain.tree_density(meadow(x, z))
+    return -1 if r >= Biome::MAX_TREES * density
 
     h = surface_height(x, z)
     biome = biome(x, z, h)
-    return -1 if r >= Biome::TREES[biome]
+    return -1 if r >= Biome::TREES[biome] * density
 
     ground = top_block(x, z, h, biome)
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS

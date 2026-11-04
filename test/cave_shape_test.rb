@@ -66,7 +66,8 @@ class CaveShapeTest < Minitest::Test
     assert_in_delta 3.75, CaveShape.yz_lerp(edges, 0.5, 0.75), 1e-12
   end
 
-  # Caves gives tunnels in an entrance patch their full width.
+  # Caves gives tunnels in an entrance patch their full width. The leaves of
+  # a tree next to an opening can fill its air.
   def test_carved_blocks_of_an_entrance_patch_are_the_caves_of_the_generated_chunk
     terrain = Terrain.new(1337)
     cx, cz = (-8..8).flat_map { |i| (-8..8).map { |j| [i, j] } }.find do |i, j|
@@ -93,7 +94,10 @@ class CaveShapeTest < Minitest::Test
         (2...top).each do |y|
           next if top - 1 - y > CaveShape::ROOM_ROOF
 
-          cave = [Block::AIR, Block::LAVA].include?(world.get(x, y, z))
+          block = world.get(x, y, z)
+          next if Block.leaves?(block)
+
+          cave = [Block::AIR, Block::LAVA].include?(block)
           assert_equal cave, terrain.cave_shape.carved?(x, y, z), "block #{x} #{y} #{z}"
           carved += 1 if cave
         end
