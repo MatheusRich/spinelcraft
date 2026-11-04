@@ -277,7 +277,15 @@ class Terrain
     t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2 +
         @noise3.noise2(wx / CLIMATE_ZONE_SCALE + 800.0, wz / CLIMATE_ZONE_SCALE) * CLIMATE_ZONE_WEIGHT
     t -= (h - COLD_LINE) * COOLING if h > COLD_LINE
-    Biome.pick(t, warped_humidity, Terrain.landform(erosion(x, z), h))
+    Biome.pick(t, warped_humidity, Terrain.landform(erosion(x, z), landform_height(x, z, h)))
+  end
+
+  # The hills do not change the landform, so a hill in a swamp stays swamp.
+  def landform_height(x, z, height)
+    continent = continent(x, z)
+    return height if continent < LAND_CONTINENT[0]
+
+    (SEA + Terrain.land(LAND_BASE, continent, erosion(x, z))).to_i
   end
 
   def self.landform(erosion, height)

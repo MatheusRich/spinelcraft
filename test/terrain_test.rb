@@ -188,10 +188,32 @@ class TerrainTest < Minitest::Test
     assert_equal Biome::TUNDRA, terrain.biome(0, 0, Terrain::TOP.to_i)
   end
 
-  def test_swamps_grow_up_to_the_swamp_top
-    terrain = Terrain.new(1337)
-    assert_equal Biome::SWAMP, terrain.biome(-1456, -1984, Terrain::SWAMP_TOP)
-    refute_equal Biome::SWAMP, terrain.biome(-1456, -1984, Terrain::SWAMP_TOP + 1)
+  # Column 2060, 1316 of seed 229189 is a hill 13 blocks above the sea in a swamp.
+  def test_a_hill_in_a_swamp_is_swamp
+    terrain = Terrain.new(229189)
+    height = terrain.surface_height(2060, 1316)
+    assert_operator height, :>, Terrain::SWAMP_TOP
+    assert_equal Biome::SWAMP, terrain.biome(2060, 1316, height)
+  end
+
+  # At this continent and erosion the base of the land is 13.8 blocks above
+  # the sea, which rounds down to 13.
+  def test_the_landform_reads_the_land_without_its_hills_but_not_at_sea
+    continent = Terrain::LAND_CONTINENT[2]
+    erosion = -0.19
+    land = river_shore(continent, 0.0, 0.0)
+    land.define_singleton_method(:erosion) { |_x, _z| erosion }
+    assert_equal SEA + 13, land.landform_height(0, 0, SEA + 50)
+    coast = river_shore(Terrain::LAND_CONTINENT[0], 0.0, 0.0)
+    coast.define_singleton_method(:erosion) { |_x, _z| erosion }
+    refute_equal SEA + 50, coast.landform_height(0, 0, SEA + 50)
+    sea = river_shore(Terrain::LAND_CONTINENT[0] - 0.001, 0.0, 0.0)
+    assert_equal SEA + 50, sea.landform_height(0, 0, SEA + 50)
+  end
+
+  def test_low_land_reaches_up_to_the_swamp_top
+    assert_equal Biome::LOW, Terrain.landform(Terrain::FLAT_EROSION, Terrain::SWAMP_TOP)
+    assert_equal Biome::FLAT, Terrain.landform(Terrain::FLAT_EROSION + 0.01, Terrain::SWAMP_TOP + 1)
   end
 
   # The tree roll of column 0, 50 is 667, and that of column 72, 481 is 900.
