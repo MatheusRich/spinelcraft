@@ -90,7 +90,7 @@ class Storm
 
   # True when no block above the head of the body stops motion or holds a
   # fluid, as a glass roof does. A body with its feet in water is exposed.
-  def exposed?(body) = @world.motion_top(body.x, body.z) <= (body.y + body.tall).floor
+  def exposed?(body) = @world.motion_top(body.x.floor, body.z.floor) <= (body.y + body.tall).floor
 
   # Hurts and burns the mobs near the strike at x, y, z.
   def burn_mobs(x, y, z)

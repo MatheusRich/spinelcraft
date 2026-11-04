@@ -52,6 +52,15 @@ class StormTest < Minitest::Test
     assert_equal Mob::HP[Mob::ZOMBIE], zombie.hp
   end
 
+  # A body at -6.5, -6.5 stands in column -7, -7, under its roof. A strike
+  # in the next column must not reach it.
+  def test_a_glass_roof_keeps_the_strike_from_a_player_at_negative_coordinates
+    @world.load_chunk(-1, -1)
+    @world.set(-7, SKY_Y + 2, -7, Block::GLASS)
+    player = Player.new(-6.5, SKY_Y - 1.0, -6.5)
+    refute @storm.strike(-6, -7, player, @particles)
+  end
+
   def test_a_mob_with_its_feet_in_water_is_hit
     @world.set(10, SKY_Y - 1, 10, Block::WATER)
     zombie = zombie_at(10.5, 10.5)
