@@ -17,6 +17,9 @@ class FarTerrain
   # face directions for each tile.
   attr_reader :visible
 
+  # The first distance that level l draws: where the next finer one stops.
+  def self.level_start(l) = l == 0 ? DETAIL_VIEW : (REACH << (l - 1)).to_f
+
   # The far land of terrain (a Terrain). Its tiles go to the GPU slots from slot0 on,
   # TILE_SLOTS for each level.
   def initialize(terrain, slot0)
@@ -39,9 +42,6 @@ class FarTerrain
 
   # The Lod of level l.
   def lod(l) = @lods[l]
-
-  # The first distance that level l draws: where the next finer one stops.
-  def self.level_start(l) = l == 0 ? DETAIL_VIEW : (REACH << (l - 1)).to_f
 
   # The tile rings that level l builds for a view of view blocks.
   def tile_rings(l, view)

@@ -35,22 +35,6 @@ class Ores
   DIAMOND_FILL = (65536 * DIAMOND_VEIN / ORE_CELL).to_i
   SPINEL_FILL = (65536 * VEIN_9 / ORE_CELL).to_i
 
-  def initialize
-    @coal_odds = Array.new(WY, 0)
-    @iron_odds = Array.new(WY, 0)
-    @diamond_odds = Array.new(WY, 0)
-    @spinel_odds = Array.new(WY, 0)
-    y = 0
-    while y < WY
-      @coal_odds[y] = Ores.ore_odds(Ores.ore_at(Block::COAL_ORE, y), COAL_CELL, VEIN_17)
-      @iron_odds[y] = Ores.ore_odds(Ores.ore_at(Block::IRON, y), ORE_CELL, VEIN_9)
-      @diamond_odds[y] = Ores.ore_odds(Ores.ore_at(Block::DIAMOND, y), ORE_CELL, DIAMOND_VEIN)
-      @spinel_odds[y] = Ores.ore_odds(Ores.ore_at(Block::SPINEL_ORE, y), ORE_CELL, VEIN_9)
-      y += 1
-    end
-    nil
-  end
-
   # The y in Minecraft of layer y. Below the sea, layer y also stands for
   # the layer above that y in Minecraft.
   def self.mc_y(y)
@@ -121,6 +105,32 @@ class Ores
     y < peak ? (y - low) / (peak - low) : (high - y) / (high - peak)
   end
 
+  # True when block x, y, z of a clump of ore is ore. A roll for each block
+  # leaves gaps in the clump.
+  def self.fills?(ore, x, y, z)
+    return Noise.hash3(x, y, z, 12) < COAL_FILL if ore == Block::COAL_ORE
+    return Noise.hash3(x, y, z, 14) < IRON_FILL if ore == Block::IRON
+    return Noise.hash3(x, y, z, 16) < DIAMOND_FILL if ore == Block::DIAMOND
+
+    Noise.hash3(x, y, z, 18) < SPINEL_FILL
+  end
+
+  def initialize
+    @coal_odds = Array.new(WY, 0)
+    @iron_odds = Array.new(WY, 0)
+    @diamond_odds = Array.new(WY, 0)
+    @spinel_odds = Array.new(WY, 0)
+    y = 0
+    while y < WY
+      @coal_odds[y] = Ores.ore_odds(Ores.ore_at(Block::COAL_ORE, y), COAL_CELL, VEIN_17)
+      @iron_odds[y] = Ores.ore_odds(Ores.ore_at(Block::IRON, y), ORE_CELL, VEIN_9)
+      @diamond_odds[y] = Ores.ore_odds(Ores.ore_at(Block::DIAMOND, y), ORE_CELL, DIAMOND_VEIN)
+      @spinel_odds[y] = Ores.ore_odds(Ores.ore_at(Block::SPINEL_ORE, y), ORE_CELL, VEIN_9)
+      y += 1
+    end
+    nil
+  end
+
   # The ore of the clump at layer y, or stone: coal_r is the roll of the
   # coal cell, and r the roll of the iron, diamond or spinel cell. Spinel
   # takes the top of the roll. Its range then starts at the same roll in
@@ -135,15 +145,5 @@ class Ores
     return Block::SPINEL_ORE if r >= 65536 - @spinel_odds[y]
 
     Block::STONE
-  end
-
-  # True when block x, y, z of a clump of ore is ore. A roll for each block
-  # leaves gaps in the clump.
-  def self.fills?(ore, x, y, z)
-    return Noise.hash3(x, y, z, 12) < COAL_FILL if ore == Block::COAL_ORE
-    return Noise.hash3(x, y, z, 14) < IRON_FILL if ore == Block::IRON
-    return Noise.hash3(x, y, z, 16) < DIAMOND_FILL if ore == Block::DIAMOND
-
-    Noise.hash3(x, y, z, 18) < SPINEL_FILL
   end
 end

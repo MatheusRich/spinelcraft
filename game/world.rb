@@ -31,6 +31,38 @@ class World
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :store
 
+  # Spinel cannot type the positions that the game code gives World (from
+  # the player, the mobs or the flow queue). So get, set and the chunk
+  # lookups call to_i before they use index or slot, and the generator and
+  # the mesher stay unboxed. The to_i in index lets Spinel type block and
+  # put_block before its inference stops at its round limit.
+  def self.index(x, y, z) = ((((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1).to_i
+  def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)
+
+  # Appends the offsets of the square rings 0 to max to dxs and dzs, nearest
+  # ring first.
+  def self.square_rings(max, dxs, dzs)
+    (0..max).each do |r|
+      (-r..r).each do |dx|
+        (-r..r).each do |dz|
+          if dx.abs == r || dz.abs == r
+            dxs << dx
+            dzs << dz
+          end
+        end
+      end
+    end
+    nil
+  end
+
+  # A unique Integer for a block anywhere in the world (chest keys). The
+  # to_i lets Spinel type the key when the position is untyped, as in index.
+  def self.key(x, y, z) = (((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y).to_i
+  def self.key_x(key) = (key >> 34) - KEY_OFF
+  def self.key_y(key) = key & 255
+  def self.key_z(key) = ((key >> 8) & ((1 << 26) - 1)) - KEY_OFF
+  def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)
+
   def initialize(seed)
     # Eight blocks per Integer, one byte each; see block.
     @blocks = Array.new(PX * PY * PZ / 8 + 1, 0)
@@ -61,12 +93,6 @@ class World
     Biome::PRECIPITATION[terrain.biome(ix, iz, terrain.surface_height(ix, iz))]
   end
 
-  # Spinel cannot type the positions that the game code gives World (from
-  # the player, the mobs or the flow queue). So get, set and the chunk
-  # lookups call to_i before they use index or slot, and the generator and
-  # the mesher stay unboxed. The to_i in index lets Spinel type block and
-  # put_block before its inference stops at its round limit.
-  def self.index(x, y, z) = ((((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1).to_i
   # Block i of a packed store: byte i & 7 of Integer i >> 3. The shift
   # keeps the sign, and the mask drops it.
   def block(i) = (@blocks[i >> 3] >> ((i & 7) << 3)) & 255
@@ -83,31 +109,6 @@ class World
     v = k == 7 ? ((block ^ 128) - 128) << 56 : block << (k << 3)
     @blocks[j] = (@blocks[j] & KEEP[k]) | v
   end
-
-  def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)
-
-  # Appends the offsets of the square rings 0 to max to dxs and dzs, nearest
-  # ring first.
-  def self.square_rings(max, dxs, dzs)
-    (0..max).each do |r|
-      (-r..r).each do |dx|
-        (-r..r).each do |dz|
-          if dx.abs == r || dz.abs == r
-            dxs << dx
-            dzs << dz
-          end
-        end
-      end
-    end
-    nil
-  end
-  # A unique Integer for a block anywhere in the world (chest keys). The
-  # to_i lets Spinel type the key when the position is untyped, as in index.
-  def self.key(x, y, z) = (((((x + KEY_OFF) << 26) | (z + KEY_OFF)) << 8) | y).to_i
-  def self.key_x(key) = (key >> 34) - KEY_OFF
-  def self.key_y(key) = key & 255
-  def self.key_z(key) = ((key >> 8) & ((1 << 26) - 1)) - KEY_OFF
-  def self.chunk_key(cx, cz) = ((cx + KEY_OFF) << 26) | (cz + KEY_OFF)
 
   def chunk_loaded?(cx, cz)
     icx = cx.to_i

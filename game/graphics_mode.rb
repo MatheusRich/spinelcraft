@@ -5,6 +5,9 @@
 class GraphicsMode
   attr_reader :name
 
+  # The mode that a word of the options file names, or nil.
+  def self.parse(word) = ALL.find { |mode| word == mode.name.downcase }
+
   def initialize(name)
     @name = name
   end
@@ -39,7 +42,4 @@ class GraphicsMode
 
   # The mode after this one in the pause menu.
   def next_mode = equal?(FANCY) ? FAST : FANCY
-
-  # The mode that a word of the options file names, or nil.
-  def self.parse(word) = ALL.find { |mode| word == mode.name.downcase }
 end

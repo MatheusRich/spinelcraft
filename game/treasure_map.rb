@@ -16,6 +16,8 @@ class TreasureMap
   # chests next to each other.
   MARGIN = 32
 
+  def self.inside?(x) = (x & (CELL - 1)).between?(MARGIN, CELL - MARGIN - 1)
+
   def initialize(terrain)
     @terrain = terrain
     @sites = {}
@@ -79,8 +81,6 @@ class TreasureMap
     end
     site
   end
-
-  def self.inside?(x) = (x & (CELL - 1)).between?(MARGIN, CELL - MARGIN - 1)
 
   def holds_chest?(x, z, height)
     return false if @terrain.tree_top(x, z) >= 0

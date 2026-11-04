@@ -20,6 +20,9 @@ class Music
   GAP_MIN = 600.0
   GAP_MAX = 1200.0
 
+  # Starts track id. Returns false when its file does not open.
+  def self.start(id) = Gfx.au_music_play("assets/music/#{FILES[id]}.ogg", GAINS[id]) == 0
+
   def initialize(seed)
     @rng = Rng.new(seed)
     @wait = FIRST_WAIT_MIN + @rng.rand01 * (FIRST_WAIT_MAX - FIRST_WAIT_MIN)
@@ -66,7 +69,4 @@ class Music
       bag[0] = @last
     end
   end
-
-  # Starts track id. Returns false when its file does not open.
-  def self.start(id) = Gfx.au_music_play("assets/music/#{FILES[id]}.ogg", GAINS[id]) == 0
 end

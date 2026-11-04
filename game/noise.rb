@@ -1,5 +1,16 @@
 # Perlin noise, and a hash for random choices that a position decides.
 class Noise
+  # A number from 0 to 0xffff for the cell x, y, z. Each salt gives other numbers.
+  def self.hash3(x, y, z, salt)
+    h = (x * 73856093 + y * 19349663 + z * 83492791 + salt * 2654435761) & 0xffffffff
+    h = ((h ^ (h >> 15)) * 2146121005) & 0xffffffff
+    h = ((h ^ (h >> 13)) * 1798096565) & 0xffffffff
+    (h ^ (h >> 16)) & 0xffff
+  end
+
+  # hash3 as a fraction from 0.0 up to 1.0, without 1.0.
+  def self.fraction(x, y, z, salt) = hash3(x, y, z, salt) / 65536.0
+
   def initialize(seed)
     p = (0...256).to_a
     rng = Rng.new(seed)
@@ -107,15 +118,4 @@ class Noise
     end
     sum / norm
   end
-
-  # A number from 0 to 0xffff for the cell x, y, z. Each salt gives other numbers.
-  def self.hash3(x, y, z, salt)
-    h = (x * 73856093 + y * 19349663 + z * 83492791 + salt * 2654435761) & 0xffffffff
-    h = ((h ^ (h >> 15)) * 2146121005) & 0xffffffff
-    h = ((h ^ (h >> 13)) * 1798096565) & 0xffffffff
-    (h ^ (h >> 16)) & 0xffff
-  end
-
-  # hash3 as a fraction from 0.0 up to 1.0, without 1.0.
-  def self.fraction(x, y, z, salt) = hash3(x, y, z, salt) / 65536.0
 end

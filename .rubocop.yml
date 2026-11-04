@@ -64,6 +64,17 @@ Lint/FloatComparison:
 Layout/EmptyLineAfterGuardClause:
   Enabled: true
 
+# Class methods come first, then initialize, then the instance methods. The
+# order leaves out constants and macros.
+Layout/ClassStructure:
+  Enabled: true
+  ExpectedOrder:
+    - public_class_methods
+    - initializer
+    - public_methods
+    - protected_methods
+    - private_methods
+
 # A method of 25 lines fits on one screen with its comment. A table literal
 # counts as one line.
 Metrics/MethodLength:

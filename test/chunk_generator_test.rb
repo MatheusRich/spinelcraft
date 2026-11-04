@@ -1,6 +1,32 @@
 require_relative "test_helper"
 
 class ChunkGeneratorTest < Minitest::Test
+  ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE].freeze
+
+  # Coal cells are x >> 2, y >> 1, z >> 2, and the other ore cells x >> 1,
+  # y >> 1, z >> 1.
+  def self.ore_area
+    @ore_area ||= begin
+      world = World.new(1337)
+      4.times { |cx| 4.times { |cz| world.load_chunk(cx, cz) } }
+      stone = Array.new(WY, 0)
+      cells = ORES.to_h { |ore| [ore, Hash.new(0)] }
+      64.times do |x|
+        64.times do |z|
+          (1...WY).each do |y|
+            b = world.get(x, y, z)
+            stone[y] += 1 if b == Block::STONE || cells.key?(b)
+            next unless cells.key?(b)
+
+            cell = b == Block::COAL_ORE ? [x >> 2, y >> 1, z >> 2] : [x >> 1, y >> 1, z >> 1]
+            cells[b][cell] += 1
+          end
+        end
+      end
+      [stone, cells]
+    end
+  end
+
   # minecraft.wiki/w/Desert_Well/Structure: 89 sandstone, 12 slabs and 4
   # sand, 2 suspicious sand and 5 water. Here slabs are sandstone and
   # suspicious sand is sand.
@@ -100,32 +126,6 @@ class ChunkGeneratorTest < Minitest::Test
       end
     end
     assert_empty shallow
-  end
-
-  ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE].freeze
-
-  # Coal cells are x >> 2, y >> 1, z >> 2, and the other ore cells x >> 1,
-  # y >> 1, z >> 1.
-  def self.ore_area
-    @ore_area ||= begin
-      world = World.new(1337)
-      4.times { |cx| 4.times { |cz| world.load_chunk(cx, cz) } }
-      stone = Array.new(WY, 0)
-      cells = ORES.to_h { |ore| [ore, Hash.new(0)] }
-      64.times do |x|
-        64.times do |z|
-          (1...WY).each do |y|
-            b = world.get(x, y, z)
-            stone[y] += 1 if b == Block::STONE || cells.key?(b)
-            next unless cells.key?(b)
-
-            cell = b == Block::COAL_ORE ? [x >> 2, y >> 1, z >> 2] : [x >> 1, y >> 1, z >> 1]
-            cells[b][cell] += 1
-          end
-        end
-      end
-      [stone, cells]
-    end
   end
 
   def test_each_ore_fills_its_share_of_the_stone_at_each_layer

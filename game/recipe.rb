@@ -11,17 +11,6 @@ class Recipe
   # The ingredient is a block, or Block::ANY_PLANKS.
   attr_reader :ingredient, :result, :result_count, :where
 
-  # second is 0 for a recipe with one ingredient.
-  def initialize(ingredient, count, result, result_count, where, second = 0, second_count = 0)
-    @ingredient = ingredient
-    @count = count
-    @result = result
-    @result_count = result_count
-    @where = where
-    @second = second
-    @second_count = second_count
-  end
-
   # True when the station open makes the recipes for where. A crafting
   # table also makes the recipes by hand, as in Minecraft.
   def self.makes?(open, where) = where == open || (where == BY_HAND && open == AT_TABLE)
@@ -47,6 +36,17 @@ class Recipe
       index += 1
     end
     nil
+  end
+
+  # second is 0 for a recipe with one ingredient.
+  def initialize(ingredient, count, result, result_count, where, second = 0, second_count = 0)
+    @ingredient = ingredient
+    @count = count
+    @result = result
+    @result_count = result_count
+    @where = where
+    @second = second
+    @second_count = second_count
   end
 
   def made_at?(open) = Recipe.makes?(open, @where)

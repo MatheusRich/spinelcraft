@@ -3,6 +3,12 @@
 class GameMode
   attr_reader :name, :number
 
+  # The mode that a word of /gamemode or a save names: its name, its first
+  # letter or its number. The result is nil for another word.
+  def self.parse(word)
+    ALL.find { |mode| word == mode.name || word == mode.name[0] || word == mode.number.to_s }
+  end
+
   def initialize(name, number)
     @name = name
     @number = number
@@ -15,10 +21,4 @@ class GameMode
   def survival? = equal?(SURVIVAL)
 
   def creative? = equal?(CREATIVE)
-
-  # The mode that a word of /gamemode or a save names: its name, its first
-  # letter or its number. The result is nil for another word.
-  def self.parse(word)
-    ALL.find { |mode| word == mode.name || word == mode.name[0] || word == mode.number.to_s }
-  end
 end

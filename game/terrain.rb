@@ -110,6 +110,48 @@ class Terrain
   CLEARING_START = 0.2
   GROVE = 2.0
 
+  def self.smooth(t)
+    t = t.clamp(0.0, 1.0)
+    t * t * (3.0 - 2.0 * t)
+  end
+
+  def self.land(table, continent, erosion)
+    return spline(EROSION, table[0], erosion) if continent <= LAND_CONTINENT[0]
+
+    (1...LAND_CONTINENT.size).each do |row|
+      above = LAND_CONTINENT[row]
+      next unless continent < above
+
+      below = LAND_CONTINENT[row - 1]
+      low = spline(EROSION, table[row - 1], erosion)
+      high = spline(EROSION, table[row], erosion)
+      return low + (high - low) * (continent - below) / (above - below)
+    end
+    spline(EROSION, table[LAND_CONTINENT.size - 1], erosion)
+  end
+
+  def self.spline(xs, ys, v)
+    return ys[0] if v <= xs[0]
+
+    (1...xs.size).each do |i|
+      return ys[i - 1] + (ys[i] - ys[i - 1]) * (v - xs[i - 1]) / (xs[i] - xs[i - 1]) if v < xs[i]
+    end
+    ys[xs.size - 1]
+  end
+
+  def self.landform(erosion, height)
+    return Biome::ROUGH if erosion < ROUGH_EROSION
+    return Biome::LOW if height <= SWAMP_TOP
+    return Biome::FLAT if erosion > FLAT_EROSION
+    return Biome::PLATEAU if erosion.between?(PLATEAU_LOW_EROSION, PLATEAU_HIGH_EROSION) && height >= SEA + PLATEAU_TOP
+
+    Biome::MIDDLE
+  end
+
+  def self.beach?(top) = top <= BEACH_TOP
+  def self.bare_rock?(top) = top > ROCK_LINE
+  def self.tree_density(meadow) = (1.0 - meadow / CLEARING_START).clamp(0.0, GROVE)
+
   def initialize(seed)
     @noise = Noise.new(seed)
     @noise2 = Noise.new(seed * 31 + 7)
@@ -250,35 +292,6 @@ class Terrain
     (ridge * ridge + SPUR * spur * spur * ridge) * (SADDLE + (1.0 - SADDLE) * peak) * RIDGE_RISE
   end
 
-  def self.smooth(t)
-    t = t.clamp(0.0, 1.0)
-    t * t * (3.0 - 2.0 * t)
-  end
-
-  def self.land(table, continent, erosion)
-    return spline(EROSION, table[0], erosion) if continent <= LAND_CONTINENT[0]
-
-    (1...LAND_CONTINENT.size).each do |row|
-      above = LAND_CONTINENT[row]
-      next unless continent < above
-
-      below = LAND_CONTINENT[row - 1]
-      low = spline(EROSION, table[row - 1], erosion)
-      high = spline(EROSION, table[row], erosion)
-      return low + (high - low) * (continent - below) / (above - below)
-    end
-    spline(EROSION, table[LAND_CONTINENT.size - 1], erosion)
-  end
-
-  def self.spline(xs, ys, v)
-    return ys[0] if v <= xs[0]
-
-    (1...xs.size).each do |i|
-      return ys[i - 1] + (ys[i] - ys[i - 1]) * (v - xs[i - 1]) / (xs[i] - xs[i - 1]) if v < xs[i]
-    end
-    ys[xs.size - 1]
-  end
-
   def biome(x, z, h)
     nx = x + SHIFT
     nz = z + SHIFT
@@ -298,19 +311,6 @@ class Terrain
 
     (SEA + Terrain.land(LAND_BASE, continent, erosion(x, z))).to_i
   end
-
-  def self.landform(erosion, height)
-    return Biome::ROUGH if erosion < ROUGH_EROSION
-    return Biome::LOW if height <= SWAMP_TOP
-    return Biome::FLAT if erosion > FLAT_EROSION
-    return Biome::PLATEAU if erosion.between?(PLATEAU_LOW_EROSION, PLATEAU_HIGH_EROSION) && height >= SEA + PLATEAU_TOP
-
-    Biome::MIDDLE
-  end
-
-  def self.beach?(top) = top <= BEACH_TOP
-  def self.bare_rock?(top) = top > ROCK_LINE
-  def self.tree_density(meadow) = (1.0 - meadow / CLEARING_START).clamp(0.0, GROVE)
 
   def shore?(x, z)
     continent = continent(x, z)

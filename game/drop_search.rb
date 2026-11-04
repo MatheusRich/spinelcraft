@@ -14,6 +14,8 @@ class DropSearch
   # of the first steps of its shortest paths.
   STEPS = 16
 
+  def self.place(x, z) = (x & MASK) * SIDE + (z & MASK)
+
   def initialize(flow)
     @flow = flow
     @seen = Array.new(SIDE * SIDE, 0)
@@ -25,8 +27,6 @@ class DropSearch
   end
 
   def forget = @directions.clear
-
-  def self.place(x, z) = (x & MASK) * SIDE + (z & MASK)
 
   def directions(x, y, z)
     key = World.key(x, y, z)

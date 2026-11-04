@@ -24,6 +24,19 @@ class Lod
 
   attr_reader :tile_x, :tile_z, :built, :faces, :tile, :tile_shift
 
+  def self.slot(tx, tz) = (tx & TMASK) * TRING + (tz & TMASK)
+
+  # The tint and the biome fields of a face record. The shader takes the
+  # ratio of that biome from the uniforms (Tint#write_uniforms).
+  def self.tint(tex, biome) = (Tex.tint(tex) << TINT_AT) | (biome << BIOME_AT)
+
+  # The fields of the second word as #defines for the shaders, as
+  # Mesher.shader_defines gives them.
+  def self.shader_defines
+    Mesher.define_field("TALL", TALL_AT, TALL_BITS) + Mesher.define_field("CELL", CELL_AT, CELL_BITS) +
+      Mesher.define_field("LOD_TINT", TINT_AT, TINT_BITS) + Mesher.define_field("BIOME", BIOME_AT, BIOME_BITS)
+  end
+
   def initialize(terrain, level)
     @terrain = terrain
     @shift = 2 + level
@@ -43,19 +56,6 @@ class Lod
     @offsets = Array.new(8, 0)
     @nx = [1, -1, 0, 0, 0, 0]
     @nz = [0, 0, 0, 0, 1, -1]
-  end
-
-  def self.slot(tx, tz) = (tx & TMASK) * TRING + (tz & TMASK)
-
-  # The tint and the biome fields of a face record. The shader takes the
-  # ratio of that biome from the uniforms (Tint#write_uniforms).
-  def self.tint(tex, biome) = (Tex.tint(tex) << TINT_AT) | (biome << BIOME_AT)
-
-  # The fields of the second word as #defines for the shaders, as
-  # Mesher.shader_defines gives them.
-  def self.shader_defines
-    Mesher.define_field("TALL", TALL_AT, TALL_BITS) + Mesher.define_field("CELL", CELL_AT, CELL_BITS) +
-      Mesher.define_field("LOD_TINT", TINT_AT, TINT_BITS) + Mesher.define_field("BIOME", BIOME_AT, BIOME_BITS)
   end
 
   def ready?(tx, tz)

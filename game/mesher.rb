@@ -147,6 +147,12 @@ class Mesher
   # meshed before a change.
   attr_accessor :graphics
 
+  # The fluid kind of block: 1 water, 2 lava, 0 not a fluid.
+  def self.fluid(block) = Block::WATER_LEVEL[block] > 0 ? 1 : (Block.lava?(block) ? 2 : 0)
+  # The second-word bits of the corner heights h of a fluid face
+  # (fluid_corners), in HEIGHTS_LOW and HEIGHTS_HIGH.
+  def self.fluid_w1(h) = ((h & ((1 << HEIGHTS_LOW_BITS) - 1)) << HEIGHTS_LOW_AT) | ((h >> HEIGHTS_LOW_BITS) << HEIGHTS_HIGH_AT)
+
   def initialize(world) # rubocop:todo Metrics/MethodLength
     @world = world
     @opaque = []
@@ -246,13 +252,6 @@ class Mesher
   def hidden_by_deep_water?(nb, at)
     @graphics.hides_deep_seabed? && water_step(nb, at) == WATER_STEP_MAX
   end
-
-  # The fluid kind of block: 1 water, 2 lava, 0 not a fluid.
-  def self.fluid(block) = Block::WATER_LEVEL[block] > 0 ? 1 : (Block.lava?(block) ? 2 : 0)
-
-  # The second-word bits of the corner heights h of a fluid face
-  # (fluid_corners), in HEIGHTS_LOW and HEIGHTS_HIGH.
-  def self.fluid_w1(h) = ((h & ((1 << HEIGHTS_LOW_BITS) - 1)) << HEIGHTS_LOW_AT) | ((h >> HEIGHTS_LOW_BITS) << HEIGHTS_HIGH_AT)
 
   # The height of the surface of fluid kind k in the cell of block, with
   # block over above it, as the fluid renderer of Minecraft reads it: 1
@@ -594,4 +593,5 @@ class Mesher
 
     3 - side1 - side2 - corner
   end
+
 end

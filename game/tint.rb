@@ -17,18 +17,6 @@ class Tint
   # True when the map changed after the last upload.
   attr_accessor :changed
 
-  def initialize(terrain)
-    @terrain = terrain
-    @pixels = Array.new(SIZE * SIZE * 2, 0)
-    @changed = false
-    # The map pixel of each biome: the grass ratio, then the foliage ratio.
-    @ratio = Array.new(Biome::ALL.size * 2, 0)
-    Biome::ALL.size.times do |b|
-      @ratio[b * 2] = Tint.ratio(Biome::GRASS_COLOR[b], Biome::GRASS_COLOR[Biome::PLAINS])
-      @ratio[b * 2 + 1] = Tint.ratio(Biome::FOLIAGE_COLOR[b], Biome::FOLIAGE_COLOR[Biome::PLAINS])
-    end
-  end
-
   # The channel at bit shift of color c, divided by the same channel of
   # color base, times ONE.
   def self.channel(c, base, shift)
@@ -39,6 +27,18 @@ class Tint
   # The ratio of color c (0xRRGGBB) to color base, as a map pixel (0xAABBGGRR).
   def self.ratio(c, base)
     (255 << 24) | (Tint.channel(c, base, 0) << 16) | (Tint.channel(c, base, 8) << 8) | Tint.channel(c, base, 16)
+  end
+
+  def initialize(terrain)
+    @terrain = terrain
+    @pixels = Array.new(SIZE * SIZE * 2, 0)
+    @changed = false
+    # The map pixel of each biome: the grass ratio, then the foliage ratio.
+    @ratio = Array.new(Biome::ALL.size * 2, 0)
+    Biome::ALL.size.times do |b|
+      @ratio[b * 2] = Tint.ratio(Biome::GRASS_COLOR[b], Biome::GRASS_COLOR[Biome::PLAINS])
+      @ratio[b * 2 + 1] = Tint.ratio(Biome::FOLIAGE_COLOR[b], Biome::FOLIAGE_COLOR[Biome::PLAINS])
+    end
   end
 
   # Paints the squares of chunk (cx, cz) with the ratios of their biomes.

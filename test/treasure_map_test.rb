@@ -38,6 +38,13 @@ class TreasureMapTest < Minitest::Test
     end
   end
 
+  def self.block_with_site(site, x, y, z)
+    world = World.new(7)
+    world.instance_variable_get(:@generator).treasure_map.define_singleton_method(:site_at) { |_x, _z| site }
+    world.load_chunk(x >> 4, z >> 4)
+    world.get(x, y, z)
+  end
+
   def terrain = self.class.area[0]
   def sites = self.class.area[1]
 
@@ -351,13 +358,6 @@ class TreasureMapTest < Minitest::Test
       Block::FACING[world.get(site.chest_x, site.chest_y, site.chest_z)]
     end
     assert_operator facings.uniq.size, :>=, 3
-  end
-
-  def self.block_with_site(site, x, y, z)
-    world = World.new(7)
-    world.instance_variable_get(:@generator).treasure_map.define_singleton_method(:site_at) { |_x, _z| site }
-    world.load_chunk(x >> 4, z >> 4)
-    world.get(x, y, z)
   end
 
   # On seed 7, the leaves of a tree fill one cell next to the chest, and

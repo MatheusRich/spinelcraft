@@ -29,18 +29,6 @@ class Clouds
   # The boxes for the cells around (built_i, built_j).
   attr_reader :mesh
 
-  def initialize(seed, graphics)
-    @mesh = Mesh3.new
-    @reach = graphics.cloud_reach
-    @built = false
-    @built_i = 0
-    @built_j = 0
-    values = Clouds.noise_values(seed)
-    # The cells with a noise value above the threshold are clouds: COVER of them.
-    threshold = values.sort[((1.0 - COVER) * values.size).to_i]
-    @cells = values.map { |value| value > threshold ? 1 : 0 }
-  end
-
   # The noise value of each cell, at i * GRID + j.
   def self.noise_values(seed)
     noise = Noise.new(seed * 13 + 5)
@@ -58,13 +46,6 @@ class Clouds
     values
   end
 
-  # Changes the reach of the boxes. The next build makes the boxes or takes
-  # them away.
-  def graphics=(mode)
-    @reach = mode.cloud_reach
-    @built = false
-  end
-
   # The fade of the walls as #defines for vcloud_box.
   def self.shader_defines
     fade_end = (NEAR * CELL).to_f
@@ -73,6 +54,25 @@ class Clouds
 
   # The cell column of the x or z position p, after the drift.
   def self.cell(p) = (p / CELL).floor
+
+  def initialize(seed, graphics)
+    @mesh = Mesh3.new
+    @reach = graphics.cloud_reach
+    @built = false
+    @built_i = 0
+    @built_j = 0
+    values = Clouds.noise_values(seed)
+    # The cells with a noise value above the threshold are clouds: COVER of them.
+    threshold = values.sort[((1.0 - COVER) * values.size).to_i]
+    @cells = values.map { |value| value > threshold ? 1 : 0 }
+  end
+
+  # Changes the reach of the boxes. The next build makes the boxes or takes
+  # them away.
+  def graphics=(mode)
+    @reach = mode.cloud_reach
+    @built = false
+  end
 
   # The grid as GRID x GRID white pixels for gfx_clouds, with the cloud cells
   # at ALPHA and the other cells clear. Pixel j * GRID + i is cell (i, j).

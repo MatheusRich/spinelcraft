@@ -128,6 +128,22 @@ class Sfx
   # The queue: the id, the volume and the pan of each sound to play.
   attr_reader :ids, :volumes, :pans
 
+  # Loads each sound file. Returns how many loaded.
+  def self.load_files
+    loaded = 0
+    FILES.each_with_index do |name, id|
+      loaded += 1 if Gfx.au_load_ogg(id, "assets/sounds/#{name}.ogg", GAINS[id]) == 0
+    end
+    loaded
+  end
+
+  def self.init
+    return false unless Gfx.au_init
+
+    load_files
+    true
+  end
+
   def initialize
     @x = 0.0
     @y = 0.0
@@ -195,21 +211,5 @@ class Sfx
     return 0.0 if dist < 0.001
 
     (dx * Math.cos(@yaw) + dz * Math.sin(@yaw)) / dist
-  end
-
-  # Loads each sound file. Returns how many loaded.
-  def self.load_files
-    loaded = 0
-    FILES.each_with_index do |name, id|
-      loaded += 1 if Gfx.au_load_ogg(id, "assets/sounds/#{name}.ogg", GAINS[id]) == 0
-    end
-    loaded
-  end
-
-  def self.init
-    return false unless Gfx.au_init
-
-    load_files
-    true
   end
 end

@@ -12,6 +12,21 @@ class ChunkGenerator
 
   attr_reader :terrain, :treasure_map
 
+  def self.ground_block(y, top, surface)
+    return Block::BEDROCK if y == 0
+    return surface if y == top
+
+    soil = y > top - SOIL_DEPTH
+    return Block::STONE if soil && (Terrain.bare_rock?(top) || surface == Block::STONE || surface == Block::GRAVEL)
+    return Block::SAND if soil && surface == Block::SAND
+    return Block::DIRT if soil
+    return Block::SANDSTONE if y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
+
+    Block::STONE
+  end
+
+  def self.pumpkin_patch?(cx, cz) = Noise.hash3(cx, 0, cz, 40) < PATCH_ODDS
+
   def initialize(world, seed)
     @world = world
     @col_h = Array.new(CHUNK * CHUNK, 0)
@@ -75,21 +90,6 @@ class ChunkGenerator
       end
     end
   end
-
-  def self.ground_block(y, top, surface)
-    return Block::BEDROCK if y == 0
-    return surface if y == top
-
-    soil = y > top - SOIL_DEPTH
-    return Block::STONE if soil && (Terrain.bare_rock?(top) || surface == Block::STONE || surface == Block::GRAVEL)
-    return Block::SAND if soil && surface == Block::SAND
-    return Block::DIRT if soil
-    return Block::SANDSTONE if y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND
-
-    Block::STONE
-  end
-
-  def self.pumpkin_patch?(cx, cz) = Noise.hash3(cx, 0, cz, 40) < PATCH_ODDS
 
   def place_ores(x0, z0, highest)
     roll_coal(x0, z0, highest)

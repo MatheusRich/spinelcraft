@@ -25,6 +25,14 @@ class Furnace
   # of that whole item, and the ticks of progress on the item that smelts.
   attr_accessor :burn, :burn_total, :progress
 
+  # The ticks of burn time of one block, or 0 when block is not a fuel.
+  def self.fuel_ticks(block)
+    FUEL_BLOCKS.size.times { |i| return FUEL_TICKS[i] if FUEL_BLOCKS[i] == block }
+    0
+  end
+
+  def self.fuel?(block) = fuel_ticks(block) > 0
+
   def initialize(x, y, z)
     @x = x
     @y = y
@@ -34,14 +42,6 @@ class Furnace
     @burn_total = 0
     @progress = 0
   end
-
-  # The ticks of burn time of one block, or 0 when block is not a fuel.
-  def self.fuel_ticks(block)
-    FUEL_BLOCKS.size.times { |i| return FUEL_TICKS[i] if FUEL_BLOCKS[i] == block }
-    0
-  end
-
-  def self.fuel?(block) = fuel_ticks(block) > 0
 
   def lit? = @burn > 0
 
