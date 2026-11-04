@@ -20,14 +20,14 @@ class Game
   # The place of the mine, under the spawn of seed 1337.
   MINE_X = 1926
   MINE_Y = 40
-  MINE_Z = 1850
+  MINE_Z = 1978
   # The blocks that the miner breaks, one after the other: x, y and z from
   # the mine.
   MINE_ORDER = [-1, 1, -2, 2, 1, -2, 0, 1, -2, 0, 0, -2, 0, 1, -3, 0, 0, -3]
-  # The meadow of the animals: flat plains with no tree, next to the spawn
+  # The meadow of the animals: flat plains with no tree, near the spawn
   # of seed 1337.
-  MEADOW_X = 1920
-  MEADOW_Z = 1848
+  MEADOW_X = 2024
+  MEADOW_Z = 2072
   # The sheep to shear comes in here, out of view behind the player, when
   # the player turns to it, so that it has no time to walk away.
   SHEEP_X = 4.0

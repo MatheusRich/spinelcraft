@@ -62,6 +62,62 @@ class TerrainTest < Minitest::Test
     refute valley_terrain(biome: Biome::JUNGLE).spawn_land?(0, 0)
   end
 
+  LOW = Terrain::RIVER_TOP - Terrain::RIVER_RISE
+  WET = Terrain::RIVER_DRY + Terrain::RIVER_WET
+  BANK = SEA + 20.0
+
+  def test_a_river_cuts_low_wet_land_down_to_its_bed
+    assert_in_delta Terrain::RIVER_BED, river_terrain(0.0, WET).river_height(LOW, BANK), 1e-9
+  end
+
+  def test_the_land_outside_a_river_valley_stays
+    assert_equal BANK, river_terrain(Terrain::RIVER_VALLEY, WET).river_height(LOW, BANK)
+  end
+
+  # The valley sides rise from the bed to the bank, gently near the middle:
+  # a quarter of the way out, the land has risen 5/32 of the way.
+  def test_a_river_valley_rises_to_its_banks
+    heights = [0.25, 0.5, 0.75].map { |share| river_terrain(Terrain::RIVER_VALLEY * share, WET).river_height(LOW, BANK) }
+    assert(heights.each_cons(2).all? { |low, high| low < high })
+    assert(heights.all? { |height| height > Terrain::RIVER_BED && height < BANK })
+    assert_in_delta Terrain::RIVER_BED + (BANK - Terrain::RIVER_BED) * 5 / 32, heights.first, 1e-9
+  end
+
+  # The spawn of seed 1337 is low plains, so a river through it cuts its
+  # surface down to the bed.
+  def test_a_river_cuts_the_surface_of_low_land
+    x, z = Terrain.new(1337).spawn_near_origin
+    assert_operator river_terrain(Terrain::RIVER_VALLEY, WET).surface_height(x, z), :>, SEA
+    assert_equal Terrain::RIVER_BED.to_i, river_terrain(0.0, WET).surface_height(x, z)
+  end
+
+  def test_high_land_and_dry_land_have_no_river
+    assert_equal BANK, river_terrain(0.0, WET).river_height(Terrain::RIVER_TOP, BANK)
+    assert_equal BANK, river_terrain(0.0, Terrain::RIVER_DRY).river_height(LOW, BANK)
+  end
+
+  # A river narrows toward its source: on higher land, the same distance
+  # from the middle is outside the valley.
+  def test_a_river_narrows_as_the_land_rises
+    noise = Terrain::RIVER_VALLEY * 0.6
+    assert_operator river_terrain(noise, WET).river_height(LOW, BANK), :<, BANK
+    assert_equal BANK, river_terrain(noise, WET).river_height(LOW + Terrain::RIVER_RISE * 0.5, BANK)
+  end
+
+  def test_land_at_the_river_bed_stays
+    assert_equal Terrain::RIVER_BED - 2, river_terrain(0.0, WET).river_height(LOW, Terrain::RIVER_BED - 2)
+  end
+
+  # A terrain whose river noise is noise and whose humidity is humidity.
+  def river_terrain(noise, humidity)
+    terrain = Terrain.new(1337)
+    river_noise = Object.new
+    river_noise.define_singleton_method(:fbm2) { |_x, _z, _octaves| noise }
+    terrain.instance_variable_set(:@noise3, river_noise)
+    terrain.define_singleton_method(:warped_humidity) { humidity }
+    terrain
+  end
+
   # A terrain of low land of the biome, with hills at the high columns.
   def valley_terrain(*high, biome: Biome::PLAINS)
     terrain = Terrain.new(1337)
@@ -214,13 +270,17 @@ class TerrainTest < Minitest::Test
     assert_operator carved, :>, 0
   end
 
-  # The hash of the patch at x = 0 gives gravel, and that at x = 6 does not.
-  def test_the_sea_floor_below_the_gravel_line_has_patches_of_gravel
-    terrain = Terrain.new(1337)
-    floor = Terrain::GRAVEL_LINE
-    assert_equal Block::GRAVEL, terrain.top_block(0, 0, floor, Biome::PLAINS)
-    assert_equal Block::SAND, terrain.top_block(0, 0, floor + 1, Biome::PLAINS)
-    assert_equal Block::SAND, terrain.top_block(6, 0, floor, Biome::PLAINS)
+  # The floor under the sea is sand with disks, the bed of a river is dirt
+  # with disks, and a pond has dirt only.
+  def test_the_floor_under_water_is_sand_at_sea_dirt_in_a_river_and_in_a_pond
+    coast = river_shore(Terrain::SHORE - 0.001, Terrain::RIVER_VALLEY, 0.0)
+    river = river_shore(Terrain::SHORE, 0.0, Terrain::RIVER_VALLEY)
+    pond = river_shore(Terrain::SHORE, Terrain::RIVER_VALLEY, 0.0)
+    bare = (0..).find { |x| Disks.floor(x, 0, Block::AIR) == Block::AIR }
+    gravel = (0..).find { |x| Disks.floor(x, 0, Block::AIR) == Block::GRAVEL }
+    assert_equal [Block::SAND, Block::GRAVEL], [coast.water_floor(bare, 0), coast.water_floor(gravel, 0)]
+    assert_equal [Block::DIRT, Block::GRAVEL], [river.water_floor(bare, 0), river.water_floor(gravel, 0)]
+    assert_equal [Block::DIRT, Block::DIRT], [pond.water_floor(bare, 0), pond.water_floor(gravel, 0)]
   end
 
   # The pool noise is high at x = 0 and low at x = 1.
@@ -285,7 +345,7 @@ class TerrainTest < Minitest::Test
   end
 
   def test_the_top_block_is_sand_on_a_beach_stone_on_high_rock_and_snow_above_the_snow_line
-    terrain = Terrain.new(1337)
+    terrain = shore_terrain(shore: true)
     plains = Biome::PLAINS
     assert_equal Block::SAND, terrain.top_block(0, 0, Terrain::BEACH_TOP + 1, plains)
     assert_equal Biome::GROUND[plains], terrain.top_block(0, 0, Terrain::BEACH_TOP + 2, plains)
@@ -293,6 +353,53 @@ class TerrainTest < Minitest::Test
     assert_equal Block::STONE, terrain.top_block(0, 0, Terrain::ROCK_LINE + 2, plains)
     assert_equal Block::STONE, terrain.top_block(0, 0, Terrain::SNOW_LINE + 1, plains)
     assert_equal Block::SNOW, terrain.top_block(0, 0, Terrain::SNOW_LINE + 2, plains)
+  end
+
+  def test_low_land_away_from_the_shore_is_no_beach
+    terrain = shore_terrain(shore: false)
+    plains = Biome::PLAINS
+    assert_equal Biome::GROUND[plains], terrain.top_block(0, 0, Terrain::BEACH_TOP + 1, plains)
+  end
+
+  def test_the_top_block_under_water_is_the_floor_under_water
+    terrain = shore_terrain(shore: true)
+    terrain.define_singleton_method(:water_floor) { |_x, _z| Block::GRAVEL }
+    assert_equal Block::GRAVEL, terrain.top_block(0, 0, SEA, Biome::PLAINS)
+    assert_equal Block::SAND, terrain.top_block(0, 0, SEA + 1, Biome::PLAINS)
+  end
+
+  def test_the_shore_is_near_the_coast_or_in_a_river_valley
+    assert river_shore(Terrain::SHORE - 0.001, Terrain::RIVER_VALLEY, 0.0).shore?(0, 0)
+    refute river_shore(Terrain::SHORE, Terrain::RIVER_VALLEY, 0.0).shore?(0, 0)
+    assert river_shore(Terrain::SHORE, 0.0, Terrain::RIVER_VALLEY).shore?(0, 0)
+    refute river_shore(Terrain::SHORE, Terrain::RIVER_VALLEY * 0.5, Terrain::RIVER_VALLEY * 0.5).shore?(0, 0)
+    refute river_shore(Terrain::SHORE, Terrain::RIVER_VALLEY, Terrain::RIVER_VALLEY * 2).shore?(0, 0)
+  end
+
+  # A river valley runs where the river noise is below its width.
+  def test_the_river_width_shrinks_on_high_and_dry_land
+    terrain = river_terrain(0.0, WET)
+    assert_in_delta Terrain::RIVER_VALLEY, terrain.river_width(LOW), 1e-12
+    assert_in_delta 0.0, terrain.river_width(Terrain::RIVER_TOP), 1e-12
+    assert_in_delta Terrain::RIVER_VALLEY / 2, terrain.river_width(LOW + Terrain::RIVER_RISE / 2), 1e-12
+    assert_in_delta 0.0, river_terrain(0.0, Terrain::RIVER_DRY).river_width(LOW), 1e-12
+  end
+
+  # A terrain whose columns are on the shore or not.
+  def shore_terrain(shore:)
+    terrain = Terrain.new(1337)
+    terrain.define_singleton_method(:shore?) { |_x, _z| shore }
+    terrain
+  end
+
+  # A terrain with the continent noise continent, a river noise and a
+  # river width.
+  def river_shore(continent, noise, width)
+    terrain = Terrain.new(1337)
+    terrain.define_singleton_method(:continent) { |_x, _z| continent }
+    terrain.define_singleton_method(:river_noise) { noise }
+    terrain.define_singleton_method(:river_width) { |_base| width }
+    terrain
   end
 
   private

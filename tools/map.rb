@@ -16,6 +16,7 @@ require_relative "../game/biome"
 require_relative "../game/noise"
 require_relative "../game/world"
 require_relative "../game/terrain"
+require_relative "../game/disks"
 require_relative "../game/treasure_map"
 
 # Biome colors: plains, forest, taiga, snowy taiga, tundra, desert,

@@ -12,8 +12,8 @@ class WorldTest < Minitest::Test
   def test_rain_falls_on_plains_and_no_precipitation_falls_on_a_desert
     world = World.new(1337)
     assert_equal Biome::RAIN, world.precipitation(-1408, -1984)
-    assert_equal Biome::DESERT, world.terrain.biome(-1792, 1216, world.terrain.surface_height(-1792, 1216))
-    assert_equal Biome::DRY, world.precipitation(-1792, 1216)
+    assert_equal Biome::DESERT, world.terrain.biome(-1728, 1280, world.terrain.surface_height(-1728, 1280))
+    assert_equal Biome::DRY, world.precipitation(-1728, 1280)
   end
 
   def test_snow_falls_on_a_mountain_over_a_valley_that_has_rain

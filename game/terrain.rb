@@ -101,17 +101,25 @@ class Terrain
   ISLE_HILLS = 5.0
   # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
-  # Where the river noise is below RIVER_VALLEY, the land sinks toward a river bed below the sea.
-  # RIVER_SCALE is the size of the river noise in blocks: a larger scale
-  # puts the rivers farther apart.
-  RIVER_VALLEY = 0.021
-  RIVER_SCALE = 900.0
+  # A river runs where the river noise is near zero, as Minecraft rivers run
+  # in its valleys of the weirdness noise, and its valley sinks to a bed
+  # below the sea. RIVER_SCALE is the size of the river noise in blocks: a
+  # larger scale puts the rivers farther apart.
+  RIVER_VALLEY = 0.024
+  RIVER_SCALE = 2200.0
   # The height of a river bed.
   RIVER_BED = SEA - 5.0
-  # Rivers fade out over RIVER_FADE of the continent noise and end where it
-  # reaches RIVER_INLAND, so the middle of a continent has no rivers.
-  RIVER_INLAND = 0.48
-  RIVER_FADE = 0.42
+  # The valley is RIVER_VALLEY wide (in river noise) on low land in a wet
+  # climate. It narrows to nothing as the base of the land (LAND_BASE)
+  # rises over RIVER_RISE blocks to RIVER_TOP above the sea, and as the
+  # humidity falls over RIVER_WET to RIVER_DRY. So a river ends at a
+  # source in the hills or in a dry land, and keeps its water to there.
+  # Luanti also dries its rivers in dry climates (MGVALLEYS_VARY_RIVER_DEPTH
+  # in mapgen_valleys.cpp).
+  RIVER_TOP = 30.0
+  RIVER_RISE = 16.0
+  RIVER_DRY = -0.6
+  RIVER_WET = 0.5
   # The size of the continent noise in blocks: coasts, bays and seas are
   # a few thousand blocks across. A slower noise of BASIN_SCALE blocks adds
   # BASIN_DEPTH times its value, so whole ocean basins sink and whole
@@ -162,13 +170,15 @@ class Terrain
   # Land never reaches TOP, and heights above PEAK squeeze toward it.
   TOP = WY - 14.0
   PEAK = SEA + 100.0
-  # Heights of the ground. Land up to BEACH_TOP next to water is a
-  # beach, and swamps grow up to SWAMP_TOP. The floor of the sea below
-  # GRAVEL_LINE has patches of gravel. High land is bare stone above
+  # Heights of the ground. Land up to BEACH_TOP on a shore (shore?) is a
+  # beach, and swamps grow up to SWAMP_TOP. High land is bare stone above
   # ROCK_LINE and snow above SNOW_LINE.
   BEACH_TOP = SEA + 2
   SWAMP_TOP = SEA + 8
-  GRAVEL_LINE = SEA - 2
+  # A shore is where the continent noise is below SHORE, near the coast, or
+  # on the line of a river. Minecraft places its beaches on the coast, not
+  # by height, so a low field inland keeps its grass (minecraft.wiki/w/Beach).
+  SHORE = -0.11
   ROCK_LINE = SEA + 95
   SNOW_LINE = SEA + 110
   # The air gets colder by COOLING for each block above COLD_LINE, so
@@ -274,9 +284,11 @@ class Terrain
     if continent < LAND_CONTINENT[0]
       h += Terrain.spline(CONTINENT, SEA_FLOOR, continent)
     else
-      h += SEA + Terrain.land(LAND_BASE, continent, erosion)
+      base = Terrain.land(LAND_BASE, continent, erosion)
+      h += SEA + base
       ridges = Terrain.land(LAND_RIDGES, continent, erosion)
       h += ridges(wx, wz) * ridges if ridges > 0.0
+      h = river_height(base, h) if base < RIVER_TOP
     end
     # Away from the coast, the island noise lifts domes out of the deep
     # ocean. Lower domes stay under the water as shoals.
@@ -286,16 +298,6 @@ class Terrain
       dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * ISLE_HILLS
       h += (dome - h) * ocean if dome > h
     end
-    # A river cuts its full valley near the coast. Farther inland the
-    # valley gets shallower, and it ends at RIVER_INLAND.
-    fade = Terrain.smooth((RIVER_INLAND - continent) / RIVER_FADE)
-    if fade > 0.0 && h > RIVER_BED
-      river = @noise3.fbm2(wx / RIVER_SCALE + 90.0, wz / RIVER_SCALE, 2).abs
-      if river < RIVER_VALLEY
-        bed = RIVER_BED + (h - RIVER_BED) * Terrain.smooth(river / RIVER_VALLEY)
-        h += (bed - h) * fade if bed < h
-      end
-    end
     # Above PEAK, heights squeeze toward the top limit and never reach it,
     # so the highest peaks stay pointed instead of flat.
     if h > PEAK
@@ -303,6 +305,35 @@ class Terrain
       h = PEAK + over * (TOP - PEAK) / (over + TOP - PEAK)
     end
     h.to_i.clamp(4, TOP.to_i)
+  end
+
+  # The height after a river cuts the land of base (see LAND_BASE) and
+  # height at the warped position of the last column (see RIVER_TOP).
+  def river_height(base, height)
+    noise = river_noise
+    return height if noise >= RIVER_VALLEY || height <= RIVER_BED
+
+    width = river_width(base)
+    return height if noise >= width
+
+    RIVER_BED + (height - RIVER_BED) * Terrain.smooth(noise / width)
+  end
+
+  # How far the warped position of the last column is from a river line,
+  # in river noise.
+  def river_noise = @noise3.fbm2(@wx / RIVER_SCALE + 90.0, @wz / RIVER_SCALE, 2).abs
+
+  # The width of a river valley (see RIVER_TOP) on land of base at the
+  # warped position of the last column.
+  def river_width(base)
+    RIVER_VALLEY * Terrain.smooth((RIVER_TOP - base) / RIVER_RISE) *
+      Terrain.smooth((warped_humidity - RIVER_DRY) / RIVER_WET)
+  end
+
+  # The humidity at the warped position of the last column.
+  def warped_humidity
+    @noise4.fbm2(@wx / CLIMATE_SCALE, @wz / CLIMATE_SCALE + 150.0, 2) * 2.2 +
+      @noise4.noise2(@wx / CLIMATE_ZONE_SCALE + 850.0, @wz / CLIMATE_ZONE_SCALE) * CLIMATE_ZONE_WEIGHT
   end
 
   # The erosion noise of column x, z (see EROSION). The last column is kept,
@@ -373,9 +404,7 @@ class Terrain
     t = @noise3.fbm2(wx / CLIMATE_SCALE + 300.0, wz / CLIMATE_SCALE, 2) * 2.2 +
         @noise3.noise2(wx / CLIMATE_ZONE_SCALE + 800.0, wz / CLIMATE_ZONE_SCALE) * CLIMATE_ZONE_WEIGHT
     t -= (h - COLD_LINE) * COOLING if h > COLD_LINE
-    w = @noise4.fbm2(wx / CLIMATE_SCALE, wz / CLIMATE_SCALE + 150.0, 2) * 2.2 +
-        @noise4.noise2(wx / CLIMATE_ZONE_SCALE + 850.0, wz / CLIMATE_ZONE_SCALE) * CLIMATE_ZONE_WEIGHT
-    Biome.pick(t, w, Terrain.landform(erosion(x, z), h))
+    Biome.pick(t, warped_humidity, Terrain.landform(erosion(x, z), h))
   end
 
   # The landform (Biome::LANDFORMS) of a column with the erosion noise
@@ -394,6 +423,31 @@ class Terrain
   # High peaks are bare stone at the top and below it.
   def self.bare_rock?(top) = top > ROCK_LINE
 
+  # True when column x, z is near the coast or in a river valley.
+  def shore?(x, z)
+    continent = continent(x, z)
+    continent < SHORE || river_valley?(continent, x, z)
+  end
+
+  # True when column x, z is on the line of a river. It reads the river
+  # noise at the point of the last call to continent.
+  def river_valley?(continent, x, z)
+    noise = river_noise
+    noise < RIVER_VALLEY && noise < river_width(Terrain.land(LAND_BASE, continent, erosion(x, z)))
+  end
+
+  # The top block of column x, z under water. The floor under the sea is
+  # sand and the bed of a river is dirt, and both have disks of sand and
+  # gravel (minecraft.wiki/w/River). A pond has no disks: "Disks no longer
+  # generate in and around water lakes" (minecraft.wiki/w/Disk).
+  def water_floor(x, z)
+    continent = continent(x, z)
+    return Disks.floor(x, z, Block::SAND) if continent < SHORE
+    return Disks.floor(x, z, Block::DIRT) if river_valley?(continent, x, z)
+
+    Block::DIRT
+  end
+
   # The block at the top of a column before caves and plants. Swamps hold
   # pools at sea level.
   def top_block(x, z, h, biome)
@@ -402,10 +456,11 @@ class Terrain
     if biome == Biome::SWAMP
       block = Block::WATER if top == SEA && @noise3.noise2(x / 9.0, z / 9.0 + 40.0) > -0.05
       block = Block::DIRT if top < SEA
-    elsif Terrain.beach?(top)
+    elsif top < SEA
+      block = water_floor(x, z)
+    elsif Terrain.beach?(top) && shore?(x, z)
       block = Block::SAND
     end
-    block = Block::GRAVEL if top < GRAVEL_LINE && Noise.hash3(x / 3, 0, z / 3, 5) < 20000
     block = Block::STONE if Terrain.bare_rock?(top)
     block = Block::SNOW if top > SNOW_LINE
     block
