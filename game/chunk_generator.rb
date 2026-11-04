@@ -1,18 +1,13 @@
-# The generator of the blocks of a chunk: the ground and the water from
-# the noise of Terrain, then the caves, the ores (Ores), the trees
-# (Trees), the treasure chests (TreasureMap), the plants and the desert
-# wells. It writes into the store of World with World#put_block, and
-# keeps its own work arrays.
+# Fills a chunk: ground and water, caves, ores, trees, treasure chests,
+# plants and desert wells.
 class ChunkGenerator
-  # The coal rolls of one column of coal cells: one for each 2 layers.
   COAL_ROLLS = WY / 2
-  # Dirt and sand lie SOIL_DEPTH deep, and sand lies on sandstone
-  # (minecraft.wiki/w/Sand). The wiki does not give the depth of the
-  # sandstone.
+  # Sand lies on sandstone (minecraft.wiki/w/Sand). The wiki does not give
+  # the depth of the sandstone.
   SOIL_DEPTH = 4
   SANDSTONE_DEPTH = 4
-  # Dry grass per 65536 columns of desert sand. minecraft.wiki/w/Short_Dry_Grass
-  # says only that it generates often in deserts, so the number is a guess.
+  # minecraft.wiki/w/Short_Dry_Grass says only that dry grass generates
+  # often in deserts, so the number is a guess.
   DESERT_DRY_GRASS = 1500
 
   attr_reader :terrain, :treasure_map
@@ -24,12 +19,11 @@ class ChunkGenerator
     @coal_rolls = Array.new(16 * COAL_ROLLS, 0)
     @ores = Ores.new
     @terrain = Terrain.new(seed)
-    @caves = Caves.new(world, @terrain, @col_h)
+    @caves = Caves.new(world, @terrain.cave_shape, @col_h)
     @trees = Trees.new(world)
     @treasure_map = TreasureMap.new(@terrain)
   end
 
-  # Fills the chunk cx, cz of the world with the generated blocks.
   def generate(cx, cz)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
@@ -40,8 +34,6 @@ class ChunkGenerator
     decorate(cx, cz)
   end
 
-  # The height and the biome of each column of the chunk at x0, z0, into
-  # @col_h and @col_b. Gives the highest height.
   def sample_columns(x0, z0)
     highest = 0
     lx = 0
@@ -59,8 +51,6 @@ class ChunkGenerator
     highest
   end
 
-  # Bedrock, stone, the soil and the top block of each column, then water
-  # up to the sea and air above.
   def fill_ground(x0, z0)
     CHUNK.times do |lx|
       CHUNK.times do |lz|
@@ -83,8 +73,6 @@ class ChunkGenerator
     end
   end
 
-  # The block at layer y of a column whose top block is surface at layer
-  # top, before the caves and the ores.
   def self.ground_block(y, top, surface)
     return Block::BEDROCK if y == 0
     return surface if y == top
@@ -98,7 +86,6 @@ class ChunkGenerator
     Block::STONE
   end
 
-  # Coal, iron, diamond and spinel in the stone that the caves left.
   def place_ores(x0, z0, highest)
     roll_coal(x0, z0, highest)
     CHUNK.times do |lx|
@@ -106,9 +93,7 @@ class ChunkGenerator
     end
   end
 
-  # The rolls of the 4 x 4 columns of coal cells in the chunk at x0, z0,
-  # one for each 2 layers up to highest. The 16 block columns of a cell
-  # column read them.
+  # The 16 block columns of a coal cell column share its rolls.
   def roll_coal(x0, z0, highest)
     i = 0
     while i < 16
@@ -122,7 +107,6 @@ class ChunkGenerator
     nil
   end
 
-  # Puts the ores in the stone of column lx, lz of the chunk at x0, z0.
   # Two layers share the rolls of their cells.
   def place_column_ores(x0, z0, lx, lz)
     x = x0 + lx
@@ -149,17 +133,14 @@ class ChunkGenerator
     nil
   end
 
-  # A chunk has a pumpkin patch 1 time in 32 (minecraft.wiki/w/Pumpkin).
-  # The patch fills about a quarter of the grass PATCH_REACH blocks or
-  # less from its center. The wiki does not give the size of a patch. The
-  # center stays PATCH_REACH blocks from the chunk edges, so the patch
-  # does not need the chunks next door.
+  # A pumpkin patch 1 time in 32 chunks (minecraft.wiki/w/Pumpkin). The
+  # wiki does not give the size of a patch. The center stays PATCH_REACH
+  # from the chunk edges, so the patch does not need the chunks next door.
   PATCH_ODDS = 65536 / 32
   PATCH_REACH = 3
   PATCH_FILL = 65536 / 4
 
-  # Trees (also those that grow next door and reach in), the treasure
-  # chest, then plants and cacti.
+  # Trees that grow next door also reach in.
   def decorate(cx, cz) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     x0 = cx * CHUNK
     z0 = cz * CHUNK
@@ -215,10 +196,7 @@ class ChunkGenerator
     end
   end
 
-  # Puts a chest on the treasure site in the chunk cx, cz, if it has one.
-  # The chest takes the place of the leaves of a tree next to it. The
-  # plants come after the chest, so they do not take its place. The chest
-  # faces a random way.
+  # The plants come after the chest, so they do not take its place.
   def treasure_chest(cx, cz)
     site = @treasure_map.site_at(cx * CHUNK, cz * CHUNK)
     x = site.chest_x
@@ -233,13 +211,12 @@ class ChunkGenerator
   end
 
   # A desert well in about 1 of 1000 chunks (minecraft.wiki/w/Desert_Well).
-  # Its center stays WELL_REACH blocks from the chunk edges, so the well
-  # does not need the chunks next door.
+  # Its center stays WELL_REACH from the chunk edges, so the well does not
+  # need the chunks next door.
   WELL_ODDS = 65536 / 1000
   WELL_REACH = 2
 
-  # The y of the top block at the center of a well at x, z, or -1. Each
-  # column under the well is desert sand, as high as the center or 1
+  # Each column under the well is desert sand, as high as the center or 1
   # higher, so no part of the well hangs over air.
   def well_top(x, z)
     h = @terrain.surface_height(x, z)
@@ -250,14 +227,13 @@ class ChunkGenerator
 
         biome = @terrain.biome(x + dx, z + dz, ch)
         return -1 if biome != Biome::DESERT || @terrain.top_block(x + dx, z + dz, ch, biome) != Block::SAND
-        return -1 if @terrain.entrance?(x + dx, z + dz) && @terrain.carved?(x + dx, ch - 1, z + dz)
+        return -1 if @terrain.cave_shape.opening?(x + dx, ch - 1, z + dz)
       end
     end
     h - 1
   end
 
-  # Puts a desert well on the top block top at x, z, as in Minecraft
-  # (minecraft.wiki/w/Desert_Well/Structure). The game has no slabs, so
+  # minecraft.wiki/w/Desert_Well/Structure. The game has no slabs, so
   # sandstone takes their place.
   def well(x, top, z, x0, z0)
     (-2..4).each do |dy|
@@ -267,11 +243,7 @@ class ChunkGenerator
     end
   end
 
-  # The block of a well at dx, dz from its center and dy from its top
-  # block. Two layers of sandstone go under a cross of sand, the cross
-  # holds water at the ground, and a rim 1 high goes around it. Pillars on
-  # the 4 corners of the 3 x 3 around the cross hold a roof of 3 x 3.
-  # Under the center, 2 blocks are suspicious sand in Minecraft. The game
+  # Minecraft puts 2 blocks of suspicious sand under the center. The game
   # has no suspicious sand, so plain sand takes its place.
   def well_block(dx, dy, dz)
     cross = dx.abs + dz.abs <= 1

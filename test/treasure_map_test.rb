@@ -1,39 +1,34 @@
 require_relative "test_helper"
 
-# A terrain where each column is deep open ocean unless the test gives
-# it a height. Columns can also be coast, have a tree, open a cave or
-# have another top block.
+# Each column is deep open ocean unless a test gives it a height.
 class FakeTerrain
-  attr_reader :heights, :coast, :trees, :entrances, :carved, :tops
+  attr_reader :heights, :coast, :trees, :openings, :tops
 
   def initialize
     @heights = {}
     @coast = []
     @trees = []
-    @entrances = []
-    @carved = []
+    @openings = []
     @tops = {}
   end
 
-  # The open ocean ends at CONTINENT[1], where the coast begins.
   def continent(x, z) = @coast.include?([x, z]) ? Terrain::CONTINENT[1] : -1.0
   def surface_height(x, z) = @heights.fetch([x, z], SEA - 20)
-  # The real tree_top gives the top ground block, which can be 0.
+  # The real tree_top can give 0.
   def tree_top(x, z) = @trees.include?([x, z]) ? 0 : -1
-  def entrance?(x, z) = @entrances.include?([x, z])
-  def carved?(x, y, z) = @carved.include?([x, y, z])
+  def cave_shape = self
+  def opening?(x, y, z) = @openings.include?([x, y, z])
   def biome(_x, _z, _height) = Biome::PLAINS
   def top_block(x, z, _height, _biome) = @tops.fetch([x, z], Block::GRASS)
 end
 
 class TreasureMapTest < Minitest::Test
-  # The step of the search, and a column on its grid in cell 0, 0.
   S = TreasureMap::STEP
   M = 3 * S
   CELLS = -2..2
 
-  # The terrain and the sites of the 5 x 5 cells around cell 1, 0: the
-  # nearest to spawn with a peak and an island in open ocean.
+  # Cell 1, 0 is the nearest to spawn with a peak and an island in open
+  # ocean.
   def self.area
     @area ||= begin
       terrain = Terrain.new(1337)
@@ -247,8 +242,6 @@ class TreasureMapTest < Minitest::Test
     refute TreasureMap.inside?(-1)
   end
 
-  # Higher columns of the grid of the search, but in the margin on each
-  # side of the cell, hold no site.
   def test_the_search_reads_no_column_of_the_margin
     margin = TreasureMap::MARGIN
     cell = TreasureMap::CELL
@@ -299,20 +292,15 @@ class TreasureMapTest < Minitest::Test
     terrain.heights[[66, 64]] = SEA + 18
     terrain.heights[[68, 64]] = SEA + 16
     terrain.trees << [64, 64]
-    terrain.entrances << [65, 64]
-    terrain.carved << [65, SEA + 18, 64]
+    terrain.openings << [65, SEA + 18, 64]
     terrain.tops[[66, 64]] = Block::STONE
     assert_equal 68, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
-  def test_a_cave_closes_a_column_only_in_an_entrance_patch_and_under_its_top_block
+  def test_a_cave_closes_a_column_only_where_it_opens_its_top_block
     terrain = FakeTerrain.new
     terrain.heights[[64, 64]] = SEA + 20
-    terrain.carved << [64, SEA + 19, 64]
-    assert_equal 64, TreasureMap.new(terrain).site(0, 0).chest_x
-    terrain.carved.clear
-    terrain.entrances << [64, 64]
-    [SEA + 18, SEA + 20].each { |y| terrain.carved << [64, y, 64] }
+    [SEA + 18, SEA + 20].each { |y| terrain.openings << [64, y, 64] }
     assert_equal 64, TreasureMap.new(terrain).site(0, 0).chest_x
   end
 
@@ -365,8 +353,6 @@ class TreasureMapTest < Minitest::Test
     assert_operator facings.uniq.size, :>=, 3
   end
 
-  # The block at x, y, z of the generated chunk of seed 7, with site as
-  # the only treasure site.
   def self.block_with_site(site, x, y, z)
     world = World.new(7)
     world.instance_variable_get(:@generator).treasure_map.define_singleton_method(:site_at) { |_x, _z| site }
@@ -374,8 +360,8 @@ class TreasureMapTest < Minitest::Test
     world.get(x, y, z)
   end
 
-  # Two cells of seed 7 on the ground: the leaves of a tree next to it
-  # fill one, and dry grass of the desert grows in the other.
+  # On seed 7, the leaves of a tree fill one cell next to the chest, and
+  # dry grass grows in the other.
   def test_the_chest_takes_the_place_of_leaves_and_no_plant_takes_its_place
     [[1, 128, 8], [174, 72, 165]].each do |x, y, z|
       refute_equal Block::AIR, self.class.block_with_site(TreasureSite.none, x, y, z)

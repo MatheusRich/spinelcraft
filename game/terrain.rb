@@ -1,52 +1,13 @@
-# The shape of the land for one seed, from noise alone: the height, the
-# biome and the top block of each column, the caves and where trees stand. It
-# reads no block, so it gives the same answer each time. World#generate_chunk
-# fills a chunk from it, and Lod, Tint and tools/map.rb read it without a
-# World.
+# The land of one seed, from noise alone. It reads no block.
 class Terrain
-  # A cave is where both cave noise fields are this close to zero (squared sum).
-  CAVE_WIDTH = 0.006
-  # Tunnels close in the top CAVE_ROOF blocks of a column. Below that they
-  # widen over CAVE_FADE blocks to CAVE_WIDTH.
-  CAVE_ROOF = 4
-  CAVE_FADE = 8
-  # Tunnels exist only in regions. The region noise (cave_region) is below
-  # CAVE_REGION_LOW where the tunnels are closed, and above CAVE_REGION_HIGH
-  # where they have their full width. CAVE_REGION_SCALE is the size of the
-  # noise in blocks.
-  CAVE_REGION_SCALE = 150.0
-  CAVE_REGION_LOW = 0.0
-  CAVE_REGION_HIGH = 0.12
-  # Rooms are open spaces where the room noise (cave_room) is above
-  # ROOM_THRESHOLD. They stay ROOM_ROOF blocks under the top block of a
-  # column, and the threshold falls to its value over the next ROOM_FADE
-  # blocks, so a room has a roof. ROOM_SCALE and ROOM_SCALE_UP are the size
-  # of the noise in blocks, across and up.
-  ROOM_THRESHOLD = 0.55
-  ROOM_ROOF = 14
-  ROOM_FADE = 6
-  ROOM_SCALE = 56.0
-  ROOM_SCALE_UP = 26.0
-  # Tunnels reach the surface only in entrance patches: where the entrance
-  # noise is above ENTRANCE. Minecraft also keeps most tunnels below the
-  # surface and opens a separate, rarer set of entrances.
-  ENTRANCE = 0.25
-  ENTRANCE_SCALE = 48.0
-  # The height of the sea floor (SEA_FLOOR) at each continent noise value
-  # (CONTINENT): deep ocean, ocean, shelf, then the coast.
+  attr_reader :cave_shape
+
   CONTINENT = [-0.25, -0.17, -0.135, -0.12]
   SEA_FLOOR = [SEA - 34.0, SEA - 26.0, SEA - 8.0, SEA + 0.0]
-  # The land from the coast inland takes its shape from two noise fields:
-  # the continent noise (rows, at LAND_CONTINENT) and the erosion noise
-  # (columns, at EROSION). Low erosion is rough, high land, and high
-  # erosion is flat, low land. Each table gives a value at each point, and
-  # the land between the points takes the value along a straight line.
-  # LAND_BASE is the height above the sea, LAND_HILLS the height of the
-  # hills, and LAND_RIDGES the part of RIDGE_RISE that mountain ridges
-  # reach. Far inland, a narrow band of erosion lifts plateaus with steep
-  # sides. The shape follows the terrain splines of Minecraft 1.18, as
-  # Henrik Kniberg showed them in "Reinventing Minecraft world generation"
-  # (2022). The values are ours.
+  # The land tables follow the terrain splines of Minecraft 1.18, as Henrik
+  # Kniberg showed them in "Reinventing Minecraft world generation" (2022):
+  # rows at the continent noise, columns at the erosion noise. The values
+  # are ours.
   LAND_CONTINENT = [-0.12, -0.05, 0.13, 0.38, 0.73]
   EROSION = [-0.2, -0.09, -0.05, -0.047, -0.015, -0.012, 0.03, 0.045, 0.06, 0.2]
   LAND_BASE = [
@@ -70,119 +31,71 @@ class Terrain
     [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   ].freeze
-  # The size of the erosion noise in blocks. A slower noise of
-  # EROSION_ZONE_SCALE blocks adds EROSION_ZONE_WEIGHT times its value, so
-  # some plains and mountain ranges grow thousands of blocks wide.
   EROSION_SCALE = 1500.0
   EROSION_ZONE_SCALE = 6000.0
   EROSION_ZONE_WEIGHT = 0.6
-  # The landforms that pick biomes (Biome::LANDFORMS): rough land below the
-  # erosion ROUGH_EROSION, low land up to SWAMP_TOP, flat land above
-  # FLAT_EROSION, and plateau tops in the plateau band of EROSION,
-  # PLATEAU_TOP or more above the sea.
   ROUGH_EROSION = EROSION[2]
   PLATEAU_LOW_EROSION = EROSION[3]
   PLATEAU_HIGH_EROSION = EROSION[4]
   PLATEAU_TOP = 30
   FLAT_EROSION = EROSION[8]
-  # Islands rise in open ocean where the island noise is above ISLE. ISLE_RISE
-  # is the height of a dome for each step of the noise above ISLE, and
-  # ISLE_SCALE is the size of the noise in blocks.
   ISLE = 0.15
   ISLE_RISE = 180.0
   ISLE_SCALE = 220.0
-  # Islands grow only in archipelagos: where the archipelago noise of
-  # ARCHIPELAGO_SCALE blocks is above ARCHIPELAGO. They fade in over
-  # ARCHIPELAGO_EDGE of the noise. The rest of the ocean is open sea.
   ARCHIPELAGO = 0.16
   ARCHIPELAGO_EDGE = 0.1
   ARCHIPELAGO_SCALE = 3000.0
-  # How tall the hills on an island are.
   ISLE_HILLS = 5.0
-  # How far the warp moves the positions of the large-scale noise, in blocks.
   WARP = 90.0
-  # A river runs where the river noise is near zero, as Minecraft rivers run
-  # in its valleys of the weirdness noise, and its valley sinks to a bed
-  # below the sea. RIVER_SCALE is the size of the river noise in blocks: a
-  # larger scale puts the rivers farther apart.
+  # Rivers run where the river noise is near zero, as Minecraft rivers run
+  # in the valleys of its weirdness noise.
   RIVER_VALLEY = 0.024
   RIVER_SCALE = 2200.0
-  # The height of a river bed.
   RIVER_BED = SEA - 5.0
-  # The valley is RIVER_VALLEY wide (in river noise) on low land in a wet
-  # climate. It narrows to nothing as the base of the land (LAND_BASE)
-  # rises over RIVER_RISE blocks to RIVER_TOP above the sea, and as the
-  # humidity falls over RIVER_WET to RIVER_DRY. So a river ends at a
-  # source in the hills or in a dry land, and keeps its water to there.
-  # Luanti also dries its rivers in dry climates (MGVALLEYS_VARY_RIVER_DEPTH
-  # in mapgen_valleys.cpp).
+  # A river ends at a source in the hills or in a dry land. Luanti also
+  # dries its rivers in dry climates (MGVALLEYS_VARY_RIVER_DEPTH in
+  # mapgen_valleys.cpp).
   RIVER_TOP = 30.0
   RIVER_RISE = 16.0
   RIVER_DRY = -0.6
   RIVER_WET = 0.5
-  # The size of the continent noise in blocks: coasts, bays and seas are
-  # a few thousand blocks across. A slower noise of BASIN_SCALE blocks adds
-  # BASIN_DEPTH times its value, so whole ocean basins sink and whole
-  # continents rise.
   CONTINENT_SCALE = 2000.0
   BASIN_SCALE = 8000.0
   BASIN_DEPTH = 2.6
-  # The size of the temperature and humidity noise in blocks. A climate
-  # zone is a few hundred blocks or more across. A slower noise of
-  # CLIMATE_ZONE_SCALE blocks adds CLIMATE_ZONE_WEIGHT times its value, so
-  # some climate zones grow thousands of blocks wide.
   CLIMATE_SCALE = 1600.0
   CLIMATE_ZONE_SCALE = 6000.0
   CLIMATE_ZONE_WEIGHT = 2.5
-  # The ridges of a mountain range follow the lines where the ridge noise
-  # is zero. RIDGE_SCALE is the size of that noise in blocks, and the
-  # highest ridge is RIDGE_RISE above the land around it. Smaller spurs
-  # of SPUR_SCALE branch off the ridges, SPUR as tall.
   RIDGE_SCALE = 200.0
   RIDGE_RISE = 160.0
   SPUR_SCALE = 80.0
   SPUR = 0.4
-  # The lines of a ridge close into loops. The peak noise, of PEAK_SCALE
-  # blocks, breaks them: it lifts some stretches of a ridge into peaks,
-  # and lowers the others to saddles SADDLE as tall.
+  # The peak noise breaks the loops of the ridge lines into peaks and
+  # saddles.
   PEAK_SCALE = 120.0
   SADDLE = 0.2
   # Perlin noise is 0 at whole noise positions, and x = z = 0 is one for
   # every scale. This shift moves the terrain off them, so each seed gets
   # its own land at spawn.
   SHIFT = 5000.5
-  # spawn_near_origin looks at squares 64 blocks apart, up to 4096 blocks out.
   LAND_STEP = 64
   LAND_RADIUS = 4096
-  # A spawn stands on low land: more than SPAWN_BOTTOM and at most
-  # SPAWN_TOP blocks above the sea. Luanti spawns at most 16 blocks above
-  # its water level, so that a player starts on low ground and not in the
-  # mountains (MapgenV7::getSpawnLevelAtPoint in mapgen_v7.cpp). Luanti
-  # land is low on average, but the middle of a continent here is high, so
-  # the land SPAWN_REACH blocks to each side must be low too, and a valley
-  # in the mountains is no spawn.
+  # Luanti spawns at most 16 blocks above its water level
+  # (MapgenV7::getSpawnLevelAtPoint in mapgen_v7.cpp). The middle of a
+  # continent here is high, so the land SPAWN_REACH to each side must be
+  # low too, and a valley in the mountains is no spawn.
   SPAWN_BOTTOM = 4
   SPAWN_TOP = 16
   SPAWN_REACH = 48
-  # A spawn is in open grassland with a few trees, so a new player has the
-  # sky above, room to build, wood and animals.
   SPAWN_BIOMES = [Biome::PLAINS, Biome::SAVANNA].freeze
-  # Land never reaches TOP, and heights above PEAK squeeze toward it.
   TOP = WY - 14.0
   PEAK = SEA + 100.0
-  # Heights of the ground. Land up to BEACH_TOP on a shore (shore?) is a
-  # beach, and swamps grow up to SWAMP_TOP. High land is bare stone above
-  # ROCK_LINE and snow above SNOW_LINE.
   BEACH_TOP = SEA + 2
   SWAMP_TOP = SEA + 8
-  # A shore is where the continent noise is below SHORE, near the coast, or
-  # on the line of a river. Minecraft places its beaches on the coast, not
-  # by height, so a low field inland keeps its grass (minecraft.wiki/w/Beach).
+  # Minecraft places its beaches on the coast, not by height, so a low
+  # field inland keeps its grass (minecraft.wiki/w/Beach).
   SHORE = -0.11
   ROCK_LINE = SEA + 95
   SNOW_LINE = SEA + 110
-  # The air gets colder by COOLING for each block above COLD_LINE, so
-  # mountains get snowy biomes.
   COLD_LINE = SEA + 30
   COOLING = 0.004
 
@@ -191,36 +104,25 @@ class Terrain
     @noise2 = Noise.new(seed * 31 + 7)
     @noise3 = Noise.new(seed * 17 + 3)
     @noise4 = Noise.new(seed * 43 + 11)
-    # The warp of the last column (see warp), first that of column 0, 0.
     @warp_nx = SHIFT
     @warp_nz = SHIFT
     @wx = warp_x(SHIFT, SHIFT)
     @wz = warp_z(SHIFT, SHIFT)
-    # The continent and erosion noise of the last column, once continent
-    # and erosion read them.
     @continent = 0.0
     @continent_read = false
     @erosion = 0.0
     @erosion_read = false
-    # The 8 grid points around a block (carved?) and the 4 edges of a cell (trilinear).
-    @corner_a = Array.new(8, 0.0)
-    @corner_b = Array.new(8, 0.0)
-    @edges = Array.new(4, 0.0)
+    @cave_shape = CaveShape.new(seed)
   end
 
-  # Low land at column x, z, from the noise alone.
   def low_land?(x, z) = (surface_height(x, z) - SEA).between?(SPAWN_BOTTOM + 1, SPAWN_TOP)
 
-  # Open low land at x, z, and low land SPAWN_REACH away to each side.
   def spawn_land?(x, z)
     low_land?(x, z) && low_land?(x + SPAWN_REACH, z) && low_land?(x - SPAWN_REACH, z) &&
       low_land?(x, z + SPAWN_REACH) && low_land?(x, z - SPAWN_REACH) &&
       SPAWN_BIOMES.include?(biome(x, z, surface_height(x, z)))
   end
 
-  # The origin when it is low land for a spawn. Else the first such point on
-  # the squares around the origin, 64 blocks apart, or the origin when none
-  # is near.
   def spawn_near_origin
     return [0, 0] if spawn_land?(0, 0)
 
@@ -235,12 +137,10 @@ class Terrain
     [0, 0]
   end
 
-  # The large-scale noise fields read warped positions, so coasts and
-  # biome edges bend instead of making round blobs. (Noise goes back into
-  # noise here, and without to_f Spinel cannot type that loop.)
+  # Without to_f, Spinel cannot type this loop of noise into noise.
   def warp_x(x, z) = x + @noise4.noise2(x / 160.0, z / 160.0).to_f * WARP
-  # The warped position of column (nx, nz), into @wx and @wz. The last
-  # column is kept, as biome follows surface_height on the same column.
+  # Biome follows surface_height on the same column, so the last warp is
+  # kept.
   def warp(nx, nz)
     return if nx == @warp_nx && nz == @warp_nz
 
@@ -255,9 +155,7 @@ class Terrain
 
   def warp_z(x, z) = z + @noise4.noise2(x / 160.0 + 70.0, z / 160.0).to_f * WARP
 
-  # The continent noise of column x, z (see CONTINENT). It leaves the
-  # warp of the column in @wx and @wz. The last column is kept, as
-  # TreasureMap#site_height reads it after surface_height.
+  # TreasureMap#site_height reads the warp that this leaves in @wx and @wz.
   def continent(x, z)
     warp(x + SHIFT, z + SHIFT)
     unless @continent_read
@@ -268,10 +166,6 @@ class Terrain
     @continent
   end
 
-  # The height of the column's top block plus one, after Minecraft 1.18.
-  # The continent noise picks ocean, coast, lowland or highland, and the
-  # erosion noise picks how rough the land is (see LAND_BASE). Rivers cut
-  # valleys down to the sea where the river noise is near zero.
   def surface_height(x, z) # rubocop:todo Metrics/MethodLength
     nx = x + SHIFT
     nz = z + SHIFT
@@ -290,16 +184,13 @@ class Terrain
       h += ridges(wx, wz) * ridges if ridges > 0.0
       h = river_height(base, h) if base < RIVER_TOP
     end
-    # Away from the coast, the island noise lifts domes out of the deep
-    # ocean. Lower domes stay under the water as shoals.
     ocean = Terrain.smooth((CONTINENT[2] - continent) / (CONTINENT[2] - CONTINENT[1]))
     ocean *= Terrain.smooth((@noise2.noise2(wx / ARCHIPELAGO_SCALE + 1100.0, wz / ARCHIPELAGO_SCALE) - ARCHIPELAGO) / ARCHIPELAGO_EDGE) if ocean > 0.0
     if ocean > 0.0
       dome = SEA + (@noise2.fbm2(wx / ISLE_SCALE + 500.0, wz / ISLE_SCALE, 3) - ISLE) * ISLE_RISE + hills * ISLE_HILLS
       h += (dome - h) * ocean if dome > h
     end
-    # Above PEAK, heights squeeze toward the top limit and never reach it,
-    # so the highest peaks stay pointed instead of flat.
+    # The squeeze keeps the highest peaks pointed, not flat.
     if h > PEAK
       over = h - PEAK
       h = PEAK + over * (TOP - PEAK) / (over + TOP - PEAK)
@@ -307,8 +198,6 @@ class Terrain
     h.to_i.clamp(4, TOP.to_i)
   end
 
-  # The height after a river cuts the land of base (see LAND_BASE) and
-  # height at the warped position of the last column (see RIVER_TOP).
   def river_height(base, height)
     noise = river_noise
     return height if noise >= RIVER_VALLEY || height <= RIVER_BED
@@ -319,25 +208,18 @@ class Terrain
     RIVER_BED + (height - RIVER_BED) * Terrain.smooth(noise / width)
   end
 
-  # How far the warped position of the last column is from a river line,
-  # in river noise.
   def river_noise = @noise3.fbm2(@wx / RIVER_SCALE + 90.0, @wz / RIVER_SCALE, 2).abs
 
-  # The width of a river valley (see RIVER_TOP) on land of base at the
-  # warped position of the last column.
   def river_width(base)
     RIVER_VALLEY * Terrain.smooth((RIVER_TOP - base) / RIVER_RISE) *
       Terrain.smooth((warped_humidity - RIVER_DRY) / RIVER_WET)
   end
 
-  # The humidity at the warped position of the last column.
   def warped_humidity
     @noise4.fbm2(@wx / CLIMATE_SCALE, @wz / CLIMATE_SCALE + 150.0, 2) * 2.2 +
       @noise4.noise2(@wx / CLIMATE_ZONE_SCALE + 850.0, @wz / CLIMATE_ZONE_SCALE) * CLIMATE_ZONE_WEIGHT
   end
 
-  # The erosion noise of column x, z (see EROSION). The last column is kept,
-  # as biome follows surface_height on the same column.
   def erosion(x, z)
     warp(x + SHIFT, z + SHIFT)
     unless @erosion_read
@@ -348,8 +230,6 @@ class Terrain
     @erosion
   end
 
-  # The height of the ridges, spurs and peaks of a mountain range at the
-  # warped position wx, wz.
   def ridges(wx, wz)
     ridge = 1.0 - @noise2.noise2(wx / RIDGE_SCALE, wz / RIDGE_SCALE).abs * 1.6
     ridge = ridge < 0.0 ? 0.0 : ridge
@@ -359,15 +239,11 @@ class Terrain
     (ridge * ridge + SPUR * spur * spur * ridge) * (SADDLE + (1.0 - SADDLE) * peak) * RIDGE_RISE
   end
 
-  # 0 below 0, 1 above 1, and an S curve between.
   def self.smooth(t)
     t = t.clamp(0.0, 1.0)
     t * t * (3.0 - 2.0 * t)
   end
 
-  # The value of a land table (see LAND_BASE) at the continent noise
-  # continent and the erosion noise erosion. Between the points, the value
-  # follows a line along the erosion, then along the continent.
   def self.land(table, continent, erosion)
     return spline(EROSION, table[0], erosion) if continent <= LAND_CONTINENT[0]
 
@@ -383,7 +259,6 @@ class Terrain
     spline(EROSION, table[LAND_CONTINENT.size - 1], erosion)
   end
 
-  # The y of v on the line through the points xs, ys (xs in rising order).
   def self.spline(xs, ys, v)
     return ys[0] if v <= xs[0]
 
@@ -393,8 +268,6 @@ class Terrain
     ys[xs.size - 1]
   end
 
-  # The biome of a column with height h. The air gets colder up high, so
-  # mountains get snow.
   def biome(x, z, h)
     nx = x + SHIFT
     nz = z + SHIFT
@@ -407,8 +280,6 @@ class Terrain
     Biome.pick(t, warped_humidity, Terrain.landform(erosion(x, z), h))
   end
 
-  # The landform (Biome::LANDFORMS) of a column with the erosion noise
-  # erosion and the height.
   def self.landform(erosion, height)
     return Biome::ROUGH if erosion < ROUGH_EROSION
     return Biome::LOW if height <= SWAMP_TOP
@@ -418,28 +289,23 @@ class Terrain
     Biome::MIDDLE
   end
 
-  # Height bands. top is the y of the column's top block.
   def self.beach?(top) = top <= BEACH_TOP
-  # High peaks are bare stone at the top and below it.
   def self.bare_rock?(top) = top > ROCK_LINE
 
-  # True when column x, z is near the coast or in a river valley.
   def shore?(x, z)
     continent = continent(x, z)
     continent < SHORE || river_valley?(continent, x, z)
   end
 
-  # True when column x, z is on the line of a river. It reads the river
-  # noise at the point of the last call to continent.
+  # Reads the river noise at the warp of the last call to continent.
   def river_valley?(continent, x, z)
     noise = river_noise
     noise < RIVER_VALLEY && noise < river_width(Terrain.land(LAND_BASE, continent, erosion(x, z)))
   end
 
-  # The top block of column x, z under water. The floor under the sea is
-  # sand and the bed of a river is dirt, and both have disks of sand and
-  # gravel (minecraft.wiki/w/River). A pond has no disks: "Disks no longer
-  # generate in and around water lakes" (minecraft.wiki/w/Disk).
+  # The bed of a river is dirt with disks (minecraft.wiki/w/River). A pond
+  # has none: "Disks no longer generate in and around water lakes"
+  # (minecraft.wiki/w/Disk).
   def water_floor(x, z)
     continent = continent(x, z)
     return Disks.floor(x, z, Block::SAND) if continent < SHORE
@@ -448,8 +314,6 @@ class Terrain
     Block::DIRT
   end
 
-  # The block at the top of a column before caves and plants. Swamps hold
-  # pools at sea level.
   def top_block(x, z, h, biome)
     top = h - 1
     block = Biome::GROUND[biome]
@@ -466,77 +330,9 @@ class Terrain
     block
   end
 
-  # Caves: two noise fields near zero at once trace long tunnels.
-  def self.cave?(a, c, width) = a * a + c * c < width
-  # False when the first field alone rules out a cave, so the second needs no sample.
-  def self.cave_possible?(a, width) = a * a < width
-
-  # The tunnel width at depth blocks below the top block of a column.
-  def self.cave_width(depth)
-    return 0.0 if depth <= CAVE_ROOF
-    return CAVE_WIDTH if depth >= CAVE_ROOF + CAVE_FADE
-
-    CAVE_WIDTH * (depth - CAVE_ROOF) / CAVE_FADE
-  end
-
-  # The share of the full tunnel width at column x, z, from 0.0 (closed) to
-  # 1.0, and every value between, so that a tunnel narrows to its end.
-  def cave_region(x, z)
-    noise = @noise4.noise2(x / CAVE_REGION_SCALE + 90.0, z / CAVE_REGION_SCALE + 30.0)
-    ((noise - CAVE_REGION_LOW) / (CAVE_REGION_HIGH - CAVE_REGION_LOW)).clamp(0.0, 1.0)
-  end
-
-  # True in the patches where tunnels keep their width up to the surface.
-  def entrance?(x, z) = @noise.noise2(x / ENTRANCE_SCALE + 200.0, z / ENTRANCE_SCALE) > ENTRANCE
-
-  # The meadow noise of column x, z, from about -1 to 1. Grass and flowers
-  # grow more where it is high.
   def meadow(x, z) = @noise3.noise2(x / 30.0, z / 30.0 + 11.0)
 
-  # The two cave noise fields at a point of the cave grid, which has one point
-  # every 4 blocks. World#generate_chunk and carved? both sample it here.
-  def cave_a(gx, gy, gz) = @noise2.noise3(gx * 4 / 40.0, gy * 4 / 22.0, gz * 4 / 40.0)
-  def cave_b(gx, gy, gz) = @noise3.noise3(gx * 4 / 40.0 + 50.0, gy * 4 / 22.0, gz * 4 / 40.0)
-
-  # The room noise at a point of the cave grid.
-  def cave_room(gx, gy, gz) = @noise.noise3(gx * 4 / ROOM_SCALE + 120.0, gy * 4 / ROOM_SCALE_UP, gz * 4 / ROOM_SCALE)
-
-  # The room noise at depth blocks below the top block of a column that
-  # makes a room: above it is a room. No value of the noise reaches the
-  # threshold in the roof.
-  def self.room_threshold(depth)
-    return 2.0 if depth <= ROOM_ROOF
-    return ROOM_THRESHOLD if depth >= ROOM_ROOF + ROOM_FADE
-
-    ROOM_THRESHOLD + (1.0 - ROOM_THRESHOLD) * (ROOM_ROOF + ROOM_FADE - depth) / ROOM_FADE
-  end
-
-  # The cave test for one block of an entrance patch, from the 8 grid points
-  # around it. It gives the same numbers as the chunk grid of World#generate_chunk
-  # for the tunnels. It does not test the rooms, which lie deeper than ROOM_ROOF
-  # blocks under the top block.
-  def carved?(x, y, z)
-    gx = x >> 2
-    gy = y >> 2
-    gz = z >> 2
-    n = 0
-    2.times do |i|
-      2.times do |j|
-        2.times do |k|
-          @corner_a[n] = cave_a(gx + i, gy + j, gz + k)
-          @corner_b[n] = cave_b(gx + i, gy + j, gz + k)
-          n += 1
-        end
-      end
-    end
-    tx = (x - gx * 4) / 4.0
-    ty = (y - gy * 4) / 4.0
-    tz = (z - gz * 4) / 4.0
-    Terrain.cave?(trilinear(@corner_a, 0, 2, 2, tx, ty, tz), trilinear(@corner_b, 0, 2, 2, tx, ty, tz), CAVE_WIDTH * cave_region(x, z))
-  end
-
-  # The top ground block of the tree that grows at column x, z, or -1. It
-  # only reads noise, so every chunk that a tree crosses gets the same tree.
+  # Reads only noise, so every chunk that a tree crosses gets the same tree.
   def tree_top(x, z)
     r = Noise.hash3(x, 0, z, 21)
     return -1 if r >= Biome::MAX_TREES
@@ -547,30 +343,9 @@ class Terrain
 
     ground = top_block(x, z, h, biome)
     return -1 unless ground == Block::GRASS || ground == Block::SNOW_GRASS
-    return -1 if !Terrain.beach?(h - 1) && entrance?(x, z) && carved?(x, h - 1, z)
+    return -1 if !Terrain.beach?(h - 1) && @cave_shape.opening?(x, h - 1, z)
 
     h - 1
   end
 
-  def trilinear(g, n, gy, gz, tx, ty, tz)
-    Terrain.x_edges(g, n, gy, gz, tx, @edges)
-    Terrain.yz_lerp(@edges, ty, tz)
-  end
-
-  # The first step of trilinear: the 4 edges along x of the cell of grid g
-  # from point n, at tx, into e (y, z: 0 0, 1 0, 0 1, 1 1).
-  def self.x_edges(g, n, gy, gz, tx, e)
-    sx = gy * gz
-    e[0] = g[n] + (g[n + sx] - g[n]) * tx
-    e[1] = g[n + gz] + (g[n + sx + gz] - g[n + gz]) * tx
-    e[2] = g[n + 1] + (g[n + sx + 1] - g[n + 1]) * tx
-    e[3] = g[n + gz + 1] + (g[n + sx + gz + 1] - g[n + gz + 1]) * tx
-  end
-
-  # The rest of trilinear: the edges e lerped along y at ty, then along z at tz.
-  def self.yz_lerp(e, ty, tz)
-    c0 = e[0] + (e[1] - e[0]) * ty
-    c1 = e[2] + (e[3] - e[2]) * ty
-    c0 + (c1 - c0) * tz
-  end
 end

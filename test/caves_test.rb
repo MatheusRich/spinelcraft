@@ -1,16 +1,13 @@
 require_relative "test_helper"
 
-# Caves#carve skips work: it samples the noise on a coarse grid, skips the
-# cells that hold no cave, and reuses the edges of a cell. This test carves
-# chunks of solid stone and compares each block with a plain reference that
-# interpolates the noise at each block.
+# Caves#carve skips the cells that hold no cave and reuses the edges of a
+# cell. A plain reference that blends the noise at each block must agree.
 class CavesTest < Minitest::Test
   SEED = 1337
-  # Chunks with tunnels, rooms and lava. The first has entrance patches in
-  # part of it, and the third in all of it.
+  # The first chunk has entrance patches in part of it, and the third in all
+  # of it.
   CHUNKS = [[0, 0], [-1, 0], [3, -2], [-4, 5], [7, 7], [-6, -3]].freeze
 
-  # The cave noise at the block x, y, z, from the 8 grid points around it.
   def interpolate(x, y, z)
     gx = x >> 2
     gy = y >> 2
@@ -25,19 +22,18 @@ class CavesTest < Minitest::Test
     lerp.(along_y[0], along_y[1], tz)
   end
 
-  def open_by_reference?(terrain, fields, x, y, z, top)
+  def open_by_reference?(shape, fields, x, y, z, top)
     depth = top - y
-    width = (terrain.entrance?(x, z) ? Terrain::CAVE_WIDTH : Terrain.cave_width(depth)) * terrain.cave_region(x, z)
-    return true if Terrain.cave?(interpolate(x, y, z, &fields[:cave_a]), interpolate(x, y, z, &fields[:cave_b]), width)
+    width = (shape.entrance?(x, z) ? CaveShape::CAVE_WIDTH : CaveShape.cave_width(depth)) * shape.cave_region(x, z)
+    return true if CaveShape.cave?(interpolate(x, y, z, &fields[:cave_a]), interpolate(x, y, z, &fields[:cave_b]), width)
 
-    depth > Terrain::ROOM_ROOF && interpolate(x, y, z, &fields[:cave_room]) > Terrain.room_threshold(depth)
+    depth > CaveShape::ROOM_ROOF && interpolate(x, y, z, &fields[:cave_room]) > CaveShape.room_threshold(depth)
   end
 
-  # The noise of each field at a grid point, which the blocks around it share.
-  def noise_fields(terrain)
+  def noise_fields(shape)
     %i[cave_a cave_b cave_room].to_h do |field|
       memo = {}
-      [field, ->(*point) { memo[point] ||= terrain.public_send(field, *point) }]
+      [field, ->(*point) { memo[point] ||= shape.public_send(field, *point) }]
     end
   end
 
@@ -45,19 +41,16 @@ class CavesTest < Minitest::Test
     Array.new(CHUNK * CHUNK) { |column| terrain.surface_height(x0 + column / CHUNK, z0 + column % CHUNK) }
   end
 
-  # Carves the chunk cx, cz out of solid stone, with the top block of column
-  # lx * CHUNK + lz at heights[column] - 1. Gives each block that differs from
-  # the reference, and the count of each block that the carve made.
   def carve_and_compare(cx, cz, heights)
-    terrain = Terrain.new(SEED)
-    fields = noise_fields(terrain)
+    shape = CaveShape.new(SEED)
+    fields = noise_fields(shape)
     world = World.new(SEED)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     heights.each_with_index do |height, column|
       (1...height).each { |y| world.put_block(World.index(x0 + column / CHUNK, y, z0 + column % CHUNK), Block::STONE) }
     end
-    Caves.new(world, terrain, heights).carve(x0, z0, heights.max)
+    Caves.new(world, shape, heights).carve(x0, z0, heights.max)
     mismatches = []
     carved = Hash.new(0)
     heights.each_with_index do |height, column|
@@ -66,7 +59,7 @@ class CavesTest < Minitest::Test
       top = height - 1
       last = Terrain.beach?(top) ? top - 3 : top
       (1...height).each do |y|
-        open = y >= 2 && y <= last && open_by_reference?(terrain, fields, x, y, z, top)
+        open = y >= 2 && y <= last && open_by_reference?(shape, fields, x, y, z, top)
         want = open ? (y <= Caves::LAVA_LEVEL ? Block::LAVA : Block::AIR) : Block::STONE
         block = world.block(World.index(x, y, z))
         carved[block] += 1 unless block == Block::STONE
@@ -89,9 +82,8 @@ class CavesTest < Minitest::Test
     assert_operator lava, :>, 0
   end
 
-  # The tops of the columns are not the same in each chunk, so a level
-  # ground tests each height, at each place in a cell of the cave grid:
-  # a beach, the layers of the grid, and the top of the world.
+  # A level ground tests each height at each place in a cell of the cave
+  # grid: a beach, the layers of the grid, and the top of the world.
   def test_the_carved_blocks_are_the_blocks_of_the_reference_at_each_height
     [CHUNKS[0], CHUNKS[2]].each do |chunk|
       [10, 67, 68, *40..47, WY - 1, WY].each do |height|

@@ -1,9 +1,9 @@
 require_relative "test_helper"
 
 class ChunkGeneratorTest < Minitest::Test
-  # A desert well has the blocks of minecraft.wiki/w/Desert_Well/Structure:
-  # 89 sandstone and 12 slabs, which are sandstone here, 4 sand and 2
-  # suspicious sand, which are sand here, and 5 water.
+  # minecraft.wiki/w/Desert_Well/Structure: 89 sandstone, 12 slabs and 4
+  # sand, 2 suspicious sand and 5 water. Here slabs are sandstone and
+  # suspicious sand is sand.
   def test_a_desert_well_has_the_blocks_of_minecraft
     generator = ChunkGenerator.new(World.new(1337), 1337)
     reach = -ChunkGenerator::WELL_REACH..ChunkGenerator::WELL_REACH
@@ -35,7 +35,6 @@ class ChunkGeneratorTest < Minitest::Test
     assert_operator counts[Block::CACTUS], :>, 5
   end
 
-  # The air of a generated column, from the lava level up to the top block.
   def air_runs(world, x, z)
     runs = []
     run = []
@@ -50,22 +49,17 @@ class ChunkGeneratorTest < Minitest::Test
     runs
   end
 
-  # The 4 x 4 chunks around x = z = 0 of seed 1337 have a room: a column of
-  # air that is 6 blocks tall or more and lies deeper than the roof of the
-  # rooms.
   def test_the_world_has_rooms_under_a_roof
     world = World.new(1337)
     (-2..1).each { |cx| (-2..1).each { |cz| world.load_chunk(cx, cz) } }
     rooms = (-32...32).flat_map { |x| (-32...32).flat_map { |z| air_runs(world, x, z).select { |run| run.size >= 6 }.map { |run| [run.last, world.height_at(x, z) - 1] } } }
-    assert(rooms.any? { |top_of_room, top_of_column| top_of_column - top_of_room > Terrain::ROOM_ROOF })
+    assert(rooms.any? { |top_of_room, top_of_column| top_of_column - top_of_room > CaveShape::ROOM_ROOF })
   end
 
-  # In a chunk where the region noise is 0 in each column, no tunnel opens,
-  # so no air lies within the roof of the rooms.
   def test_a_chunk_in_a_closed_region_has_no_tunnel
     terrain = Terrain.new(1337)
     closed = (-8..8).flat_map { |cx| (-8..8).map { |cz| [cx, cz] } }.find do |cx, cz|
-      CHUNK.times.all? { |dx| CHUNK.times.all? { |dz| terrain.cave_region(cx * CHUNK + dx, cz * CHUNK + dz) == 0.0 } }
+      CHUNK.times.all? { |dx| CHUNK.times.all? { |dz| terrain.cave_shape.cave_region(cx * CHUNK + dx, cz * CHUNK + dz) == 0.0 } }
     end
     refute_nil closed
     world = World.new(1337)
@@ -76,7 +70,7 @@ class ChunkGeneratorTest < Minitest::Test
     shallow = CHUNK.times.flat_map do |dx|
       CHUNK.times.flat_map do |dz|
         ground = terrain.surface_height(x0 + dx, z0 + dz)
-        air_runs(world, x0 + dx, z0 + dz).flatten.select { |y| y < ground && ground - 1 - y <= Terrain::ROOM_ROOF }
+        air_runs(world, x0 + dx, z0 + dz).flatten.select { |y| y < ground && ground - 1 - y <= CaveShape::ROOM_ROOF }
       end
     end
     assert_empty shallow
@@ -84,9 +78,8 @@ class ChunkGeneratorTest < Minitest::Test
 
   ORES = [Block::COAL_ORE, Block::IRON, Block::DIAMOND, Block::SPINEL_ORE].freeze
 
-  # The stone and ore blocks of each layer, and the blocks of each ore by
-  # its cell (x >> 2, y >> 1, z >> 2 for coal, x >> 1, y >> 1, z >> 1 for
-  # the others), in the 4 x 4 chunks from x = z = 0.
+  # Coal cells are x >> 2, y >> 1, z >> 2, and the other ore cells x >> 1,
+  # y >> 1, z >> 1.
   def self.ore_area
     @ore_area ||= begin
       world = World.new(1337)
@@ -117,8 +110,8 @@ class ChunkGeneratorTest < Minitest::Test
     end
   end
 
-  # Caves and the land surface cut some clumps, so a clump holds a bit
-  # less than a vein.
+  # Caves and the land surface cut some clumps, so a clump holds a bit less
+  # than a vein.
   def test_a_clump_of_ore_fills_its_cell_with_about_the_blocks_of_a_vein
     _, cells = ChunkGeneratorTest.ore_area
     { Block::COAL_ORE => Ores::VEIN_17, Block::IRON => Ores::VEIN_9, Block::DIAMOND => Ores::DIAMOND_VEIN,
@@ -128,8 +121,6 @@ class ChunkGeneratorTest < Minitest::Test
     end
   end
 
-  # Each cell has its own roll. So few pairs of cells at one height both
-  # hold coal in one chunk, or both hold iron or diamond side by side.
   def test_each_cell_has_its_own_roll
     _, cells = ChunkGeneratorTest.ore_area
     pairs = ->(keys, &group) { keys.group_by(&group).values.sum { |same| same.size * (same.size - 1) / 2 } }
@@ -140,8 +131,7 @@ class ChunkGeneratorTest < Minitest::Test
     assert_operator pairs.(others) { |x, y, z| [x, y, z >> 1] }, :<, others.size / 10
   end
 
-  # The generator keeps the rolls of the coal cells of the last chunk, so
-  # the next chunk must make all of its own.
+  # The generator keeps the coal rolls of the last chunk.
   def test_a_chunk_has_the_same_blocks_after_another_chunk
     first = World.new(1337)
     first.load_chunk(0, 0)
