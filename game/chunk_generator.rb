@@ -16,6 +16,7 @@ class ChunkGenerator
     @world = world
     @col_h = Array.new(CHUNK * CHUNK, 0)
     @col_b = Array.new(CHUNK * CHUNK, 0)
+    @col_top = Array.new(CHUNK * CHUNK, 0)
     @coal_rolls = Array.new(16 * COAL_ROLLS, 0)
     @ores = Ores.new
     @terrain = Terrain.new(seed)
@@ -42,7 +43,9 @@ class ChunkGenerator
       while lz < CHUNK
         h = @terrain.surface_height(x0 + lx, z0 + lz)
         @col_h[lx * CHUNK + lz] = h
-        @col_b[lx * CHUNK + lz] = @terrain.biome(x0 + lx, z0 + lz, h)
+        biome = @terrain.biome(x0 + lx, z0 + lz, h)
+        @col_b[lx * CHUNK + lz] = biome
+        @col_top[lx * CHUNK + lz] = @terrain.top_block(x0 + lx, z0 + lz, h, biome)
         highest = h if h > highest
         lz += 1
       end
@@ -57,7 +60,7 @@ class ChunkGenerator
         x = x0 + lx
         z = z0 + lz
         h = @col_h[lx * CHUNK + lz]
-        surface = @terrain.top_block(x, z, h, @col_b[lx * CHUNK + lz])
+        surface = @col_top[lx * CHUNK + lz]
         base = World.index(x, 0, z)
         y = 0
         while y < h
@@ -78,7 +81,7 @@ class ChunkGenerator
     return surface if y == top
 
     soil = y > top - SOIL_DEPTH
-    return Block::STONE if soil && Terrain.bare_rock?(top)
+    return Block::STONE if soil && (Terrain.bare_rock?(top) || surface == Block::STONE || surface == Block::GRAVEL)
     return Block::SAND if soil && surface == Block::SAND
     return Block::DIRT if soil
     return Block::SANDSTONE if y > top - SOIL_DEPTH - SANDSTONE_DEPTH && surface == Block::SAND

@@ -8,23 +8,26 @@ class Terrain
   # Kniberg showed them in "Reinventing Minecraft world generation" (2022):
   # rows at the continent noise, columns at the erosion noise. The values
   # are ours.
-  LAND_CONTINENT = [-0.12, -0.05, 0.13, 0.38, 0.73]
+  LAND_CONTINENT = [-0.12, -0.115, -0.05, 0.13, 0.38, 0.73]
   EROSION = [-0.2, -0.09, -0.05, -0.047, -0.015, -0.012, 0.03, 0.045, 0.06, 0.2]
   LAND_BASE = [
     [3.0, 2.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [22.0, 20.0, 12.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
     [24.0, 16.0, 7.0, 6.0, 6.0, 5.0, 5.0, 4.0, 3.0, 2.0],
     [14.0, 12.0, 13.0, 12.0, 12.0, 11.0, 10.0, 8.0, 5.0, 3.0],
     [20.0, 18.0, 20.0, 45.0, 45.0, 18.0, 15.0, 12.0, 8.0, 5.0],
     [28.0, 26.0, 28.0, 68.0, 68.0, 50.0, 44.0, 34.0, 26.0, 22.0]
   ].freeze
   LAND_HILLS = [
-    [30.0, 20.0, 14.0, 12.0, 10.0, 9.0, 7.0, 6.0, 4.0, 2.0],
+    [10.0, 10.0, 10.0, 12.0, 10.0, 9.0, 7.0, 6.0, 4.0, 2.0],
+    [10.0, 10.0, 10.0, 12.0, 10.0, 9.0, 7.0, 6.0, 4.0, 2.0],
     [50.0, 40.0, 32.0, 28.0, 26.0, 24.0, 18.0, 14.0, 6.0, 3.0],
     [45.0, 45.0, 40.0, 32.0, 30.0, 28.0, 22.0, 16.0, 7.0, 3.0],
     [45.0, 45.0, 40.0, 8.0, 8.0, 30.0, 24.0, 18.0, 7.0, 4.0],
     [45.0, 45.0, 42.0, 8.0, 8.0, 32.0, 26.0, 20.0, 9.0, 5.0]
   ].freeze
   LAND_RIDGES = [
+    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     [0.8, 0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     [0.8, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -94,6 +97,11 @@ class Terrain
   # Minecraft places its beaches on the coast, not by height, so a low
   # field inland keeps its grass (minecraft.wiki/w/Beach).
   SHORE = -0.11
+  # A rough coast is a stony shore: "made entirely of stone and variants,
+  # with long strips of gravel" (minecraft.wiki/w/Stony_Shore).
+  GRAVEL_STRIP = 0.2
+  GRAVEL_STRIP_LENGTH = 28.0
+  GRAVEL_STRIP_WIDTH = 5.0
   ROCK_LINE = SEA + 95
   SNOW_LINE = SEA + 110
   COLD_LINE = SEA + 30
@@ -311,6 +319,14 @@ class Terrain
     noise < RIVER_VALLEY && noise < river_width(Terrain.land(LAND_BASE, continent, erosion(x, z)))
   end
 
+  def stony_shore?(x, z) = continent(x, z) < SHORE && erosion(x, z) < ROUGH_EROSION
+
+  def stony_shore_block(x, z)
+    return Block::GRAVEL if @noise3.noise2(x / GRAVEL_STRIP_LENGTH + 700.0, z / GRAVEL_STRIP_WIDTH) > GRAVEL_STRIP
+
+    Block::STONE
+  end
+
   # The bed of a river is dirt with disks (minecraft.wiki/w/River). A pond
   # has none: "Disks no longer generate in and around water lakes"
   # (minecraft.wiki/w/Disk).
@@ -330,6 +346,8 @@ class Terrain
       block = Block::DIRT if top < SEA
     elsif top < SEA
       block = water_floor(x, z)
+    elsif stony_shore?(x, z)
+      block = stony_shore_block(x, z)
     elsif Terrain.beach?(top) && shore?(x, z)
       block = Block::SAND
     end

@@ -188,6 +188,40 @@ class TerrainTest < Minitest::Test
     assert_equal Biome::TUNDRA, terrain.biome(0, 0, Terrain::TOP.to_i)
   end
 
+  # The continent noise moves about 0.001 a block near the coast, so the
+  # second row of the land tables is about 5 blocks inland.
+  def test_a_rough_coast_rises_into_a_cliff_and_a_flat_coast_stays_low
+    cliff = Terrain::LAND_CONTINENT[1]
+    assert_operator Terrain.land(Terrain::LAND_BASE, cliff, Terrain::ROUGH_EROSION - 0.01), :>=, 12
+    assert_operator Terrain.land(Terrain::LAND_BASE, cliff, Terrain::FLAT_EROSION), :<=, 2
+  end
+
+  def test_a_rough_coast_is_a_stony_shore
+    rough = Terrain::ROUGH_EROSION - 0.001
+    assert stony_terrain(Terrain::SHORE - 0.001, rough).stony_shore?(0, 0)
+    refute stony_terrain(Terrain::SHORE, rough).stony_shore?(0, 0)
+    refute stony_terrain(Terrain::SHORE - 0.001, Terrain::ROUGH_EROSION).stony_shore?(0, 0)
+  end
+
+  def test_a_stony_shore_is_stone_with_gravel_and_no_sand
+    terrain = stony_terrain(Terrain::SHORE - 0.001, Terrain::ROUGH_EROSION - 0.001)
+    blocks = (0...64).flat_map { |x| (0...64).map { |z| terrain.top_block(x, z, SEA + 2, Biome::PLAINS) } }.tally
+    assert_equal [Block::GRAVEL, Block::STONE].sort, blocks.keys.sort
+    assert_operator blocks[Block::GRAVEL], :>, blocks.values.sum / 20
+    assert_operator blocks[Block::GRAVEL], :<, blocks.values.sum / 3
+  end
+
+  # Strips: a column is more often like the one next to it along x than
+  # along z.
+  def test_the_gravel_of_a_stony_shore_lies_in_long_strips_along_x
+    terrain = Terrain.new(1337)
+    gravel = ->(x, z) { terrain.stony_shore_block(x, z) == Block::GRAVEL }
+    columns = (0...128).to_a.product((0...128).to_a)
+    along_x = columns.count { |x, z| gravel.(x, z) != gravel.(x + 1, z) }
+    along_z = columns.count { |x, z| gravel.(x, z) != gravel.(x, z + 1) }
+    assert_operator along_x * 3, :<, along_z
+  end
+
   # The sea floor has no ridges, so ridges that start at the coast with any
   # height make a wall. Seed 229189 had one 43 blocks tall at 2772, 3730.
   def test_mountain_ridges_grow_from_nothing_at_the_coast
@@ -209,7 +243,7 @@ class TerrainTest < Minitest::Test
   # At this continent and erosion the base of the land is 13.8 blocks above
   # the sea, which rounds down to 13.
   def test_the_landform_reads_the_land_without_its_hills_but_not_at_sea
-    continent = Terrain::LAND_CONTINENT[2]
+    continent = Terrain::LAND_CONTINENT[3]
     erosion = -0.19
     land = river_shore(continent, 0.0, 0.0)
     land.define_singleton_method(:erosion) { |_x, _z| erosion }
@@ -319,6 +353,13 @@ class TerrainTest < Minitest::Test
   end
 
   private
+
+  def stony_terrain(continent, erosion)
+    terrain = Terrain.new(1337)
+    terrain.define_singleton_method(:continent) { |_x, _z| continent }
+    terrain.define_singleton_method(:erosion) { |_x, _z| erosion }
+    terrain
+  end
 
   def terrain_with_land(*points)
     terrain = Terrain.new(1337)

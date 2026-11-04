@@ -13,6 +13,12 @@ class ChunkGeneratorTest < Minitest::Test
     assert_equal 5, blocks.count(Block::WATER)
   end
 
+  def test_the_soil_under_a_stony_shore_is_stone
+    top = SEA + 10
+    [Block::STONE, Block::GRAVEL].each { |surface| assert_equal Block::STONE, ChunkGenerator.ground_block(top - 1, top, surface) }
+    assert_equal Block::DIRT, ChunkGenerator.ground_block(top - 1, top, Block::GRASS)
+  end
+
   def test_the_water_of_a_desert_well_is_a_cross_with_air_above_it
     generator = ChunkGenerator.new(World.new(1337), 1337)
     [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].each do |dx, dz|
