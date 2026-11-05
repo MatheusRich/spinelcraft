@@ -2534,6 +2534,10 @@ class Game
     -1.0
   end
 
+  # Half the chunk ring, in blocks: the chunk slots of a player this far
+  # from the spawn are not the slots of the chunks at the spawn.
+  FAR_SPAWN = RING / 2 * CHUNK
+
   # The save keeps blocks, the inventory, health, the day, the time alive,
   # the items on the ground and the weather, and a dead player respawns on
   # load.
@@ -2643,6 +2647,12 @@ class Game
     seven = Terrain.new(7)
     seven_x, seven_z = seven.spawn_near_origin
     here = [seven_x + 0.5, seven.surface_height(seven_x, seven_z) + 0.01, seven_z + 0.5, here[3], here[4]]
+    far_x = seven_x + FAR_SPAWN
+    File.write(@save_path, "#{SAVE_VERSION}\nseed 7\nplayer #{far_x} 80 #{here[2]} 0 0\nlife 0 #{far_x} #{here[2]}\nchunks \n")
+    ok = load
+    apply_loaded if ok
+    check("a save loads the chunks at the player, not at the spawn point of a new world",
+          ok && @world.chunk_loaded?(far_x >> 4, seven_z >> 4) && !@world.chunk_loaded?(seven_x >> 4, seven_z >> 4))
     File.write(@save_path, "#{SAVE_VERSION}\nseed 7\nplayer #{here.join(" ")}\nlife 0 #{here[0]} #{here[2]}\nchunks \n")
     ok = load
     apply_loaded if ok

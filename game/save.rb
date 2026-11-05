@@ -74,6 +74,8 @@ class Game
     @tint.write_uniforms(@uniforms, TINT_UNIFORMS)
     @far = FarTerrain.new(@world.terrain, LOD_SLOT0)
     @chunk_meshes = ChunkMeshes.new(@world, @tint)
+    # A new world has no block in the crosshair yet.
+    @target_block = BlockTarget.new
     @chunk_meshes.graphics = @options.graphics
     @light = Light.new(@world)
     @storm = Storm.new(@seed * 5 + 3, @world, @weather, @mobs)
@@ -134,8 +136,9 @@ class Game
 
   def apply_loaded
     # A part that the save lacks keeps its value for a new world: the spawn
-    # point, and the player there.
-    spawn
+    # point, and the player there. Only a save without them builds the
+    # chunks at the spawn point of a new world.
+    spawn if @loaded.section("player").empty? || @loaded.section("life").empty?
     with_section("player") { |fields| apply_player(fields) }
     with_section("clock") { |fields| apply_clock(fields) }
     with_section("mode") { |fields| @game_mode = GameMode.parse(fields[0]) }
@@ -164,12 +167,9 @@ class Game
   end
 
   def apply_player(fields)
-    @player.x = fields[0].to_f
-    @player.y = fields[1].to_f
-    @player.z = fields[2].to_f
+    @player = Player.new(fields[0].to_f, fields[1].to_f, fields[2].to_f)
     @player.yaw = fields[3].to_f
     @player.pitch = fields[4].to_f
-    @player.fall_start = @player.y
   end
 
   def apply_clock(fields)

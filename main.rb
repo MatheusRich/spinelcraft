@@ -441,8 +441,6 @@ class Game
     @spawn_x = start_x + 0.5
     @spawn_z = start_z + 0.5
     @player = Player.new(@spawn_x, ground + 0.01, @spawn_z)
-    # A new player has no block in the crosshair yet.
-    @target_block = BlockTarget.new
     Log.debug(Log::WORLD) { "spawn at #{start_x} #{ground} #{start_z}#{@world.dry_spot?(start_x, start_z) ? "" : ", but no dry land was near"}" }
   end
 
