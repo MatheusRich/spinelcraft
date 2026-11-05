@@ -1,7 +1,8 @@
 # Far terrain: a coarse mesh past the full-detail chunks, in levels. Level L
 # has cells of 4 << L blocks, and a tile holds CELLS x CELLS cells. Each cell
 # has one height and one top block, read from the noise of Terrain, so
-# far terrain needs no block storage. Edits do not show here.
+# far terrain needs no block storage. Edits do not show here. A cell under
+# the sea has its floor and a water surface above it.
 class Lod
   CELLS = 16
   # Tiles live in a ring like chunks do; the shader wraps Mesher::COLUMNS cells.
@@ -10,8 +11,8 @@ class Lod
   # A face record of far terrain has the first word of a chunk face record
   # (Mesher.pack). Its second word holds the texture, the height of the
   # face in blocks, the cell size as a shift, the tint of the texture
-  # (Tex.tint) and the biome. The fields follow the layout of
-  # Mesher::X_AT and the others.
+  # (Tex.tint), the biome, and for a water surface the depth of its water.
+  # The fields follow the layout of Mesher::X_AT and the others.
   TALL_AT = Mesher::TEX_AT + Mesher::TEX_BITS
   TALL_BITS = 8
   CELL_AT = TALL_AT + TALL_BITS
@@ -20,7 +21,10 @@ class Lod
   TINT_BITS = 2
   BIOME_AT = TINT_AT + TINT_BITS
   BIOME_BITS = 4
+  DEPTH_AT = BIOME_AT + BIOME_BITS
+  DEPTH_BITS = 6
   TALL_MAX = (1 << TALL_BITS) - 1
+  DEPTH_MAX = (1 << DEPTH_BITS) - 1
 
   attr_reader :tile_x, :tile_z, :built, :faces, :tile, :tile_shift
 
@@ -34,7 +38,9 @@ class Lod
   # Mesher.shader_defines gives them.
   def self.shader_defines
     Mesher.define_field("TALL", TALL_AT, TALL_BITS) + Mesher.define_field("CELL", CELL_AT, CELL_BITS) +
-      Mesher.define_field("LOD_TINT", TINT_AT, TINT_BITS) + Mesher.define_field("BIOME", BIOME_AT, BIOME_BITS)
+      Mesher.define_field("LOD_TINT", TINT_AT, TINT_BITS) + Mesher.define_field("BIOME", BIOME_AT, BIOME_BITS) +
+      Mesher.define_field("DEPTH", DEPTH_AT, DEPTH_BITS) +
+      "#define SEA_TOP #{SEA + 1}.0\n#define SOURCE_SURFACE #{Mesher.source_surface}\n"
   end
 
   def initialize(terrain, level)
@@ -68,12 +74,6 @@ class Lod
     x = (cx << @shift) + @cell / 2
     z = (cz << @shift) + @cell / 2
     h = @terrain.surface_height(x, z)
-    if h - 1 < SEA
-      @h[k] = SEA + 1
-      @top[k] = Tex::WATER
-      @side[k] = Tex::WATER
-      return
-    end
     biome = @terrain.biome(x, z, h)
     @biome[k] = biome
     block = @terrain.top_block(x, z, h, biome)
@@ -113,6 +113,10 @@ class Lod
         # The top face: the cell's top block is at y = h - 1.
         @lists[2] << Mesher.pack(cx, h - 1, cz, 2)
         @lists[2] << (@top[k] | (1 << TALL_AT) | (@shift << CELL_AT) | Lod.tint(@top[k], @biome[k]))
+        if h - 1 < SEA
+          @lists[2] << Mesher.pack(cx, SEA, cz, 2)
+          @lists[2] << (Tex::WATER | (1 << TALL_AT) | (@shift << CELL_AT) | ([SEA + 1 - h, DEPTH_MAX].min << DEPTH_AT))
+        end
         6.times do |f|
           if f != 2 && f != 3
             n = @h[(i + @nx[f]) * (CELLS + 2) + j + @nz[f]]

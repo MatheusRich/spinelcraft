@@ -129,8 +129,16 @@ class Mesher
       Mesher.define_field("WATER_STEP", WATER_STEP_AT, WATER_STEP_BITS) + Mesher.define_field("FACING", FACING_AT, FACING_BITS) +
       Mesher.define_field("SHAPE", SHAPE_AT, SHAPE_BITS) + Mesher.define_field("TINT", TINT_AT, TINT_BITS) +
       Mesher.define_field("HEIGHTS_LOW", HEIGHTS_LOW_AT, HEIGHTS_LOW_BITS) +
-      Mesher.define_field("HEIGHTS_HIGH", HEIGHTS_HIGH_AT, HEIGHTS_HIGH_BITS) + "#define HEIGHTS_LOW_BITS #{HEIGHTS_LOW_BITS}u\n"
+      Mesher.define_field("HEIGHTS_HIGH", HEIGHTS_HIGH_AT, HEIGHTS_HIGH_BITS) + "#define HEIGHTS_LOW_BITS #{HEIGHTS_LOW_BITS}u\n" \
+      "#define DEEP_WATER #{DEEP_WATER}.0\n#define BLOCKS_PER_WATER_STEP #{BLOCKS_PER_WATER_STEP}.0\n#define WATER_STEP_MAX #{WATER_STEP_MAX}.0\n"
   end
+
+  # A fluid height as a fluid face holds it, in fifteenths of a block.
+  def self.fifteenths(height) = (height * 15.0 + 0.5).to_i
+
+  # The height of the surface of a still water source over the floor of its
+  # cell, as fluid_corners gives it.
+  def self.source_surface = Mesher.fifteenths(Block::WATER_LEVEL[Block::WATER] / 9.0) / 15.0
 
   def self.define_field(name, at, bits) = "#define #{name}_AT #{at}u\n#define #{name}_MASK #{(1 << bits) - 1}u\n"
 
@@ -303,7 +311,7 @@ class Mesher
         sx = @delta[cx == 1 ? 0 : 1]
         sz = @delta[cz == 1 ? 4 : 5]
         top = corner_height(h, cell_fluid_height(k, i + sx), cell_fluid_height(k, i + sz), cell_fluid_height(k, i + sx + sz))
-        v = (top * 15.0 + 0.5).to_i
+        v = Mesher.fifteenths(top)
         v = 1 if v < 1
         q |= v << (4 * (cx + 2 * cz))
       end

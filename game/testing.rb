@@ -262,6 +262,7 @@ class Game
     test_menu
     test_graphics_setting
     test_deep_seabed
+    test_far_water_color
     test_solid_leaves
     test_perf_log
     test_fullscreen_follows_window
@@ -885,6 +886,77 @@ class Game
     @player.yaw = yaw
     @player.pitch = pitch
   end
+
+  # A deep ocean of seed 7, the world of the self-test from test_save on.
+  # The water is deep on both sides of the edge of the full detail.
+  OCEAN_X = -4000
+  OCEAN_Z = -2400
+  # The view of the check, far enough for far terrain.
+  FAR_WATER_VIEW = 1000.0
+  # The check looks at the water this many blocks to the side of the eye,
+  # away from the crosshair.
+  ASIDE = 16
+  # Half the side of the square of pixels that the check averages, so the
+  # waves of the water texture do not count.
+  PATCH = 6
+  # The largest step in red + green + blue that the eye does not see as a line.
+  SEAM_STEP = 30
+  # The uniform of the near z edge of the full detail (Game#cull_view writes
+  # the square x0 z0 x1 z1 from uniform 28 on).
+  DETAIL_Z0 = 29
+
+  # Deep water looks the same up to the edge of the full detail and past it.
+  # A ray through the water near the edge reaches the floor past the edge,
+  # so the far terrain needs a floor under its water too.
+  def test_far_water_color
+    keep_pose
+    view = @options.view
+    graphics = @options.graphics
+    @options.view = FAR_WATER_VIEW
+    @options.graphics = GraphicsMode::FANCY
+    @chunk_meshes.graphics = GraphicsMode::FANCY
+    @console.teleport(OCEAN_X.to_f, SEA + 30.0, OCEAN_Z.to_f)
+    @player.yaw = 0.0
+    @player.pitch = -0.3
+    @far.build_tiles(OCEAN_X, OCEAN_Z, FAR_WATER_VIEW, 10_000_000_000)
+    path = file_prefix + "far-water.ppm"
+    Gfx.gfx_screenshot(path)
+    render
+    edge = @uniforms[DETAIL_Z0]
+    inside = screen_color(path, edge + 60.0)
+    near_edge = screen_color(path, edge + 10.0)
+    past_edge = screen_color(path, edge - 30.0)
+    File.delete(path)
+    check("deep water near the edge of the full detail looks like the deep water inside it",
+          color_step(inside, near_edge) < SEAM_STEP)
+    check("far water has the color of the deep water of the full detail", color_step(inside, past_edge) < SEAM_STEP)
+    @options.view = view
+    @options.graphics = graphics
+    @chunk_meshes.graphics = graphics
+    @console.teleport(@kept_x, @kept_y, @kept_z)
+    restore_pose
+  end
+
+  # The mean red, green and blue of the pixels of the screenshot at path
+  # around the water surface at ASIDE blocks from the eye, at z.
+  def screen_color(path, z)
+    data = File.binread(path)
+    size = data.split("\n", 4)[1].split(" ")
+    width = size[0].to_i
+    start = data.size - width * size[1].to_i * 3
+    @camera.project((OCEAN_X + ASIDE).to_f, (SEA + 1).to_f, z, Gfx.gfx_width.to_f, Gfx.gfx_height.to_f)
+    sums = [0, 0, 0]
+    (-PATCH..PATCH).each do |dy|
+      (-PATCH..PATCH).each do |dx|
+        at = start + ((@camera.sy.to_i + dy) * width + @camera.sx.to_i + dx) * 3
+        3.times { |c| sums[c] += data.getbyte(at + c) || 0 }
+      end
+    end
+    sums.map { |sum| sum / ((2 * PATCH + 1) * (2 * PATCH + 1)) }
+  end
+
+  # The sum of the differences of red, green and blue between two colors.
+  def color_step(color, other) = (0...3).sum { |c| (color[c] - other[c]).abs }
 
   # The faces that a frame draws with FANCY graphics and does not draw with
   # FAST graphics.
@@ -5411,7 +5483,9 @@ class Game
     set_block(ex, eh + 4, ez, Block::AIR)
     far = @far.lod(FarTerrain::LEVELS - 1)
     slot = far.build(3, -2)
-    check("a far tile has a top face for each cell, sorted by direction", far.faces.size / 2 == far.offsets[7] && far.offsets[3] - far.offsets[2] == Lod::CELLS * Lod::CELLS && slot == Lod.slot(3, -2))
+    tops = (far.offsets[2]...far.offsets[3]).map { |k| Mesher.field(far.faces[k * 2 + 1], Mesher::TEX_AT, Mesher::TEX_BITS) }
+    check("a far tile has a top face for each cell and one for each water surface, sorted by direction",
+          far.faces.size / 2 == far.offsets[7] && tops.size - tops.count(Tex::WATER) == Lod::CELLS * Lod::CELLS && slot == Lod.slot(3, -2))
     # A view of the full reach of level 0 needs no other level. Level 0
     # builds all of its 11 rings: 23 x 23 tiles.
     view = FarTerrain::REACH.to_f

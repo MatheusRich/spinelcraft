@@ -222,6 +222,26 @@ class MesherTest < Minitest::Test
     assert_includes Mesher.shader_defines, "#define LAVA_LAYER #{Tex::LAVA}u"
   end
 
+  # The far terrain draws its water at Mesher.source_surface, so it meets
+  # the top of a still sea in the full detail.
+  def test_the_source_surface_is_the_height_of_the_corners_of_a_still_sea
+    place_cube(Block::WATER, 3)
+    top = SKY_Y + 2
+    @mesher.build(0, 0)
+    w1 = (0...@mesher.water.size).step(2).map { |k| [@mesher.water[k], @mesher.water[k + 1]] }.find do |w0, _|
+      Mesher.face_x(w0) == CUBE_X + 1 && Mesher.face_y(w0) == top && Mesher.face_z(w0) == CUBE_Z + 1 && Mesher.face_dir(w0) == 2
+    end[1]
+    heights = Mesher.field(w1, Mesher::HEIGHTS_LOW_AT, Mesher::HEIGHTS_LOW_BITS) |
+              (Mesher.field(w1, Mesher::HEIGHTS_HIGH_AT, Mesher::HEIGHTS_HIGH_BITS) << Mesher::HEIGHTS_LOW_BITS)
+    corners = (0...4).map { |corner| ((heights >> (4 * corner)) & 15) / 15.0 }
+    assert_equal [Mesher.source_surface], corners.uniq
+  end
+
+  def test_a_fluid_height_rounds_to_the_nearest_fifteenth
+    assert_equal 14, Mesher.fifteenths(0.9)
+    assert_equal 13, Mesher.fifteenths(0.88)
+  end
+
   def test_fancy_graphics_keep_the_floor_under_deep_water
     assert_equal 6, faces_added_by_stone_beside_water(Mesher::DEEP_WATER)
   end

@@ -70,6 +70,7 @@ class Game
     @uniforms[RAIN_UNIFORMS] = @weather.rain.strength
     @uniforms[RAIN_UNIFORMS + 1] = @weather.radius.to_f
     @uniforms[OPTION_UNIFORMS] = @options.brightness
+    @uniforms[OPTION_UNIFORMS + 1] = @options.graphics.opaque_water? ? 0.0 : 1.0
   end
 
   def far_terrain? = @options.view > FarTerrain::DETAIL_VIEW
