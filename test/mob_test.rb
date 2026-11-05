@@ -235,6 +235,28 @@ class MobTest < Minitest::Test
     refute creeper.burning?
   end
 
+  def test_rain_falls_on_a_mob_under_the_open_sky_and_not_under_a_roof
+    lay_floor
+    rain = Weather.new(1)
+    rain.rain.start.settle
+    open = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    roofed = Monster.new(Mob::ZOMBIE, 8.5, SKY_Y - 1.0, 15.5, 3)
+    @world.set(8, SKY_Y + 3, 15, Block::STONE)
+    assert open.in_rain?(@world, rain)
+    refute roofed.in_rain?(@world, rain)
+    refute open.in_rain?(@world, Weather.new(1))
+  end
+
+  def test_the_sky_above_a_mob_starts_at_the_top_of_its_box
+    lay_floor
+    zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    top = (zombie.y + zombie.tall).floor
+    @world.set(4, top - 1, 15, Block::STONE)
+    assert zombie.sky_above?(@world)
+    @world.set(4, top, 15, Block::STONE)
+    refute zombie.sky_above?(@world)
+  end
+
   def test_the_sun_does_not_shorten_the_fire_of_lava
     lay_floor
     player = Player.new(8.5, SKY_Y - 1.0, 0.5)

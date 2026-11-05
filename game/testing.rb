@@ -2014,6 +2014,14 @@ class Game
     60.times { update_mobs(1.0 / 60.0) }
     check("a zombie does not burn in the rain", !zombie.burning? && zombie.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
+    survivor
+    @player.vitals.ignite(5.0)
+    @world.set(px, SKY_Y + 5, pz, Block::STONE)
+    update_survival(1.0 / 60.0)
+    roofed_burns = @player.vitals.burning?
+    @world.set(px, SKY_Y + 5, pz, Block::AIR)
+    update_survival(1.0 / 60.0)
+    check("the rain puts out the fire of the player under the open sky, not under a roof", roofed_burns && !@player.vitals.burning?)
     @weather.build_quads(@world, @player, 1.0)
     open = rain_bottom(px + 3, pz)
     @world.set(px + 3, SKY_Y + 5, pz, Block::STONE)

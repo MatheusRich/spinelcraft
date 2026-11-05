@@ -709,7 +709,7 @@ class Game
     under_water = Block.water?(eyes)
     @player.vitals.stand_in_fire(dt) if only_fire?(feet, eyes)
     # Water and rain put the fire out.
-    if !in_lava && @player.vitals.burning? && (under_water || Block.water?(feet) || (@weather.wet_at?(@world, p.x, p.z) && @world.under_sky?(p.x, p.eye_y, p.z)))
+    if !in_lava && @player.vitals.burning? && (under_water || Block.water?(feet) || p.in_rain?(@world, @weather))
       @player.vitals.douse
       @sfx.play(Sfx::FIZZ, 0.6)
     end
@@ -986,7 +986,7 @@ class Game
       "at x #{@player.x.round}, eye y #{@player.eye_y.round}, z #{@player.z.round}"
   end
 
-  def underground? = @player.eye_y < SEA && !@world.under_sky?(@player.x, @player.eye_y, @player.z)
+  def underground? = @player.eye_y < SEA && !@player.sky_above?(@world)
 
   def perf_log_header
     started = Time.now

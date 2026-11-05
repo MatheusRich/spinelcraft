@@ -239,6 +239,8 @@ class Mob
   end
 
   def blocked?(world) = world.solid_in_box?(@x, @y, @z, @half, @tall)
+  def sky_above?(world) = world.under_sky?(@x, @y + @tall, @z)
+  def in_rain?(world, weather) = weather.wet_at?(world, @x, @z) && sky_above?(world)
 
   # Moves and returns true when a wall stopped the horizontal motion.
   def move(world, dx, dy, dz)

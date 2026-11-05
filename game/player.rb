@@ -290,6 +290,8 @@ class Player
 
   # The block at the eyes.
   def at_eyes(world) = world.get(@x.floor, eye_y.floor, @z.floor)
+  def sky_above?(world) = world.under_sky?(@x, eye_y, @z)
+  def in_rain?(world, weather) = weather.wet_at?(world, @x, @z) && sky_above?(world)
 
   # The keys push the speed along the ground toward speed: forward along
   # the view, and strafe to the right of it. The ground and a flight give

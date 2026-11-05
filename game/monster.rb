@@ -108,7 +108,7 @@ class Monster < Mob
   def burn_in_sun(world)
     return if @kind == CREEPER || @head > 0 || dying?
 
-    ignite(SUN_FIRE) if world.under_sky?(@x, @y + @tall, @z)
+    ignite(SUN_FIRE) if sky_above?(world)
   end
 
   # dx, dz is the step to the player, and dist is its length.

@@ -14,6 +14,27 @@ class PlayerTest < Minitest::Test
     assert_equal Player::FLY_BOOST, player.fly_boost(world)
   end
 
+  def test_rain_falls_on_the_player_under_the_open_sky_and_not_under_a_roof
+    world = world_with_one_chunk
+    rain = Weather.new(1)
+    rain.rain.start.settle
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    assert player.in_rain?(world, rain)
+    refute player.in_rain?(world, Weather.new(1))
+    world.set(8, SKY_Y + 3, 8, Block::STONE)
+    refute player.in_rain?(world, rain)
+  end
+
+  def test_the_sky_above_the_player_starts_at_the_eyes
+    world = world_with_one_chunk
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    eyes = player.eye_y.floor
+    world.set(8, eyes - 1, 8, Block::STONE)
+    assert player.sky_above?(world)
+    world.set(8, eyes, 8, Block::STONE)
+    refute player.sky_above?(world)
+  end
+
   def test_the_speed_is_along_the_ground_only
     player = Player.new(0.5, SKY_Y.to_f, 0.5)
     player.vx = 3.0
