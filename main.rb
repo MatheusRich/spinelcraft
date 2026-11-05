@@ -210,6 +210,11 @@ class Game
     # perf log reads one frame later.
     @previous_stamps = Array.new(STAMP_COUNT, 0)
     @previous_wait_ns = 0
+    # The CPU time of the remesh and the draw calls of the last frame, which
+    # come after the stream.
+    @draw_ns = 0
+    # True when the display paces the frames: init_graphics sets it.
+    @vsync = false
     @faces_drawn = 0
     @game_mode = ENV["MODE"] == "survival" ? GameMode::SURVIVAL : GameMode::CREATIVE
     @loaded = SaveFile.new
@@ -335,6 +340,7 @@ class Game
     Gfx.gfx_shader_defines(Mesher.shader_defines + Lod.shader_defines + Block.shader_defines + Clouds.shader_defines)
     abort "graphics init failed" unless Gfx.gfx_init(1280, 720, vsync, @scripted ? 1 : 0)
     check_gfx_limits
+    @vsync = Gfx.gfx_present_mode == "vsync"
     abort "cannot record to #{@record}" if @record != "" && !Gfx.gfx_record(@record)
     Gfx.gfx_fullscreen(1) if @options.fullscreen
     px = Tex.build
@@ -865,14 +871,17 @@ class Game
     @stamps[STAMP_BEGIN] = now
     strike_ahead if @strike_shot && frames == @max_frames - 3
     advance(dt)
-    stamp(STAMP_STREAM)
-    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, STREAM_BUDGET_NS, view_radius)
+    budget = stream_budget_ns
     stamp(STAMP_FAR)
-    build_far_tiles
+    @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, budget)
+    stamp(STAMP_STREAM)
+    left = budget - (@stamps[STAMP_STREAM] - @stamps[STAMP_FAR])
+    @chunk_meshes.stream(@player.x.floor >> 4, @player.z.floor >> 4, [left, CHUNK_MIN_NS].max, view_radius)
     stamp(STAMP_FLUSH)
     @chunk_meshes.flush
     stamp(STAMP_RENDER)
     render
+    @draw_ns = @stamps[STAMP_END] - @stamps[STAMP_FLUSH]
     cpu = cpu_ms(@stamps)
     log_slow_frame(frames, cpu) if cpu > Log::SLOW_MS
     cpu
@@ -889,10 +898,14 @@ class Game
     update_music(dt)
   end
 
-  # The far tiles use the part of the time budget that the chunks left.
-  def build_far_tiles
-    left = STREAM_BUDGET_NS - (@stamps[STAMP_FAR] - @stamps[STAMP_STREAM])
-    @far.build_tiles(@player.x.floor.to_i, @player.z.floor.to_i, @options.view, left > 500_000 ? left : 500_000)
+  # The time for the far tiles and the chunks in this frame. With vsync, the
+  # frame then waits for the display, so this time comes out of that wait.
+  def stream_budget_ns
+    hz = Gfx.gfx_refresh_hz
+    return STREAM_MIN_NS unless @vsync && hz.positive?
+
+    spare = (NS_PER_SECOND * STREAM_SHARE / hz).to_i - (Gfx.gfx_ns - @stamps[STAMP_BEGIN]) - @draw_ns
+    [spare, STREAM_MIN_NS].max
   end
 
   # Writes the time of this moment in the frame, in nanoseconds, for the
@@ -907,8 +920,8 @@ class Game
 
   def frame_steps(stamps)
     "input #{step_ms(stamps[STAMP_BEGIN], stamps[STAMP_GAME])}, game #{step_ms(stamps[STAMP_GAME], stamps[STAMP_SOUND])}, " \
-      "sound #{step_ms(stamps[STAMP_SOUND], stamps[STAMP_STREAM])}, " \
-      "chunks #{step_ms(stamps[STAMP_STREAM], stamps[STAMP_FAR])}, far tiles #{step_ms(stamps[STAMP_FAR], stamps[STAMP_FLUSH])}, " \
+      "sound #{step_ms(stamps[STAMP_SOUND], stamps[STAMP_FAR])}, " \
+      "far tiles #{step_ms(stamps[STAMP_FAR], stamps[STAMP_STREAM])}, chunks #{step_ms(stamps[STAMP_STREAM], stamps[STAMP_FLUSH])}, " \
       "remesh #{step_ms(stamps[STAMP_FLUSH], stamps[STAMP_RENDER])}, render #{step_ms(stamps[STAMP_RENDER], stamps[STAMP_END])}"
   end
 

@@ -76,15 +76,20 @@ class Game
   # Loads that must finish before play goes on (start, respawn) stop at SYNC_R;
   # the rest stream in.
   SYNC_R = 8
-  STREAM_BUDGET_NS = 2_500_000
+  # The share of a display frame that the CPU work of a frame may take while
+  # the world streams in.
+  STREAM_SHARE = 0.7
+  STREAM_MIN_NS = 2_500_000
+  CHUNK_MIN_NS = 500_000
+  NS_PER_SECOND = 1_000_000_000
   # The moments of a frame that `stamp` records, as indexes in @stamps. Each
   # one is the start of the step with its name, except STAMP_BEGIN and
   # STAMP_END, which are the start and the end of the CPU work of the frame.
   STAMP_BEGIN = 0
   STAMP_GAME = 1
   STAMP_SOUND = 2
-  STAMP_STREAM = 3
-  STAMP_FAR = 4
+  STAMP_FAR = 3
+  STAMP_STREAM = 4
   STAMP_FLUSH = 5
   STAMP_RENDER = 6
   STAMP_END = 7

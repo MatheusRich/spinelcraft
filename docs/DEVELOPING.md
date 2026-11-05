@@ -20,7 +20,7 @@ Distance haze mixes each pixel toward the sky color by `1 - e^(-d / 1800)`, wher
 
 The loaded area is a ring of 64 × 64 chunk slots, 1024 × 1024 blocks. World chunk (cx, cz) lives in slot (cx & 63, cz & 63). The blocks stay in one flat array, so the mesher, the light flood and the physics read neighbors with plain index offsets. Each Integer of the array holds 8 blocks, one byte each. That keeps the array at about 100 MB instead of 800 MB. A padding column on each side of the array holds a copy of the opposite edge, so the offsets also work where the ring wraps.
 
-Each frame, `stream_around` loads the missing chunks around the player, nearest first, and meshes each chunk whose neighbors have loaded. The radius follows the view distance, up to 31 chunks, and the work stops after 2.5 ms. At start and on respawn, the nearest 17 × 17 chunks load before play starts, and the rest stream in. When a new chunk needs a slot, the old chunk in it goes to the store if you changed it. Vertices hold the ring column (0 to 1023), and the vertex shader moves each one to the copy nearest the camera.
+Each frame, `stream_around` loads the missing chunks around the player, nearest first, and meshes each chunk whose neighbors have loaded. The radius follows the view distance, up to 31 chunks. The far tiles go first, then the chunks, and with vsync the work stops when the frame has used 70% of a display frame (2.5 ms at least). Without vsync it stops after 2.5 ms. At start and on respawn, the nearest 17 × 17 chunks load before play starts, and the rest stream in. When a new chunk needs a slot, the old chunk in it goes to the store if you changed it. Vertices hold the ring column (0 to 1023), and the vertex shader moves each one to the copy nearest the camera.
 
 Trees can cross chunk edges. A chunk asks the noise functions, not its neighbors, where the trees next door grow, so each chunk makes its part of a tree without the other chunk loaded.
 
@@ -58,10 +58,11 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | Measurement | Value |
 | --- | --- |
 | Generating and meshing the nearest 289 chunks at start | about 115 ms (the rest stream in) |
-| Streaming while you move | up to 2.5 ms per frame, about 0.55 ms per chunk |
+| Streaming the whole view | the far tiles in about 0.8 s, and the chunks in about 5 s for a new world and 5.8 s for a save, with no frame lost |
+| Streaming while you move | the far tiles, then the chunks, until the CPU work of the frame and the draw calls of the last frame take 70% of a display frame (at least 2.5 ms, and 2.5 ms without vsync); about 0.55 ms per chunk |
 | Remeshing after a block edit | about 1 ms; torch light and water spread over the next frames within a 1 ms budget |
 | CPU time per frame | about 2.1 ms while flying in a circle; about 4 ms while flying straight, with chunks streaming in |
-| Worst CPU frame | about 5.5 ms while chunks and far tiles stream in |
+| Worst CPU frame | about 8 to 11 ms while chunks and far tiles stream in |
 | GPU time per frame | about 5 to 7 ms |
 | Frame rate | the display rate (120 fps on the built-in display) |
 
@@ -115,7 +116,7 @@ LOG=save,frame ./spinelcraft 2>debug.log
 | `world` | Each new world and its seed, the spawn point, and each respawn |
 | `stream` | Each time the player goes into a new chunk: the chunks loaded and meshed, and the far tiles built, since the last new chunk |
 | `mobs` | Each mob that spawns, and each mob that dies, despawns or is out of the loaded chunks |
-| `frame` | Each frame that takes more than 8 ms of CPU time, with the time of each step: update, chunks, far tiles, remesh and render |
+| `frame` | Each frame that takes more than 8 ms of CPU time, with the time of each step: update, far tiles, chunks, remesh and render |
 
 A topic that is off costs one array read, and the game builds no string for it. To add a line, call `Log.debug(Log::SAVE) { "text" }`. The block runs only when the topic is on. Do not put log calls in the loops of `World`, `Noise`, `Mesher` or `Lod`.
 
