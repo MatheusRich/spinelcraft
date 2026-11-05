@@ -184,8 +184,6 @@ class Mob
 
   def burning? = @burning.lit?
 
-  # Seconds that the mob still burns.
-  def fire = @burning.seconds
 
   # What the mob drops when it dies, from its rows of the drop table, as a
   # block and its count for each drop.

@@ -77,8 +77,6 @@ class Vitals
   def dead? = @health <= 0.0
   def burning? = @burning.lit?
 
-  # Seconds that the player keeps burning.
-  def fire = @burning.seconds
   def hungry? = @hunger < MAX_HUNGER
   def can_sprint? = @hunger > SPRINT_HUNGER
   def hunger_effect? = @hunger_effect > 0.0

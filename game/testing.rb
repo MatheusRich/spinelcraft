@@ -1879,14 +1879,14 @@ class Game
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     60.times { update_mobs(1.0 / 60.0) }
-    check("a zombie in the sun burns and makes flames", zombie.fire > 0.0 && zombie.hp < Mob::HP[Mob::ZOMBIE] && @particles.count(Particle::FLAME) > 0)
-    check("a zombie with a carved pumpkin on its head does not burn in the sun", capped.fire == 0.0 && capped.hp == Mob::HP[Mob::ZOMBIE])
+    check("a zombie in the sun burns and makes flames", zombie.burning? && zombie.hp < Mob::HP[Mob::ZOMBIE] && @particles.count(Particle::FLAME) > 0)
+    check("a zombie with a carved pumpkin on its head does not burn in the sun", !capped.burning? && capped.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
     @clock.set_ticks(23500)
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
-    check("a zombie burns in the sun at dawn", zombie.fire > 0.0)
+    check("a zombie burns in the sun at dawn", zombie.burning?)
     @mobs.clear
     @game_mode = GameMode::SURVIVAL
     @player.vitals.health = Vitals::MAX_HEALTH
@@ -1896,11 +1896,11 @@ class Game
     @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
     @player.vitals.health = Vitals::MAX_HEALTH
     150.times { update_survival(1.0 / 60.0) }
-    burned = @player.vitals.fire > 0.0 && @player.vitals.health < Vitals::MAX_HEALTH
+    burned = @player.vitals.burning? && @player.vitals.health < Vitals::MAX_HEALTH
     @world.set(px + 1, SKY_Y - 1, pz, Block::WATER)
     update_survival(1.0 / 60.0)
     @world.set(px + 1, SKY_Y - 1, pz, Block::AIR)
-    check("the player burns on after lava, and water puts the fire out", burned && @player.vitals.fire == 0.0)
+    check("the player burns on after lava, and water puts the fire out", burned && !@player.vitals.burning?)
     @clock.time_of_day = 0.3
     @player.vitals.health = Vitals::MAX_HEALTH
   end
@@ -1947,7 +1947,7 @@ class Game
     zombie.head = Block::CARVED_PUMPKIN
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
-    check("fire hurts a zombie in it and sets it on fire", zombie.hp <= Mob::HP[Mob::ZOMBIE] - 2.0 && zombie.fire > 0.0)
+    check("fire hurts a zombie in it and sets it on fire", zombie.hp <= Mob::HP[Mob::ZOMBIE] - 2.0 && zombie.burning?)
     @mobs.clear
     set_block(x, g, z, Block::AIR)
     creeper = Monster.new(Mob::CREEPER, x + 4.5, g.to_f, z + 0.5, 9)
@@ -2003,7 +2003,7 @@ class Game
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
-    check("a zombie burns in the sun until the rain is strong enough to wet it", zombie.fire > 0.0)
+    check("a zombie burns in the sun until the rain is strong enough to wet it", zombie.burning?)
     @mobs.clear
     @weather.rain.start.settle
     zombie = Monster.new(Mob::ZOMBIE, px + 8.5, SKY_Y - 1.0, pz + 0.5, 9)
@@ -2012,7 +2012,7 @@ class Game
     @player.y = SKY_Y - 1.0
     @player.z = pz + 0.5
     60.times { update_mobs(1.0 / 60.0) }
-    check("a zombie does not burn in the rain", zombie.fire == 0.0 && zombie.hp == Mob::HP[Mob::ZOMBIE])
+    check("a zombie does not burn in the rain", !zombie.burning? && zombie.hp == Mob::HP[Mob::ZOMBIE])
     @mobs.clear
     @weather.build_quads(@world, @player, 1.0)
     open = rain_bottom(px + 3, pz)
@@ -2051,7 +2051,7 @@ class Game
     zombie = Monster.new(Mob::ZOMBIE, snow_x + 0.5, ground, snow_z + 0.5, 9)
     @mobs << zombie
     60.times { update_mobs(1.0 / 60.0) }
-    check("the sun burns a zombie in the snow, in strong rain", zombie.fire > 0.0)
+    check("the sun burns a zombie in the snow, in strong rain", zombie.burning?)
     @player.vitals.douse
     @mobs.clear
     restore_pose
@@ -2095,7 +2095,7 @@ class Game
     lightning = @storm.lightning
     check("lightning strikes a mob near it, for 5 damage, and sets it on fire",
           lightning.x == px + 8 && lightning.z == pz && zombie.hp == Mob::HP[Mob::ZOMBIE] - Storm::STRIKE_DAMAGE &&
-          zombie.fire == Storm::STRIKE_FIRE && @player.vitals.health == Vitals::MAX_HEALTH)
+          zombie.burning? && @player.vitals.health == Vitals::MAX_HEALTH)
     dx = px + 8.5 - @player.x
     dy = SKY_Y - 1.0 - @player.eye_y
     delay = Math.sqrt(dx * dx + dy * dy) / Lightning::SOUND_SPEED
@@ -2105,7 +2105,7 @@ class Game
     @mobs.clear
     lightning_hit_player if @storm.strike(px, pz, @player, @particles)
     check("lightning strikes the player for 5 damage and sets the player on fire",
-          @player.vitals.health == Vitals::MAX_HEALTH - Storm::STRIKE_DAMAGE && @player.vitals.fire == Storm::STRIKE_FIRE)
+          @player.vitals.health == Vitals::MAX_HEALTH - Storm::STRIKE_DAMAGE && @player.vitals.burning?)
     lightning.thunder_arrived?(1.0)
     @player.vitals.douse
     @player.vitals.health = Vitals::MAX_HEALTH

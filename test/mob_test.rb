@@ -68,7 +68,7 @@ class MobTest < Minitest::Test
     pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 3)
     pig.update_mob(@world, DT, Player.new(1.5, SKY_Y - 1.0, 1.5), Block::AIR)
     assert_equal Mob::HP[Mob::PIG] - Fires::FLAME_DAMAGE, pig.hp
-    assert_equal Fires::BURN_SECONDS - DT, pig.fire
+    assert pig.burning?
   end
 
   # Keeps the color that a mob draws each of its boxes with.
@@ -243,7 +243,8 @@ class MobTest < Minitest::Test
     zombie.update_mob(@world, DT, player, Block::AIR)
     @world.set(4, SKY_Y - 1, 15, Block::AIR)
     zombie.burn_in_sun(@world)
-    assert_operator zombie.fire, :>, Monster::SUN_FIRE
+    ((Monster::SUN_FIRE / DT).ceil + 1).times { zombie.update_mob(@world, DT, player, Block::AIR) }
+    assert zombie.burning?
   end
 
   # minecraft.wiki/w/Damage

@@ -23,14 +23,14 @@ class StormTest < Minitest::Test
     zombie = zombie_at(10.5, 10.5)
     @storm.strike(10, 10, @player, @particles)
     assert_equal Mob::HP[Mob::ZOMBIE] - Storm::STRIKE_DAMAGE, zombie.hp
-    assert_equal Storm::STRIKE_FIRE, zombie.fire
+    assert zombie.burning?
   end
 
   def test_a_strike_leaves_a_mob_out_of_its_reach_alone
     zombie = zombie_at(5.5, 5.5)
     @storm.strike(10, 10, @player, @particles)
     assert_equal Mob::HP[Mob::ZOMBIE], zombie.hp
-    assert_equal 0.0, zombie.fire
+    refute zombie.burning?
   end
 
   def test_a_mob_next_to_the_strike_draws_it_to_itself

@@ -135,7 +135,6 @@ class VitalsTest < Minitest::Test
     assert_equal 0.0, vitals.take_armorable_damage
     vitals.update_vitals(QUARTER, true, false, false)
     assert_equal 4.0, vitals.take_armorable_damage
-    assert_equal Burning::LAVA_SECONDS, vitals.fire
   end
 
   # Fire does 1 each second. minecraft.wiki/w/Damage
@@ -147,7 +146,6 @@ class VitalsTest < Minitest::Test
     assert_equal 16.0, vitals.health
     assert vitals.update_vitals(QUARTER, false, false, false)
     assert_equal 15.0, vitals.health
-    assert_equal Burning::LAVA_SECONDS - 1.0, vitals.fire
     3.times { vitals.update_vitals(QUARTER, false, false, false) }
     assert_equal 15.0, vitals.health
     vitals.update_vitals(QUARTER, false, false, false)
@@ -164,7 +162,8 @@ class VitalsTest < Minitest::Test
       refute vitals.update_vitals(QUARTER, false, false, false)
       vitals.take_armorable_damage
     end
-    assert_equal [[1.0, 0.0, 1.0, 0.0], 20.0, Fires::BURN_SECONDS - QUARTER], [damages, vitals.health, vitals.fire]
+    assert_equal [[1.0, 0.0, 1.0, 0.0], 20.0], [damages, vitals.health]
+    assert vitals.burning?
     2.times { refute vitals.update_vitals(QUARTER, false, false, false) }
     assert vitals.update_vitals(QUARTER, false, false, false)
     assert_equal 19.0, vitals.health
@@ -192,7 +191,9 @@ class VitalsTest < Minitest::Test
     vitals = unhealing
     vitals.update_vitals(QUARTER, true, false, false)
     vitals.health = Vitals::MAX_HEALTH
-    60.times { vitals.update_vitals(QUARTER, false, false, false) }
+    59.times { vitals.update_vitals(QUARTER, false, false, false) }
+    assert vitals.burning?
+    vitals.update_vitals(QUARTER, false, false, false)
     refute vitals.burning?
     burnt = vitals.health
     4.times { vitals.update_vitals(QUARTER, false, false, false) }
@@ -327,17 +328,6 @@ class VitalsTest < Minitest::Test
     refute vitals.grace?
     vitals.hurt(0.5)
     assert_in_delta 0.5, vitals.health
-  end
-
-  def test_an_ignition_sets_the_fire_and_never_shortens_it
-    vitals = Vitals.new
-    vitals.ignite(5.0)
-    assert vitals.burning?
-    assert_equal 5.0, vitals.fire
-    vitals.ignite(2.0)
-    assert_equal 5.0, vitals.fire
-    vitals.ignite(8.0)
-    assert_equal 8.0, vitals.fire
   end
 
   def test_a_kill_of_a_dead_player_adds_no_exhaustion
