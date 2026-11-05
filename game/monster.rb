@@ -106,9 +106,9 @@ class Monster < Mob
   # comes from the game code, which checks for any head item; the wiki
   # does not confirm it.
   def burn_in_sun(world)
-    return if @kind == CREEPER || @head > 0 || dying? || @fire >= SUN_FIRE
+    return if @kind == CREEPER || @head > 0 || dying?
 
-    @fire = SUN_FIRE if world.under_sky?(@x, @y + @tall, @z)
+    ignite(SUN_FIRE) if world.under_sky?(@x, @y + @tall, @z)
   end
 
   # dx, dz is the step to the player, and dist is its length.

@@ -14,8 +14,6 @@ class Vitals
   # Seconds of air that come back each second: 1 of the 10 bubbles each 0.2
   # seconds. minecraft.wiki/w/Damage (Drowning)
   AIR_REFILL = MAX_AIR / 10.0 / 0.2
-  # Seconds that lava sets the player on fire for. minecraft.wiki/w/Lava
-  LAVA_FIRE = 15.0
   # Exhaustion for one point of saturation or hunger.
   EXHAUSTION_STEP = 4.0
   # Exhaustion for each meter of sprint and of swim, each jump and each
@@ -53,8 +51,6 @@ class Vitals
   attr_reader :air
   # Seconds of fire resistance left.
   attr_reader :fire_resistance
-  # Seconds that the player keeps burning after lava.
-  attr_reader :fire
 
   def initialize
     @health = MAX_HEALTH
@@ -62,16 +58,15 @@ class Vitals
     @saturation = 5.0
     @exhaustion = 0.0
     @air = MAX_AIR
-    @fire = 0.0
+    @burning = Burning.new
     @armorable_damage = 0.0
     # Seconds of the Hunger effect left.
     @hunger_effect = 0.0
     @fire_resistance = 0.0
     # Seconds left in which no hit hurts, after a rescue.
     @grace = 0.0
-    # Seconds until the next point of fire damage, of lava damage, and of
-    # cactus damage.
-    @fire_tick = 0.0
+    # Seconds until the next point of fire block damage, of lava damage, and
+    # of cactus damage.
     @flame_tick = 0.0
     @lava_tick = 0.0
     @cactus_tick = 0.0
@@ -80,7 +75,10 @@ class Vitals
   end
 
   def dead? = @health <= 0.0
-  def burning? = @fire > 0.0
+  def burning? = @burning.lit?
+
+  # Seconds that the player keeps burning.
+  def fire = @burning.seconds
   def hungry? = @hunger < MAX_HUNGER
   def can_sprint? = @hunger > SPRINT_HUNGER
   def hunger_effect? = @hunger_effect > 0.0
@@ -104,7 +102,7 @@ class Vitals
   def survive_death
     @health = RESCUE_HEALTH
     @air = MAX_AIR
-    @fire = 0.0
+    douse
     @fire_resistance = FIRE_RESISTANCE_TIME
     @grace = RESCUE_GRACE
   end
@@ -157,13 +155,13 @@ class Vitals
   end
 
   def douse
-    @fire = 0.0
+    @burning.douse
   end
 
   # Sets the player on fire for seconds, unless the player burns for longer or
   # has fire resistance.
   def ignite(seconds)
-    @fire = seconds if @fire < seconds && !fire_resistant?
+    @burning.ignite(seconds) unless fire_resistant?
   end
 
   # dt seconds in a fire block. The fire block hurts, and the burning that
@@ -171,8 +169,7 @@ class Vitals
   def stand_in_fire(dt)
     return if fire_resistant?
 
-    ignite(Fires::BURN_SECONDS)
-    @fire_tick = 1.0
+    @burning.ignite_in_source(Fires::BURN_SECONDS)
     @flame_tick -= dt
     return if @flame_tick > 0.0
 
@@ -202,15 +199,9 @@ class Vitals
         @armorable_damage += 4.0
       end
       # Out of the lava, the player burns on for a while.
-      @fire = LAVA_FIRE
-      @fire_tick = 1.0
-    elsif burning?
-      @fire -= dt
-      @fire_tick -= dt
-      if @fire_tick <= 0.0
-        @fire_tick = 1.0
-        hurt(1.0)
-      end
+      @burning.ignite_in_source(Burning::LAVA_SECONDS)
+    else
+      hurt(Burning::DAMAGE) if @burning.burn(dt)
     end
     # A cactus does 1 each half second. minecraft.wiki/w/Cactus
     @cactus_tick -= dt

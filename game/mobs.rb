@@ -61,8 +61,6 @@ class Mob
   # After a hit, the mob takes for this many seconds only the part of a new
   # hit that is above the last one, as in Minecraft. minecraft.wiki/w/Damage
   IMMUNE = 0.5
-  # Seconds of fire from lava. minecraft.wiki/w/Lava
-  LAVA_FIRE = 15.0
   # A dead mob falls on its left side for 20 ticks, then its body goes up
   # in smoke. minecraft.wiki/w/Death
   DEATH_TIME = 1.0
@@ -134,8 +132,6 @@ class Mob
   attr_accessor :ouch
   # True after a step on the ground, until Game#update_mobs plays it.
   attr_accessor :step
-  # Seconds that the mob still burns.
-  attr_reader :fire
   attr_reader :kind, :half, :tall, :hurt
   # Seconds since the mob died; 0.0 while it lives.
   attr_reader :death
@@ -163,8 +159,7 @@ class Mob
     @tall = TALL[kind]
     @rng = Rng.new(seed)
     @on_ground = false
-    @burn = 0.0
-    @fire = 0.0
+    @burning = Burning.new
     @immune = 0.0
     @last_damage = 0.0
     @death = 0.0
@@ -187,7 +182,10 @@ class Mob
 
   def passive? = PASSIVE[@kind] == 1
 
-  def burning? = @fire > 0.0
+  def burning? = @burning.lit?
+
+  # Seconds that the mob still burns.
+  def fire = @burning.seconds
 
   # What the mob drops when it dies, from its rows of the drop table, as a
   # block and its count for each drop.
@@ -227,18 +225,18 @@ class Mob
 
   # Rain or water puts out the fire.
   def douse
-    @fire = 0.0
+    @burning.douse
   end
 
   # Sets the mob on fire for seconds, unless it burns for longer.
   def ignite(seconds)
-    @fire = seconds if @fire < seconds
+    @burning.ignite(seconds)
   end
 
   # A fire block hurts the mob, and the immunity after a hit (IMMUNE) sets
   # the pace.
   def stand_in_fire
-    ignite(Fires::BURN_SECONDS)
+    @burning.ignite_in_source(Fires::BURN_SECONDS)
     wound(Fires::FLAME_DAMAGE)
   end
 
@@ -299,22 +297,15 @@ class Mob
     # A mob burns on for a while after the sun or the lava, and water puts
     # the fire out. Fire takes 1 health each second, and lava 4 each half
     # second (IMMUNE stops the hits in between). minecraft.wiki/w/Damage
-    @fire = LAVA_FIRE if Block.lava?(feet)
-    @fire = 0.0 if Block.water?(feet)
-    wound(4.0) if Block.lava?(feet)
+    if Block.lava?(feet)
+      @burning.ignite_in_source(Burning::LAVA_SECONDS)
+      wound(4.0)
+    end
+    douse if Block.water?(feet)
     stand_in_fire if feet == Block::FIRE
     # A cactus takes 1 each half second. minecraft.wiki/w/Cactus
     wound(1.0) if world.cactus_in_box?(@x, @y, @z, @half, @tall)
-    if @fire > 0.0
-      @fire -= dt
-      @burn -= dt
-      if @burn <= 0.0
-        @burn = 1.0
-        wound(1.0)
-      end
-    else
-      @burn = 0.0
-    end
+    wound(Burning::DAMAGE) if @burning.burn(dt)
     if in_water
       @vy += (2.0 - @vy) * (4.0 * dt).clamp(0.0, 1.0)
     else

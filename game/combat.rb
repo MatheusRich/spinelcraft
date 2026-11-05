@@ -146,8 +146,8 @@ class Game
       ground = BlockSound.footstep(@world.get(mob.x.floor, (mob.y - 0.1).floor, mob.z.floor))
       @sfx.play_at(ground, mob.x, mob.y, mob.z, 0.35)
     end
-    mob.douse if mob.fire > 0.0 && @weather.wet_at?(@world, mob.x, mob.z) && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
-    @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.fire > 0.0
+    mob.douse if mob.burning? && @weather.wet_at?(@world, mob.x, mob.z) && @world.under_sky?(mob.x, mob.y + mob.tall, mob.z)
+    @particles.fire(mob.x, mob.y, mob.z, mob.half, mob.tall, dt) if mob.burning?
   end
 
   # The hiss of a creeper, the arrow of a skeleton, and the blast of a

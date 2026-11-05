@@ -135,7 +135,7 @@ class VitalsTest < Minitest::Test
     assert_equal 0.0, vitals.take_armorable_damage
     vitals.update_vitals(QUARTER, true, false, false)
     assert_equal 4.0, vitals.take_armorable_damage
-    assert_equal Vitals::LAVA_FIRE, vitals.fire
+    assert_equal Burning::LAVA_SECONDS, vitals.fire
   end
 
   # Fire does 1 each second. minecraft.wiki/w/Damage
@@ -147,7 +147,7 @@ class VitalsTest < Minitest::Test
     assert_equal 16.0, vitals.health
     assert vitals.update_vitals(QUARTER, false, false, false)
     assert_equal 15.0, vitals.health
-    assert_equal Vitals::LAVA_FIRE - 1.0, vitals.fire
+    assert_equal Burning::LAVA_SECONDS - 1.0, vitals.fire
     3.times { vitals.update_vitals(QUARTER, false, false, false) }
     assert_equal 15.0, vitals.health
     vitals.update_vitals(QUARTER, false, false, false)
@@ -176,6 +176,16 @@ class VitalsTest < Minitest::Test
     vitals.stand_in_fire(QUARTER)
     assert_equal 0.0, vitals.take_armorable_damage
     refute vitals.burning?
+  end
+
+  def test_a_new_fire_hurts_at_once_after_a_fire_block_and_water
+    vitals = unhealing
+    vitals.stand_in_fire(QUARTER)
+    vitals.douse
+    vitals.update_vitals(QUARTER, false, false, false)
+    vitals.ignite(Storm::STRIKE_FIRE)
+    assert vitals.update_vitals(QUARTER, false, false, false)
+    assert_equal Vitals::MAX_HEALTH - Burning::DAMAGE, vitals.health
   end
 
   def test_the_fire_goes_out_after_15_seconds_or_when_doused

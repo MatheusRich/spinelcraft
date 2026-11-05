@@ -246,6 +246,28 @@ class MobTest < Minitest::Test
     assert_operator zombie.fire, :>, Monster::SUN_FIRE
   end
 
+  # minecraft.wiki/w/Damage
+  def test_a_burning_mob_takes_1_at_once_and_1_each_second
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 300.0)
+    zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    zombie.ignite(5.0)
+    zombie.update_mob(@world, DT, player, Block::AIR)
+    assert_equal Mob::HP[Mob::ZOMBIE] - 1.0, zombie.hp
+    60.times { zombie.update_mob(@world, DT, player, Block::AIR) }
+    assert_equal Mob::HP[Mob::ZOMBIE] - 2.0, zombie.hp
+  end
+
+  def test_water_puts_out_a_burning_mob
+    lay_floor
+    player = Player.new(8.5, SKY_Y - 1.0, 300.0)
+    zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
+    @world.set(4, SKY_Y - 1, 15, Block::WATER)
+    zombie.ignite(5.0)
+    zombie.update_mob(@world, DT, player, Block::AIR)
+    refute zombie.burning?
+  end
+
   def test_a_dying_zombie_does_not_catch_fire_in_the_sun
     zombie = Monster.new(Mob::ZOMBIE, 4.5, SKY_Y - 1.0, 15.5, 3)
     zombie.wound(Mob::HP[Mob::ZOMBIE])
