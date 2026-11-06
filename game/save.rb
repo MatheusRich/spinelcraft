@@ -86,7 +86,7 @@ class Game
     @fires = Fires.new(FireSpread.new(@world, @weather, Rng.new(@seed * 19 + 7)))
     @lava_fire = LavaFire.new(@world, @changes, Rng.new(@seed * 23 + 11))
     @treasure = Treasure.new(@world.treasure_map, @seed)
-    @falling.clear
+    @falling = FallingBlocks.new(@world)
   end
 
 

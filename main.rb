@@ -59,6 +59,7 @@ require_relative "game/arrow"
 require_relative "game/egg"
 require_relative "game/item"
 require_relative "game/falling_block"
+require_relative "game/falling_blocks"
 require_relative "game/boat"
 require_relative "game/music"
 require_relative "game/clouds"
@@ -242,7 +243,6 @@ class Game
     @arrows = []
     @eggs = []
     @items = []
-    @falling = []
     @boats = []
     # The index in @boats of the boat that the player rides, or -1.
     @riding = -1

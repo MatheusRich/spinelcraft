@@ -64,9 +64,9 @@ class Game
   end
 
   # Sand or gravel at x, y, z leaves its cell and falls as a block in the
-  # air. update_falling moves it.
+  # air (see FallingBlocks).
   def start_fall(x, y, z, block)
-    @falling << FallingBlock.new(block, x.to_i, y.to_f, z.to_i)
+    @falling.add(FallingBlock.new(block, x.to_i, y.to_f, z.to_i))
     set_block(x, y, z, Block::AIR)
   end
 
@@ -262,37 +262,22 @@ class Game
     pour(x, y, z, block)
   end
 
-  # A falling block lands on the first cell that does not let it fall (see
-  # land). A block over a chunk that is not loaded waits. A landing can make
-  # more blocks fall, so the list grows in the loop.
   def update_falling(dt)
-    i = 0
-    while i < @falling.size
-      f = @falling[i]
-      if @world.loaded?(f.x, f.z)
-        f.fall(dt)
-        if f.y < 0.0 || !Block.lets_fall?(@world.get(f.x, f.y.floor, f.z))
-          @falling.delete_at(i)
-          land(f) if f.y >= 0.0
-          next
-        end
-      end
-      i += 1
-    end
+    @falling.update(dt) { |block, y| land(block, y) }
   end
 
   # The block takes the place of a block that Block.replaceable? names:
   # air, water, lava or grass. In a torch or another plant it breaks and
   # drops as an item, and the plant stays. minecraft.wiki/w/Falling_Block;
   # the wiki does not list the blocks that a falling block replaces.
-  def land(f)
-    y = f.y.floor + 1
-    y += 1 while y < WY - 1 && !Block.lets_fall?(@world.get(f.x, y, f.z))
-    cell = @world.get(f.x, y, f.z)
+  def land(falling, y)
+    x = falling.x.to_i
+    z = falling.z.to_i
+    cell = @world.get(x, y, z)
     if Block.plant?(cell) && !Block.replaceable?(cell)
-      drop_from_block(f.block, 1, f.x, y, f.z)
+      drop_from_block(falling.block, 1, x, y, z)
     else
-      set_block(f.x, y, f.z, f.block)
+      set_block(x, y, z, falling.block)
     end
   end
 

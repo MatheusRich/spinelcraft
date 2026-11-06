@@ -101,7 +101,7 @@ class Game
       ddz = item.z - ez
       item.draw(@dyn, i.to_f) if ddx * ddx + ddz * ddz < reach * reach
     end
-    @falling.each { |f| f.draw(@dyn) }
+    @falling.draw(@dyn)
     @storm.lightning.draw(@dyn, ex, ey, ez)
     draw_beacons(ex, ez, reach) if @beacons
     # The paddles reach past the box of a boat.
