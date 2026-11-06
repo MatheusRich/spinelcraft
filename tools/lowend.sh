@@ -13,7 +13,7 @@
 #
 # VIEWS sets the view distances (default "200 300 460 1600"; the chunk ring stops growing at 460), FRAMES the
 # frames of each run (default 900). Each run opens a game window. Build
-# first with ./build.sh.
+# first with ./build.sh release.
 set -eo pipefail
 cd "$(dirname "$0")/.."
 views=${VIEWS:-"200 300 460 1600"}

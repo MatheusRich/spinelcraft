@@ -11,7 +11,7 @@
 # DURATION sets how long the game runs (default 180) and INTERVAL the seconds
 # between two samples (default 10). The last line is the growth in MB a minute
 # over the second half of the run: a game with no leak ends near zero when it
-# stays put. Each run opens a game window. Build first with ./build.sh.
+# stays put. Each run opens a game window. Build first with ./build.sh release.
 set -eo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD

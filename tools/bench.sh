@@ -10,6 +10,9 @@
 # up in each type regression before: the calls to sp_box in the C and the
 # --warn-widen warnings in the game code.
 #
+# Both builds are release builds (./build.sh release): the cut of the
+# parallel parts changes with the code, and so does what clang can inline.
+#
 # N sets the number of runs (default 3), and FRAMES the frames of each run
 # (default 900). Each run opens a game window.
 set -eo pipefail
@@ -42,9 +45,9 @@ spinel_counts() {
 }
 
 echo "building $ref"
-"$tmp/ref/build.sh" >/dev/null
+"$tmp/ref/build.sh" release >/dev/null
 echo "building the working tree"
-./build.sh >/dev/null
+./build.sh release >/dev/null
 echo "counting boxes and widen warnings"
 read -r ref_box ref_widen < <(spinel_counts "$tmp/ref")
 read -r cur_box cur_widen < <(spinel_counts "$root")

@@ -24,6 +24,8 @@ You need macOS and a built Spinel compiler. `brew bundle` installs the libraries
 ./spinelcraft
 ```
 
+`./build.sh release` builds the game as one C unit, for the version that you ship or measure. It compiles about 11 s slower, and the world generates about 7% faster.
+
 `./build.sh test` writes `./spinelcraft-test`: the game with the self-test (`tools/selftest.sh`) and the switches that `tools/shot.sh` and `tools/gallery.sh` use.
 
 `build.sh` uses `$SPINEL` if you set it. Otherwise it uses `spinel` from `PATH`, and then `~/Documents/dev/oss/spinel/spinel`. Use a recent Spinel.
