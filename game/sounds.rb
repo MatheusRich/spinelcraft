@@ -159,12 +159,16 @@ class Sfx
     queue(id, volume, 0.0)
   end
 
-  # Queues sound id from x, y, z at gain. It fades to silence at
-  # RANGES[id] blocks, and a sound out of range is not queued.
+  # Queues sound id from x, y, z at gain, and gives true. It fades to
+  # silence at RANGES[id] blocks, and a sound out of range is not queued
+  # and gives false.
   def play_at(id, x, y, z, gain)
     # to_f: Spinel cannot type the positions of the mobs and the items.
     volume = near_volume(x.to_f, y.to_f, z.to_f, gain, RANGES[id])
-    queue(id, volume, pan_to(x.to_f, y.to_f, z.to_f)) if volume > 0.0
+    return false if volume <= 0.0
+
+    queue(id, volume, pan_to(x.to_f, y.to_f, z.to_f))
+    true
   end
 
   def queue(id, volume, pan)

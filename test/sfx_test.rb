@@ -58,8 +58,12 @@ class SfxTest < Minitest::Test
   end
 
   def test_a_sound_out_of_range_does_not_play
-    @sfx.play_at(Sfx::HIT, 8.0, 70.0, 8.0 + Sfx::RANGE, 1.0)
+    assert_same false, @sfx.play_at(Sfx::HIT, 8.0, 70.0, 8.0 + Sfx::RANGE, 1.0)
     assert_empty @sfx.ids
+  end
+
+  def test_a_sound_in_range_tells_that_it_plays
+    assert @sfx.play_at(Sfx::HIT, 9.0, 70.0, 8.0, 1.0)
   end
 
   def test_the_sounds_play_in_the_order_that_they_came

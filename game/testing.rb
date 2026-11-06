@@ -3677,6 +3677,28 @@ class TestGame < Game
     glass.each { |x, z| set_block(x, SKY_Y - 3, z, Block::AIR) }
     [[lx - 1, SKY_Y - 3], [lx - 1, SKY_Y - 4], [lx, SKY_Y - 4], [lx + 1, SKY_Y - 4]].each { |x, y| set_block(x, y, lz, Block::AIR) }
     20.times { update_fluids(Fluids::LAVA_STEP) }
+    check_one_fizz_in_a_frame(lx, lz)
+  end
+
+  # A pair of a lava source and water out of hearing range comes first in
+  # the step, then two pairs near the player. The player hears one fizz.
+  def check_one_fizz_in_a_frame(lx, lz)
+    far_x = lx + Sfx::RANGES[Sfx::FIZZ].to_i + 8
+    pairs = [far_x, lx, lx + 3]
+    pairs.each do |x|
+      set_block(x, SKY_Y - 5, lz, Block::STONE)
+      set_block(x + 1, SKY_Y - 5, lz, Block::STONE)
+      set_block(x, SKY_Y - 4, lz, Block::LAVA)
+      set_block(x + 1, SKY_Y - 4, lz, Block::WATER)
+    end
+    @sfx.listen(lx + 0.5, SKY_Y - 3.0, lz + 0.5, 0.0)
+    @sfx.clear
+    update_fluids(Fluids::LAVA_STEP)
+    check("water and lava fizz once in a frame, and a far fizz does not count", @sfx.ids.count(Sfx::FIZZ) == 1)
+    pairs.each do |x|
+      [x, x + 1].each { |cell_x| [SKY_Y - 5, SKY_Y - 4].each { |y| set_block(cell_x, y, lz, Block::AIR) } }
+    end
+    20.times { update_fluids(Fluids::LAVA_STEP) }
   end
 
   # Builds a stone platform and shoots a pig on it with a full bow draw.

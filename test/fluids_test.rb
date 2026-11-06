@@ -10,7 +10,6 @@ class FluidsTest < Minitest::Test
     @world = world_with_one_chunk
     16.times { |x| 16.times { |z| @world.set(x, Y - 1, z, Block::STONE) } }
     @fluids = Fluids.new(@world)
-    @changes = []
   end
 
   # Puts block at x, y, z and wakes the cells around it, as
@@ -24,14 +23,7 @@ class FluidsTest < Minitest::Test
   # with each change in the world before the next one, as
   # Game#update_fluids does.
   def frame(dt)
-    pour while @fluids.next_water(@changes) if @fluids.water_step?(dt)
-    pour while @fluids.next_lava(@changes) if @fluids.lava_step?(dt)
-  end
-
-  def pour
-    x, y, z, block = @changes
-    @changes.clear
-    put(x, y, z, block)
+    @fluids.flow(dt) { |x, y, z, block| put(x, y, z, block) }
   end
 
   # Runs count steps of water and of lava.

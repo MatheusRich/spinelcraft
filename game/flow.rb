@@ -19,12 +19,13 @@ class Flow
     true
   end
 
-  def next_change(changes)
+  def next_change(change)
+    change.clear
     while @queue.next?
       block = yield @queue.x, @queue.y, @queue.z
       next if block < 0
 
-      changes << @queue.x << @queue.y << @queue.z << block
+      change << @queue.x << @queue.y << @queue.z << block
       return true
     end
     false

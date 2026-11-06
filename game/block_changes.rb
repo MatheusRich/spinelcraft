@@ -215,51 +215,17 @@ class Game
   end
 
   # Puts the changes of the steps of water and lava that start after dt
-  # more seconds in the world (see Fluids). The remeshes of flowing water
-  # and lava may wait for later frames.
+  # more seconds in the world (see Fluids#flow). Where water and lava
+  # meet, the player hears one fizz in a frame at most. The remeshes of
+  # flowing water and lava may wait for later frames.
   def update_fluids(dt)
     marked = @chunk_meshes.dirty_count
-    flow_water if @fluids.water_step?(dt)
-    flow_lava if @fluids.lava_step?(dt)
+    fizzed = false
+    @fluids.flow(dt) do |x, y, z, block|
+      fizzed ||= Fluids.mixed?(block) && @sfx.play_at(Sfx::FIZZ, x + 0.5, y + 0.5, z + 0.5, 0.6)
+      pour(x, y, z, block)
+    end
     @chunk_meshes.postpone_since(marked)
-  end
-
-  # Puts the changes of a step of water in the world, one at a time. Water
-  # and lava that meet hiss once in a step.
-  def flow_water
-    hissed = false
-    while @fluids.next_water(@changes)
-      hissed ||= hiss_where_fluids_meet
-      pour_change
-    end
-  end
-
-  def flow_lava
-    hissed = false
-    while @fluids.next_lava(@changes)
-      hissed ||= hiss_where_fluids_meet
-      pour_change
-    end
-  end
-
-  # Gives true when the change in @changes is a block that water and lava
-  # make, after it plays the hiss there.
-  def hiss_where_fluids_meet
-    return false unless Fluids.mixed?(@changes[3])
-
-    @sfx.play_at(Sfx::FIZZ, @changes[0] + 0.5, @changes[1] + 0.5, @changes[2] + 0.5, 0.6)
-    true
-  end
-
-  # Pours the one change in @changes (x, y, z and the block), and clears
-  # the list.
-  def pour_change
-    x = @changes[0]
-    y = @changes[1]
-    z = @changes[2]
-    block = @changes[3]
-    @changes.clear
-    pour(x, y, z, block)
   end
 
   def update_falling(dt)

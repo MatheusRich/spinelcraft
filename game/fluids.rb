@@ -1,10 +1,7 @@
 # The rules of flowing water and lava. Fluids does not change the world.
 # Game#set_block wakes the cells next to each change. Water and lava each
-# take steps at their own speed (see Flow). next_water and next_lava
-# give the changes of a step one at a time, as four Integers (x, y, z and
-# the new block). Game puts each one in the world with Game#pour before it
-# asks for the next one, so each cell sees the cells that changed before
-# it in the step.
+# take steps at their own speed (see Flow), and flow gives the changes of
+# the steps of a frame one at a time.
 class Fluids
   # Water moves 1 block every 5 ticks, and lava in the overworld 1 block
   # every 30 ticks. minecraft.wiki/w/Water, minecraft.wiki/w/Lava
@@ -22,6 +19,7 @@ class Fluids
     @world = world
     @water = Flow.new(world, WATER, WATER_STEP)
     @lava = Flow.new(world, LAVA, LAVA_STEP)
+    @change = Array.new(0, 0)
     nil
   end
 
@@ -38,20 +36,23 @@ class Fluids
     @lava.clear
   end
 
-  # True when a step of water starts after dt more seconds (see
-  # FlowQueue#start?).
-  def water_step?(dt) = @water.step?(dt)
-
-  # True when a step of lava starts after dt more seconds.
-  def lava_step?(dt) = @lava.step?(dt)
-
-  # Adds the next change of the step of water to changes and gives true,
-  # or gives false at the end of the step.
-  def next_water(changes) = @water.next_change(changes) { |x, y, z| water_wanted(x, y, z) }
-
-  # Adds the next change of the step of lava to changes and gives true,
-  # or gives false at the end of the step.
-  def next_lava(changes) = @lava.next_change(changes) { |x, y, z| lava_wanted(x, y, z) }
+  # Yields x, y, z and the new block of each change in the steps of water
+  # and lava that start after dt more seconds (see FlowQueue#start?). The
+  # caller puts each change in the world before the next one, so each cell
+  # sees the cells that changed before it in the step.
+  def flow(dt)
+    if @water.step?(dt)
+      while @water.next_change(@change) { |x, y, z| water_wanted(x, y, z) }
+        yield @change[0], @change[1], @change[2], @change[3]
+      end
+    end
+    if @lava.step?(dt)
+      while @lava.next_change(@change) { |x, y, z| lava_wanted(x, y, z) }
+        yield @change[0], @change[1], @change[2], @change[3]
+      end
+    end
+    nil
+  end
 
   # The block that the cell x, y, z should change to in a step of water,
   # or -1 when it stays. Water on a lava source makes obsidian, and water
