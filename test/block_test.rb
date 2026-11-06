@@ -5,6 +5,15 @@ class BlockTest < Minitest::Test
   EVERY_ROLL_HITS = FixedRoll.new(0.0)
   NO_ROLL_HITS = FixedRoll.new(0.999)
 
+  def test_grass_and_snowy_grass_are_grassy_and_dirt_is_only_soil
+    assert Block.grassy?(Block::GRASS)
+    assert Block.grassy?(Block::SNOW_GRASS)
+    refute Block.grassy?(Block::DIRT)
+    assert Block.soil?(Block::DIRT)
+    assert Block.soil?(Block::SNOW_GRASS)
+    refute Block.soil?(Block::SAND)
+  end
+
   def test_a_block_with_no_chance_drops_drops_its_main_drop
     assert_equal [Block::COBBLE], Block.dropped_items(Block::STONE, NO_ROLL_HITS)
     assert_equal [], Block.dropped_items(Block::GLASS, NO_ROLL_HITS)

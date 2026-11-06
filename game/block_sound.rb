@@ -36,7 +36,7 @@ module BlockSound
     return GLASS if block == Block::GLASS
     return GRAVEL if block == Block::GRAVEL
     return SAND if block == Block::SAND
-    return GRASS if grassy?(block)
+    return GRASS if Block.grassy?(block)
     return SNOW if block == Block::SNOW
     return CLOTH if block == Block::WOOL
     return WOOD if plant_wood?(block)
@@ -46,8 +46,6 @@ module BlockSound
 
     DIRT
   end
-
-  def self.grassy?(block) = block == Block::GRASS || block == Block::SNOW_GRASS
 
   # A torch, a cactus and a pumpkin sound like wood.
   def self.plant_wood?(block) = block == Block::TORCH || block == Block::CACTUS || Block.pumpkin?(block)

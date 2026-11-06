@@ -851,8 +851,10 @@ module Block
   def self.jack_o_lantern?(block) = BASE[block] == JACK_O_LANTERN
   # A pumpkin, a carved pumpkin or a jack o'lantern.
   def self.pumpkin?(block) = block >= PUMPKIN && block < SHEARS
+  # Grass and snowy grass.
+  def self.grassy?(block) = block == GRASS || block == SNOW_GRASS
   # Dirt, grass and snowy grass: the soil of HOLD_SOIL.
-  def self.soil?(block) = block == DIRT || block == GRASS || block == SNOW_GRASS
+  def self.soil?(block) = block == DIRT || grassy?(block)
   # Torches, lava, jack o'lanterns and fire light their surroundings.
   def self.emits?(block) = torch?(block) || lava?(block) || jack_o_lantern?(block) || block == FIRE
 end

@@ -5462,7 +5462,7 @@ class TestGame < Game
   # NaturalSpawner#spawn_animal puts animals.
   def animal_on_grass?(m)
     ground = @world.get(m.x.floor, m.y.floor - 1, m.z.floor)
-    m.passive? && (ground == Block::GRASS || ground == Block::SNOW_GRASS)
+    m.passive? && Block.grassy?(ground)
   end
 
   # The chunks in the view draw with the sides that can face the eye, and

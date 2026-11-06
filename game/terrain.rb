@@ -376,7 +376,7 @@ class Terrain
     return -1 if r >= Biome::TREES[biome] * density
 
     ground = top_block(x, z, h, biome)
-    return -1 if ground != Block::GRASS && ground != Block::SNOW_GRASS
+    return -1 unless Block.grassy?(ground)
     return -1 if !Terrain.beach?(h - 1) && @cave_shape.opening?(x, h - 1, z)
 
     h - 1

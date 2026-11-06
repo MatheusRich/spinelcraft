@@ -246,7 +246,7 @@ class NaturalSpawner
 
       h = @world.height_at(x, z)
       ground = @world.get(x, h - 1, z)
-      next if ground != Block::GRASS && ground != Block::SNOW_GRASS
+      next unless Block.grassy?(ground)
       next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
 
       mobs << Animal.new(kind, x + 0.5, h + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)
