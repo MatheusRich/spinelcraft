@@ -12,7 +12,7 @@
 # - To see a take without a player, record it and make a contact sheet,
 #   one frame each second:
 #   ffmpeg -i demo.mp4 -vf "fps=1,scale=320:-2,tile=6x11" -frames:v 1 sheet.png
-# - The self-test plays the whole reel (Game#test_demo_reel) and checks
+# - The self-test plays the whole reel (TestGame#test_demo_reel) and checks
 #   what the video shows. Change those checks with the scenes.
 class Game
   # The length of each scene in seconds, in the order of Game#play_scene.
@@ -365,5 +365,17 @@ class Game
   def demo_ease(part)
     part = part.clamp(0.0, 1.0)
     part * part * (3.0 - 2.0 * part)
+  end
+
+  # Sets each block from x0, y0, z0 to x1, y1, z1 to block, in the order x, y, z.
+  def fill_box(x0, y0, z0, x1, y1, z1, block)
+    (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, block) } } }
+  end
+
+  # Puts the player at rest on the block x, y - 1, z, not flying.
+  def stand_at(x, y, z)
+    @player.move_to(x + 0.5, y.to_f, z + 0.5)
+    @player.flying = false
+    @last_jump = -1.0
   end
 end

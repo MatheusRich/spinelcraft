@@ -1,11 +1,12 @@
 #!/bin/bash
-# Renders the README screenshots into screenshots/, 1280 pixels wide.
+# Renders the README screenshots into screenshots/, 1280 pixels wide, with
+# the test build: build it first with `./build.sh test`.
 cd "$(dirname "$0")/.."
 mkdir -p screenshots
 shot() {
   name=$1
   shift
-  env FRAMES=${FRAMES:-900} SHOT=/tmp/spinelcraft_gallery.ppm NEW=1 MUTE=1 "$@" ./spinelcraft > /dev/null
+  env FRAMES=${FRAMES:-900} SHOT=/tmp/spinelcraft_gallery.ppm NEW=1 MUTE=1 "$@" ./spinelcraft-test > /dev/null
   sips -s format png -Z 1280 /tmp/spinelcraft_gallery.ppm --out "screenshots/$name.png" > /dev/null
   echo "screenshots/$name.png"
 }

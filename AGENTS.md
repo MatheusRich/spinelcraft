@@ -20,7 +20,7 @@ Spinelcraft is pre-alpha. No player, save or tool depends on old behavior yet.
 - A check that needs no `Game` and no `Gfx` goes in `test/` as a Minitest test, and `rake test` runs it under CRuby. Every other check goes in the self-test (`tools/selftest.sh`), which runs the compiled game.
 - Run `tools/selftest.sh` itself and read its last line. Do not pipe it into `grep -c`. That hides the exit status and a crash. The run passes only when it prints `ALL n PASS`.
 - Check what the player sees, such as the health, a sound or a mob that moves. A check of the internal state only (a flag or a helper) can pass while the game is wrong.
-- When a change shows on screen, look at it before you hand it over. Take shots with `tools/shot.sh out.png NEW=1 MUTE=1 CAM=x,y,z,yaw,pitch` (pitch in radians) and read them. For motion, take shots at a few `FRAMES` values. Fix what looks wrong, then open the game for the user once.
+- When a change shows on screen, look at it before you hand it over. Build the test binary with `./build.sh test`, then take shots with `tools/shot.sh out.png NEW=1 MUTE=1 CAM=x,y,z,yaw,pitch` (pitch in radians) and read them. For motion, take shots at a few `FRAMES` values. Fix what looks wrong, then open the game for the user once.
 - A bug fix comes with a regression check. Make sure that the check fails without the fix.
 - After you change a file in `game/` that a Minitest test covers, or the test itself, mutation test that pair with mutineer:
 

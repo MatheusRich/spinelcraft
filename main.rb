@@ -105,7 +105,6 @@ require_relative "game/command"
 require_relative "game/chat"
 require_relative "game/chat_view"
 require_relative "game/console"
-require_relative "game/testing"
 require_relative "game/house"
 require_relative "game/demo"
 
@@ -276,9 +275,6 @@ class Game
     @snowfall = Snowfall.new(@seed * 5 + 3)
     @snowfall.graphics = @options.graphics
     @console = Console.new(self, @chat, @clock, @weather)
-    start_weather_switch
-    # STRIKE=1 makes lightning strike in front of the player near the last frame.
-    @strike_shot = !ENV["STRIKE"].nil?
     @sky = Sky.new(@clock, @weather, @camera)
     @target_mob = -1
     @swing = 0.0
@@ -324,7 +320,6 @@ class Game
     @perf_log.start(perf_log_header) unless @scripted
     init_audio
     start_world
-    show_debug_scenes
     @spawner.spawn_animals(@mobs, @player)
     open_first_screen
     say("#{game_mode.name} MODE")
@@ -388,23 +383,18 @@ class Game
     loaded
   end
 
-  def show_debug_scenes
-    show_mobs if ENV["SHOWMOBS"]
-    show_items if ENV["SHOWITEMS"]
-    show_boats if ENV["SHOWBOATS"]
-    show_fire if ENV["SHOWFIRE"]
-  end
-
   def open_first_screen
-    # A screenshot, a benchmark or the self-test starts in the world.
-    if !@scripted && !@autopilot && ENV["SELFTEST"].nil?
-      open_title
-    else
+    if starts_in_world?
       Gfx.in_capture(1) unless @scripted
       show_screen(Screen::PLAYING)
       show_screen(Screen::INVENTORY) if ENV["INVENTORY"]
+    else
+      open_title
     end
   end
+
+  # A screenshot or a benchmark starts in the world, not on the title screen.
+  def starts_in_world? = @scripted || @autopilot
 
   # A seed from the clock, for a new world.
   def clock_seed = (Gfx.gfx_ns / 1000) % 1000000
@@ -820,15 +810,8 @@ class Game
     @held_item.ease(dt, walk, @bob)
   end
 
-  # The self-test writes and deletes its files in the temporary folder, so
-  # that it never changes the save or the options of the player.
-  def file_prefix
-    return "" unless ENV["SELFTEST"]
-
-    dir = ENV["TMPDIR"] || "/tmp"
-    dir += "/" unless dir.end_with?("/")
-    "#{dir}spinelcraft-selftest-"
-  end
+  # The start of the path of the save and of the options file.
+  def file_prefix = ""
 
   # Chunks to load around the player for the view distance: the meshed ones
   # (one ring less) then reach past the fog.
@@ -838,8 +821,6 @@ class Game
 
   def run
     setup
-    return run_selftest if ENV["SELFTEST"]
-
     last = Gfx.gfx_ns
     started = last
     frames = 0
@@ -861,16 +842,9 @@ class Game
     shutdown(started, frames)
   end
 
-  def run_selftest
-    ok = self_test
-    Gfx.gfx_quit
-    exit(1) unless ok
-  end
-
   # One frame of the game. Returns the milliseconds of CPU that it took.
   def frame(dt, now, frames)
     @stamps[STAMP_BEGIN] = now
-    strike_ahead if @strike_shot && frames == @max_frames - 3
     advance(dt)
     budget = stream_budget_ns
     stamp(STAMP_FAR)
@@ -1020,4 +994,4 @@ class Game
   end
 end
 
-Game.new.run
+Game.new.run if __FILE__ == $PROGRAM_NAME

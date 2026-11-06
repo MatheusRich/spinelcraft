@@ -1,12 +1,49 @@
 require "fileutils"
-# Test switches: SELFTEST, SHOWMOBS, SHOWITEMS, SHOWBOATS, SHOWFIRE and STRIKE.
-class Game
+# The game with the self-test and the switches for screenshots: SELFTEST,
+# SHOWMOBS, SHOWITEMS (with HAND), SHOWBOATS, SHOWFIRE, RAIN and STRIKE.
+# `./build.sh test` builds it.
+class TestGame < Game
   # A height above the land and the trees, where the tests and the
   # screenshot scenes build in open air.
   SKY_Y = WY - 6
   # STRIKE=1 strikes this far in front of the player, and this far to the side.
   STRIKE_AHEAD = 40.0
   STRIKE_ASIDE = 8.0
+
+  def run
+    return super unless ENV["SELFTEST"]
+
+    setup
+    ok = self_test
+    Gfx.gfx_quit
+    exit(1) unless ok
+  end
+
+  def start_world
+    start_weather_switch
+    super
+    show_mobs if ENV["SHOWMOBS"]
+    show_items if ENV["SHOWITEMS"]
+    show_boats if ENV["SHOWBOATS"]
+    show_fire if ENV["SHOWFIRE"]
+  end
+
+  def starts_in_world? = super || !ENV["SELFTEST"].nil?
+
+  # The self-test writes and deletes its files in the temporary folder, so
+  # that it never changes the save or the options of the player.
+  def file_prefix
+    return "" unless ENV["SELFTEST"]
+
+    dir = ENV["TMPDIR"] || "/tmp"
+    dir += "/" unless dir.end_with?("/")
+    "#{dir}spinelcraft-selftest-"
+  end
+
+  def frame(dt, now, frames)
+    strike_ahead if ENV["STRIKE"] && frames == @max_frames - 3
+    super
+  end
 
   # STRIKE=1: lightning strikes in front of the player, a little to the side.
   def strike_ahead
@@ -153,6 +190,9 @@ class Game
     @player.flying = true
     @clock.time_of_day = 0.3
   end
+
+  # The number of block on the ground.
+  def ground_count(block) = @items.sum { |item| item.block == block ? item.count : 0 }
 
   def check(name, ok)
     puts "#{ok ? "PASS" : "FAIL"} #{name}"
@@ -499,11 +539,6 @@ class Game
     apply_changes
   end
 
-  # Sets each block from x0, y0, z0 to x1, y1, z1 to block, in the order x, y, z.
-  def fill_box(x0, y0, z0, x1, y1, z1, block)
-    (x0..x1).each { |x| (y0..y1).each { |y| (z0..z1).each { |z| set_block(x, y, z, block) } } }
-  end
-
   # The number of cells from x0, y0, z0 to x1, y1, z1 that hold block.
   def count_box(x0, y0, z0, x1, y1, z1, block)
     count = 0
@@ -530,13 +565,6 @@ class Game
     @player.pitch = @kept_pitch
     # == true: a Bool, so Spinel keeps Player#flying typed.
     @player.flying = @kept_flying == true
-  end
-
-  # Puts the player at rest on the block x, y - 1, z, not flying.
-  def stand_at(x, y, z)
-    @player.move_to(x + 0.5, y.to_f, z + 0.5)
-    @player.flying = false
-    @last_jump = -1.0
   end
 
   # Two quick presses of Space start and stop flying in creative, through

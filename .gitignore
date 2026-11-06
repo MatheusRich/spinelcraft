@@ -1,5 +1,6 @@
-# The compiled game (./build.sh)
+# The compiled game (./build.sh) and its test build (./build.sh test)
 /spinelcraft
+/spinelcraft-test
 
 # Saved worlds and the options
 *.sav

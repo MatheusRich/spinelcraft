@@ -2,7 +2,7 @@
 
 ## Layout
 
-`build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. The other files each hold their own class or module. The game loads the OGG files in `assets/sounds` and `assets/music` from the folder of the executable.
+`build.sh` compiles `main.rb`, and `main.rb` requires the files in `game/`. Each file that starts with `class Game` holds a part of the `Game` class. `./build.sh test` compiles `test_game.rb` to `./spinelcraft-test`. It adds `game/testing.rb`, where `TestGame` extends `Game` with the self-test and the switches for screenshots. The game build leaves them out. The other files each hold their own class or module. The game loads the OGG files in `assets/sounds` and `assets/music` from the folder of the executable.
 
 Most textures are PNG images in `assets/`, and the game loads them at startup from the folder that holds the executable. `game/textures.rb` draws the rest in code: the block cracks, the smoke, the rain and the font. Each texture layer is one line in `game/textures.rb`, such as `COAL = image("coal")`, and it takes the next free layer number.
 
@@ -86,21 +86,21 @@ These numbers come from an M4 Pro Mac at 2560 × 1440 and the default 1600-block
 | `NEW=1` | Ignore `world.sav` |
 | `SAVE=1` | Save on quit also when `FRAMES` is set |
 | `MUTE=1` | No sound |
-| `SHOWMOBS=1` | Put one mob of each kind, and a chick, on a stone floor in front of the player |
-| `SHOWBOATS=1` | Put a boat of each wood on a pool of water, with the player in one |
-| `SHOWITEMS=1` | Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
+| `SHOWMOBS=1` | Test build only. Put one mob of each kind, and a chick, on a stone floor in front of the player |
+| `SHOWBOATS=1` | Test build only. Put a boat of each wood on a pool of water, with the player in one |
+| `SHOWITEMS=1` | Test build only. Put a row of dropped items on a stone floor in front of the player. `HAND=id` holds block `id` (0 for the empty hand) |
 | `BEACONS=1` | Draw a gold beam of light over each treasure chest that is not looted, to find the chests from far away |
 | `INVENTORY=1` | Start with the inventory open |
-| `RAIN=1` | Start in the rain. `RAIN=thunder` starts in a thunderstorm |
-| `STRIKE=1` | Make lightning strike in front of the player near the last frame (use with `FRAMES`) |
+| `RAIN=1` | Test build only. Start in the rain. `RAIN=thunder` starts in a thunderstorm |
+| `STRIKE=1` | Test build only. Make lightning strike in front of the player near the last frame (use with `FRAMES`) |
 | `HALLOWEEN=1` | Play as on October 31: some zombies and skeletons wear a carved pumpkin or a jack o'lantern. With `SHOWMOBS=1`, the zombie and the skeleton wear one |
-| `SELFTEST=1` | Check the game rules and print PASS or FAIL for each, then the totals. The exit status is 1 when a rule fails |
+| `SELFTEST=1` | Test build only. Check the game rules and print PASS or FAIL for each, then the totals. The exit status is 1 when a rule fails |
 | `VIEW=200` | Start with that view distance |
 | `GRAPHICS=fast` | Start with FAST graphics (`fancy` is the default), over the options file |
 | `NOVSYNC=1` | Ask for no vsync |
 | `LOG=save,mobs` | Write the debug log of these topics to stderr (see [Debug log](#debug-log)) |
 
-`SELFTEST=1` writes and deletes its own save and options files in the temporary folder (`$TMPDIR`). It does not read or change `world.sav` or `options.txt`. `tools/selftest.sh` builds the game, runs the self-test, and prints only the FAIL lines and the totals.
+`SELFTEST=1` writes and deletes its own save and options files in the temporary folder (`$TMPDIR`). It does not read or change `world.sav` or `options.txt`. `tools/selftest.sh` builds the test build, runs the self-test, and prints only the FAIL lines and the totals.
 
 ## Debug log
 
@@ -128,7 +128,7 @@ F3 shows the frame rate, the CPU time, the position, the faces drawn, the visibl
 
 `tools/demo.sh [out.mp4]` builds the game, records the demo reel (`DEMO=1`) and makes a video of about a minute with the logo, a music track, and the sounds of the game under the music (`demo.mp4` by default). `TRACK=file` picks another track of `assets/music`, and `SOUND_DB=n` makes the sounds of the game n dB louder (8 by default). It needs ffmpeg.
 
-`tools/shot.sh out.png [VAR=value ...]` renders frames and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby. `ruby tools/map.rb [OUT]` draws the generated world without the game: `OUT-top.png` from above and `OUT-tilt.png` at a slant, with biome colors, water depth and spawn. `SEED`, `SIZE`, `STEP` and `LIFT` change the map.
+`tools/shot.sh out.png [VAR=value ...]` renders frames with the test build and saves the last one as a PNG. `tools/gallery.sh` renders the README screenshots with the test build. Build it first with `./build.sh test`. `tools/count.rb` counts the generated blocks by type, and it also runs under CRuby. `ruby tools/map.rb [OUT]` draws the generated world without the game: `OUT-top.png` from above and `OUT-tilt.png` at a slant, with biome colors, water depth and spawn. `SEED`, `SIZE`, `STEP` and `LIFT` change the map.
 
 `tools/bench.sh [REF]` compares the working tree with a git ref (`main` by default). It builds both, runs each `N` times in turns (3 by default) with `AUTOPILOT=1`, and prints the median world generation time and CPU time per frame. It also prints two counts from Spinel that go up when a value loses its type: the `sp_box` calls in the C and the `--warn-widen` warnings.
 

@@ -10,7 +10,7 @@ module Key; end
 # The game files do not require each other. This file loads them in the
 # order of main.rb, so a new file in main.rb needs no change here.
 File.read(File.expand_path("../main.rb", __dir__)).scan(/^require_relative "(game\/\w+)"$/) do |(file)|
-  require_relative "../#{file}" unless file == "game/gfx" || file == "game/testing"
+  require_relative "../#{file}" unless file == "game/gfx"
 end
 
 # A height above the land and the trees, where a test has open air.

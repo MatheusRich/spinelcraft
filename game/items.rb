@@ -81,9 +81,6 @@ class Game
     end
   end
 
-  # The number of block on the ground.
-  def ground_count(block) = @items.sum { |item| item.block == block ? item.count : 0 }
-
   def update_items(dt)
     @items.each do |item|
       # An item in a chunk that is not loaded waits there: it would fall
