@@ -30,7 +30,9 @@ class DisksTest < Minitest::Test
       end
       xs = patch.map { |k| k % SIDE }
       zs = patch.map { |k| k / SIDE }
-      next unless patch.size == 13 && xs.max - xs.min == 4 && zs.max - zs.min == 4
+      next unless patch.size == 13
+      next unless xs.max - xs.min == 4
+      next unless zs.max - zs.min == 4
 
       [(xs.min + 2) & Disks::MASK, (zs.min + 2) & Disks::MASK]
     end

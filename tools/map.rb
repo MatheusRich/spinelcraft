@@ -90,10 +90,13 @@ end
 treasure = TreasureMap.new(terrain)
 cells = (x0 >> TreasureMap::CELL_BITS)..((x0 + n * step - 1) >> TreasureMap::CELL_BITS)
 chests = 0
+span = x0...x0 + n * step
 cells.each do |cell_x|
   cells.each do |cell_z|
     site = treasure.site(cell_x, cell_z)
-    next unless site.found? && site.chest_x >= x0 && site.chest_z >= x0 && site.chest_x < x0 + n * step && site.chest_z < x0 + n * step
+    next unless site.found?
+    next unless span.cover?(site.chest_x)
+    next unless span.cover?(site.chest_z)
 
     dot.(site.chest_x, site.chest_z, [255, 220, 0])
     chests += 1

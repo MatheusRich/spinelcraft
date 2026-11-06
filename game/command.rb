@@ -138,7 +138,8 @@ module Command
       unit = last == "D" ? Clock::DAY_TICKS : (last == "S" ? 20 : 1)
       n = s[0, s.size - 1]
     end
-    return -1 unless number?(n) && !n.start_with?("-")
+    return -1 unless number?(n)
+    return -1 if n.start_with?("-")
 
     t = n.to_f * unit
     t > MAX_TICKS ? -1 : t.to_i
@@ -175,7 +176,9 @@ module Command
 
   # The whole number in s, or -1 when s is not one.
   def self.whole(s)
-    return -1 unless number?(s) && !s.include?(".") && !s.start_with?("-")
+    return -1 unless number?(s)
+    return -1 if s.include?(".")
+    return -1 if s.start_with?("-")
 
     s.to_i
   end

@@ -259,7 +259,8 @@ class Plants
     px = x + Block::DIR_DX[d]
     pz = z + Block::DIR_DZ[d]
     ground = @world.get(px, y - 1, pz)
-    return nil unless @world.get(px, y, pz) == Block::AIR && Block.soil?(ground)
+    return nil unless @world.get(px, y, pz) == Block::AIR
+    return nil unless Block.soil?(ground)
 
     changes << px << y << pz << Block::PUMPKIN
     nil
@@ -268,7 +269,8 @@ class Plants
   # Puts a cactus on top of the cactus at x, y, z when the cactus is less
   # than CACTUS_HEIGHT tall and air is above it.
   def grow_cactus(x, y, z, changes)
-    return nil unless y + 1 < WY && @world.get(x, y + 1, z) == Block::AIR
+    return nil unless y + 1 < WY
+    return nil unless @world.get(x, y + 1, z) == Block::AIR
 
     tall = 1
     tall += 1 while tall < CACTUS_HEIGHT && @world.get(x, y - tall, z) == Block::CACTUS

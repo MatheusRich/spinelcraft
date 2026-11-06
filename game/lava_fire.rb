@@ -65,7 +65,8 @@ class LavaFire
     SIDE_TRIES.times do
       side_x = x + @rng.between(-1, 1)
       side_z = z + @rng.between(-1, 1)
-      next unless @world.inside?(side_x, y + 1, side_z) && @world.get(side_x, y + 1, side_z) == Block::AIR
+      next unless @world.inside?(side_x, y + 1, side_z)
+      next unless @world.get(side_x, y + 1, side_z) == Block::AIR
 
       light(side_x, y + 1, side_z) if Block.flammable?(@world.get(side_x, y, side_z))
     end

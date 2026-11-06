@@ -156,7 +156,8 @@ class Monster < Mob
 
   # A zombie walks up to the player.
   def act_zombie(dx, dz, dist)
-    return 0.0 unless dist < 28.0 && dist > 0.6
+    return 0.0 unless dist < 28.0
+    return 0.0 unless dist > 0.6
 
     face(dx, dz)
     2.4
@@ -164,7 +165,9 @@ class Monster < Mob
 
   # The damage of a zombie's bite when the player is in reach, else 0.
   def bite(player, dist)
-    return 0 unless dist < 1.4 && (player.y - @y).abs < 1.8 && @attack_wait <= 0.0
+    return 0 unless dist < 1.4
+    return 0 unless (player.y - @y).abs < 1.8
+    return 0 unless @attack_wait <= 0.0
 
     @attack_wait = 1.0
     # minecraft.wiki/w/Zombie

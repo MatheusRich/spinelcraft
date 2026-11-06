@@ -48,7 +48,7 @@ class Game
 
   # A click or R on the death screen respawns the player.
   def handle_death
-    return unless Gfx.in_button_pressed(1) || Gfx.in_key_pressed(Key::R)
+    return if !Gfx.in_button_pressed(1) && !Gfx.in_key_pressed(Key::R)
 
     respawn
     resume
@@ -66,7 +66,7 @@ class Game
     @action_cooldown -= dt
     # The click that went back to the game (resume) acts only after the
     # player lets the buttons go.
-    @wait_for_release = false unless Gfx.in_button(1) || Gfx.in_button(3)
+    @wait_for_release = false if !Gfx.in_button(1) && !Gfx.in_button(3)
     left = Gfx.in_button(1) && !@wait_for_release
     right = Gfx.in_button(3) && !@wait_for_release
     left_pressed = Gfx.in_button_pressed(1)
@@ -562,7 +562,8 @@ class Game
   # Plays the dig sound of block every 0.25 seconds while the player mines it.
   def play_dig_sound(block, hardness, dt)
     @dig_wait -= dt
-    return unless @dig_wait <= 0.0 && hardness > 0.0
+    return unless @dig_wait <= 0.0
+    return unless hardness > 0.0
 
     @sfx.play(BlockSound.dig(block), 0.55)
     @dig_wait = 0.25
@@ -672,7 +673,8 @@ class Game
   # solid blocks.
   def bed_fits?(x, y, z, hx, hz)
     return false unless Block.replaceable?(@world.get(hx, y, hz))
-    return false unless Block.solid?(@world.get(x, y - 1, z)) && Block.solid?(@world.get(hx, y - 1, hz))
+    return false unless Block.solid?(@world.get(x, y - 1, z))
+    return false unless Block.solid?(@world.get(hx, y - 1, hz))
 
     !@player.overlaps?(hx, y, hz) && !mob_in?(hx, y, hz, 1)
   end

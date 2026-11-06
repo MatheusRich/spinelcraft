@@ -392,7 +392,7 @@ class TestGame < Game
         got += found[k * WY + y]
         outside += found[k * WY + y] if share == 0.0
       end
-      near = false unless got > want * 0.75 && got < want * 1.25
+      near = false if got <= want * 0.75 || got >= want * 1.25
     end
     check("each ore fills its share of the stone at each layer", near)
     check("no ore lies outside the layers of its Minecraft range", outside == 0)
@@ -1550,14 +1550,15 @@ class TestGame < Game
   def test_held_blocks_drop(x, z, ground)
     lost = []
     Block::COUNT.times do |block|
-      next unless Block.plant?(block) && !Block.wall_torch?(block)
+      next unless Block.plant?(block)
+      next if Block.wall_torch?(block)
 
       @items.clear
       set_block(x, ground, z, Block::DIRT)
       set_block(x, ground + 1, z, block)
       set_block(x, ground, z, Block::AIR)
       dropped = Block::DROPS[block] == Block::AIR || ground_count(Block::DROPS[block]) == 1
-      lost << Block::NAMES[block] unless @world.get(x, ground + 1, z) == Block::AIR && dropped
+      lost << Block::NAMES[block] if @world.get(x, ground + 1, z) != Block::AIR || !dropped
     end
     set_block(x, ground, z, Block::DIRT)
     [Block::TORCH, Block::LADDER].each do |base|
@@ -1567,7 +1568,7 @@ class TestGame < Game
         set_block(x - Block::DIR_DX[d], ground + 1, z - Block::DIR_DZ[d], Block::STONE)
         set_block(x, ground + 1, z, hung)
         set_block(x - Block::DIR_DX[d], ground + 1, z - Block::DIR_DZ[d], Block::AIR)
-        lost << "#{Block::NAMES[hung]} #{d}" unless @world.get(x, ground + 1, z) == Block::AIR && ground_count(Block::DROPS[hung]) == 1
+        lost << "#{Block::NAMES[hung]} #{d}" if @world.get(x, ground + 1, z) != Block::AIR || ground_count(Block::DROPS[hung]) != 1
       end
     end
     @items.clear
@@ -4414,7 +4415,7 @@ class TestGame < Game
       took = @inv.block(0) == full && @world.get(x, y - 1, z) == Block::AIR
       @target_block.trace(@world, @player)
       use_bucket
-      ok = false unless took && @inv.block(0) == Block::BUCKET && @world.get(x, y - 1, z) == fluid
+      ok = false if !took || @inv.block(0) != Block::BUCKET || @world.get(x, y - 1, z) != fluid
       @inv.remove(Block::BUCKET, 1)
     end
     check("a bucket takes a water or lava source and puts it back", ok)

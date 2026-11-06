@@ -622,7 +622,9 @@ class Game
 
   # Puts fire at x, y, z when the cell is air and can hold fire.
   def light_fire(x, y, z)
-    return false unless @world.inside?(x, y, z) && @world.get(x, y, z) == Block::AIR && @world.can_hold?(Block::FIRE, x, y, z)
+    return false unless @world.inside?(x, y, z)
+    return false unless @world.get(x, y, z) == Block::AIR
+    return false unless @world.can_hold?(Block::FIRE, x, y, z)
 
     set_block(x, y, z, Block::FIRE)
     true
@@ -689,7 +691,8 @@ class Game
   end
 
   def update_survival(dt)
-    return unless game_mode.survival? && !@player.vitals.dead?
+    return unless game_mode.survival?
+    return if @player.vitals.dead?
 
     @alive_time += dt
     p = @player
@@ -877,7 +880,8 @@ class Game
   # frame then waits for the display, so this time comes out of that wait.
   def stream_budget_ns
     hz = Gfx.gfx_refresh_hz
-    return STREAM_MIN_NS unless @vsync && hz.positive?
+    return STREAM_MIN_NS unless @vsync
+    return STREAM_MIN_NS unless hz.positive?
 
     spare = (NS_PER_SECOND * STREAM_SHARE / hz).to_i - (Gfx.gfx_ns - @stamps[STAMP_BEGIN]) - @draw_ns
     [spare, STREAM_MIN_NS].max

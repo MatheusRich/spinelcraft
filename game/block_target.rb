@@ -50,7 +50,7 @@ class BlockTarget
   # fire puts the fire out (Game#left_button).
   def stops_view?(block)
     return false if block == Block::AIR || Block.water?(block) || Block.lava?(block) || block == Block::FIRE
-    return true unless Block.plant?(block) || Block::SHAPE[block] > 0
+    return true if !Block.plant?(block) && Block::SHAPE[block] <= 0
 
     in_box?(block)
   end

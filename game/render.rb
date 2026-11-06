@@ -159,7 +159,8 @@ class Game
         site = @world.treasure_map.site(site_x, site_z)
         x = site.chest_x
         z = site.chest_z
-        next unless @treasure.unlooted?(x, site.chest_y, z) && site.distance(ex, ez) < reach
+        next unless @treasure.unlooted?(x, site.chest_y, z)
+        next unless site.distance(ex, ez) < reach
 
         @dyn.aabb(x - 0.5, site.chest_y + 1.0, z - 0.5, x + 1.5, WY + 64.0, z + 1.5, Tex::WHITE, BEACON_COLOR)
       end

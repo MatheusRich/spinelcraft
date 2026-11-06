@@ -98,7 +98,7 @@ class Trees
   def plan(x, y, z, block)
     old = @world.get(x, y, z)
     if block == Block::DIRT
-      return unless old == Block::GRASS || old == Block::SNOW_GRASS
+      return if old != Block::GRASS && old != Block::SNOW_GRASS
     elsif Block.log?(block) && !(old == Block::AIR || Block.leaves?(old) || Block.plant?(old))
       @plan_blocked = true
       return

@@ -207,10 +207,12 @@ class ChunkGenerator
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
-    return unless site.found? && x >> 4 == cx && z >> 4 == cz
+    return unless site.found?
+    return unless x >> 4 == cx
+    return unless z >> 4 == cz
 
     block = @world.block(World.index(x, y, z))
-    return unless block == Block::AIR || Block.leaves?(block)
+    return if block != Block::AIR && !Block.leaves?(block)
 
     @world.put(x, y, z, Block.facing_id(Block::CHEST, Noise.hash3(x, y, z, 41) & 3), cx * CHUNK, cz * CHUNK)
   end

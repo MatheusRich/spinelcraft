@@ -290,7 +290,7 @@ class Mesher
   def corner_height(h, ha, hb, hd)
     return 1.0 if ha >= 1.0 || hb >= 1.0
 
-    hd = -1.0 unless ha > 0.0 || hb > 0.0
+    hd = -1.0 if ha <= 0.0 && hb <= 0.0
     return 1.0 if hd >= 1.0
 
     sum = h * fluid_weight(h) + ha * fluid_weight(ha) + hb * fluid_weight(hb) + hd * fluid_weight(hd)

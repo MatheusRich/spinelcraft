@@ -182,7 +182,8 @@ class Lightning
   # The bolt as quads that face the camera at the eye: a bright core and a
   # pale glow around it. Lightning is as bright at night.
   def draw(mesh, eye_x, eye_y, eye_z)
-    return unless visible? && lit?
+    return unless visible?
+    return unless lit?
 
     mesh.glow = 1.0
     line_quads(mesh, eye_x, eye_y, eye_z, CORE, Color::WHITE)

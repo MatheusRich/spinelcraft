@@ -190,7 +190,9 @@ class Mob
   def drops(rng)
     drops = []
     DROP_KIND.size.times do |row|
-      next unless DROP_KIND[row] == @kind && drops_row?(row) && rng.rand01 < DROP_CHANCE[row]
+      next unless DROP_KIND[row] == @kind
+      next unless drops_row?(row)
+      next unless rng.rand01 < DROP_CHANCE[row]
 
       cooked = DROP_COOKED[row]
       min = DROP_MIN[row]

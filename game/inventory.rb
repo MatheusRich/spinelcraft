@@ -10,10 +10,10 @@ class Game
 
   # Uses up n uses of the selected tool. A tool with no uses left breaks.
   def wear_tool(n)
-    return unless game_mode.survival? && n > 0
+    return if !game_mode.survival? || n <= 0
 
     block = @inv.block(@slot)
-    return unless Block.tool?(block) && @inv.count(@slot) > 0
+    return if !Block.tool?(block) || @inv.count(@slot) <= 0
 
     @inv.take(@slot, n < @inv.count(@slot) ? n : @inv.count(@slot))
     return unless @inv.empty?(@slot)

@@ -14,7 +14,8 @@ class Game
   def place_boat
     block = current_block.to_i
     return if game_mode.survival? && @inv.empty?(@slot)
-    return unless fluid_in_view && @world.get(@fluid_x, @fluid_y, @fluid_z) == Block::WATER
+    return unless fluid_in_view
+    return unless @world.get(@fluid_x, @fluid_y, @fluid_z) == Block::WATER
     return if @boats.size >= MAX_BOATS
 
     x = @fluid_x.to_i + 0.5
@@ -72,7 +73,8 @@ class Game
       next if index == @riding
 
       distance = boat.hit_distance(@target_block)
-      next unless distance >= 0.0 && distance < best
+      next unless distance >= 0.0
+      next unless distance < best
 
       best = distance
       @target_boat = index

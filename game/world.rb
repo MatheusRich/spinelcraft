@@ -190,7 +190,7 @@ class World
     return Block.soil?(ground) if hold == Block::HOLD_SOIL
     return Block.soil?(ground) || ground == Block::SAND if hold == Block::HOLD_SOIL_OR_SAND
     return !Block.replaceable?(ground) if hold == Block::HOLD_FALL
-    return false unless ground == Block::SAND || ground == Block::CACTUS
+    return false if ground != Block::SAND && ground != Block::CACTUS
 
     cactus_room?(ix, iy, iz)
   end

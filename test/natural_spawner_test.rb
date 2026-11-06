@@ -158,7 +158,7 @@ class NaturalSpawnerTest < Minitest::Test
 
   def test_a_guard_stands_on_the_ground_under_the_leaves_of_a_tree
     guard_floor
-    (X - 6..X + 6).each { |x| (Z - 6..Z + 6).each { |z| @world.set(x, Y + 4, z, Block::OAK_LEAVES) unless x == X && z == Z } }
+    (X - 6..X + 6).each { |x| (Z - 6..Z + 6).each { |z| @world.set(x, Y + 4, z, Block::OAK_LEAVES) if x != X || z != Z } }
     mobs = []
     assert_equal NaturalSpawner::GUARDS, @spawner.spawn_guards(mobs, X, Z, NaturalSpawner::GUARDS, @player)
     mobs.each { |monster| assert_equal Y, monster.y.floor }

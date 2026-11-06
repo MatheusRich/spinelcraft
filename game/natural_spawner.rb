@@ -171,7 +171,7 @@ class NaturalSpawner
     y = @world.height_at(x, z)
     while y > 1
       above = @world.get(x, y - 1, z)
-      break unless above == Block::AIR || Block.leaves?(above)
+      break if above != Block::AIR && !Block.leaves?(above)
 
       y -= 1
     end
@@ -202,7 +202,8 @@ class NaturalSpawner
 
   # What a new monster of kind wears on its head, or 0 for nothing.
   def halloween_head(kind)
-    return 0 unless @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
+    return 0 unless @halloween
+    return 0 if kind != Mob::ZOMBIE && kind != Mob::SKELETON
 
     roll = @rng.rand01
     return Block::JACK_O_LANTERN if roll < HALLOWEEN_JACK
@@ -245,7 +246,7 @@ class NaturalSpawner
 
       h = @world.height_at(x, z)
       ground = @world.get(x, h - 1, z)
-      next unless ground == Block::GRASS || ground == Block::SNOW_GRASS
+      next if ground != Block::GRASS && ground != Block::SNOW_GRASS
       next if @world.get(x, h, z) != Block::AIR || @world.get(x, h + 1, z) != Block::AIR
 
       mobs << Animal.new(kind, x + 0.5, h + 0.01, z + 0.5, (@rng.rand01 * 100000.0).to_i)

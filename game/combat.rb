@@ -103,7 +103,8 @@ class Game
     x = site.chest_x
     y = site.chest_y
     z = site.chest_z
-    return unless site.found? && Block::BASE[@world.get(x, y, z)] == Block::CHEST
+    return unless site.found?
+    return unless Block::BASE[@world.get(x, y, z)] == Block::CHEST
 
     living = @mobs.count { |mob| mob.guard && mob.alive && site.distance(mob.x.to_f, mob.z.to_f) <= Treasure::REARM }
     @spawner.spawn_guards(@mobs, x, z, NaturalSpawner::GUARDS - living, @player)
@@ -523,7 +524,8 @@ class Game
     @target_mob = -1
     @mobs.each_with_index do |mob, index|
       distance = mob.dying? ? -1.0 : mob.hit_distance(@target_block)
-      next unless distance >= 0.0 && distance < best
+      next unless distance >= 0.0
+      next unless distance < best
 
       best = distance
       @target_mob = index

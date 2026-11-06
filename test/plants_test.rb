@@ -433,7 +433,7 @@ class PlantsTest < Minitest::Test
 
   def test_the_plants_of_bone_meal_do_not_replace_a_plant
     grass_field
-    (X - 1..X + 1).each { |x| (Z - 1..Z + 1).each { |z| @world.set(x, Y, z, Block::ROSE) unless x == X && z == Z } }
+    (X - 1..X + 1).each { |x| (Z - 1..Z + 1).each { |z| @world.set(x, Y, z, Block::ROSE) if x != X || z != Z } }
     @plants.fertilize(X, Y - 1, Z, @changes)
     grown = apply
     refute_empty grown

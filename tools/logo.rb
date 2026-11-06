@@ -65,7 +65,7 @@ def face_texel(face, x, y)
   det = (ax * by) - (bx * ay)
   u = ((px * by) - (bx * py)) / det
   v = ((ax * py) - (ay * px)) / det
-  return nil unless u >= 0 && u < 1 && v >= 0 && v < 1
+  return nil if u < 0 || u >= 1 || v < 0 || v >= 1
 
   ((v * 16).floor * 16) + (u * 16).floor
 end

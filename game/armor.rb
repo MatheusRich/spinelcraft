@@ -92,7 +92,8 @@ class Armor
   # is empty. True when it moves.
   def quick_put_on(from, index)
     piece = from.block(index)
-    return false unless Block.armor?(piece) && @slots.empty?(Block.armor_slot(piece))
+    return false unless Block.armor?(piece)
+    return false unless @slots.empty?(Block.armor_slot(piece))
 
     slot = Block.armor_slot(piece)
     from.move_stack(index, @slots, slot..slot)

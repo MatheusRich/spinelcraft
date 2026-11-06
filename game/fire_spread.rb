@@ -126,7 +126,9 @@ class FireSpread
     (-1..1).each do |side_x|
       (-1..1).each do |side_z|
         (-SPREAD_DOWN..SPREAD_UP).each do |up|
-          spread_to(cell_key(x + side_x, y + up, z + side_z), up, age) unless side_x == 0 && up == 0 && side_z == 0
+          next if side_x == 0 && up == 0 && side_z == 0
+
+          spread_to(cell_key(x + side_x, y + up, z + side_z), up, age)
         end
       end
     end
@@ -138,7 +140,9 @@ class FireSpread
 
     chances = (odds + SPREAD_BASE + SPREAD_DIFFICULTY * DIFFICULTY) / (age + SPREAD_AGE)
     out_of = SPREAD_ODDS * [up, 1].max
-    return unless chances > 0 && (@rng.rand01 * out_of).to_i <= chances && !near_rain?(key)
+    return unless chances > 0
+    return unless (@rng.rand01 * out_of).to_i <= chances
+    return if near_rain?(key)
 
     @outcomes << key << Block::FIRE << new_age(age)
   end

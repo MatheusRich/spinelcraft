@@ -49,6 +49,15 @@ class LightningTest < Minitest::Test
     assert_equal 0.0, @lightning.flash
   end
 
+  def test_a_bolt_past_its_life_draws_nothing
+    strike
+    @lightning.update_lightning(Lightning::LIFE + 1.0 / Lightning::TICKS_PER_SECOND)
+    assert @lightning.lit?
+    mesh = Mesh3.new
+    @lightning.draw(mesh, 0.0, 70.0, 0.0)
+    assert_empty mesh.v
+  end
+
   def test_the_bolt_flickers_dark_once_each_four_ticks
     strike
     @lightning.update_lightning(2.0 / Lightning::TICKS_PER_SECOND + 0.001)

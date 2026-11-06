@@ -40,12 +40,14 @@ class MesherTest < Minitest::Test
   def fire_planes(y)
     @mesher.build(0, 0)
     @mesher.opaque.each_slice(2).filter_map do |w0, w1|
-      next unless Mesher.face_x(w0) == CUBE_X && Mesher.face_y(w0) == y && Mesher.face_z(w0) == CUBE_Z
+      next unless cube_face?(w0, y)
 
       [Mesher.field(w1, Mesher::SHAPE_AT, Mesher::SHAPE_BITS), Mesher.field(w1, Mesher::FACING_AT, Mesher::FACING_BITS),
        Mesher.field(w0, Mesher::FACE_AT, Mesher::FACE_BITS)]
     end.sort
   end
+
+  def cube_face?(word, y) = Mesher.face_x(word) == CUBE_X && Mesher.face_y(word) == y && Mesher.face_z(word) == CUBE_Z
 
   def planes(shape, facings) = facings.flat_map { |facing| [[shape, facing, Mesher::FIRE_FRONT], [shape, facing, Mesher::FIRE_BACK]] }.sort
 
@@ -118,7 +120,7 @@ class MesherTest < Minitest::Test
     words = []
     (0...@mesher.opaque.size).step(2) do |k|
       w0 = @mesher.opaque[k]
-      next unless Mesher.face_x(w0) == CUBE_X && Mesher.face_y(w0) == y && Mesher.face_z(w0) == CUBE_Z
+      next unless cube_face?(w0, y)
 
       words << @mesher.opaque[k + 1]
     end

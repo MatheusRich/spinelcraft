@@ -26,6 +26,7 @@ AllCops:
 require:
   - ./tools/cops/day_ticks.rb
   - ./tools/cops/rain_strength.rb
+  - ./tools/cops/simple_unless.rb
 
 Spinelcraft/DayTicks:
   Enabled: true
@@ -40,6 +41,9 @@ Spinelcraft/RainStrength:
     - "game/weather.rb"
     - "game/testing.rb"
     - "test/**/*"
+
+Spinelcraft/SimpleUnless:
+  Enabled: true
 
 Lint:
   Enabled: true

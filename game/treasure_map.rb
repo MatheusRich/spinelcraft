@@ -70,7 +70,8 @@ class TreasureMap
     site = TreasureSite.none
     (-STEP / 2..STEP / 2).each do |dx|
       (-STEP / 2..STEP / 2).each do |dz|
-        next unless TreasureMap.inside?(x + dx) && TreasureMap.inside?(z + dz)
+        next unless TreasureMap.inside?(x + dx)
+        next unless TreasureMap.inside?(z + dz)
 
         height = site_height(x + dx, z + dz)
         next if height <= best || !holds_chest?(x + dx, z + dz, height)
