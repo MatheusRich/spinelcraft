@@ -220,6 +220,16 @@ class ChunkMeshes
     nil
   end
 
+  # A light that changes at column x, z reaches Mesher::LIGHT_MAX blocks, so
+  # every chunk in that square remeshes. These remeshes may wait for later frames.
+  def mark_light_area(x, z)
+    reach = Mesher::LIGHT_MAX
+    ((x.to_i - reach) / CHUNK..(x.to_i + reach) / CHUNK).each do |cx|
+      ((z.to_i - reach) / CHUNK..(z.to_i + reach) / CHUNK).each { |cz| mark_later(cx, cz) }
+    end
+    nil
+  end
+
   # Marks the chunk cx, cz as mark_chunk does, but its remesh can wait for
   # later frames.
   def mark_later(cx, cz)

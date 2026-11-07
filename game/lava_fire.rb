@@ -25,6 +25,17 @@ class LavaFire
     nil
   end
 
+  # The random ticks of dt seconds of the lava in the chunks up to
+  # REACH_CHUNKS from the block x, z (see tick_lava).
+  def tick_near(x, z, dt)
+    chunk_x = x >> 4
+    chunk_z = z >> 4
+    (-REACH_CHUNKS..REACH_CHUNKS).each do |side_x|
+      (-REACH_CHUNKS..REACH_CHUNKS).each { |side_z| tick_lava(@world.torches_of(chunk_x + side_x, chunk_z + side_z), dt) }
+    end
+    nil
+  end
+
   # The random ticks of dt seconds of the lava in lamps, the lamp list of a
   # chunk (World#torches_of). Each lamp gets its share of the ticks, and a
   # tick on a lamp that is not lava does nothing. Lava is in the list only

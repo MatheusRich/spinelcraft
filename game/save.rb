@@ -80,7 +80,7 @@ class Game
     @light = Light.new(@world)
     @storm = Storm.new(@seed * 5 + 3, @world, @weather, @mobs)
     @spawner = NaturalSpawner.new(@world, @seed * 11 + 5, @halloween)
-    @plants = Plants.new(@world, @seed * 13 + 3)
+    @plants = Plants.new(@world, @light, @sky, @seed * 13 + 3)
     @breeding = Breeding.new(@seed * 17 + 9)
     @fluids = Fluids.new(@world)
     @fires = Fires.new(FireSpread.new(@world, @weather, Rng.new(@seed * 19 + 7)))

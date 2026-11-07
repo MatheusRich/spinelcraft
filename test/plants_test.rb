@@ -1,6 +1,9 @@
 require_relative "test_helper"
 
 class PlantsTest < Minitest::Test
+  # A sky with a sky light that the test sets.
+  FixedSky = Struct.new(:light)
+
   # The height over the stone floor in the open air over the one loaded
   # chunk, with room for a tree, and the cell in its middle.
   Y = SKY_Y - 20
@@ -10,7 +13,8 @@ class PlantsTest < Minitest::Test
   def setup
     @world = world_with_one_chunk
     16.times { |x| 16.times { |z| @world.set(x, Y - 1, z, Block::STONE) } }
-    @plants = Plants.new(@world, 7)
+    @sky = FixedSky.new(Sky::TOP_CLEAR)
+    @plants = Plants.new(@world, Light.new(@world), @sky, 7)
     @changes = []
   end
 
@@ -517,31 +521,74 @@ class PlantsTest < Minitest::Test
     assert_equal [[X - 1, Y - 1, Z - 1, Block::GRASS]], grass_ticks(500)
   end
 
-  # The grass that count random ticks around px, pz find on top of their
-  # columns, as [x, y, z] lists.
-  def grass_columns(count, px, pz)
-    found = []
-    count.times do
-      y = @plants.grass_column(px, pz)
-      found << [@plants.column_x, y, @plants.column_z] if y >= 0
-    end
-    found.uniq.sort
+  # Grass at x, y, z with dirt on each side.
+  def grass_in_dirt(x, y, z)
+    (x - 1..x + 1).each { |dirt_x| (z - 1..z + 1).each { |dirt_z| @world.set(dirt_x, y, dirt_z, Block::DIRT) } }
+    @world.set(x, y, z, Block::GRASS)
   end
 
-  def test_a_grass_column_finds_the_grass_under_leaves_and_air
-    @world.set(X, Y, Z, Block::GRASS)
+  # The grass blocks that count random ticks of the grass in the columns
+  # around px, pz make, as [x, y, z] lists.
+  def spread_grass_ticks(count, px, pz)
+    count.times { @plants.spread_grass_column(px, pz, @changes) }
+    apply.map { |x, y, z, _| [x, y, z] }.uniq.sort
+  end
+
+  def test_grass_spreads_with_the_sky_light_of_grass_light
+    grass_in_dirt(X, Y - 1, Z)
+    @sky.light = Plants::GRASS_LIGHT
+    refute_empty spread_grass_ticks(50_000, X, Z)
+  end
+
+  def test_dirt_does_not_turn_to_grass_beside_a_column_with_no_grass_on_top
+    @world.set(X + 1, Y - 1, Z, Block::DIRT)
+    assert_empty spread_grass_ticks(500_000, X, Z)
+  end
+
+  def test_grass_does_not_spread_with_less_sky_light
+    grass_in_dirt(X, Y - 1, Z)
+    @sky.light = Plants::GRASS_LIGHT - 1
+    assert_empty spread_grass_ticks(50_000, X, Z)
+  end
+
+  # Leaves block the sky light, so the light above the grass is the sky
+  # light less 1 for each step up to the top of the leaves. Here that is
+  # 7 steps, so 15 - 7 = 8.
+  def test_grass_does_not_spread_at_the_bottom_of_a_deep_shaft_of_leaves
+    @world.set(X, Y - 1, Z, Block::GRASS)
+    @world.set(X + 1, Y - 1, Z, Block::DIRT)
+    (Y..Y + 6).each do |y|
+      (X - 1..X + 2).each { |x| (Z - 1..Z + 1).each { |z| @world.set(x, y, z, Block::STONE) } }
+      @world.set(X, y, Z, Block::OAK_LEAVES)
+      @world.set(X + 1, y, Z, Block::OAK_LEAVES)
+    end
+    assert_empty spread_grass_ticks(500_000, X, Z)
+  end
+
+  # Only the sky light counts, and a torch next to the grass changes nothing.
+  def test_grass_next_to_a_torch_spreads_by_the_sky_light
+    grass_in_dirt(X, Y - 1, Z)
+    @world.set(X + 2, Y, Z, Block::TORCH)
+    refute_empty spread_grass_ticks(50_000, X, Z)
+  end
+
+  def test_grass_spreads_from_the_grass_under_leaves_and_air
+    grass_in_dirt(X, Y, Z)
     @world.set(X, Y + 2, Z, Block::OAK_LEAVES)
-    # A column of air, and grass at the bottom of the world.
-    WY.times { |y| @world.set(X + 4, y, Z, Block::AIR) }
+    # A column of air down to grass at the bottom of the world.
     WY.times { |y| @world.set(X + 5, y, Z, Block::AIR) }
     @world.set(X + 5, 0, Z, Block::GRASS)
-    assert_equal [[X, Y, Z], [X + 5, 0, Z]], grass_columns(50_000, X, Z)
+    @world.set(X + 5, 0, Z + 1, Block::DIRT)
+    @world.set(X + 5, 1, Z + 1, Block::AIR)
+    spread = spread_grass_ticks(200_000, X, Z)
+    assert_includes spread, [X + 5, 0, Z + 1]
+    assert(spread.any? { |_, y, _| y == Y })
   end
 
-  def test_a_grass_column_skips_the_columns_that_are_not_loaded
-    @world.set(X, Y, Z, Block::GRASS)
+  def test_grass_does_not_spread_in_the_columns_that_are_not_loaded
+    grass_in_dirt(X, Y, Z)
     # Column X + WX shares its place in the ring of chunks with column X.
-    assert_empty grass_columns(50_000, X + WX, Z)
+    assert_empty spread_grass_ticks(50_000, X + WX, Z)
   end
 
   # The cells that count random ticks of dying grass around X, Z turn to dirt.

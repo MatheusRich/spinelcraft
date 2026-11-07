@@ -55,11 +55,10 @@ class Plants
   # stage for 2 or 3 ages and 2 stages for 4 or 5. A stem grows 1 stage.
   def self.meal_stage(stage, ages, last) = (stage + (ages * last * 2 + 7) / 14).clamp(0, last)
 
-  # The column of the last random tick.
-  attr_reader :column_x, :column_z
-
-  def initialize(world, seed)
+  def initialize(world, light, sky, seed)
     @world = world
+    @light = light
+    @sky = sky
     @trees = Trees.new(world)
     @rng = Rng.new(seed)
     # The search of held_by_log?: cells to visit, and the cells seen in the
@@ -123,16 +122,19 @@ class Plants
     nil
   end
 
-  # The y of the grass block on top of a column within GROW_REACH of px, pz,
-  # under the air, the leaves and the plants, or -1 when that block is not
-  # grass. The column is column_x, column_z.
-  def grass_column(px, pz)
+  # One random tick of the grass block on top of a column within GROW_REACH
+  # of px, pz, under the air, the leaves and the plants, when the light
+  # above it is at least GRASS_LIGHT (see grass_tick).
+  def spread_grass_column(px, pz, changes)
     pick_column(px, pz)
     y = @world.height_at(@column_x, @column_z)
     y -= 1 while y > 0 && Block::OPAQUE[@world.get(@column_x, y, @column_z)] == 0
-    return y if @world.get(@column_x, y, @column_z) == Block::GRASS
+    return unless @world.get(@column_x, y, @column_z) == Block::GRASS
 
-    -1
+    sky = @sky.light
+    return if @light.level(@column_x, y + 1, @column_z, sky, false, sky - GRASS_LIGHT + 1) < GRASS_LIGHT
+
+    grass_tick(@column_x, y, @column_z, changes)
   end
 
   # One random tick of the covered grass in a column within GROW_REACH of

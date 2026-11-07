@@ -83,6 +83,26 @@ class LavaFireTest < Minitest::Test
     assert_empty @changes
   end
 
+  # The lava ticks of a minute from the column at x, z, with lava at X, Y,
+  # Z next to air beside planks.
+  def ticks_near(x, z)
+    set(X + 2, Y + 1, Z, Block::OAK_PLANKS)
+    set(X, Y, Z, Block::LAVA)
+    LavaFire.new(@world, @changes, Rng.new(9)).tick_near(x, z, LavaFire::RANDOM_TICK * 60)
+    @changes
+  end
+
+  def test_lava_in_a_chunk_within_reach_lights_fires
+    refute_empty ticks_near(X + LavaFire::REACH_CHUNKS * 16, Z - LavaFire::REACH_CHUNKS * 16)
+    @changes.clear
+    refute_empty ticks_near(X - LavaFire::REACH_CHUNKS * 16, Z + LavaFire::REACH_CHUNKS * 16)
+  end
+
+  def test_lava_in_a_chunk_out_of_reach_lights_nothing
+    assert_empty ticks_near(X + (LavaFire::REACH_CHUNKS + 1) * 16, Z)
+    assert_empty ticks_near(X, Z - (LavaFire::REACH_CHUNKS + 1) * 16)
+  end
+
   # Each lava in the list gets a random tick each RANDOM_TICK seconds on
   # average.
   def test_each_lava_gets_one_random_tick_each_68_seconds
