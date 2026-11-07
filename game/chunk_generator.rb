@@ -30,12 +30,13 @@ class ChunkGenerator
   def initialize(world, seed)
     @world = world
     @col_h = Array.new(CHUNK * CHUNK, 0)
+    @border_h = Array.new(4 * CHUNK, 0)
     @col_b = Array.new(CHUNK * CHUNK, 0)
     @col_top = Array.new(CHUNK * CHUNK, 0)
     @coal_rolls = Array.new(16 * COAL_ROLLS, 0)
     @ores = Ores.new
     @terrain = Terrain.new(seed)
-    @caves = Caves.new(world, @terrain.cave_shape, @col_h)
+    @caves = Caves.new(world, @terrain.cave_shape, @col_h, @border_h)
     @trees = Trees.new(world)
     @treasure_map = TreasureMap.new(@terrain)
   end
@@ -44,6 +45,7 @@ class ChunkGenerator
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     highest = sample_columns(x0, z0)
+    sample_border(x0, z0)
     fill_ground(x0, z0)
     @caves.carve(x0, z0, highest)
     place_ores(x0, z0, highest)
@@ -67,6 +69,15 @@ class ChunkGenerator
       lx += 1
     end
     highest
+  end
+
+  def sample_border(x0, z0)
+    CHUNK.times do |along|
+      @border_h[along] = @terrain.surface_height(x0 - 1, z0 + along)
+      @border_h[CHUNK + along] = @terrain.surface_height(x0 + CHUNK, z0 + along)
+      @border_h[2 * CHUNK + along] = @terrain.surface_height(x0 + along, z0 - 1)
+      @border_h[3 * CHUNK + along] = @terrain.surface_height(x0 + along, z0 + CHUNK)
+    end
   end
 
   def fill_ground(x0, z0)

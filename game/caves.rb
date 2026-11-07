@@ -7,10 +7,13 @@ class Caves
   # (minecraft.wiki/w/Altitude).
   LAVA_LEVEL = 9
 
-  def initialize(world, cave_shape, column_heights)
+  # border_heights holds the heights of the columns just outside the chunk:
+  # west, east, north and south, CHUNK of each.
+  def initialize(world, cave_shape, column_heights, border_heights)
     @world = world
     @cave_shape = cave_shape
     @column_heights = column_heights
+    @border_heights = border_heights
     @cave_a = Array.new(GX * GY * GX, 0.0)
     @cave_b = Array.new(GX * GY * GX, 0.0)
     @cave_room = Array.new(GX * GY * GX, 0.0)
@@ -96,25 +99,42 @@ class Caves
     region = @cave_shape.cave_region(x, z)
     entrance = @cave_shape.entrance?(x, z)
     base = World.index(x, 0, z)
-    fx = lx / 4.0
-    fz = lz / 4.0
-    ix = fx.to_i
-    iz = fz.to_i
-    @cell_x = fx - ix
-    @cell_z = fz - iz
+    ix = lx >> 2
+    iz = lz >> 2
+    @cell_x = (lx & 3) / 4.0
+    @cell_z = (lz & 3) / 4.0
     @a_layer = -1
     @c_layer = -1
     @room_layer = -1
     last = Terrain.beach?(top) ? top - 3 : top
+    shore = shore_top(lx, lz)
     y = 2
     while y <= last
       n = (ix * GY + (y >> 2)) * GX + iz
-      open = @cave_cell[n] == 1 && tunnel?(n, y, fx - ix, fz - iz, (entrance ? CaveShape::CAVE_WIDTH : CaveShape.cave_width(top - y)) * region)
+      open = @cave_cell[n] == 1 && tunnel?(n, y, @cell_x, @cell_z, (entrance ? CaveShape::CAVE_WIDTH : CaveShape.cave_width(top - y)) * region)
       open ||= room?(n, y, top - y) if @room_peak > CaveShape::ROOM_THRESHOLD && top - y > CaveShape::ROOM_ROOF
+      open &&= y <= shore || y > SEA
       @world.put_block(base + y, y <= LAVA_LEVEL ? Block::LAVA : Block::AIR) if open
       y += 1
     end
     nil
+  end
+
+  # The block under the lowest top block of the 4 columns beside a column.
+  # Generated water does not flow, so a cave keeps the blocks beside the
+  # water of a lower column, or the water stands as a wall. A swamp at sea
+  # level has water as its top block.
+  def shore_top(lx, lz)
+    [neighbor_height(lx - 1, lz), neighbor_height(lx + 1, lz), neighbor_height(lx, lz - 1), neighbor_height(lx, lz + 1)].min - 2
+  end
+
+  def neighbor_height(lx, lz)
+    return @border_heights[lz] if lx.negative?
+    return @border_heights[CHUNK + lz] if lx == CHUNK
+    return @border_heights[2 * CHUNK + lx] if lz.negative?
+    return @border_heights[3 * CHUNK + lx] if lz == CHUNK
+
+    @column_heights[lx * CHUNK + lz]
   end
 
   # The 4 layers of a grid cell share its edges along x, so a column reads
