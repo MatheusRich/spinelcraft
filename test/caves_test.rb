@@ -7,6 +7,8 @@ class CavesTest < Minitest::Test
   # The first chunk has entrance patches in part of it, and the third in all
   # of it.
   CHUNKS = [[0, 0], [-1, 0], [3, -2], [-4, 5], [7, 7], [-6, -3]].freeze
+  NEAR_SURFACE = 14
+  HEADROOM = 3
 
   def interpolate(x, y, z)
     gx = x >> 2
@@ -41,16 +43,23 @@ class CavesTest < Minitest::Test
     Array.new(CHUNK * CHUNK) { |column| terrain.surface_height(x0 + column / CHUNK, z0 + column % CHUNK) }
   end
 
-  def carve_and_compare(cx, cz, heights)
-    shape = CaveShape.new(SEED)
-    fields = noise_fields(shape)
+  def carve_stone(cx, cz, heights)
     world = World.new(SEED)
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     heights.each_with_index do |height, column|
       (1...height).each { |y| world.put_block(World.index(x0 + column / CHUNK, y, z0 + column % CHUNK), Block::STONE) }
     end
-    Caves.new(world, shape, heights).carve(x0, z0, heights.max)
+    Caves.new(world, CaveShape.new(SEED), heights).carve(x0, z0, heights.max)
+    world
+  end
+
+  def carve_and_compare(cx, cz, heights)
+    shape = CaveShape.new(SEED)
+    fields = noise_fields(shape)
+    world = carve_stone(cx, cz, heights)
+    x0 = cx * CHUNK
+    z0 = cz * CHUNK
     mismatches = []
     carved = Hash.new(0)
     heights.each_with_index do |height, column|
@@ -80,6 +89,31 @@ class CavesTest < Minitest::Test
     end
     assert_operator air, :>, 500
     assert_operator lava, :>, 0
+  end
+
+  # A player walks into a cave from the surface. The floor of a tunnel near
+  # the surface must leave room for a player to jump.
+  def test_most_of_the_floor_near_the_surface_has_room_to_jump
+    floors = 0
+    roomy = 0
+    terrain = Terrain.new(SEED)
+    chunk_range = (-4...4).to_a
+    chunk_range.product(chunk_range).each do |cx, cz|
+      heights = surface_heights(terrain, cx * CHUNK, cz * CHUNK)
+      world = carve_stone(cx, cz, heights)
+      heights.each_with_index do |height, column|
+        x = cx * CHUNK + column / CHUNK
+        z = cz * CHUNK + column % CHUNK
+        top = height - 1
+        floor_heights = (top - NEAR_SURFACE..top).select do |y|
+          world.block(World.index(x, y, z)) == Block::AIR && world.block(World.index(x, y - 1, z)) == Block::STONE
+        end
+        floors += floor_heights.size
+        roomy += floor_heights.count { |y| (1...HEADROOM).all? { |up| world.block(World.index(x, y + up, z)) == Block::AIR } }
+      end
+    end
+    assert_operator floors, :>, 200
+    assert_operator roomy, :>, floors * 11 / 20
   end
 
   # A level ground tests each height at each place in a cell of the cave

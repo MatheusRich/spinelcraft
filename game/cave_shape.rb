@@ -5,6 +5,9 @@ class CaveShape
   CAVE_WIDTH = 0.006
   CAVE_ROOF = 4
   CAVE_FADE = 8
+  # One scale on all 3 axes makes a tunnel as tall as it is wide, so a
+  # player can walk in.
+  TUNNEL_SCALE = 40.0
   CAVE_REGION_SCALE = 150.0
   CAVE_REGION_LOW = 0.0
   CAVE_REGION_HIGH = 0.12
@@ -15,7 +18,7 @@ class CaveShape
   ROOM_SCALE_UP = 26.0
   # Minecraft also keeps most tunnels under the surface, and opens a rarer
   # set of entrances.
-  ENTRANCE = 0.25
+  ENTRANCE = 0.22
   ENTRANCE_SCALE = 48.0
 
   def self.cave?(a, c, width) = a * a + c * c < width
@@ -72,8 +75,8 @@ class CaveShape
   def entrance?(x, z) = @room_noise.noise2(x / ENTRANCE_SCALE + 200.0, z / ENTRANCE_SCALE) > ENTRANCE
 
   # The cave grid has a point every 4 blocks.
-  def cave_a(gx, gy, gz) = @noise_a.noise3(gx * 4 / 40.0, gy * 4 / 22.0, gz * 4 / 40.0)
-  def cave_b(gx, gy, gz) = @noise_b.noise3(gx * 4 / 40.0 + 50.0, gy * 4 / 22.0, gz * 4 / 40.0)
+  def cave_a(gx, gy, gz) = @noise_a.noise3(gx * 4 / TUNNEL_SCALE, gy * 4 / TUNNEL_SCALE, gz * 4 / TUNNEL_SCALE)
+  def cave_b(gx, gy, gz) = @noise_b.noise3(gx * 4 / TUNNEL_SCALE + 50.0, gy * 4 / TUNNEL_SCALE, gz * 4 / TUNNEL_SCALE)
   def cave_room(gx, gy, gz) = @room_noise.noise3(gx * 4 / ROOM_SCALE + 120.0, gy * 4 / ROOM_SCALE_UP, gz * 4 / ROOM_SCALE)
 
   # The tunnels of one block of an entrance patch, with the numbers of the

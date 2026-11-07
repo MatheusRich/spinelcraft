@@ -35,6 +35,19 @@ class CaveShapeTest < Minitest::Test
     assert_operator columns.count { |x, z| shape.entrance?(x, z) }, :>, columns.size / 16
   end
 
+  # Taller tunnels cross the surface less often. The entrance patches make
+  # up for it, so the player still finds caves from the surface.
+  def test_a_wide_area_has_many_cave_openings
+    terrain = Terrain.new(1337)
+    shape = terrain.cave_shape
+    samples = (-512...512).step(4).to_a
+    openings = samples.product(samples).count do |x, z|
+      top = terrain.surface_height(x, z) - 1
+      !Terrain.beach?(top) && shape.opening?(x, top, z)
+    end
+    assert_operator openings, :>, 95
+  end
+
   def test_the_cave_region_goes_from_closed_to_full_and_has_values_between
     shape = CaveShape.new(1337)
     values = (-30..30).flat_map { |i| (-30..30).map { |j| shape.cave_region(i * 40, j * 40) } }
