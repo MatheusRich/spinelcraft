@@ -838,7 +838,6 @@ module Gfx
       return (Uint32)n;
     }
 
-    /* The floats before hand_floats are the held item (see gfx_draw_hand). */
     long gfx_dyn(const double *v, long nfloats, long hand_floats) {
       dyn_count = stage_floats(dyn_tb, v, nfloats, DYN_CAP * DYN_FLOATS) / DYN_FLOATS;
       hand_count = hand_floats / DYN_FLOATS < dyn_count ? (Uint32)(hand_floats / DYN_FLOATS) : dyn_count;
@@ -1613,9 +1612,10 @@ module Gfx
     double in_mouse_y(void) { float x, y; SDL_GetMouseState(&x, &y); return y * SDL_GetWindowPixelDensity(win); }
     void in_capture(long on) { SDL_SetWindowRelativeMouseMode(win, on != 0); }
     void gfx_fullscreen(long on) { SDL_SetWindowFullscreen(win, on != 0); }
-    /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms, 4: the tint map size. */
+    /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms, 4: the tint map size,
+       5: sounds, 6: dynamic vertices. */
     long gfx_limit(long which) {
-      return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : (which == 3 ? UNIFORMS : (which == 4 ? TINT_SIZE : (which == 5 ? SOUNDS : DYN_CAP)))));
+      return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : (which == 3 ? UNIFORMS : (which == 4 ? TINT_SIZE : (which == 5 ? SOUNDS : (which == 6 ? DYN_CAP : 0))))));
     }
   C
   ffi_func :gfx_init, [:long, :long, :long, :long], :bool

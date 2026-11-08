@@ -1482,7 +1482,7 @@ class TestGame < Game
     herd.times { |i| @mobs << Animal.new(Mob::SHEEP, ahead_x, @player.y.to_f, ahead_z, i) }
     @camera.update_camera(@player.x, @player.eye_y, @player.z, @player.yaw, @player.pitch, 16.0 / 9.0, 300.0, @fov)
     build_dyn(@player.x, @player.eye_y, @player.z, @options.view + 4.0)
-    Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_count)
+    Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_floats)
     check("a herd that fills the buffer of moving parts leaves the held item on screen",
           @dyn.count > Gfx.gfx_limit(6) * DYN_FLOATS && Gfx.gfx_hand_vertices > 0)
     herd.times { @mobs.pop }
@@ -2905,12 +2905,12 @@ class TestGame < Game
     open_station(x, y, z, Recipe::AT_TABLE)
     shown = shown_recipes
     rows = (shown.size + 1) / 2
-    top = @recipe_book.in_view(active_station, recipe_rows) == shown[0, RecipeBook::ROWS * 2]
+    top = @recipe_book.in_view(active_station, recipe_rows) == shown[0, recipe_rows * 2]
     picks = [Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK].map { |block| shown.index(recipe_for(block)) }
     check("a crafting table shows the planks first, then the pickaxes in one column, one to a row", shown[0] == recipe_for(Block::OAK_PLANKS) && picks == [4, 6, 8, 10])
     @recipe_book.scroll_by(100, active_station, recipe_rows)
     end_view = @recipe_book.in_view(active_station, recipe_rows)
-    bottom = @recipe_book.top == rows - RecipeBook::ROWS && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_book.top * 2]
+    bottom = @recipe_book.top == rows - recipe_rows && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_book.top * 2]
     @recipe_book.scroll_by(-100, active_station, recipe_rows)
     back = @recipe_book.top == 0
     @recipe_book.scroll_by(2, active_station, recipe_rows)
@@ -2918,9 +2918,19 @@ class TestGame < Game
     open_station(x, y, z, Recipe::AT_TABLE)
     reset = @recipe_book.top == 0
     toggle_inventory
+    check("the recipe list scrolls to its last row, and it opens at the top", rows > recipe_rows && top && bottom && back && reset)
+    # A furnace shows its slots in the first rows of the list, and its
+    # recipes fill the rows under them and no more.
+    set_block(x, y, z, Block::FURNACE)
+    open_station(x, y, z, Recipe::AT_FURNACE)
+    view = @recipe_book.in_view(active_station, recipe_rows)
+    last = recipe_cell(recipe_skip + view.size - 1, Gfx.gfx_width.to_f, Gfx.gfx_height.to_f, 1.0)
+    bottom_row = recipe_cell(RecipeBook::ROWS * 2 - 1, Gfx.gfx_width.to_f, Gfx.gfx_height.to_f, 1.0)
+    check("the recipes of a furnace fill only the rows under its slots",
+          recipe_skip + recipe_rows * 2 == RecipeBook::ROWS * 2 && !view.empty? && last[1] <= bottom_row[1])
+    toggle_inventory
     set_block(x, y, z, old)
     @recipe_book = book
-    check("the recipe list scrolls to its last row, and it opens at the top", rows > RecipeBook::ROWS && top && bottom && back && reset)
   end
 
   # The wheel moves the hotbar slot, also when the system sends the turn

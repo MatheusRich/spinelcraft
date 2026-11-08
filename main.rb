@@ -271,8 +271,8 @@ class Game
     @target_mob = -1
     @swing = 0.0
     @held_item = HeldItem.new
-    # The vertices of the held model at the start of @dyn (see gfx_dyn).
-    @hand_count = 0
+    # The floats of the held model at the start of @dyn (see gfx_dyn).
+    @hand_floats = 0
   end
 
   # CAM=x,y,z,yaw,pitch puts a flying camera somewhere, for screenshots.

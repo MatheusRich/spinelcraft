@@ -3,8 +3,8 @@
 # had its ingredient, with the NEW tag until the list closes.
 # minecraft.wiki/w/Recipe_book
 class RecipeBook
-  # The recipe list shows this many rows of two recipes. The wheel scrolls
-  # the other rows into view.
+  # The most rows of two recipes that the list shows on a screen. The
+  # wheel scrolls the other rows into view.
   ROWS = 10
 
   def initialize
@@ -149,8 +149,8 @@ class RecipeBook
     out
   end
 
-  # The indexes of the recipes in view: rows rows of the shown recipes
-  # from row top on. The screen gives the list rows rows (at most ROWS).
+  # The indexes of the recipes in view: the shown recipes from row top on,
+  # in the rows that the screen has for the list (at most ROWS).
   def in_view(open, rows)
     all = shown(open)
     view = Array.new(0, 0)
@@ -162,8 +162,8 @@ class RecipeBook
     view
   end
 
-  # Scrolls the list of rows rows by steps rows. The last row does not go
-  # above the bottom of the list.
+  # Scrolls the list by steps rows, in the rows that the screen has for it.
+  # The last row does not go above the bottom of the list.
   def scroll_by(steps, open, rows)
     most = (shown(open).size + 1) / 2 - rows
     @top = (@top + steps).clamp(0, [most, 0].max)

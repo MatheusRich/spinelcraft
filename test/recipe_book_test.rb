@@ -102,6 +102,7 @@ class RecipeBookTest < Minitest::Test
       break if book.shown(TABLE).size.odd? && book.shown(TABLE).size > 4
     end
     shown = book.shown(TABLE)
+    assert_predicate shown.size, :odd?
     book.scroll_by(100, TABLE, 2)
     assert_equal (shown.size + 1) / 2 - 2, book.top
     assert_equal shown[book.top * 2..], book.in_view(TABLE, 2)
