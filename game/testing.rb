@@ -3155,6 +3155,17 @@ class TestGame < Game
     set_block(cx, SKY_Y, cz, Block::AIR)
     check("a chest destroyed while open does not duplicate items", @inv.total(Block::DIAMOND) + ground_count(Block::DIAMOND) == 7 && !current_screen.inventory? && @chests.size == 0)
     @items.clear
+    # The inventory and the chest are full, so the stack in the hand has
+    # no room in either.
+    (0...INV).each { |slot| @inv.set(slot, Block::STONE, 64) }
+    set_block(cx, SKY_Y, cz, Block::CHEST)
+    open_chest(cx, SKY_Y, cz)
+    (0...Chest::SLOTS).each { |slot| @chests.current.slots_for(slot).set(slot, Block::STONE, 64) }
+    @held.set(0, Block::DIAMOND, 5)
+    set_block(cx, SKY_Y, cz, Block::AIR)
+    check("the stack in the hand falls to the ground when an open chest breaks", ground_count(Block::DIAMOND) == 5 && @held.empty?(0) && !current_screen.inventory?)
+    @inv.clear
+    @items.clear
     test_chest_screen
   end
 

@@ -351,12 +351,7 @@ class Game
   def drop_chest(x, y, z)
     @treasure.stock(@chests, x.to_i, y.to_i, z.to_i)
     key = World.key(x, y, z)
-    if @chests.open? && @chests.current.shows?(key)
-      return_held
-      @chests.close
-      show_screen(Screen::PLAYING)
-      Gfx.in_capture(1)
-    end
+    close_inventory if @chests.open? && @chests.current.shows?(key)
     chest = @chests.remove_at(key)
     return if chest.nil? || game_mode.creative?
 
