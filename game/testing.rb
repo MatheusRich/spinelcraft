@@ -433,6 +433,18 @@ class TestGame < Game
     @console.submit("/fly")
     unknown = last_chat_error? && @chat.lines.last == "UNKNOWN COMMAND: FLY"
     check("a bad item, count or command prints an error line", bad_item && bad_count && unknown)
+    # With a full inventory, the rest drops in full stacks, and the other
+    # items on the ground stay.
+    (0...INV).each { |slot| @inv.set(slot, Block::STONE, 64) }
+    @items.clear
+    drop_item(Block::FEATHER, 1, @player.x, @player.y, @player.z, 0.0, 0.0, 0.0, 10.0)
+    @console.submit("/give dirt #{INV * 64}")
+    @console.submit("/give diamond_pickaxe #{INV}")
+    full_stacks = @items.all? { |item| Block.tool?(item.block) || item.count <= 64 } && ground_count(Block::DIRT) == INV * 64
+    @console.submit("/give diamond_pickaxe #{INV + 1}")
+    check("/give drops what does not fit in full stacks, up to a full inventory of the item",
+          full_stacks && ground_count(Block::FEATHER) == 1 && @items.count { |item| item.block == Block::DIAMOND_PICK } == INV && last_chat_error?)
+    @items.clear
     @inv = kept
     @console.submit("/gamemode creative")
     creative = game_mode.creative?

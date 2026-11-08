@@ -160,15 +160,15 @@ class Console
     return @chat.post_error("UNKNOWN ITEM: #{args[0]}") if block < 0
 
     count = args.size == 2 ? Command.whole(args[1]) : 1
-    return @chat.post_error("BAD COUNT: #{args[1]}") if count < 1 || count > Game::INV * Slots::STACK
+    return @chat.post_error("BAD COUNT: #{args[1]}") if count < 1 || count > Game::INV * Slots.per_slot(block)
 
     give_items(block, count)
     @chat.post("GAVE #{count} [#{Block::NAMES[block]}] TO PLAYER")
   end
 
   # In survival the items go to the inventory, and what does not fit drops
-  # at the feet of the player. In creative the item goes to the selected
-  # slot of the hotbar.
+  # at the feet of the player in full stacks. In creative the item goes to
+  # the selected slot of the hotbar.
   def give_items(block, count)
     unless @game.game_mode.survival?
       @game.hotbar[@game.slot] = block
@@ -181,10 +181,11 @@ class Console
     x = player.x.to_f
     y = player.y.to_f
     z = player.z.to_f
-    if Block.tool?(block)
-      left.times { @game.drop_item(block, Block.uses(block), x, y, z, 0.0, 0.0, 0.0, Game::PICKUP_WAIT) }
-    else
-      @game.drop_item(block, left, x, y, z, 0.0, 0.0, 0.0, Game::PICKUP_WAIT)
+    per_slot = Slots.per_slot(block)
+    while left > 0
+      stack = [left, per_slot].min
+      @game.drop_item(block, Block.tool?(block) ? Block.uses(block) : stack, x, y, z, 0.0, 0.0, 0.0, Game::PICKUP_WAIT)
+      left -= stack
     end
     nil
   end

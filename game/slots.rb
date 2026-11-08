@@ -6,6 +6,9 @@ class Slots
 
   attr_reader :size
 
+  # How many of block a slot holds: one tool, or a stack.
+  def self.per_slot(block) = Block.tool?(block) ? 1 : Block.stack(block)
+
   def initialize(size)
     @size = size
     @blocks = Array.new(size, 0)
@@ -51,7 +54,7 @@ class Slots
     room = 0
     (0...@size).each do |i|
       if @counts[i] == 0
-        room += tool ? 1 : Block.stack(block)
+        room += Slots.per_slot(block)
       elsif @blocks[i] == block && !tool
         room += Block.stack(block) - @counts[i]
       end

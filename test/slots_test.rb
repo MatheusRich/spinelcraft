@@ -4,6 +4,12 @@ require_relative "test_helper"
 class SlotsTest < Minitest::Test
   PICK = Block::STONE_PICK
 
+  def test_a_slot_holds_one_tool_or_a_stack
+    assert_equal 1, Slots.per_slot(Block::DIAMOND_PICK)
+    assert_equal 16, Slots.per_slot(Block::EGG)
+    assert_equal Slots::STACK, Slots.per_slot(Block::DIRT)
+  end
+
   def test_a_slot_with_a_count_of_0_is_empty_and_holds_air
     slots = Slots.new(2)
     assert slots.empty?(0)
