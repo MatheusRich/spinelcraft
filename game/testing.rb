@@ -2656,6 +2656,19 @@ class TestGame < Game
     end
     check("the sky shows the moon of the day of the loaded save", moon)
     @clock.time_of_day = time
+    inv = @inv.copy
+    @items.clear
+    (0...INV).each { |slot| @inv.set(slot, Block::STONE, 64) }
+    open_inventory
+    @held.set(0, Block::DIAMOND, 5)
+    save
+    @held.clear
+    @items.clear
+    ok = load
+    apply_loaded if ok
+    check("the save keeps the stack in the hand of a full inventory on the ground", ok && ground_count(Block::DIAMOND) == 5 && current_screen.playing?)
+    @items.clear
+    @inv.load(inv.to_a, 0)
     @player.vitals.health = 0.0
     save
     ok = load

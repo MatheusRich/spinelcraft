@@ -5,8 +5,9 @@ class Game
   BOAT_FIELDS = 5 # item, x, y, z, yaw
 
   def save
-    return_held
-    @chests.close
+    # The window can close while the inventory is open. Then the stack in
+    # the hand that does not fit falls to the ground, so the save keeps it.
+    close_inventory if current_screen.inventory?
     land_falling
     began = Gfx.gfx_ns
     file = Log.measure(Log::SAVE, "sections") { save_sections }
