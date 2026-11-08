@@ -232,7 +232,6 @@ class Game
     @options.read_file if @save_on_quit
     read_option_overrides
     @sound = false
-    @clouds = Clouds.new(@seed, @options.graphics)
     @cloud_drift = 0.0
     @bob = 0.0
     # The half angle of the view in radians. It follows the option and widens in a sprint.
@@ -336,7 +335,6 @@ class Game
     abort "texture upload failed" unless Gfx.gfx_textures(px, Tex::LAYERS)
     @dyn.opaque = Tex.opaque(px)
     abort "skin upload failed" unless Gfx.gfx_skins(Tex.skins, Tex::SKIN_FILES.size)
-    upload_clouds
   end
 
   def init_audio
@@ -410,8 +408,6 @@ class Game
     @items.clear
     @boats.clear
     @riding = -1
-    @clouds = Clouds.new(@seed, @options.graphics)
-    upload_clouds
     @clock.day = 0
     spawn
     respawn

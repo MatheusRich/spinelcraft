@@ -2617,9 +2617,11 @@ class TestGame < Game
     @furnaces.clear
     @clock.day = 0
     @alive_time = 0.0
+    @clouds = Clouds.new(@seed + 1, @options.graphics)
     ok = load
     apply_loaded if ok
     check("the save keeps the day and the time alive", ok && @clock.day == 37 && @alive_time == 1500.0)
+    check("a loaded world has the clouds of its seed", @clouds.pixels == Clouds.new(@seed, @options.graphics).pixels)
     check("save and load round trip", ok && @world.get(x, ground + 1, z) == old && @player.vitals.health == Vitals::MAX_HEALTH && @inv.block(1) == kept_block && @inv.count(1) == kept_count && kept_count > 0 && game_mode.survival?)
     check("the save keeps the worn armor", @armor.slots.block(1) == Block::IRON_CHESTPLATE && @armor.slots.count(1) == 77)
     check("the save keeps the items on the ground and the weather",

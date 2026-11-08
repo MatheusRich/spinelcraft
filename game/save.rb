@@ -88,6 +88,8 @@ class Game
     @lava_fire = LavaFire.new(@world, @changes, Rng.new(@seed * 23 + 11))
     @treasure = Treasure.new(@world.treasure_map, @seed)
     @falling = FallingBlocks.new(@world)
+    @clouds = Clouds.new(@seed, @options.graphics)
+    upload_clouds
   end
 
 
