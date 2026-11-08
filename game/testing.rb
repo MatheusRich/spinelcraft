@@ -297,6 +297,7 @@ class TestGame < Game
     test_swim_out
     test_swing_at_air
     test_bow_draw_image
+    test_held_item_in_a_herd
     test_pause
     test_screens
     test_screen_input
@@ -1468,6 +1469,25 @@ class TestGame < Game
     @screen = shown
     @hand_action.stop
     @held_item.change(hand)
+  end
+
+  # A herd in view fills the buffer of the parts that change each frame,
+  # and the held item still draws.
+  def test_held_item_in_a_herd
+    shown = @screen
+    show_screen(Screen::PLAYING)
+    herd = 800
+    ahead_x = @player.x + @player.fx * 4.0
+    ahead_z = @player.z + @player.fz * 4.0
+    herd.times { |i| @mobs << Animal.new(Mob::SHEEP, ahead_x, @player.y.to_f, ahead_z, i) }
+    @camera.update_camera(@player.x, @player.eye_y, @player.z, @player.yaw, @player.pitch, 16.0 / 9.0, 300.0, @fov)
+    build_dyn(@player.x, @player.eye_y, @player.z, @options.view + 4.0)
+    Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_count)
+    check("a herd that fills the buffer of moving parts leaves the held item on screen",
+          @dyn.count > Gfx.gfx_limit(6) * DYN_FLOATS && Gfx.gfx_hand_vertices > 0)
+    herd.times { @mobs.pop }
+    @dyn.clear
+    @screen = shown
   end
 
   # The sum of the coordinates of the first vertex of the held model.

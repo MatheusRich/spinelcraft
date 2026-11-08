@@ -19,7 +19,7 @@ class Game
     reach = @options.view + 4.0
     cull_view(reach)
     build_dyn(ex, ey, ez, reach)
-    Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_at)
+    Gfx.gfx_dyn(@dyn.v, @dyn.count, @hand_count)
     build_ui(w, h)
     Gfx.gfx_ui(@ui.v, @ui.v.size)
     @sky.build_sky(w, h, ui_scale(h))
@@ -86,10 +86,14 @@ class Game
     @far.cull_tiles(@camera, @options.view, reach, @uniforms, 28)
   end
 
-  # Fills @dyn with the parts that change every frame: mobs, arrows, items,
-  # particles, the block outline, the cracks, and last the held model.
+  # Fills @dyn with the parts that change every frame: first the held
+  # model, then mobs, arrows, items, particles, the block outline and the
+  # cracks. Past the limit of the buffer (gfx_dyn), the last parts do not
+  # draw, and the held model stays.
   def build_dyn(ex, ey, ez, reach) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
     @dyn.clear
+    draw_hand(ex, ey, ez)
+    @hand_count = @dyn.count
     @mobs.each do |m|
       # 2 blocks around the feet also hold a mob that lies on its side.
       m.draw(@dyn) if entity_in_view?(m.x.to_f, m.y.to_f, m.z.to_f, 2.0, ex, ez, reach)
@@ -136,8 +140,7 @@ class Game
         @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, Color::WHITE)
       end
     end
-    @hand_at = @dyn.count
-    draw_hand(ex, ey, ez)
+    nil
   end
 
   # Adds the held item to @dyn, in the frame of the eye at ex, ey, ez.

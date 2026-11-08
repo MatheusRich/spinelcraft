@@ -83,8 +83,10 @@ module Gfx
     static SDL_GPUBuffer *dyn_buf, *ui_buf, *sky_buf;
     static SDL_GPUTransferBuffer *dyn_tb, *ui_tb, *sky_tb;
     static Uint32 dyn_count, ui_count, sky_count;
-    /* The dynamic vertices from hand_first on are the held item. */
-    static Uint32 hand_first;
+    /* The dynamic vertices before hand_count are the held item. It comes
+       first, so a frame with more than DYN_CAP vertices cuts the rest of
+       the world and keeps the held item. */
+    static Uint32 hand_count;
     #define SKY_CAP 8192
     /* The cloud boxes change only when the player's cloud cell changes. */
     #define CLOUD_CAP (1 << 17)
@@ -836,12 +838,13 @@ module Gfx
       return (Uint32)n;
     }
 
-    /* The floats from hand_floats on are the held item (see gfx_draw_hand). */
+    /* The floats before hand_floats are the held item (see gfx_draw_hand). */
     long gfx_dyn(const double *v, long nfloats, long hand_floats) {
       dyn_count = stage_floats(dyn_tb, v, nfloats, DYN_CAP * DYN_FLOATS) / DYN_FLOATS;
-      hand_first = hand_floats / DYN_FLOATS < dyn_count ? (Uint32)(hand_floats / DYN_FLOATS) : dyn_count;
+      hand_count = hand_floats / DYN_FLOATS < dyn_count ? (Uint32)(hand_floats / DYN_FLOATS) : dyn_count;
       return 0;
     }
+    long gfx_hand_vertices(void) { return hand_count; }
     long gfx_ui(const double *v, long nfloats) { ui_count = stage_floats(ui_tb, v, nfloats, UI_CAP * 9) / 9; return 0; }
     long gfx_sky(const double *v, long nfloats) { sky_count = stage_floats(sky_tb, v, nfloats, SKY_CAP * 9) / 9; return 0; }
     long gfx_cloud_boxes(const double *v, long nfloats) {
@@ -1017,11 +1020,11 @@ module Gfx
     }
 
     long gfx_draw_dyn(void) {
-      if (!pass || !hand_first) return 0;
+      if (!pass || dyn_count <= hand_count) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_dyn);
       SDL_GPUTextureSamplerBinding tsb[2] = {{.texture = atlas, .sampler = sampler}, {.texture = skins, .sampler = sampler}};
       SDL_BindGPUFragmentSamplers(pass, 0, tsb, 2);
-      draw_buffer(dyn_buf, 0, hand_first);
+      draw_buffer(dyn_buf, hand_count, dyn_count - hand_count);
       return 0;
     }
 
@@ -1035,11 +1038,11 @@ module Gfx
 
     /* The held item, after everything else in the world. */
     long gfx_draw_hand(void) {
-      if (!pass || dyn_count <= hand_first) return 0;
+      if (!pass || !hand_count) return 0;
       SDL_BindGPUGraphicsPipeline(pass, p_hand);
       SDL_GPUTextureSamplerBinding tsb[2] = {{.texture = atlas, .sampler = sampler}, {.texture = skins, .sampler = sampler}};
       SDL_BindGPUFragmentSamplers(pass, 0, tsb, 2);
-      draw_buffer(dyn_buf, hand_first, dyn_count - hand_first);
+      draw_buffer(dyn_buf, 0, hand_count);
       return 0;
     }
 
@@ -1612,7 +1615,7 @@ module Gfx
     void gfx_fullscreen(long on) { SDL_SetWindowFullscreen(win, on != 0); }
     /* 0: far terrain levels, 1: ring width in columns, 2: GPU mesh slots, 3: uniforms, 4: the tint map size. */
     long gfx_limit(long which) {
-      return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : (which == 3 ? UNIFORMS : (which == 4 ? TINT_SIZE : SOUNDS))));
+      return which == 0 ? LEVELS : (which == 1 ? COLUMNS : (which == 2 ? MAX_SLOTS : (which == 3 ? UNIFORMS : (which == 4 ? TINT_SIZE : (which == 5 ? SOUNDS : DYN_CAP)))));
     }
   C
   ffi_func :gfx_init, [:long, :long, :long, :long], :bool
@@ -1623,6 +1626,7 @@ module Gfx
   ffi_func :gfx_clouds, [:int_array, :long], :bool
   ffi_func :gfx_mesh, [:long, :int_array, :long, :int_array], :long
   ffi_func :gfx_dyn, [:float_array, :long, :long], :long
+  ffi_func :gfx_hand_vertices, [], :long
   ffi_func :gfx_ui, [:float_array, :long], :long
   ffi_func :gfx_sky, [:float_array, :long], :long
   ffi_func :gfx_cloud_boxes, [:float_array, :long], :long
