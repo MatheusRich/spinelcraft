@@ -33,6 +33,7 @@ require_relative "game/burning"
 require_relative "game/vitals"
 require_relative "game/game_mode"
 require_relative "game/melee_attack"
+require_relative "game/hand_action"
 require_relative "game/screen"
 require_relative "game/camera"
 require_relative "game/color"
@@ -248,16 +249,8 @@ class Game
     @riding = -1
     # The boat in the crosshair (Game#find_targets), or -1.
     @target_boat = -1
-    @draw_time = -1.0
-    @eat_time = -1.0
+    @hand_action = HandAction.new
     @damage_flash = 0.0
-    @mining = false
-    @mine_x = 0
-    @mine_y = 0
-    @mine_z = 0
-    @mine_progress = 0.0
-    @dig_wait = 0.0
-    @mine_delay = 0.0
     @mobs = []
     # The cave sounds (update_cave_sound): seconds to the next check, and
     # the fear that the darkness built up.
@@ -540,7 +533,7 @@ class Game
   end
 
   def move_player(dt)
-    @player.slowed = using_item?
+    @player.slowed = @hand_action.using_item?
     # Shift gets out of a boat. minecraft.wiki/w/Boat
     leave_boat if riding? && @player.controls.sneak
     remaining = riding? || @player.in_bed? ? 0.0 : dt
@@ -676,7 +669,7 @@ class Game
 
   # A hungry player cannot sprint in survival, nor a player who eats or
   # draws the bow.
-  def may_sprint? = (game_mode.creative? || @player.vitals.can_sprint?) && !using_item?
+  def may_sprint? = (game_mode.creative? || @player.vitals.can_sprint?) && !@hand_action.using_item?
 
   # A second press of jump within FLY_TAP starts or stops flying in
   # creative, as in Minecraft. A third press starts a new double press.
@@ -725,8 +718,11 @@ class Game
   # The screen that the player sees now.
   def current_screen = @screen
 
+  # A new screen ends what the hand did, so a drawn bow does not shoot
+  # when the player comes back.
   def show_screen(id)
     @screen = Screen.new(id)
+    @hand_action.stop
   end
 
   # A cave sound now and then below the sea level, as in VoxeLibre
@@ -798,15 +794,12 @@ class Game
     -1
   end
 
-  # True while the player eats or draws the bow.
-  def using_item? = @eat_time >= 0.0 || @draw_time >= 0.0
-
-  # A new item in the hand starts a new attack cooldown and ends a meal. The
-  # sway of the held item follows the walk speed.
+  # A new item in the hand starts a new attack cooldown, and ends a meal or
+  # a draw of the bow. The sway of the held item follows the walk speed.
   def update_hand(dt)
     if @held_item.change(current_block.to_i)
       @player.melee_attack.restart
-      @eat_time = -1.0
+      @hand_action.stop_using_item
     end
     p = @player
     walk = p.on_ground && !p.flying ? (Math.sqrt(p.vx * p.vx + p.vz * p.vz) / 4.3).clamp(0.0, 1.0) : 0.0

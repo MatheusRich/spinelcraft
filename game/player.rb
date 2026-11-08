@@ -40,7 +40,7 @@ class Player
   # True when the feet are in lava. in_water is true then too, because the
   # player moves the same way in both.
   attr_reader :in_lava
-  # True while the player eats or draws the bow (Game#using_item?). The
+  # True while the player eats or draws the bow (HandAction#using_item?). The
   # player then moves at sneaking speed and cannot sprint.
   attr_writer :slowed
   # True when the last step started a jump.

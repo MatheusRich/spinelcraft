@@ -77,8 +77,15 @@ class Game
       @hotbar[@slot] = picked if picked != Block::BEDROCK
       say(Block::NAMES[@hotbar[@slot]])
     end
-    left_button(dt, left, left_pressed)
+    use_buttons(dt, left, right)
+  end
+
+  # The right button goes first: eating and the bow win over the left
+  # button, as in Java Edition. The wiki does not say so.
+  def use_buttons(dt, left, right)
     right_button(dt, right)
+    left_button(dt, left, Gfx.in_button_pressed(1)) unless @hand_action.using_item?
+    nil
   end
 
   # Number keys and the wheel.
@@ -181,17 +188,17 @@ class Game
   def left_button(dt, held, pressed)
     if held && mob_in_view?
       attack_mob(viewed_mob) if pressed
-      @mining = false
+      @hand_action.stop
     elsif held && boat_in_view?
       hit_boat(@target_boat) if pressed
-      @mining = false
+      @hand_action.stop
     elsif pressed && fire_in_front?
       put_out_fire
     elsif held && @target_block.hit?
       break_target(dt)
     else
       swing_at_air if pressed
-      @mining = false
+      @hand_action.stop
     end
   end
 
@@ -248,25 +255,22 @@ class Game
     ready = held && @action_cooldown <= 0.0
     target = viewed_block
     if target_click?
-      @eat_time = -1.0
-      @draw_time = -1.0
+      @hand_action.stop_using_item
       click_target if ready
     elsif edible? && !usable?(target)
       if held
         chew(dt)
       else
-        @eat_time = -1.0
+        @hand_action.stop_using_item
       end
     elsif bow_click?(target)
-      @eat_time = -1.0
       if held
-        draw_bow(dt)
+        @hand_action.draw_bow(dt)
       else
         release_bow
       end
     else
-      @eat_time = -1.0
-      @draw_time = -1.0
+      @hand_action.stop_using_item
       use_block(target) if ready
     end
   end
@@ -312,18 +316,10 @@ class Game
   # True when the click draws the bow, not when it uses the block in view.
   def bow_click?(target) = current_block == Block::BOW && !usable?(target)
 
-  # Adds dt seconds to the draw time of the bow.
-  def draw_bow(dt)
-    @draw_time = 0.0 if @draw_time < 0.0
-    @draw_time += dt
-  end
-
   # Shoots the arrow when the player lets the button go and the bow is drawn.
   def release_bow
-    return if @draw_time < 0.0
-
-    shoot_bow(@draw_time)
-    @draw_time = -1.0
+    shoot_bow(@hand_action.draw_seconds) if @hand_action.drawing?
+    @hand_action.stop_using_item
   end
 
   # The click acts on the block in view, or on the item in the hand.
@@ -519,54 +515,24 @@ class Game
     end
   end
 
-  # Seconds before the next block starts to break, after a block that did
-  # not break at once: 6 ticks. minecraft.wiki/w/Breaking
-  MINE_DELAY = 0.3
-
   # As in Minecraft, a block takes 1.5 seconds for each point of hardness,
   # divided by the speed of the tool. Without the pickaxe tier that the
   # block needs, it takes 5 seconds for each point and drops nothing. It
   # takes 5 times as long with the head under water, and again 5 times as
   # long off the ground. minecraft.wiki/w/Breaking
   def mine(dt)
-    @mine_delay -= dt
-    return if @mine_delay > 0.0
+    return unless @hand_action.pause_over?(dt)
 
-    start_mining unless mining_target?
+    @hand_action.mine_block(World.key(@target_block.x, @target_block.y, @target_block.z))
     block = targeted_block
     hardness = Block::HARDNESS[block]
     return if hardness < 0.0
 
-    play_dig_sound(block, hardness, dt)
+    @sfx.play(BlockSound.dig(block), 0.55) if hardness > 0.0 && @hand_action.dig_sound_due?(dt)
     # A held button swings again when the last swing ends.
     @swing = SWING if @swing <= 0.0
-    @mine_progress += mine_rate(block, hardness, dt)
-    finish_mining(block) if @mine_progress >= 1.0
-  end
-
-  # True when the player keeps on mining the block that the last step mined.
-  def mining_target?
-    @mining && @target_block.x == @mine_x && @target_block.y == @mine_y && @target_block.z == @mine_z
-  end
-
-  # Starts to mine the block in view, with no progress.
-  def start_mining
-    @mining = true
-    @mine_x = @target_block.x
-    @mine_y = @target_block.y
-    @mine_z = @target_block.z
-    @mine_progress = 0.0
-    @dig_wait = 0.0
-  end
-
-  # Plays the dig sound of block every 0.25 seconds while the player mines it.
-  def play_dig_sound(block, hardness, dt)
-    @dig_wait -= dt
-    return unless @dig_wait <= 0.0
-    return unless hardness > 0.0
-
-    @sfx.play(BlockSound.dig(block), 0.55)
-    @dig_wait = 0.25
+    @hand_action.break_more(mine_rate(block, hardness, dt))
+    finish_mining(block) if @hand_action.broken?
   end
 
   # The part of block that dt seconds of mining break.
@@ -595,12 +561,10 @@ class Game
     set_block(x, y, z, Block::AIR)
     @player.melee_attack.restart
     drop_broken(block, x, y, z, tool) if harvests?(tool, block)
-    if Block::HARDNESS[block] > 0.0
-      wear_tool(Block.wear(tool, false))
-      @mine_delay = MINE_DELAY
-    end
+    hardness = Block::HARDNESS[block]
+    wear_tool(Block.wear(tool, false)) if hardness > 0.0
     @player.vitals.exhaust(Vitals::MINE_COST)
-    @mining = false
+    @hand_action.finish_block(hardness)
   end
 
   def use_bed(x, y, z)
@@ -726,15 +690,16 @@ class Game
     base == Block::CHEST || base == Block::CRAFTING_TABLE || base == Block::FURNACE || Block.bed?(block) || Block.door?(block)
   end
 
-  # dt more seconds of eating. After CHEW_START, each CHEW_EVERY plays a
-  # bite and throws crumbs of the food. At EAT_TIME the player eats it.
+  # dt more seconds of eating. A bite plays a sound and throws crumbs of
+  # the food, and the last step eats it.
   def chew(dt)
-    before = @eat_time < 0.0 ? 0.0 : @eat_time
-    @eat_time = before + dt
-    if @eat_time >= EAT_TIME
+    step = @hand_action.chew(dt)
+    if step == HandAction::SWALLOW
       eat
-      @eat_time = -1.0
-    elsif @eat_time >= CHEW_START && ((@eat_time - CHEW_START) / CHEW_EVERY).floor != ((before - CHEW_START) / CHEW_EVERY).floor
+      # The next meal starts in the same step, as in Java Edition, so the
+      # left button does not mine between two meals.
+      @hand_action.chew(0.0) if edible?
+    elsif step == HandAction::BITE
       milk = current_block == Block::MILK_BUCKET
       @sfx.play(milk ? Sfx::DRINK : Sfx::EAT, 0.5)
       @particles.shatter(@player, current_block.to_i) unless milk

@@ -140,13 +140,13 @@ class HeldItem
   # bite. As in Minecraft (ItemInHandRenderer.applyEatTransform, not on the
   # wiki).
   def lift_food(eat_time)
-    lift = 1.0 - (1.0 - eat_time / Game::EAT_TIME)**27
+    lift = 1.0 - (1.0 - eat_time / HandAction::EAT_TIME)**27
     @ox -= lift * 0.36
     @oy += lift * 0.12
     @oz += lift * 0.1
     @yaw += lift * 0.8
     @roll += lift * 0.3
-    @oy += (Math.cos(eat_time / Game::CHEW_EVERY * Math::PI) * 0.04).abs if eat_time >= Game::CHEW_START
+    @oy += (Math.cos(eat_time / HandAction::CHEW_EVERY * Math::PI) * 0.04).abs if eat_time >= HandAction::CHEW_START
   end
 
   # Fills @frame: the turn (roll around back, then yaw around up, then

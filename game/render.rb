@@ -125,12 +125,13 @@ class Game
       k = pixels * Math.tan(@fov.to_f) / h
       @dyn.outline(@target_block.x + Block.box_dx(aimed), @target_block.y + Block.box_dy(aimed), @target_block.z + Block.box_dz(aimed), Block.box_hx(aimed), Block.box_hz(aimed), Block.box_top(aimed),
                    ex, ey, ez, fx, fy, fz, k)
-      if @mining && @mine_progress > 0.0
+      if @hand_action.mining? && @hand_action.mining_progress > 0.0
         e = 0.003
-        x = @mine_x.to_f
-        y = @mine_y.to_f
-        z = @mine_z.to_f
-        stage = (@mine_progress * Tex::CRACK_STAGES).to_i
+        mined = @hand_action.mined_key
+        x = World.key_x(mined).to_f
+        y = World.key_y(mined).to_f
+        z = World.key_z(mined).to_f
+        stage = (@hand_action.mining_progress * Tex::CRACK_STAGES).to_i
         stage = Tex::CRACK_STAGES - 1 if stage >= Tex::CRACK_STAGES
         @dyn.aabb(x - e, y - e, z - e, x + 1.0 + e, y + 1.0 + e, z + 1.0 + e, Tex::CRACK + stage, Color::WHITE)
       end
@@ -144,7 +145,7 @@ class Game
     return unless current_screen.in_game?
     return if @player.in_bed?
 
-    @held_item.place(@dyn, @player, ex, ey, ez, @fov, @swing / SWING, @draw_time, @eat_time)
+    @held_item.place(@dyn, @player, ex, ey, ez, @fov, @swing / SWING, @hand_action.draw_seconds, @hand_action.eat_seconds)
   end
 
   # A beam of gold light from the top of each treasure chest that is not

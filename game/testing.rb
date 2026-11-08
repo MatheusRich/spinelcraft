@@ -282,6 +282,7 @@ class TestGame < Game
     test_graze_rate
     test_breeding
     test_right_click_boat
+    test_one_hand_action
     test_push
     test_far_items
     test_treasure
@@ -1280,11 +1281,11 @@ class TestGame < Game
     (0..30).each { |d| set_block(x, y, z - d, Block::AIR) }
     @player.slowed = false
     restore_pose
-    @draw_time = 0.5
-    bow = using_item?
-    @draw_time = -1.0
+    @hand_action.draw_bow(0.5)
+    bow = @hand_action.using_item?
+    @hand_action.stop
     check("a player who eats or draws the bow walks at sneaking speed, not a sprint",
-          speeds[0] > 5.0 && speeds[1] < 1.5 && bow && !using_item?)
+          speeds[0] > 5.0 && speeds[1] < 1.5 && bow && !@hand_action.using_item?)
   end
 
   # The player swims in lava as in water, but only water counts for the
@@ -1429,12 +1430,12 @@ class TestGame < Game
   # player draws it.
   def test_bow_draw_image
     hand = @held_item.block
-    draw = @draw_time
     shown = @screen
     show_screen(Screen::PLAYING)
     @held_item.change(Block::BOW)
     layers = [-1.0, 0.0, 0.7, 0.95].map do |time|
-      @draw_time = time
+      @hand_action.stop
+      @hand_action.draw_bow(time) if time >= 0.0
       hand_corner
       @dyn.v[5].to_i
     end
@@ -1442,7 +1443,7 @@ class TestGame < Game
           layers[0] == Tex::BOW && layers[1] == Tex::BOW_PULLING && layers[2] == Tex::BOW_PULLING + 1 && layers[3] == Tex::BOW_PULLING + 2)
     @dyn.clear
     @screen = shown
-    @draw_time = draw
+    @hand_action.stop
     @held_item.change(hand)
   end
 
@@ -1724,8 +1725,7 @@ class TestGame < Game
     leaves_shears = 0
     20.times do
       set_block(x, ground + 1, z, Block::OAK_LEAVES)
-      @mining = false
-      @mine_delay = 0.0
+      @hand_action = HandAction.new
       n = 0
       while n < 20 && @world.get(x, ground + 1, z) == Block::OAK_LEAVES
         @target_block.trace(@world, @player)
@@ -1807,8 +1807,7 @@ class TestGame < Game
     @inv.set(8, tool, tool == Block::AIR ? 0 : Block.uses(tool))
     @slot = 8
     set_block(x, y, z, block)
-    @mining = false
-    @mine_delay = 0.0
+    @hand_action = HandAction.new
     n = 0
     while n < 400 && @world.get(x, y, z) == block
       @target_block.trace(@world, @player)
@@ -3776,9 +3775,9 @@ class TestGame < Game
       set_block(x, y, z, block)
       aim_down(x, y, z)
       @action_cooldown = 0.0
-      @draw_time = -1.0
+      @hand_action.stop
       right_button(0.05, true)
-      open = current_screen.inventory? && @station != Recipe::BY_HAND && @draw_time < 0.0
+      open = current_screen.inventory? && @station != Recipe::BY_HAND && !@hand_action.drawing?
       toggle_inventory if current_screen.inventory?
       open
     end
@@ -4478,7 +4477,7 @@ class TestGame < Game
     @game_mode = GameMode::SURVIVAL
     @player.revive
     @player.vitals.give_hunger_effect
-    @eat_time = -1.0
+    @hand_action.stop
     34.times { right_button(0.05, true) }
     right_button(0.05, false)
     check("a bucket milks a cow, and the milk ends the Hunger effect", milked && !@player.vitals.hunger_effect? && @inv.block(0) == Block::BUCKET)
@@ -5035,24 +5034,113 @@ class TestGame < Game
   end
 
   # A boat in view takes the right click: the player gets in once the
-  # cooldown is over, and a click on the boat stops the eating and the
-  # drawing of the bow.
+  # cooldown is over, and a click on the boat stops the drawing of the bow.
   def test_right_click_boat
     @boats.clear
     @riding = -1
     @boats << Boat.new(Block::OAK_BOAT, @player.x.to_f + 1.0, @player.y.to_f, @player.z.to_f, 0.0)
     @target_boat = 0
-    @eat_time = 0.5
-    @draw_time = 0.5
+    @hand_action.draw_bow(0.5)
     @action_cooldown = 0.1
     right_button(0.05, true)
-    waited = !riding? && @eat_time < 0.0 && @draw_time < 0.0
+    waited = !riding? && !@hand_action.using_item?
     @action_cooldown = 0.0
     right_button(0.05, true)
     check("the right click gets the player in a boat in view after the cooldown", waited && @riding == 0)
     @riding = -1
     @boats.clear
     @target_boat = -1
+  end
+
+  # The hand does one thing at a time. With both buttons held, eating and
+  # the bow win over mining, as in Java Edition. A drawn bow that the
+  # player puts away shoots no arrow later.
+  def test_one_hand_action
+    x = @spawn_x.floor + 20
+    z = @spawn_z.floor + 20
+    y = SKY_Y - 4
+    was = game_mode
+    @game_mode = GameMode::SURVIVAL
+    @mobs.clear
+    @target_mob = -1
+    @target_boat = -1
+    @player.revive
+    @player.vitals.hunger = 5
+    @inv.clear
+    @inv.set(0, Block::COOKED_PORKCHOP, 2)
+    @inv.set(1, Block::BOW, Block.uses(Block::BOW))
+    @inv.set(2, Block::ARROW, 8)
+    (1..4).each { |above| set_block(x, y + above, z, Block::AIR) }
+    hunger = @player.vitals.hunger
+    arrows = @inv.total(Block::ARROW)
+    mined = [[0, true], [1, true], [0, false]].map do |slot, right|
+      @slot = slot
+      update_hand(0.0)
+      set_block(x, y, z, Block::DIRT)
+      aim_down(x, y, z)
+      @player.on_ground = true
+      @hand_action = HandAction.new
+      @swing = 0.0
+      40.times { use_buttons(0.05, true, right) }
+      swung = @swing > 0.0
+      use_buttons(0.05, false, false)
+      [@world.get(x, y, z) != Block::DIRT, swung]
+    end
+    fed = @player.vitals.hunger > hunger
+    shot = @inv.total(Block::ARROW) == arrows - 1
+    check("with both buttons held, the player eats and draws the bow instead of mining", mined == [[false, false], [false, false], [true, true]] && fed && shot)
+    @slot = 2
+    update_hand(0.0)
+    set_block(x, y, z, Block::DIRT)
+    aim_down(x, y, z)
+    shown = @screen
+    show_screen(Screen::PLAYING)
+    @hand_action = HandAction.new
+    8.times { use_buttons(0.05, true, false) }
+    cracked = crack_at?(x, y, z)
+    use_buttons(0.05, false, false)
+    healed = !crack_at?(x, y, z)
+    @screen = shown
+    check("a block that the player mines shows cracks, and they go when the button goes up", cracked && healed)
+    set_block(x, y, z, Block::AIR)
+    @target_block.trace(@world, @player)
+    @slot = 1
+    update_hand(0.0)
+    10.times { right_button(0.05, true) }
+    @slot = 0
+    update_hand(0.0)
+    right_button(0.05, false)
+    @slot = 1
+    update_hand(0.0)
+    arrows = @inv.total(Block::ARROW)
+    right_button(0.05, false)
+    check("a drawn bow that the player puts away shoots no arrow later", @inv.total(Block::ARROW) == arrows)
+    shown = @screen
+    10.times { right_button(0.05, true) }
+    show_screen(Screen::PAUSED)
+    show_screen(Screen::PLAYING)
+    right_button(0.05, false)
+    @screen = shown
+    check("a bow drawn before a pause shoots no arrow after it", @inv.total(Block::ARROW) == arrows)
+    @arrows.clear
+    @inv.clear
+    @slot = 0
+    @player.revive
+    @game_mode = was
+  end
+
+  # The floats of one vertex of @dyn (Mesh3#vert, DYN_FLOATS in gfx.rb).
+  DYN_FLOATS = 11
+
+  # True when the frame shows a crack on the block at x, y, z.
+  def crack_at?(x, y, z)
+    build_dyn(@player.x.to_f, @player.eye_y.to_f, @player.z.to_f, @options.view + 4.0)
+    vertices = @dyn.v
+    (0...vertices.size).step(DYN_FLOATS).any? do |at|
+      layer = vertices[at + 5].to_i
+      layer >= Tex::CRACK && layer < Tex::CRACK + Tex::CRACK_STAGES &&
+        (vertices[at] - x - 0.5).abs < 0.6 && (vertices[at + 1] - y - 0.5).abs < 0.6 && (vertices[at + 2] - z - 0.5).abs < 0.6
+    end
   end
 
   # Puts the mob m back on the floor at x, z.

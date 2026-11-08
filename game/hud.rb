@@ -78,8 +78,8 @@ class Game
     # crosshair
     @ui.rect(w / 2.0 - 9.0 * s, h / 2.0 - 1.0 * s, 18.0 * s, 2.0 * s, Ui::CROSSHAIR)
     @ui.rect(w / 2.0 - 1.0 * s, h / 2.0 - 9.0 * s, 2.0 * s, 18.0 * s, Ui::CROSSHAIR)
-    if @draw_time >= 0.0
-      pull = @draw_time > 1.0 ? 1.0 : @draw_time
+    if @hand_action.drawing?
+      pull = [@hand_action.draw_seconds, 1.0].min
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s, 4.0 * s, Ui::BAR_BACKDROP)
       @ui.rect(w / 2.0 - 20.0 * s, h / 2.0 + 16.0 * s, 40.0 * s * pull, 4.0 * s, Color.new(1.0, pull, 0.2, 0.9))
     elsif game_mode.survival? && @player.melee_attack.charge(current_block.to_i) < 1.0

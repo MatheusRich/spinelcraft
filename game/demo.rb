@@ -58,7 +58,7 @@ class Game
 
   # Sets up the place of the scene that starts.
   def stage_scene
-    @mining = false
+    @hand_action.stop
     @demo_left = false
     # Only the mobs of the scene, so that no other mob walks into the view.
     @mobs.clear
