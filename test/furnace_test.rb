@@ -2,6 +2,8 @@ require_relative "test_helper"
 
 # A furnace burns fuel to smelt its input, one tick at a time.
 class FurnaceTest < Minitest::Test
+  SMELTS = { Block::IRON => Block::IRON_INGOT, Block::SAND => Block::GLASS }.freeze
+
   def test_planks_and_logs_burn_for_15_seconds_and_coal_for_80
     assert_equal 300, Furnace.fuel_ticks(Block::OAK_PLANKS)
     assert_equal 300, Furnace.fuel_ticks(Block::BIRCH_LOG)
@@ -21,6 +23,23 @@ class FurnaceTest < Minitest::Test
     tick(furnace, 1)
     assert_equal 1, furnace.slots.count(Furnace::INPUT)
     assert_equal Block::IRON_INGOT, furnace.slots.block(Furnace::OUTPUT)
+    assert_equal 1, furnace.slots.count(Furnace::OUTPUT)
+  end
+
+  def test_a_different_item_in_the_input_starts_with_no_progress
+    furnace = loaded(Block::IRON, 1, Block::COAL, 1)
+    tick(furnace, 199)
+    furnace.slots.set(Furnace::INPUT, Block::SAND, 1)
+    tick(furnace, 1)
+    assert furnace.slots.empty?(Furnace::OUTPUT)
+    assert_equal 1, furnace.progress
+  end
+
+  def test_more_of_the_same_item_in_the_input_keeps_the_progress
+    furnace = loaded(Block::IRON, 1, Block::COAL, 1)
+    tick(furnace, 100)
+    furnace.slots.set(Furnace::INPUT, Block::IRON, 5)
+    tick(furnace, 100)
     assert_equal 1, furnace.slots.count(Furnace::OUTPUT)
   end
 
@@ -158,7 +177,7 @@ class FurnaceTest < Minitest::Test
   # of the item in its fuel slot.
   def tick(furnace, ticks)
     ticks.times do
-      out = furnace.slots.block(Furnace::INPUT) == Block::IRON ? Block::IRON_INGOT : 0
+      out = SMELTS.fetch(furnace.slots.block(Furnace::INPUT), 0)
       furnace.tick(out, out == 0 ? 0 : 1, Furnace.fuel_ticks(furnace.slots.block(Furnace::FUEL)))
     end
   end

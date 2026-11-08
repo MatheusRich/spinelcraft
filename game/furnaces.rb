@@ -86,8 +86,8 @@ class Furnaces
       furnace = Furnace.new(x, y, z)
       furnace.burn = fields[at + 3].to_i
       furnace.burn_total = fields[at + 4].to_i
-      furnace.progress = fields[at + 5].to_i
       furnace.slots.load(fields, at + 6)
+      furnace.progress = fields[at + 5].to_i
       @furnaces[World.key(x, y, z)] = furnace
       at += FIELDS
     end

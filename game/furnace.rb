@@ -20,10 +20,10 @@ class Furnace
   # Furnace ticks in a second, as in Minecraft.
   TICKS_PER_SECOND = 20
 
-  attr_reader :x, :y, :z, :slots
-  # The ticks of burn time left on the fuel item that burns, the burn time
-  # of that whole item, and the ticks of progress on the item that smelts.
-  attr_accessor :burn, :burn_total, :progress
+  attr_reader :x, :y, :z, :slots, :progress
+  # The ticks of burn time left on the fuel item that burns, and the burn
+  # time of that whole item.
+  attr_accessor :burn, :burn_total
 
   # The ticks of burn time of one block, or 0 when block is not a fuel.
   def self.fuel_ticks(block)
@@ -41,6 +41,13 @@ class Furnace
     @burn = 0
     @burn_total = 0
     @progress = 0
+    @smelting = Block::AIR
+  end
+
+  # The ticks of progress on the item in the input slot.
+  def progress=(ticks)
+    @progress = ticks
+    @smelting = @slots.block(INPUT)
   end
 
   def lit? = @burn > 0
@@ -55,6 +62,7 @@ class Furnace
   # only when there is something to smelt.
   def tick(out, out_n, fuel)
     @burn -= 1 if @burn > 0
+    restart_for_new_input
     has_fuel = fuel > 0 && !@slots.empty?(FUEL)
     if lit? || (has_fuel && !@slots.empty?(INPUT))
       can = out > 0 && !@slots.empty?(INPUT) && fits?(out, out_n)
@@ -77,6 +85,12 @@ class Furnace
       @progress -= COOL_TICKS
       @progress = 0 if @progress < 0
     end
+  end
+
+  # Another item in the input starts with no progress, as in Java Edition
+  # (AbstractFurnaceBlockEntity.setItem). The wiki does not confirm it.
+  def restart_for_new_input
+    self.progress = 0 if @slots.block(INPUT) != @smelting
   end
 
   # True when n of block fit in the output slot.

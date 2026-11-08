@@ -114,6 +114,8 @@ class FurnacesTest < Minitest::Test
     assert_equal [hot.burn, hot.burn_total, hot.progress, hot.slots.to_a],
                  [furnace.burn, furnace.burn_total, furnace.progress, furnace.slots.to_a]
     assert_equal [3, SKY_Y, 4], [furnace.x, furnace.y, furnace.z]
+    loaded.smelt(0.05, @world, @book, @changes)
+    assert_equal hot.progress + 1, furnace.progress
   end
 
   private
