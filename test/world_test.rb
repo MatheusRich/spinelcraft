@@ -72,12 +72,13 @@ class WorldTest < Minitest::Test
   # A mob can spawn a little past the border. It does not jump back, and
   # it does not go farther out.
   def test_a_thing_past_the_world_border_stays_or_comes_back_and_goes_no_farther
+    world = world_with_one_chunk
     past = World::BORDER + 50.0
-    assert_equal past, World.border_stop(past, past)
-    assert_equal past, World.border_stop(past, past + 1.0)
-    assert_equal past - 1.0, World.border_stop(past, past - 1.0)
-    assert_equal(-past, World.border_stop(-past, -past - 1.0))
-    assert_equal 5.0, World.border_stop(4.0, 5.0)
+    move = ->(from, distance) { world.collide(from, SKY_Y.to_f, 8.5, 0.3, 1.8, 0, distance) }
+    assert_equal past, move.call(past, 0.0)
+    assert_equal past, move.call(past, 1.0)
+    assert_equal past - 1.0, move.call(past, -1.0)
+    assert_equal(-past, world.collide(8.5, SKY_Y.to_f, -past, 0.3, 1.8, 2, -1.0))
   end
 
   # Mobs, items and chunks reach some way past the border, and each cell

@@ -45,11 +45,7 @@ class World
   # Where a move along x or z from from to to ends: it stops at the world
   # border as at a wall, and a thing that is past the border already does
   # not go farther out.
-  def self.border_stop(from, to)
-    return [to, [from, BORDER].max].min if to > from
-
-    [to, [from, -BORDER].min].max
-  end
+  def self.border_stop(from, to) = to.clamp([from, -BORDER].min, [from, BORDER].max)
 
   def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)
 
@@ -587,8 +583,7 @@ class World
     end
   end
 
-  # Lists the blocks that give light (Block.emits?) below height top. Lava
-  # gives light only where air touches it.
+  # Lists the blocks that give light (World#lights?) below height top.
   def find_torches(cx, cz, top)
     @chunk_torches[World.slot(cx, cz)].clear
     x = cx * CHUNK
