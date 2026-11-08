@@ -467,9 +467,8 @@ class World
     x0 = cx * CHUNK
     z0 = cz * CHUNK
     (x0...x0 + CHUNK).each { |x| (z0...z0 + CHUNK).each { |z| update_height(x, z) } }
-    # A generated chunk has no torches and no lava above LAVA_LEVEL.
-    find_torches(cx, cz, data.nil? ? Caves::LAVA_LEVEL + 1 : WY)
-    4.times { |side| check_edge_lava(cx + Block::DIR_DX[side], cz + Block::DIR_DZ[side], side) }
+    find_torches(cx, cz, light_top(cx, cz))
+    4.times { |side| refresh_edge_lava(cx + Block::DIR_DX[side], cz + Block::DIR_DZ[side], side) }
   end
 
   def unload(s)
@@ -582,14 +581,18 @@ class World
     end
   end
 
+  # The height below which loaded chunk (cx, cz) can hold a light. A
+  # generated chunk has no torches and no lava above LAVA_LEVEL.
+  def light_top(cx, cz) = @edited[World.slot(cx, cz)] == 1 ? WY : Caves::LAVA_LEVEL + 1
+
   # Chunk (cx, cz) is one step along side from a chunk that just loaded,
   # and its edge toward that chunk touches it. Before the load, the slot
   # of that chunk held other blocks, so the lava on the edge joins or
   # leaves the light list again.
-  def check_edge_lava(cx, cz, side)
+  def refresh_edge_lava(cx, cz, side)
     return unless chunk_loaded?(cx, cz)
 
-    top = @edited[World.slot(cx, cz)] == 1 ? WY : Caves::LAVA_LEVEL + 1
+    top = light_top(cx, cz)
     along_x = Block::DIR_DX[side] == 0
     edge_x = cx * CHUNK + (Block::DIR_DX[side] < 0 ? CHUNK - 1 : 0)
     edge_z = cz * CHUNK + (Block::DIR_DZ[side] < 0 ? CHUNK - 1 : 0)
@@ -600,10 +603,8 @@ class World
       top.times do |y|
         next unless Block.lava?(block(base + y))
 
-        listed = listed?(x, y, z)
-        exposed = exposed?(base + y)
-        add_torch(x, y, z) if exposed && !listed
-        remove_torch(x, y, z) if listed && !exposed
+        remove_torch(x, y, z)
+        add_torch(x, y, z) if exposed?(base + y)
       end
     end
   end

@@ -117,49 +117,74 @@ class WorldTest < Minitest::Test
     assert_includes lights(world), [8, SKY_Y, 8]
   end
 
-  # Lava at the edge of chunk 0 with stone on its other sides, and the
-  # next chunk along axis (0 for x, 2 for z) beside it, with next_block in
-  # the cell that touches the lava. The player walks away, so the slot of
-  # the next chunk holds another chunk with far_block in that cell. Then
-  # the player comes back, and the next chunk loads last or first.
-  def lava_at_a_chunk_edge(axis, next_block, far_block, next_last)
+  SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]].freeze
+
+  # The cell of chunk 0 on its edge toward the chunk one step along dx,
+  # dz, at the last cell along that edge, and the cell beside it in that
+  # chunk.
+  def edge_cells(dx, dz, y)
+    lava = [dx.positive? ? CHUNK - 1 : 0, y, dz.positive? ? CHUNK - 1 : 0]
+    lava[dx.zero? ? 0 : 2] = CHUNK - 1
+    [lava, [lava[0] + dx, y, lava[2] + dz]]
+  end
+
+  # Lava at the edge of chunk 0, with stone on its other sides, and
+  # beside_block beside it in the next chunk. The player walks away, so
+  # each slot takes the chunk RING chunks farther, which has away_block
+  # in that cell. Then the player comes back.
+  def lava_at_a_chunk_edge(dx, dz, beside_block, away_block, next_chunk_last:)
     world = World.new(1337)
-    lava = [8, SKY_Y, 8]
-    lava[axis] = CHUNK - 1
-    step = ->(cell, by) { cell.dup.tap { |moved| moved[axis] += by } }
-    near_chunk = [0, 0]
-    next_chunk = [0, 0]
-    next_chunk[axis / 2] = 1
-    far_chunk = next_chunk.map { |c| c * (RING + 1) }
-    other_chunk = [0, 0]
-    other_chunk[axis / 2] = RING
-    [near_chunk, next_chunk].each { |cx, cz| world.load_chunk(cx, cz) }
-    [[-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].each do |offset|
-      offset = offset.reverse if axis == 2
-      world.set(*lava.zip(offset).map(&:sum), Block::STONE)
+    lava, beside = edge_cells(dx, dz, SKY_Y)
+    away = ->(cell) { [cell[0] + dx * RING * CHUNK, cell[1], cell[2] + dz * RING * CHUNK] }
+    chunks = [[0, 0], [dx, dz]]
+    chunks.each { |cx, cz| world.load_chunk(cx, cz) }
+    [[-dx, 0, -dz], [0, 1, 0], [0, -1, 0], [dz, 0, dx], [-dz, 0, -dx]].each do |offset|
+      stone = lava.zip(offset).map(&:sum)
+      world.load_chunk(stone[0] >> 4, stone[2] >> 4) unless world.loaded?(stone[0], stone[2])
+      world.set(*stone, Block::STONE)
     end
     world.set(*lava, Block::LAVA)
-    world.set(*step.call(lava, 1), next_block)
-    world.load_chunk(*far_chunk)
-    world.set(*step.call(lava, 1 + RING * CHUNK), far_block)
-    world.load_chunk(*other_chunk)
-    order = next_last ? [near_chunk, next_chunk] : [next_chunk, near_chunk]
-    order.each { |cx, cz| world.load_chunk(cx, cz) }
+    world.set(*beside, beside_block)
+    chunks.reverse_each { |cx, cz| world.load_chunk(cx + dx * RING, cz + dz * RING) }
+    world.set(*away.call(beside), away_block)
+    chunks.reverse! unless next_chunk_last
+    chunks.each { |cx, cz| world.load_chunk(cx, cz) }
     [world, lava]
   end
 
   def test_lava_at_a_chunk_edge_is_a_light_when_the_next_chunk_has_air_beside_it_in_either_load_order
-    [0, 2].product([true, false]).each do |axis, next_last|
-      world, lava = lava_at_a_chunk_edge(axis, Block::AIR, Block::STONE, next_last)
-      assert_includes lights(world), lava, "axis #{axis}, next chunk last: #{next_last}"
+    SIDES.product([true, false]).each do |(dx, dz), last|
+      world, lava = lava_at_a_chunk_edge(dx, dz, Block::AIR, Block::STONE, next_chunk_last: last)
+      assert_includes lights_of(world, lava), lava, "side #{dx} #{dz}, next chunk last: #{last}"
     end
   end
 
   def test_lava_at_a_chunk_edge_is_no_light_when_the_next_chunk_buries_it_in_either_load_order
-    [0, 2].product([true, false]).each do |axis, next_last|
-      world, lava = lava_at_a_chunk_edge(axis, Block::STONE, Block::AIR, next_last)
-      refute_includes lights(world), lava, "axis #{axis}, next chunk last: #{next_last}"
+    SIDES.product([true, false]).each do |(dx, dz), last|
+      world, lava = lava_at_a_chunk_edge(dx, dz, Block::STONE, Block::AIR, next_chunk_last: last)
+      refute_includes lights_of(world, lava), lava, "side #{dx} #{dz}, next chunk last: #{last}"
     end
+  end
+
+  # Cave lava in a generated chunk, at the lowest and the highest height
+  # that the generator gives it, becomes a light when the next chunk loads
+  # with air beside it.
+  def test_cave_lava_at_a_chunk_edge_is_a_light_when_the_next_chunk_loads_with_air_beside_it
+    world = World.new(1337)
+    world.load_chunk(0, 0)
+    world.load_chunk(1, 0)
+    heights = [1, Caves::LAVA_LEVEL]
+    heights.each { |y| world.set(CHUNK, y, 8, Block::AIR) }
+    world.load_chunk(RING + 1, 0)
+    # put_block changes the generated chunk without a mark as edited.
+    heights.each do |y|
+      [[-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].each do |dx, dy, dz|
+        world.put_block(World.index(CHUNK - 1 + dx, y + dy, 8 + dz), Block::STONE)
+      end
+      world.put_block(World.index(CHUNK - 1, y, 8), Block::LAVA)
+    end
+    world.load_chunk(1, 0)
+    heights.each { |y| assert_includes lights(world), [CHUNK - 1, y, 8], "y #{y}" }
   end
 
   # Chunk -1 shares its slot with chunk RING - 1. A load of chunk 0 must
@@ -176,6 +201,8 @@ class WorldTest < Minitest::Test
   end
 
   def lights(world) = world.torches_of(0, 0).each_slice(3).to_a
+
+  def lights_of(world, cell) = world.torches_of(cell[0] >> 4, cell[2] >> 4).each_slice(3).to_a
 
   def test_water_on_a_side_or_above_touches_a_cell_and_water_below_does_not
     world = world_with_one_chunk
