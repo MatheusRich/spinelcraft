@@ -178,10 +178,9 @@ class Console
     y = player.y.to_f
     z = player.z.to_f
     per_slot = Slots.per_slot(block)
-    while left > 0
-      stack = [left, per_slot].min
-      @game.drop_item(block, Block.tool?(block) ? Block.uses(block) : stack, x, y, z, 0.0, 0.0, 0.0, Game::PICKUP_WAIT)
-      left -= stack
+    (0...left).step(per_slot) do |start|
+      count = Block.tool?(block) ? Block.uses(block) : [left - start, per_slot].min
+      @game.drop_item(block, count, x, y, z, 0.0, 0.0, 0.0, Game::PICKUP_WAIT)
     end
     nil
   end

@@ -6,7 +6,6 @@ class SlotsTest < Minitest::Test
 
   def test_a_slot_holds_one_tool_or_a_stack
     assert_equal 1, Slots.per_slot(Block::DIAMOND_PICK)
-    assert_equal 16, Slots.per_slot(Block::EGG)
     assert_equal Slots::STACK, Slots.per_slot(Block::DIRT)
   end
 

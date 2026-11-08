@@ -435,12 +435,12 @@ class TestGame < Game
     check("a bad item, count or command prints an error line", bad_item && bad_count && unknown)
     # With a full inventory, the rest drops in full stacks, and the other
     # items on the ground stay.
-    (0...INV).each { |slot| @inv.set(slot, Block::STONE, 64) }
+    (0...INV).each { |slot| @inv.set(slot, Block::STONE, Slots::STACK) }
     @items.clear
     drop_item(Block::FEATHER, 1, @player.x, @player.y, @player.z, 0.0, 0.0, 0.0, 10.0)
-    @console.submit("/give dirt #{INV * 64}")
+    @console.submit("/give dirt #{INV * Slots::STACK}")
     @console.submit("/give diamond_pickaxe #{INV}")
-    full_stacks = @items.all? { |item| Block.tool?(item.block) || item.count <= 64 } && ground_count(Block::DIRT) == INV * 64
+    full_stacks = @items.all? { |item| Block.tool?(item.block) || item.count <= Slots::STACK } && ground_count(Block::DIRT) == INV * Slots::STACK
     @console.submit("/give diamond_pickaxe #{INV + 1}")
     check("/give drops what does not fit in full stacks, up to a full inventory of the item",
           full_stacks && ground_count(Block::FEATHER) == 1 && @items.count { |item| item.block == Block::DIAMOND_PICK } == INV && last_chat_error?)
@@ -2649,8 +2649,8 @@ class TestGame < Game
     hot = @furnaces.furnace_at(3, 70, 4)
     hot.burn = 500
     hot.burn_total = 1600
-    hot.progress = 37
     hot.slots.set(Furnace::INPUT, Block::SAND, 2)
+    hot.progress = 37
     hot.slots.set(Furnace::FUEL, Block::OAK_LOG, 3)
     @furnaces.furnace_at(5, 70, 4)
     @clock.day = 37
