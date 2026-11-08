@@ -447,8 +447,7 @@ class Game
       if a.damage > 0
         m = @mobs.find { |mob| !mob.dying? && mob.contains?(a.x, a.y, a.z) }
         if m
-          m.hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
-          m.by_player = true
+          m.player_hit(a.damage.to_f, a.x - a.vx, a.z - a.vz)
           @sfx.play_at(Sfx::HIT, a.x, a.y, a.z, 0.8)
           a.vanish
         end

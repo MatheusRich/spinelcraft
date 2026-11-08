@@ -191,6 +191,32 @@ class MobTest < Minitest::Test
     assert pig.ouch
   end
 
+  def test_a_player_hit_makes_a_death_in_the_next_5_seconds_a_player_kill
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    player = Player.new(14.5, SKY_Y - 1.0, 14.5)
+    refute pig.by_player?
+    assert pig.player_hit(1.0, 8.0, 8.5)
+    steps = (Mob::PLAYER_CREDIT / DT).round
+    (steps - 1).times { pig.update_mob(@world, DT, player, Block::AIR) }
+    assert pig.by_player?
+    2.times { pig.update_mob(@world, DT, player, Block::AIR) }
+    refute pig.by_player?
+  end
+
+  def test_a_player_hit_that_does_not_wound_the_mob_is_no_player_kill
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    pig.wound(5.0)
+    refute pig.player_hit(1.0, 8.0, 8.5)
+    refute pig.by_player?
+  end
+
+  def test_a_mob_that_the_player_killed_stays_a_player_kill_while_it_dies
+    pig = Animal.new(Mob::PIG, 8.5, SKY_Y - 1.0, 8.5, 5)
+    assert pig.player_hit(Mob::HP[Mob::PIG], 8.0, 8.5)
+    pig.update_mob(@world, Mob::PLAYER_CREDIT * 2.0, Player.new(14.5, SKY_Y - 1.0, 14.5), Block::AIR)
+    assert pig.by_player?
+  end
+
   def test_a_walking_mob_makes_step_sounds
     lay_floor
     player = Player.new(2.5, SKY_Y - 1.0, 8.5)

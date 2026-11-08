@@ -206,12 +206,11 @@ class Game
   def attack_mob(mob)
     item_in_hand = current_block.to_i
     damage = game_mode.survival? ? @player.melee_attack.damage(item_in_hand, @player) : @player.melee_attack.creative_damage
-    mob.hit(damage, @player.x, @player.z)
+    mob.player_hit(damage, @player.x, @player.z)
     @particles.crit(mob.x, mob.y + mob.tall * 0.5, mob.z) if @player.melee_attack.critical?(item_in_hand, @player)
     @player.melee_attack.restart
     wear_tool(Block.wear(current_block.to_i, true))
     @player.vitals.exhaust(Vitals::ATTACK_COST) if game_mode.survival?
-    mob.by_player = true
     @sfx.play(Sfx::HIT, 0.8)
     @swing = SWING
   end

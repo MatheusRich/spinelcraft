@@ -61,6 +61,10 @@ class Mob
   # After a hit, the mob takes for this many seconds only the part of a new
   # hit that is above the last one, as in Minecraft. minecraft.wiki/w/Damage
   IMMUNE = 0.5
+  # A death within 100 ticks of a player hit counts as a player kill.
+  # minecraft.wiki/w/Experience gives this window for experience; the wiki
+  # does not confirm that the rare drops use it too.
+  PLAYER_CREDIT = 5.0
   # A dead mob falls on its left side for 20 ticks, then its body goes up
   # in smoke. minecraft.wiki/w/Death
   DEATH_TIME = 1.0
@@ -127,7 +131,7 @@ class Mob
                                  drops: { Block::FEATHER => { amount: 0..2 },
                                           Block::RAW_CHICKEN => { amount: 1..1, cooked: Block::COOKED_CHICKEN } }
 
-  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive, :by_player
+  attr_accessor :x, :y, :z, :vx, :vy, :vz, :yaw, :hp, :alive
   # True after a hit, until Game#update_mobs plays the hurt sound.
   attr_accessor :ouch
   # True after a step on the ground, until Game#update_mobs plays it.
@@ -151,7 +155,7 @@ class Mob
     @ouch = false
     @step = false
     @step_dist = 0.0
-    @by_player = false
+    @player_credit = 0.0
     @hurt = 0.0
     @alive = true
     @phase = 0.0
@@ -203,7 +207,15 @@ class Mob
 
   # True when the mob drops the row of the drop table: a row for a player
   # kill only drops when the player killed it.
-  def drops_row?(row) = DROP_PLAYER[row] == 0 || @by_player
+  def drops_row?(row) = DROP_PLAYER[row] == 0 || by_player?
+
+  def by_player? = @player_credit > 0.0
+
+  # The player hit the mob, so a death in the next PLAYER_CREDIT seconds is
+  # a player kill.
+  def credit_player
+    @player_credit = PLAYER_CREDIT
+  end
 
   # A dying mob lies on the ground until DEATH_TIME. It does not move on its
   # own, attack or take hits.
@@ -287,6 +299,7 @@ class Mob
     if dying?
       @death += dt
     else
+      @player_credit -= dt
       speed = act(world, dt, player, held)
     end
     fx = -Math.sin(@yaw)
@@ -378,6 +391,15 @@ class Mob
     @vx = dx / len * 7.0
     @vz = dz / len * 7.0
     @vy = 5.5
+    true
+  end
+
+  # A hit by the player or an arrow of the player. Only a hit that wounds
+  # the mob counts for a player kill.
+  def player_hit(damage, from_x, from_z)
+    return false unless hit(damage, from_x, from_z)
+
+    credit_player
     true
   end
 

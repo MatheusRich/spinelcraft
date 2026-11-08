@@ -88,7 +88,7 @@ class DropsTest < Minitest::Test
   # minecraft.wiki/w/Skeleton gives the bow a chance of 8.5%.
   def test_a_skeleton_that_the_player_kills_drops_its_bow_now_and_then
     skeleton = monster(Mob::SKELETON)
-    skeleton.by_player = true
+    skeleton.credit_player
     bows = Array.new(TRIES) { count_of(skeleton.drops(@rng), Block::BOW) }
     assert_equal [0, 1], bows.uniq.sort
     assert_in_delta 0.085, bows.sum / TRIES.to_f, 0.04

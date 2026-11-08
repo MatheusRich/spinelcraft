@@ -3163,7 +3163,7 @@ class TestGame < Game
     @items.clear
     killed = Animal.new(Mob::PIG, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     killed.hp = 0.0
-    killed.by_player = true
+    killed.credit_player
     @mobs << killed
     update_mobs(1.0 / 60.0)
     n = ground_count(Block::PORKCHOP)
@@ -3179,7 +3179,7 @@ class TestGame < Game
     set_block(lx, SKY_Y, lz, Block::LAVA)
     burnt = Animal.new(Mob::PIG, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
     burnt.hp = 1.0
-    burnt.by_player = true
+    burnt.credit_player
     @mobs << burnt
     10.times { update_mobs(1.0 / 60.0) }
     set_block(lx, SKY_Y, lz, Block::AIR)
@@ -3188,7 +3188,7 @@ class TestGame < Game
     @items.clear
     sheep = Animal.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     sheep.hp = 0.0
-    sheep.by_player = true
+    sheep.credit_player
     @mobs << sheep
     update_mobs(1.0 / 60.0)
     n = ground_count(Block::MUTTON)
@@ -3197,7 +3197,7 @@ class TestGame < Game
     bare = Animal.new(Mob::SHEEP, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 6)
     bare.sheared = true
     bare.hp = 0.0
-    bare.by_player = true
+    bare.credit_player
     @mobs << bare
     update_mobs(1.0 / 60.0)
     n = ground_count(Block::MUTTON)
@@ -3207,7 +3207,7 @@ class TestGame < Game
     check("mutton is food, and a furnace cooks it", cooks?(Block::MUTTON, 2, 1.2, Block::COOKED_MUTTON, 6, 9.6))
     cow = Animal.new(Mob::COW, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z, 5)
     cow.hp = 0.0
-    cow.by_player = true
+    cow.credit_player
     @mobs << cow
     update_mobs(1.0 / 60.0)
     n = ground_count(Block::BEEF)
@@ -3221,7 +3221,7 @@ class TestGame < Game
     set_block(lx, SKY_Y, lz, Block::LAVA)
     cow = Animal.new(Mob::COW, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
     cow.hp = 1.0
-    cow.by_player = true
+    cow.credit_player
     @mobs << cow
     10.times { update_mobs(1.0 / 60.0) }
     set_block(lx, SKY_Y, lz, Block::AIR)
@@ -3238,7 +3238,7 @@ class TestGame < Game
     10.times do |i|
       zombie = Monster.new(Mob::ZOMBIE, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
       zombie.hp = 0.0
-      zombie.by_player = true
+      zombie.credit_player
       @mobs << zombie
     end
     update_mobs(1.0 / 60.0)
@@ -3258,7 +3258,7 @@ class TestGame < Game
     z = @spawn_z
     hen = Animal.new(Mob::CHICKEN, x, SKY_Y.to_f, z, 5)
     hen.hp = 0.0
-    hen.by_player = true
+    hen.credit_player
     @mobs << hen
     update_mobs(1.0 / 60.0)
     n = ground_count(Block::FEATHER)
@@ -3269,7 +3269,7 @@ class TestGame < Game
     lz = (z + 3.0).floor
     set_block(lx, SKY_Y, lz, Block::LAVA)
     burnt = Animal.new(Mob::CHICKEN, lx + 0.5, SKY_Y.to_f, lz + 0.5, 5)
-    burnt.by_player = true
+    burnt.credit_player
     @mobs << burnt
     10.times { update_mobs(1.0 / 60.0) }
     set_block(lx, SKY_Y, lz, Block::AIR)
@@ -3304,7 +3304,7 @@ class TestGame < Game
     update_mobs(1.0 / 60.0)
     laid = ground_count(Block::EGG)
     chick.hp = 0.0
-    chick.by_player = true
+    chick.credit_player
     update_mobs(1.0 / 60.0)
     check("a chick is half as large, lays no eggs, and drops nothing", small && laid == 0 && @items.empty?)
     @mobs.clear
@@ -4515,7 +4515,7 @@ class TestGame < Game
     10.times do |i|
       skeleton = Monster.new(Mob::SKELETON, @spawn_x + 30.0, SKY_Y.to_f, @spawn_z + i, 3)
       skeleton.hp = 0.0
-      skeleton.by_player = true
+      skeleton.credit_player
       @mobs << skeleton
     end
     update_mobs(1.0 / 60.0)
@@ -4954,7 +4954,7 @@ class TestGame < Game
     update_mobs(1.0 / 60.0)
     stopped = sheep.graze <= 0.0 && sheep.sheared && !sheep.can_graze?(@world)
     sheep.hp = 0.5
-    sheep.by_player = true
+    sheep.credit_player
     (Mob::IMMUNE * 60.0 + 2.0).to_i.times { update_mobs(1.0 / 60.0) }
     # The panicked sheep ran off. The player catches up with it and waits
     # for a full attack charge.
