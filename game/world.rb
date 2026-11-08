@@ -29,9 +29,9 @@ class World
   # Moves world coordinates to positive numbers for keys.
   KEY_OFF = 1 << 24
   # The farthest x and z that a move or /tp reaches. Minecraft has its
-  # border at 30,000,000, but World.key holds x and z only from -KEY_OFF.
-  # The 8192 blocks leave room for the chunks, the far terrain, the mobs
-  # and the items around the player.
+  # border at 30,000,000, but World.key holds z only from -KEY_OFF. The
+  # 8192 blocks leave room for the chunks, the far terrain, the mobs and
+  # the items around the player.
   BORDER = (KEY_OFF - 8192).to_f
 
   attr_reader :blocks, :height, :chunk_torches, :slot_cx, :slot_cz, :store
@@ -42,6 +42,15 @@ class World
   # the mesher stay unboxed. The to_i in index lets Spinel type block and
   # put_block before its inference stops at its round limit.
   def self.index(x, y, z) = ((((x & LMASK) + 1) * PZ + (z & LMASK) + 1) * PY + y + 1).to_i
+  # Where a move along x or z from from to to ends: it stops at the world
+  # border as at a wall, and a thing that is past the border already does
+  # not go farther out.
+  def self.border_stop(from, to)
+    return [to, [from, BORDER].max].min if to > from
+
+    [to, [from, -BORDER].min].max
+  end
+
   def self.slot(cx, cz) = (cx & RING_MASK) * RING + (cz & RING_MASK)
 
   # Appends the offsets of the square rings 0 to max to dxs and dzs, nearest
@@ -361,10 +370,11 @@ class World
   # stops 0.001 short of the face of the block, or right on its top. The
   # box must not overlap a solid block at the start.
   def collide(x, y, z, half, tall, axis, distance)
-    # The world border stops a move along x or z as a wall does.
-    to_x = axis == 0 ? (x + distance).clamp(-BORDER, BORDER) : x
+    to_x = axis == 0 ? x + distance : x
     to_y = axis == 1 ? y + distance : y
-    to_z = axis == 2 ? (z + distance).clamp(-BORDER, BORDER) : z
+    to_z = axis == 2 ? z + distance : z
+    to_x = World.border_stop(x, to_x) if to_x.abs > BORDER
+    to_z = World.border_stop(z, to_z) if to_z.abs > BORDER
     to = axis == 0 ? to_x : (axis == 1 ? to_y : to_z)
     return to if distance == 0.0 || !solid_in_box?(to_x, to_y, to_z, half, tall)
 

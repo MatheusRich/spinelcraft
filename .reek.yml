@@ -154,7 +154,6 @@ detectors:
     - "/\\AGame\\#furnace_cell\\z/"
     - "/\\AGame\\#inventory_cell\\z/"
     - "/\\AGame\\#join_chest\\z/"
-    - "/\\AGame\\#light_changes\\?\\z/"
     - "/\\AGame\\#menu_cell\\z/"
     - "/\\AGame\\#mob_in\\?\\z/"
     - "/\\AGame\\#mouse_in\\?\\z/"

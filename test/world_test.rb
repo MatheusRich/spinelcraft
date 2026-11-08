@@ -69,6 +69,17 @@ class WorldTest < Minitest::Test
     assert_in_delta SKY_Y + 1.0, world.collide(border, SKY_Y.to_f, border, 0.3, 1.8, 1, 1.0)
   end
 
+  # A mob can spawn a little past the border. It does not jump back, and
+  # it does not go farther out.
+  def test_a_thing_past_the_world_border_stays_or_comes_back_and_goes_no_farther
+    past = World::BORDER + 50.0
+    assert_equal past, World.border_stop(past, past)
+    assert_equal past, World.border_stop(past, past + 1.0)
+    assert_equal past - 1.0, World.border_stop(past, past - 1.0)
+    assert_equal(-past, World.border_stop(-past, -past - 1.0))
+    assert_equal 5.0, World.border_stop(4.0, 5.0)
+  end
+
   # Mobs, items and chunks reach some way past the border, and each cell
   # there still has a key of its own.
   def test_the_cells_past_the_world_border_have_keys_of_their_own
