@@ -296,40 +296,46 @@ class Particles
 
   # Looks at random blocks near x, y, z: a torch gives a flame and smoke, and
   # lava under air throws an ember now and then.
-  def sample_fire(world, x, y, z, dt) # rubocop:todo Metrics/MethodLength
+  def sample_fire(world, x, y, z, dt)
     span = SAMPLE_REACH * 2 + 1
-    sx = x.floor - SAMPLE_REACH
-    sy = y.floor - SAMPLE_REACH
-    sz = z.floor - SAMPLE_REACH
+    corner_x = x.floor - SAMPLE_REACH
+    corner_y = y.floor - SAMPLE_REACH
+    corner_z = z.floor - SAMPLE_REACH
     (dt * SAMPLES_PER_SECOND).to_i.times do
-      bx = sx + (@rng.rand01 * span).to_i
-      by = sy + (@rng.rand01 * span).to_i
-      bz = sz + (@rng.rand01 * span).to_i
-      block = world.get(bx, by, bz)
+      block_x = corner_x + (@rng.rand01 * span).to_i
+      block_y = corner_y + (@rng.rand01 * span).to_i
+      block_z = corner_z + (@rng.rand01 * span).to_i
+      block = world.get(block_x, block_y, block_z)
       if Block.torch?(block)
-        # The flame is at height 0.75 of the torch, and the smoke starts at 0.9.
-        fx = bx + 0.5
-        fy = by.to_f
-        fz = bz + 0.5
-        sx = fx
-        sz = fz
-        if Block.wall_torch?(block)
-          # The torch leans toward its wall, behind its front.
-          w = Block::FACING[block]
-          fx -= Block::DIR_DX[w] * Block.wall_lean(0.75)
-          fz -= Block::DIR_DZ[w] * Block.wall_lean(0.75)
-          sx -= Block::DIR_DX[w] * Block.wall_lean(0.9)
-          sz -= Block::DIR_DZ[w] * Block.wall_lean(0.9)
-          fy += Block::WALL_LIFT
-        end
-        add(Particle::FLAME, fx, fy + 0.75, fz, 0.0, 0.25, 0.0, 0.3 + @rng.rand01 * 0.2, Tex::FIRE)
-        if @rng.rand01 < 0.5
-          add(Particle::SMOKE, sx, fy + 0.9, sz, (@rng.rand01 - 0.5) * 0.1, 0.5, (@rng.rand01 - 0.5) * 0.1, 0.8 + @rng.rand01 * 0.6, Tex::PUFF)
-        end
-      elsif block == Block::LAVA && @rng.rand01 < 0.05 && world.get(bx, by + 1, bz) == Block::AIR
-        add(Particle::EMBER, bx + @rng.rand01, by + 1.0, bz + @rng.rand01, (@rng.rand01 - 0.5) * 2.0, 3.0 + @rng.rand01 * 2.0, (@rng.rand01 - 0.5) * 2.0, 1.2, Tex::WHITE)
+        torch_fire(block, block_x, block_y, block_z)
+      elsif block == Block::LAVA && @rng.rand01 < 0.05 && world.get(block_x, block_y + 1, block_z) == Block::AIR
+        add(Particle::EMBER, block_x + @rng.rand01, block_y + 1.0, block_z + @rng.rand01, (@rng.rand01 - 0.5) * 2.0, 3.0 + @rng.rand01 * 2.0, (@rng.rand01 - 0.5) * 2.0, 1.2, Tex::WHITE)
       end
     end
+  end
+
+  # The flame of the torch at x, y, z, at height 0.75 of the torch, and
+  # now and then smoke from height 0.9.
+  def torch_fire(torch, x, y, z)
+    flame_x = x + 0.5
+    flame_y = y.to_f
+    flame_z = z + 0.5
+    smoke_x = flame_x
+    smoke_z = flame_z
+    if Block.wall_torch?(torch)
+      # The torch leans toward its wall, behind its front.
+      facing = Block::FACING[torch]
+      flame_x -= Block::DIR_DX[facing] * Block.wall_lean(0.75)
+      flame_z -= Block::DIR_DZ[facing] * Block.wall_lean(0.75)
+      smoke_x -= Block::DIR_DX[facing] * Block.wall_lean(0.9)
+      smoke_z -= Block::DIR_DZ[facing] * Block.wall_lean(0.9)
+      flame_y += Block::WALL_LIFT
+    end
+    add(Particle::FLAME, flame_x, flame_y + 0.75, flame_z, 0.0, 0.25, 0.0, 0.3 + @rng.rand01 * 0.2, Tex::FIRE)
+    return unless @rng.rand01 < 0.5
+
+    add(Particle::SMOKE, smoke_x, flame_y + 0.9, smoke_z, (@rng.rand01 - 0.5) * 0.1, 0.5, (@rng.rand01 - 0.5) * 0.1, 0.8 + @rng.rand01 * 0.6, Tex::PUFF)
+    nil
   end
 
   def update(world, dt)
