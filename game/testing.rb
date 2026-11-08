@@ -2905,15 +2905,15 @@ class TestGame < Game
     open_station(x, y, z, Recipe::AT_TABLE)
     shown = shown_recipes
     rows = (shown.size + 1) / 2
-    top = @recipe_book.in_view(active_station) == shown[0, RecipeBook::ROWS * 2]
+    top = @recipe_book.in_view(active_station, recipe_rows) == shown[0, RecipeBook::ROWS * 2]
     picks = [Block::WOOD_PICK, Block::STONE_PICK, Block::IRON_PICK, Block::DIAMOND_PICK].map { |block| shown.index(recipe_for(block)) }
     check("a crafting table shows the planks first, then the pickaxes in one column, one to a row", shown[0] == recipe_for(Block::OAK_PLANKS) && picks == [4, 6, 8, 10])
-    @recipe_book.scroll_by(100, active_station)
-    end_view = @recipe_book.in_view(active_station)
+    @recipe_book.scroll_by(100, active_station, recipe_rows)
+    end_view = @recipe_book.in_view(active_station, recipe_rows)
     bottom = @recipe_book.top == rows - RecipeBook::ROWS && end_view[end_view.size - 1] == shown[shown.size - 1] && end_view[0] == shown[@recipe_book.top * 2]
-    @recipe_book.scroll_by(-100, active_station)
+    @recipe_book.scroll_by(-100, active_station, recipe_rows)
     back = @recipe_book.top == 0
-    @recipe_book.scroll_by(2, active_station)
+    @recipe_book.scroll_by(2, active_station, recipe_rows)
     toggle_inventory
     open_station(x, y, z, Recipe::AT_TABLE)
     reset = @recipe_book.top == 0

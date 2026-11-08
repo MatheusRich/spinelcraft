@@ -67,21 +67,44 @@ class RecipeBookTest < Minitest::Test
   def test_the_view_shows_rows_of_the_list_from_the_top_row
     book = all_seen
     shown = book.shown(TABLE)
-    assert_equal shown[0, RecipeBook::ROWS * 2], book.in_view(TABLE)
-    book.scroll_by(2, TABLE)
+    assert_equal shown[0, RecipeBook::ROWS * 2], book.in_view(TABLE, RecipeBook::ROWS)
+    book.scroll_by(2, TABLE, RecipeBook::ROWS)
     assert_equal 2, book.top
-    assert_equal shown[4, RecipeBook::ROWS * 2], book.in_view(TABLE)
+    assert_equal shown[4, RecipeBook::ROWS * 2], book.in_view(TABLE, RecipeBook::ROWS)
   end
 
   def test_the_list_scrolls_to_its_last_row_and_no_further
     book = all_seen
     rows = (book.shown(TABLE).size + 1) / 2
-    book.scroll_by(100, TABLE)
+    book.scroll_by(100, TABLE, RecipeBook::ROWS)
     assert_equal rows - RecipeBook::ROWS, book.top
-    view = book.in_view(TABLE)
+    view = book.in_view(TABLE, RecipeBook::ROWS)
     assert_equal book.shown(TABLE).last, view.last
-    book.scroll_by(-100, TABLE)
+    book.scroll_by(-100, TABLE, RecipeBook::ROWS)
     assert_equal 0, book.top
+  end
+
+  # A furnace takes the first 5 rows of the list for its slots.
+  def test_a_list_of_fewer_rows_shows_and_scrolls_by_those_rows
+    book = all_seen
+    shown = book.shown(TABLE)
+    assert_equal shown[0, 10], book.in_view(TABLE, 5)
+    book.scroll_by(100, TABLE, 5)
+    assert_equal (shown.size + 1) / 2 - 5, book.top
+    assert_equal shown.last, book.in_view(TABLE, 5).last
+  end
+
+  # The last row of a list with an odd number of recipes holds one recipe.
+  def test_a_list_that_ends_in_half_a_row_scrolls_to_that_row
+    book = RecipeBook.new
+    book.recipe_count.times do |index|
+      Block.fillers(book.recipe(index).ingredient).each { |b| book.learn(b) }
+      break if book.shown(TABLE).size.odd? && book.shown(TABLE).size > 4
+    end
+    shown = book.shown(TABLE)
+    book.scroll_by(100, TABLE, 2)
+    assert_equal (shown.size + 1) / 2 - 2, book.top
+    assert_equal shown[book.top * 2..], book.in_view(TABLE, 2)
   end
 
   def test_a_list_with_full_rows_scrolls_to_its_last_row
@@ -91,9 +114,9 @@ class RecipeBookTest < Minitest::Test
       Block.fillers(ingredient).each { |b| book.learn(b) } unless [Block::COAL, Block::SPINEL, Block::BONE, Block::FEATHER].include?(ingredient)
     end
     assert_equal 46, book.shown(TABLE).size
-    book.scroll_by(100, TABLE)
+    book.scroll_by(100, TABLE, RecipeBook::ROWS)
     assert_equal 23 - RecipeBook::ROWS, book.top
-    assert_equal book.shown(TABLE).last, book.in_view(TABLE).last
+    assert_equal book.shown(TABLE).last, book.in_view(TABLE, RecipeBook::ROWS).last
   end
 
   def test_spinel_makes_the_mattock_and_each_piece_of_spinel_armor_at_a_table
@@ -106,40 +129,40 @@ class RecipeBookTest < Minitest::Test
   def test_a_short_list_does_not_scroll
     book = RecipeBook.new
     book.see(Block::OAK_LOG)
-    book.scroll_by(3, HAND)
+    book.scroll_by(3, HAND, RecipeBook::ROWS)
     assert_equal 0, book.top
   end
 
   def test_each_wheel_step_scrolls_a_row_and_parts_of_a_step_add_up
     book = all_seen
-    book.turn_wheel(-2.0, TABLE)
+    book.turn_wheel(-2.0, TABLE, RecipeBook::ROWS)
     assert_equal 2, book.top
-    book.turn_wheel(0.6, TABLE)
+    book.turn_wheel(0.6, TABLE, RecipeBook::ROWS)
     assert_equal 2, book.top
-    book.turn_wheel(0.6, TABLE)
+    book.turn_wheel(0.6, TABLE, RecipeBook::ROWS)
     assert_equal 1, book.top
-    book.turn_wheel(-0.5, TABLE)
+    book.turn_wheel(-0.5, TABLE, RecipeBook::ROWS)
     assert_equal 1, book.top
-    book.turn_wheel(-0.5, TABLE)
+    book.turn_wheel(-0.5, TABLE, RecipeBook::ROWS)
     assert_equal 1, book.top
-    book.turn_wheel(-0.4, TABLE)
+    book.turn_wheel(-0.4, TABLE, RecipeBook::ROWS)
     assert_equal 2, book.top
   end
 
   def test_one_whole_wheel_step_up_scrolls_one_row_up
     book = all_seen
-    book.scroll_by(2, TABLE)
-    book.turn_wheel(1.0, TABLE)
+    book.scroll_by(2, TABLE, RecipeBook::ROWS)
+    book.turn_wheel(1.0, TABLE, RecipeBook::ROWS)
     assert_equal 1, book.top
   end
 
   def test_the_list_opens_at_the_top_without_parts_of_a_wheel_step
     book = all_seen
-    book.scroll_by(3, TABLE)
-    book.turn_wheel(-0.75, TABLE)
+    book.scroll_by(3, TABLE, RecipeBook::ROWS)
+    book.turn_wheel(-0.75, TABLE, RecipeBook::ROWS)
     book.open_list
     assert_equal 0, book.top
-    book.turn_wheel(-0.75, TABLE)
+    book.turn_wheel(-0.75, TABLE, RecipeBook::ROWS)
     assert_equal 0, book.top
   end
 

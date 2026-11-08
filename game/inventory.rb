@@ -224,6 +224,10 @@ class Game
   # first five rows.
   def recipe_skip = station_makes?(Recipe::AT_FURNACE) ? 10 : 0
 
+  # The rows of the recipe list on the screen: the rows below the furnace
+  # slots.
+  def recipe_rows = RecipeBook::ROWS - recipe_skip / 2
+
   # Slot i of the open furnace, in the place of the first recipe rows, as in
   # Minecraft: the input on top, the flame under it, the fuel at the bottom,
   # and the output at the right, between them. x, y, size.
@@ -265,7 +269,7 @@ class Game
 
   # The recipe under the mouse, or -1.
   def recipe_hover(w, h, s)
-    view = @recipe_book.in_view(active_station)
+    view = @recipe_book.in_view(active_station, recipe_rows)
     skip = recipe_skip
     view.size.times do |place|
       c = recipe_cell(place + skip, w, h, s)
@@ -406,7 +410,7 @@ class Game
     h = Gfx.gfx_height.to_f
     s = inventory_scale(w, h)
     if game_mode.survival? && !@chests.open? && Gfx.in_wheel != 0.0 && over_recipes?(w, h, s)
-      @recipe_book.turn_wheel(Gfx.in_wheel, active_station)
+      @recipe_book.turn_wheel(Gfx.in_wheel, active_station, recipe_rows)
     else
       select_slot
     end

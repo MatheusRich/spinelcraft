@@ -265,17 +265,17 @@ class Game
     @ui.text(x + size - @ui.text_width(t, ts) - 1.0 * s, y + size - 6.0 * ts, t, ts, Color::WHITE)
   end
 
-  # The panel grows with the shown recipes, up to RecipeBook::ROWS rows. A bar
+  # The panel grows with the shown recipes, up to recipe_rows rows. A bar
   # at the right shows where the view is when the list is longer. A furnace
   # shows its slots above its recipes.
   def draw_recipe_panel(w, h, s, pad) # rubocop:todo Metrics/MethodLength
     shown = @recipe_book.shown(active_station)
-    view = @recipe_book.in_view(active_station)
+    view = @recipe_book.in_view(active_station, recipe_rows)
     furnace = station_makes?(Recipe::AT_FURNACE)
     skip = recipe_skip
     rows = (shown.size + 1) / 2
     first = recipe_cell(0, w, h, s)
-    bottom = recipe_cell(skip + (rows < 1 ? 0 : ((rows < RecipeBook::ROWS ? rows : RecipeBook::ROWS) - 1) * 2), w, h, s)
+    bottom = recipe_cell(skip + (rows < 1 ? 0 : ([rows, recipe_rows].min - 1) * 2), w, h, s)
     right = recipe_cell(shown.size > 1 || furnace ? 1 : 0, w, h, s)
     @ui.rect(first[0] - pad, first[1] - pad - 40.0 * s, right[0] + right[2] - first[0] + pad * 2.0, bottom[1] + bottom[3] - first[1] + pad * 2.0 + 40.0 * s, Ui::PANEL)
     @ui.text(first[0], first[1] - 36.0 * s, furnace ? "FURNACE" : "CRAFTING", 4.0 * s, Color::WHITE)
@@ -284,11 +284,11 @@ class Game
     if shown.empty?
       @ui.text(first[0], recipe_cell(skip, w, h, s)[1] + 4.0 * s, "PICK UP ITEMS TO FIND RECIPES", 2.0 * s, Ui::EMPTY_HINT_TEXT)
     end
-    if rows > RecipeBook::ROWS
+    if rows > recipe_rows
       track = bottom[1] + bottom[3] - first[1]
       bx = right[0] + right[2] + 7.0 * s
       @ui.rect(bx, first[1], 4.0 * s, track, Ui::INSET)
-      @ui.rect(bx, first[1] + track * @recipe_book.top.to_f / rows.to_f, 4.0 * s, track * RecipeBook::ROWS.to_f / rows.to_f, Ui::SCROLL_THUMB)
+      @ui.rect(bx, first[1] + track * @recipe_book.top.to_f / rows.to_f, 4.0 * s, track * recipe_rows.to_f / rows.to_f, Ui::SCROLL_THUMB)
     end
     view.size.times do |place|
       index = view[place]

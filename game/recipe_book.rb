@@ -149,37 +149,37 @@ class RecipeBook
     out
   end
 
-  # The indexes of the recipes in view: ROWS rows of the shown recipes from
-  # row top on.
-  def in_view(open)
+  # The indexes of the recipes in view: rows rows of the shown recipes
+  # from row top on. The screen gives the list rows rows (at most ROWS).
+  def in_view(open, rows)
     all = shown(open)
     view = Array.new(0, 0)
     place = @top * 2
-    while place < all.size && view.size < ROWS * 2
+    while place < all.size && view.size < rows * 2
       view << all[place]
       place += 1
     end
     view
   end
 
-  # Scrolls the list by rows. The last row does not go above the bottom of
-  # the list.
-  def scroll_by(rows, open)
-    most = (shown(open).size + 1) / 2 - ROWS
-    @top = (@top + rows).clamp(0, [most, 0].max)
+  # Scrolls the list of rows rows by steps rows. The last row does not go
+  # above the bottom of the list.
+  def scroll_by(steps, open, rows)
+    most = (shown(open).size + 1) / 2 - rows
+    @top = (@top + steps).clamp(0, [most, 0].max)
     nil
   end
 
   # The wheel scrolls the list a row for each step. A trackpad sends parts
   # of a step, and the parts add up.
-  def turn_wheel(steps, open)
+  def turn_wheel(steps, open, rows)
     @wheel += steps
     while @wheel >= 1.0
-      scroll_by(-1, open)
+      scroll_by(-1, open, rows)
       @wheel -= 1.0
     end
     while @wheel <= -1.0
-      scroll_by(1, open)
+      scroll_by(1, open, rows)
       @wheel += 1.0
     end
     nil
