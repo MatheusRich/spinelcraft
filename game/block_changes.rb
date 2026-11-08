@@ -2,7 +2,7 @@
 # drop, the changes of flowing water and lava (see Fluids), falling sand
 # and gravel, and the plants that grow and the leaves that decay.
 class Game
-  def set_block(x, y, z, block) # rubocop:todo Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def set_block(x, y, z, block) # rubocop:todo Metrics/CyclomaticComplexity
     @changed = true
     old = @world.get(x, y, z)
     drop_chest(x, y, z) if Block::BASE[block] != Block::CHEST && Block::BASE[old] == Block::CHEST
@@ -23,15 +23,23 @@ class Game
       @world.set(x, y, z, block)
       split_chest(x, y, z, old)
     end
-    if Block.emits?(block) || Block.emits?(old) || (Block::OPAQUE[block] == 0 && @world.near_lava?(x, y, z))
-      @chunk_meshes.mark_light_area(x, z)
-    end
+    @chunk_meshes.mark_light_area(x, z) if light_changes?(block, old, x, y, z)
     @world.set(x, y, z, block)
     @fires.add(World.key(x, y, z), 0) if block == Block::FIRE
     @chunk_meshes.mark_block(x, z)
     release_unheld(x, y, z)
     release_if_unheld(x, y, z) if Block.falls?(block)
     @fluids.wake(x, y, z)
+  end
+
+  # True when block in place of old at x, y, z changes the light of the
+  # chunks around it: a light comes or goes, a cell beside lava opens, or
+  # a cell near a light shuts or opens its way.
+  def light_changes?(block, old, x, y, z)
+    return true if Block.emits?(block) || Block.emits?(old)
+    return true if Block::OPAQUE[block] == 0 && @world.near_lava?(x, y, z)
+
+    Block::OPAQUE[block] != Block::OPAQUE[old] && @light.lamp_near?(x, y, z)
   end
 
   # Releases each block next to x, y, z that the world can no longer hold

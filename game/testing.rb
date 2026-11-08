@@ -1567,6 +1567,18 @@ class TestGame < Game
     set_block(tx, th, z, Block::AIR)
     check("breaking a torch remeshes the chunks that it lit", @chunk_meshes.queued?((tx >> 4) + 1, z >> 4))
     @chunk_meshes.flush_all
+    # A stone 2 blocks from the torch shuts its light out of part of the
+    # next chunk, and the light comes back when the stone goes.
+    set_block(tx, th, z, Block::TORCH)
+    @chunk_meshes.flush_all
+    set_block(tx + 2, th, z, Block::STONE)
+    shut = @chunk_meshes.queued?((tx >> 4) + 1, z >> 4)
+    @chunk_meshes.flush_all
+    set_block(tx + 2, th, z, Block::AIR)
+    opened = @chunk_meshes.queued?((tx >> 4) + 1, z >> 4)
+    set_block(tx, th, z, Block::AIR)
+    @chunk_meshes.flush_all
+    check("a block that shuts or opens the way of torch light remeshes the chunks that the light reaches", shut && opened)
   end
 
   # Each block that stands on a block or hangs on its side drops its item
