@@ -635,7 +635,7 @@ class Game
   # A bed has its foot at x, y, z and its head at hx, y, hz. Both stand on
   # solid blocks.
   def bed_fits?(x, y, z, hx, hz)
-    return false unless Block.replaceable?(@world.get(hx, y, hz))
+    return false unless @world.replaceable_at?(hx, y, hz)
     return false unless Block.solid?(@world.get(x, y - 1, z))
     return false unless Block.solid?(@world.get(hx, y - 1, hz))
 

@@ -164,13 +164,18 @@ class World
     [x, z]
   end
 
+  # True when a block can take the cell x, y, z: the cell is in the world,
+  # and its block is one that Block.replaceable? names. get gives AIR
+  # outside the world, so replaceable? alone says yes there.
+  def replaceable_at?(x, y, z) = inside?(x, y, z) && Block.replaceable?(get(x, y, z))
+
   # A door is two blocks tall. It stands on a solid block that is not a
   # door, and no door stands right above it, so each half has one partner.
   # The upper half takes the place of a block that Block.replaceable?
   # names, as the lower half does.
   def door_fits?(x, y, z)
     below = get(x, y - 1, z)
-    Block.solid?(below) && !Block.door?(below) && Block.replaceable?(get(x, y + 1, z)) && !Block.door?(get(x, y + 2, z))
+    Block.solid?(below) && !Block.door?(below) && replaceable_at?(x, y + 1, z) && !Block.door?(get(x, y + 2, z))
   end
 
   # True when the cells around x, y, z give block what Block::HOLD says

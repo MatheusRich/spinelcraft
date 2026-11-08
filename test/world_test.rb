@@ -61,6 +61,22 @@ class WorldTest < Minitest::Test
     refute world.door_fits?(4, SKY_Y, 4)
   end
 
+  def test_a_door_does_not_fit_with_its_upper_half_above_the_world
+    world = world_with_one_chunk
+    world.set(8, WY - 2, 8, Block::STONE)
+    refute world.door_fits?(8, WY - 1, 8)
+  end
+
+  def test_a_block_can_take_only_a_replaceable_cell_inside_the_world
+    world = world_with_one_chunk
+    assert world.replaceable_at?(8, SKY_Y, 8)
+    refute world.replaceable_at?(8, WY, 8)
+    refute world.replaceable_at?(8, -1, 8)
+    refute world.replaceable_at?(8 + CHUNK, SKY_Y, 8)
+    world.set(8, SKY_Y, 8, Block::STONE)
+    refute world.replaceable_at?(8, SKY_Y, 8)
+  end
+
   # The upper half takes the place of the blocks that a placed block takes
   # the place of, and not of a flower.
   def test_the_upper_half_of_a_door_takes_the_place_of_water_lava_and_grass
