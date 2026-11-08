@@ -1873,6 +1873,26 @@ class TestGame < Game
     check("a creeper explodes, breaks blocks and hurts", @world.get(px + 2, SKY_Y - 2, pz) == Block::AIR && @player.vitals.health < 100.0 && frames > 60)
     check("a creeper explosion makes a cloud", @particles.count(Particle::BLAST) > 0)
     check("some blocks that a blast breaks drop", ground_count(Block::COBBLE) > 0)
+    # A creeper whose fuse ended and a skeleton about to shoot do nothing
+    # when they die before their next turn.
+    @mobs.clear
+    @particles.update(@world, 5.0)
+    set_block(px + 2, SKY_Y - 2, pz, Block::STONE)
+    health = @player.vitals.health
+    arrows = @arrows.size
+    creeper = Monster.new(Mob::CREEPER, px + 2.5, SKY_Y - 1.0, pz + 0.5, 11)
+    skeleton = Monster.new(Mob::SKELETON, px + 3.5, SKY_Y - 1.0, pz + 0.5, 12)
+    creeper.explode = true
+    skeleton.shoot = true
+    [creeper, skeleton].each do |monster|
+      monster.hp = 0.0
+      @mobs << monster
+    end
+    update_mobs(1.0 / 60.0)
+    check("a creeper or a skeleton that dies before its turn does not explode or shoot",
+          @world.get(px + 2, SKY_Y - 2, pz) == Block::STONE && @particles.count(Particle::BLAST) == 0 && @arrows.size == arrows && @player.vitals.health == health)
+    @mobs.clear
+    set_block(px + 2, SKY_Y - 2, pz, Block::AIR)
     # A block that a blast breaks drops its extras too, so ripe wheat drops
     # seeds. Each of the 20 blasts drops with chance BLAST_DROP.
     @rng = Rng.new(5)

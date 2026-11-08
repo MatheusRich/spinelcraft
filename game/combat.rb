@@ -152,8 +152,11 @@ class Game
   end
 
   # The hiss of a creeper, the arrow of a skeleton, and the blast of a
-  # creeper whose fuse burned down.
+  # creeper whose fuse burned down. A monster asks for these in its step,
+  # and it can die before its next turn.
   def attack(monster)
+    return if monster.dying?
+
     if monster.hiss
       monster.hiss = false
       play_from(monster, Sfx::FUSE, 1.0)
