@@ -9,10 +9,6 @@ class Console
 
   # The blocks in front of the player where /summon puts a mob that has no place.
   SUMMON_DISTANCE = 3.0
-  # The farthest x and z of /tp. Minecraft keeps them within 30,000,000,
-  # but World.key holds x and z only from -World::KEY_OFF. The 8192
-  # blocks leave room for the chunks and the far terrain around the player.
-  TP_LIMIT = (World::KEY_OFF - 8192).to_f
 
   def initialize(game, chat, clock, weather)
     @game = game
@@ -37,8 +33,8 @@ class Console
   # Moves the player to x, y, z, and loads the chunks there before the
   # next step, so the player does not fall through the ground.
   def teleport(x, y, z)
-    to_x = x.clamp(-TP_LIMIT, TP_LIMIT)
-    to_z = z.clamp(-TP_LIMIT, TP_LIMIT)
+    to_x = x.clamp(-World::BORDER, World::BORDER)
+    to_z = z.clamp(-World::BORDER, World::BORDER)
     @game.chunk_meshes.stream(to_x.floor >> 4, to_z.floor >> 4, -1, Game::SYNC_R)
     @game.place_player(to_x, y.clamp(0.0, (WY - 2).to_f), to_z)
     nil

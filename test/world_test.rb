@@ -61,6 +61,23 @@ class WorldTest < Minitest::Test
     refute world.door_fits?(4, SKY_Y, 4)
   end
 
+  def test_a_move_along_x_or_z_stops_at_the_world_border
+    world = world_with_one_chunk
+    border = World::BORDER
+    assert_equal border, world.collide(border - 0.1, SKY_Y.to_f, 8.5, 0.3, 1.8, 0, 1.0)
+    assert_equal(-border, world.collide(8.5, SKY_Y.to_f, -border + 0.1, 0.3, 1.8, 2, -1.0))
+    assert_in_delta SKY_Y + 1.0, world.collide(border, SKY_Y.to_f, border, 0.3, 1.8, 1, 1.0)
+  end
+
+  # Mobs, items and chunks reach some way past the border, and each cell
+  # there still has a key of its own.
+  def test_the_cells_past_the_world_border_have_keys_of_their_own
+    far = World::BORDER.to_i + 4 * CHUNK * RING
+    keys = [[-far, -far], [-far + 5, -far], [-far, -far + 5], [far, far]].map { |x, z| World.key(x, WY - 1, z) }
+    assert_equal keys.uniq, keys
+    refute_includes keys, FireSpread::OUTSIDE
+  end
+
   def test_a_door_does_not_fit_with_its_upper_half_above_the_world
     world = world_with_one_chunk
     world.set(8, WY - 2, 8, Block::STONE)

@@ -474,7 +474,7 @@ class TestGame < Game
     @mobs.pop
     @console.submit("/tp 99999999 100 -99999999")
     check("/tp stops at the farthest x and z that the world holds",
-          @player.x == Console::TP_LIMIT && @player.z == -Console::TP_LIMIT && @player.y == 100.0)
+          @player.x == World::BORDER && @player.z == -World::BORDER && @player.y == 100.0)
     @console.submit("/tp ~3000 ~ ~3000")
     @console.submit("/spawn")
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
