@@ -94,6 +94,15 @@ class DropsTest < Minitest::Test
     assert_in_delta 0.085, bows.sum / TRIES.to_f, 0.04
   end
 
+  def test_a_skeleton_that_the_player_hit_long_before_its_death_keeps_its_bow
+    skeleton = monster(Mob::SKELETON)
+    skeleton.player_hit(1.0, 8.0, 8.5)
+    world = world_with_one_chunk
+    player = Player.new(2.5, SKY_Y.to_f, 2.5)
+    360.times { skeleton.update_mob(world, 1.0 / 60.0, player, Block::AIR) }
+    assert_equal [0], counts(skeleton, Block::BOW)
+  end
+
   def test_a_skeleton_that_dies_on_its_own_keeps_its_bow
     assert_equal [0], counts(monster(Mob::SKELETON), Block::BOW)
   end

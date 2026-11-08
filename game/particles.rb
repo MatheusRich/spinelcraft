@@ -335,6 +335,7 @@ class Particles
     return unless @rng.rand01 < 0.5
 
     add(Particle::SMOKE, smoke_x, flame_y + 0.9, smoke_z, (@rng.rand01 - 0.5) * 0.1, 0.5, (@rng.rand01 - 0.5) * 0.1, 0.8 + @rng.rand01 * 0.6, Tex::PUFF)
+    # A nil return keeps Spinel from boxing it.
     nil
   end
 

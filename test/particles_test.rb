@@ -59,7 +59,7 @@ class ParticlesTest < Minitest::Test
       @cell = cell
     end
 
-    def get(x, y, z) = @cell.nil? || [x, y, z] == @cell ? @block : Block::AIR
+    def get(x, y, z) = (@cell.nil? || [x, y, z] == @cell) ? @block : Block::AIR
   end
 
   # A world of lava up to y 64 and air above it.
@@ -87,10 +87,10 @@ class ParticlesTest < Minitest::Test
   def test_torches_burn_within_the_sample_reach_on_each_side_of_each_axis
     reach = Particles::SAMPLE_REACH
     flames = fire_squares(FireWorld.new(Block::TORCH), 0.05).select { |middle| flame?(middle) }
-    [[0.5, 0.5], [64.75, 64.75], [0.5, 0.5]].each_with_index do |(low, high), axis|
+    [0.5, 64.75, 0.5].each_with_index do |middle_of_box, axis|
       values = flames.map { |middle| middle[axis] }
-      assert_in_delta low - reach, values.min, 0.001
-      assert_in_delta high + reach, values.max, 0.001
+      assert_in_delta middle_of_box - reach, values.min, 0.001
+      assert_in_delta middle_of_box + reach, values.max, 0.001
     end
   end
 

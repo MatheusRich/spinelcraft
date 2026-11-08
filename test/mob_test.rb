@@ -196,7 +196,8 @@ class MobTest < Minitest::Test
     player = Player.new(14.5, SKY_Y - 1.0, 14.5)
     refute pig.by_player?
     assert pig.player_hit(1.0, 8.0, 8.5)
-    steps = (Mob::PLAYER_CREDIT / DT).round
+    # 5 seconds, from minecraft.wiki/w/Experience.
+    steps = 300
     (steps - 1).times { pig.update_mob(@world, DT, player, Block::AIR) }
     assert pig.by_player?
     2.times { pig.update_mob(@world, DT, player, Block::AIR) }
