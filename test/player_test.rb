@@ -1,6 +1,16 @@
 require_relative "test_helper"
 
 class PlayerTest < Minitest::Test
+  # A respawned player starts on foot, as a new player does.
+  def test_a_revived_player_does_not_fly
+    player = Player.new(8.5, SKY_Y.to_f, 8.5)
+    player.flying = true
+    player.vitals.health = 0.0
+    player.revive
+    refute player.flying
+    assert_equal Vitals::MAX_HEALTH, player.vitals.health
+  end
+
   # Flight is as fast as in Minecraft at the ground, and gets faster up to
   # Player::FLY_BOOST times as fast at Player::FLY_HIGH above it.
   def test_flight_is_slow_near_the_ground_and_fast_high_above_it

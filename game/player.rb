@@ -77,9 +77,10 @@ class Player
     @fall_start = y
   end
 
-  # Gives the player full health and hunger again.
+  # Gives the player full health and hunger again, on foot.
   def revive
     @vitals = Vitals.new
+    @flying = false
     nil
   end
 

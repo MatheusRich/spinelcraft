@@ -1129,10 +1129,21 @@ class TestGame < Game
     turn = (boat.yaw - boat_yaw) * 180.0 / Math::PI
     check("a boat turns at up to 200 degrees/s, and the view turns with it",
           turn > 19.5 && turn < 20.001 && (@player.yaw - yaw - (boat.yaw - boat_yaw)).abs < 0.0001)
+    @game_mode = GameMode::CREATIVE
+    @last_jump = -1.0
+    tap_to_fly
+    @anim_time += 0.1
+    tap_to_fly
+    @game_mode = previous_mode
+    check("a double tap of Space in a boat does not fly", riding? && !@player.flying)
     # Facing the bank on +x, the player gets out onto it.
     @player.yaw = Math::PI / 2.0
     leave_boat
     check("Shift lets the player out of the boat onto land", !riding? && @player.y == y + 2.0)
+    board_boat(0)
+    @console.submit("/tp ~ ~ ~-6")
+    update_boats(0.02)
+    check("/tp takes the player out of the boat", !riding? && (@player.z - boat.z).abs > 5.0)
     # In survival 5 hits of a hand break a boat into its item; in creative
     # one hit breaks it and drops nothing.
     @items.clear

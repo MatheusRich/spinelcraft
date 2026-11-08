@@ -37,9 +37,10 @@ class Console
   # Moves the player to x, y, z, and loads the chunks there before the
   # next step, so the player does not fall through the ground.
   def teleport(x, y, z)
-    player = @game.player
-    player.move_to(x.clamp(-TP_LIMIT, TP_LIMIT), y.clamp(0.0, (WY - 2).to_f), z.clamp(-TP_LIMIT, TP_LIMIT))
-    @game.chunk_meshes.stream(player.x.floor >> 4, player.z.floor >> 4, -1, Game::SYNC_R)
+    to_x = x.clamp(-TP_LIMIT, TP_LIMIT)
+    to_z = z.clamp(-TP_LIMIT, TP_LIMIT)
+    @game.chunk_meshes.stream(to_x.floor >> 4, to_z.floor >> 4, -1, Game::SYNC_R)
+    @game.place_player(to_x, y.clamp(0.0, (WY - 2).to_f), to_z)
     nil
   end
 

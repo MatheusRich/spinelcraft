@@ -435,11 +435,17 @@ class Game
       @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     end
     h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
-    @player.move_to(@spawn_x, h + 0.01, @spawn_z)
+    place_player(@spawn_x, h + 0.01, @spawn_z)
     @player.revive
     Log.debug(Log::WORLD) { "respawn at #{@spawn_x.floor} #{h} #{@spawn_z.floor}" }
     @alive_time = 0.0
+  end
+
+  # Puts the player at rest at x, y, z, out of the boat and out of bed.
+  def place_player(x, y, z)
     @riding = -1
+    @player.sleep.stop(@world)
+    @player.move_to(x, y, z)
   end
 
   # Moves the player to the spawn point. The chunks there load first, as in
@@ -447,7 +453,7 @@ class Game
   # slot of the ring.
   def teleport_to_spawn
     @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
-    @player.move_to(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
+    place_player(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
   end
 
   # Plays the sounds that @sfx queued, at the volume of the options, and
@@ -665,12 +671,14 @@ class Game
 
   # A hungry player cannot sprint in survival, nor a player who eats or
   # draws the bow.
+  def may_fly? = game_mode.creative? && !riding?
+
   def may_sprint? = (game_mode.creative? || @player.vitals.can_sprint?) && !@hand_action.using_item?
 
   # A second press of jump within FLY_TAP starts or stops flying in
   # creative, as in Minecraft. A third press starts a new double press.
   def tap_to_fly
-    if game_mode.creative? && @anim_time - @last_jump < FLY_TAP && @anim_time > @last_jump
+    if may_fly? && @anim_time - @last_jump < FLY_TAP && @anim_time > @last_jump
       @player.flying = !@player.flying
       @last_jump = -1.0
     else
