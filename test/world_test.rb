@@ -136,6 +136,27 @@ class WorldTest < Minitest::Test
     end
   end
 
+  def test_lava_is_no_light_once_a_block_buries_it_on_any_side
+    sides = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
+    sides.each do |open_side|
+      world = world_with_one_chunk
+      (sides - [open_side]).each { |dx, dy, dz| world.set(8 + dx, SKY_Y + dy, 8 + dz, Block::STONE) }
+      world.set(8, SKY_Y, 8, Block::LAVA)
+      assert_includes lights(world), [8, SKY_Y, 8], "open side #{open_side}"
+      world.set(8 + open_side[0], SKY_Y + open_side[1], 8 + open_side[2], Block::STONE)
+      refute_includes lights(world), [8, SKY_Y, 8], "open side #{open_side}"
+    end
+  end
+
+  def test_lava_put_into_a_closed_cell_is_no_light
+    world = world_with_one_chunk
+    [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].each do |dx, dy, dz|
+      world.set(8 + dx, SKY_Y + dy, 8 + dz, Block::STONE)
+    end
+    world.set(8, SKY_Y, 8, Block::LAVA)
+    refute_includes lights(world), [8, SKY_Y, 8]
+  end
+
   def test_flowing_lava_is_a_light_once_a_cell_next_to_it_opens
     world = world_with_one_chunk
     [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].each do |dx, dy, dz|

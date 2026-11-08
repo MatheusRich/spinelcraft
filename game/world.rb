@@ -418,12 +418,13 @@ class World
     return unless inside?(ix, iy, iz)
 
     i = World.index(ix, iy, iz)
-    remove_torch(ix, iy, iz) if Block.emits?(block(i))
+    old = block(i)
+    remove_torch(ix, iy, iz) if Block.emits?(old)
     write(i, ix & LMASK, iz & LMASK, v)
     @edited[World.slot(ix >> 4, iz >> 4)] = 1
-    add_torch(ix, iy, iz) if Block.emits?(v)
+    add_torch(ix, iy, iz) if lights?(v, i)
     update_height(ix, iz)
-    expose_lava(ix, iy, iz) if Block::OPAQUE[v] == 0
+    relist_lava_beside(ix, iy, iz) if Block::OPAQUE[v] != Block::OPAQUE[old]
   end
 
   # Stores block at index i and in the padding copy of an edge column.
@@ -531,29 +532,33 @@ class World
     out
   end
 
-  # Buried lava lights nothing, so it joins the light list only once a
-  # neighbor opens up.
+  # True when a cell beside index i is not opaque.
   def exposed?(i)
     opaque = Block::OPAQUE
     opaque[block(i + 1)] == 0 || opaque[block(i - 1)] == 0 || opaque[block(i + PY)] == 0 ||
       opaque[block(i - PY)] == 0 || opaque[block(i + PZ * PY)] == 0 || opaque[block(i - PZ * PY)] == 0
   end
 
-  def expose_lava(x, y, z)
-    6.times do |d|
-      nx = x + (d == 0 ? 1 : (d == 1 ? -1 : 0))
-      ny = y + (d == 2 ? 1 : (d == 3 ? -1 : 0))
-      nz = z + (d == 4 ? 1 : (d == 5 ? -1 : 0))
-      if inside?(nx, ny, nz) && Block.lava?(block(World.index(nx, ny, nz))) && !listed?(nx, ny, nz)
-        add_torch(nx, ny, nz)
-      end
+  # True when block at index gives light. Buried lava lights nothing, so
+  # lava gives light only where a cell beside it is not opaque.
+  def lights?(block, index) = Block.lava?(block) ? exposed?(index) : Block.emits?(block)
+
+  # The cell x, y, z changed its opacity, so the lava beside it joins or
+  # leaves the light list again.
+  def relist_lava_beside(x, y, z)
+    6.times do |direction|
+      nx = x + (direction == 0 ? 1 : (direction == 1 ? -1 : 0))
+      ny = y + (direction == 2 ? 1 : (direction == 3 ? -1 : 0))
+      nz = z + (direction == 4 ? 1 : (direction == 5 ? -1 : 0))
+      relist_lava(nx, ny, nz) if inside?(nx, ny, nz) && Block.lava?(block(World.index(nx, ny, nz)))
     end
   end
 
-  def listed?(x, y, z)
-    list = @chunk_torches[World.slot(x >> 4, z >> 4)]
-    (0...list.size).step(3) { |k| return true if list[k] == x && list[k + 1] == y && list[k + 2] == z }
-    false
+  # Takes the lava at x, y, z off the light list, and lists it again when
+  # it gives light.
+  def relist_lava(x, y, z)
+    remove_torch(x, y, z)
+    add_torch(x, y, z) if exposed?(World.index(x, y, z))
   end
 
   def add_torch(x, y, z)
@@ -583,7 +588,7 @@ class World
         base = World.index(x, 0, z)
         top.times do |y|
           b = block(base + y)
-          add_torch(x, y, z) if Block.lava?(b) ? exposed?(base + y) : Block.emits?(b)
+          add_torch(x, y, z) if lights?(b, base + y)
           @loaded_fires << x << y << z if b == Block::FIRE
         end
         z += 1
@@ -612,10 +617,7 @@ class World
       z = along_x ? edge_z : cz * CHUNK + step
       base = World.index(x, 0, z)
       top.times do |y|
-        next unless Block.lava?(block(base + y))
-
-        remove_torch(x, y, z)
-        add_torch(x, y, z) if exposed?(base + y)
+        relist_lava(x, y, z) if Block.lava?(block(base + y))
       end
     end
   end

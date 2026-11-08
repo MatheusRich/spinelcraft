@@ -78,7 +78,6 @@ detectors:
     - "/\\AVitals\\#move\\z/"
     - "/\\AVitals\\#update_vitals\\z/"
     - "/\\AWorld\\#box_edge\\z/"
-    - "/\\AWorld\\#listed\\?\\z/"
     - "/\\AWorld\\#remove_torch\\z/"
     - "/\\AWorld\\#write\\z/"
   DataClump:
@@ -864,9 +863,7 @@ detectors:
     - "/\\AWorld\\#clear_above\\z/"
     - "/\\AWorld\\#dry_land\\?\\z/"
     - "/\\AWorld\\#edited_chunks\\z/"
-    - "/\\AWorld\\#expose_lava\\z/"
     - "/\\AWorld\\#find_torches\\z/"
-    - "/\\AWorld\\#listed\\?\\z/"
     - "/\\AWorld\\#load_chunk\\z/"
     - "/\\AWorld\\#put_block\\z/"
     - "/\\AWorld\\#remove_torch\\z/"
