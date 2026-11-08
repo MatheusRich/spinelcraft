@@ -407,7 +407,6 @@ class Game
     @eggs.clear
     @items.clear
     @boats.clear
-    @riding = -1
     @clock.day = 0
     spawn
     respawn
@@ -431,13 +430,9 @@ class Game
   end
 
   def respawn
-    Log.measure(Log::WORLD, "mesh the nearest chunks for the respawn") do
-      @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
-    end
-    h = @world.height_at(@spawn_x.floor, @spawn_z.floor)
-    place_player(@spawn_x, h + 0.01, @spawn_z)
+    Log.measure(Log::WORLD, "mesh the nearest chunks for the respawn") { teleport_to_spawn }
     @player.revive
-    Log.debug(Log::WORLD) { "respawn at #{@spawn_x.floor} #{h} #{@spawn_z.floor}" }
+    Log.debug(Log::WORLD) { "respawn at #{@player.x.floor} #{@player.y.floor} #{@player.z.floor}" }
     @alive_time = 0.0
   end
 
@@ -448,9 +443,9 @@ class Game
     @player.move_to(x, y, z)
   end
 
-  # Moves the player to the spawn point. The chunks there load first, as in
-  # respawn: before they load, height_at reads the chunk that fills their
-  # slot of the ring.
+  # Moves the player to the ground at the spawn point. The chunks there
+  # load first: before they load, height_at reads the chunk that fills
+  # their slot of the ring.
   def teleport_to_spawn
     @chunk_meshes.stream(@spawn_x.floor >> 4, @spawn_z.floor >> 4, -1, SYNC_R)
     place_player(@spawn_x, @world.height_at(@spawn_x.floor, @spawn_z.floor) + 0.01, @spawn_z)
@@ -669,10 +664,10 @@ class Game
   # 0.0 for both or none.
   def key_axis(plus, minus) = (Gfx.in_key(plus) ? 1.0 : 0.0) - (Gfx.in_key(minus) ? 1.0 : 0.0)
 
-  # A hungry player cannot sprint in survival, nor a player who eats or
-  # draws the bow.
   def may_fly? = game_mode.creative? && !riding?
 
+  # A hungry player cannot sprint in survival, nor a player who eats or
+  # draws the bow.
   def may_sprint? = (game_mode.creative? || @player.vitals.can_sprint?) && !@hand_action.using_item?
 
   # A second press of jump within FLY_TAP starts or stops flying in
