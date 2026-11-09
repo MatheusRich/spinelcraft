@@ -253,7 +253,7 @@ module Gfx
       "  o.fog = fog_of(p, u);\n"
       "  // A fluid has no tint.\n"
       "  uint tint = fluid ? 0u : (w1 >> TINT_AT) & TINT_MASK;\n"
-      "  o.tint = tint == 0u ? float3(1.0) : tints.sample(tsmp, p.xz / " STR(COLUMNS) ".0, tint - 1u, level(0.0)).rgb * (255.0 / 64.0);\n"
+      "  o.tint = tint == 0u ? float3(1.0) : tints.sample(tsmp, p.xz / " STR(COLUMNS) ".0, tint - 1u, level(0.0)).rgb * (255.0 / TINT_ONE);\n"
       "  return o;\n"
       "}\n"
       "// Far terrain: one record per face of a cell of 2^s x 2^s blocks (level s - 2).\n"
