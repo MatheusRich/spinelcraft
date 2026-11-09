@@ -61,6 +61,17 @@ class MobTest < Minitest::Test
     refute Animal.new(Mob::PIG, 1.5, SKY_Y - 1.0, 1.5, 3).fuse_to_light?
   end
 
+  def test_each_kind_that_spawns_as_an_animal_is_passive_and_no_other_kind
+    Mob::NAMES.each_index do |kind|
+      assert_equal NaturalSpawner::ANIMAL_KINDS.include?(kind), Mob::PASSIVE[kind] == 1, Mob::NAMES[kind]
+    end
+  end
+
+  def test_an_animal_is_passive_and_a_monster_is_not
+    assert_predicate Animal.new(Mob::PIG, 8.5, SKY_Y.to_f, 8.5, 1), :passive?
+    refute_predicate Monster.new(Mob::ZOMBIE, 8.5, SKY_Y.to_f, 8.5, 1), :passive?
+  end
+
   # A fire block hurts a mob in it and sets it on fire. minecraft.wiki/w/Fire
   def test_a_fire_block_hurts_a_mob_in_it_and_sets_it_on_fire
     lay_floor

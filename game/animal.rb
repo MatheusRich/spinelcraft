@@ -89,6 +89,7 @@ class Animal < Mob
     @tempted = false
   end
 
+  def passive? = true
   def baby? = @grow_left > 0.0
 
   # A baby drops nothing, and a sheared sheep drops no wool.

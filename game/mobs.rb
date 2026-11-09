@@ -17,8 +17,7 @@ class Mob
   # Half the width of the box, and its height, in blocks.
   HALF = []
   TALL = []
-  # 1 for an animal (see Animal), which wanders, never attacks, and does
-  # not count as a monster; 0 for a monster (see Monster).
+  # 1 for a kind that /summon makes an Animal, 0 for a Monster.
   PASSIVE = []
   # A tempted animal walks at this part of WALK_SPEED; 0.0 for a monster.
   # The wiki does not give these values; they are those of the game code
@@ -184,7 +183,8 @@ class Mob
   # Only a Monster can be a guard of a treasure chest.
   def guard = false
 
-  def passive? = PASSIVE[@kind] == 1
+  # An Animal wanders, never attacks, and does not count as a monster.
+  def passive? = false
 
   def burning? = @burning.lit?
 
