@@ -206,7 +206,7 @@ class Console
       z = player.z.to_f - Math.cos(player.yaw) * SUMMON_DISTANCE
     end
     seed = (@game.rng.rand01 * 100000.0).to_i
-    @game.mobs << (Mob::PASSIVE[kind] == 1 ? Animal.new(kind, x, y, z, seed) : Monster.new(kind, x, y, z, seed))
+    @game.mobs << (NaturalSpawner::ANIMAL_KINDS.include?(kind) ? Animal.new(kind, x, y, z, seed) : Monster.new(kind, x, y, z, seed))
     @chat.post("SUMMONED NEW #{Mob::NAMES[kind]}")
   end
 

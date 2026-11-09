@@ -73,7 +73,7 @@ class TestGame < Game
     set_block(bx + 3, y + 1, bz + 2, Block::TORCH)
     [Mob::PIG, Mob::SHEEP, Mob::COW, Mob::ZOMBIE, Mob::SKELETON, Mob::CREEPER].each_with_index do |kind, i|
       x = bx - 4.0 + i * 1.6
-      m = Mob::PASSIVE[kind] == 1 ? Animal.new(kind, x, y + 1.0, bz + 0.5, 1) : Monster.new(kind, x, y + 1.0, bz + 0.5, 1)
+      m = NaturalSpawner::ANIMAL_KINDS.include?(kind) ? Animal.new(kind, x, y + 1.0, bz + 0.5, 1) : Monster.new(kind, x, y + 1.0, bz + 0.5, 1)
       m.yaw = 3.14159
       m.head = kind == Mob::ZOMBIE ? Block::CARVED_PUMPKIN : Block::JACK_O_LANTERN if @halloween && (kind == Mob::ZOMBIE || kind == Mob::SKELETON)
       @mobs << m

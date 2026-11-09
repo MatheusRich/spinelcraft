@@ -17,8 +17,6 @@ class Mob
   # Half the width of the box, and its height, in blocks.
   HALF = []
   TALL = []
-  # 1 for a kind that /summon makes an Animal, 0 for a Monster.
-  PASSIVE = []
   # A tempted animal walks at this part of WALK_SPEED; 0.0 for a monster.
   # The wiki does not give these values; they are those of the game code
   # (the registerGoals of Pig, Sheep, Cow and Chicken).
@@ -73,13 +71,12 @@ class Mob
   # not move and that drops nothing, unless the arguments say something
   # else. drops gives the amount of each block that the kind drops, and
   # optionally its chance, its cooked block and if it needs a player kill.
-  def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, passive: 0, tempt_pace: 0.0, panic_speed: 0.0, drops: {})
+  def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, tempt_pace: 0.0, panic_speed: 0.0, drops: {})
     abort "Mob.define_mob: kind #{kind} comes out of order" if kind != NAMES.size
     NAMES << name
     HP << hp
     HALF << half
     TALL << tall
-    PASSIVE << passive
     TEMPT_PACE << tempt_pace
     PANIC_SPEED << panic_speed
     SOUND << sound
@@ -99,7 +96,7 @@ class Mob
   end
 
   # minecraft.wiki/w/Pig
-  define_mob PIG, "PIG", hp: 10.0, half: 0.45, tall: 0.95, passive: 1, tempt_pace: 1.2, panic_speed: 4.22,
+  define_mob PIG, "PIG", hp: 10.0, half: 0.45, tall: 0.95, tempt_pace: 1.2, panic_speed: 4.22,
                          sound: Sfx::OINK, hurt: Sfx::OINK, death: Sfx::PIG_DEATH,
                          drops: { Block::PORKCHOP => { amount: 1..3, cooked: Block::COOKED_PORKCHOP } }
   # minecraft.wiki/w/Zombie, /w/Rotten_Flesh
@@ -112,7 +109,7 @@ class Mob
                                    drops: { Block::ARROW => { amount: 0..2 }, Block::BONE => { amount: 0..2 },
                                             Block::BOW => { amount: 1..1, chance: 0.085, player: true } }
   # minecraft.wiki/w/Sheep. A sheared sheep drops no wool (Animal#drops_row?).
-  define_mob SHEEP, "SHEEP", hp: 8.0, half: 0.45, tall: 1.2, passive: 1, tempt_pace: 1.1, panic_speed: 3.57,
+  define_mob SHEEP, "SHEEP", hp: 8.0, half: 0.45, tall: 1.2, tempt_pace: 1.1, panic_speed: 3.57,
                              sound: Sfx::BAA, hurt: Sfx::BAA, death: Sfx::BAA,
                              drops: { Block::WOOL => { amount: 1..1 }, Block::MUTTON => { amount: 1..2, cooked: Block::COOKED_MUTTON } }
   # A creeper makes no sound now and then, and it drops nothing here: the
@@ -121,11 +118,11 @@ class Mob
   define_mob CREEPER, "CREEPER", hp: 20.0, half: 0.3, tall: 1.7,
                                  sound: -1, hurt: Sfx::CREEPER_HURT, death: Sfx::CREEPER_DEATH
   # minecraft.wiki/w/Cow
-  define_mob COW, "COW", hp: 10.0, half: 0.45, tall: 1.4, passive: 1, tempt_pace: 1.25, panic_speed: 2.7,
+  define_mob COW, "COW", hp: 10.0, half: 0.45, tall: 1.4, tempt_pace: 1.25, panic_speed: 2.7,
                          sound: Sfx::MOO, hurt: Sfx::COW_HURT, death: Sfx::COW_HURT,
                          drops: { Block::LEATHER => { amount: 0..2 }, Block::BEEF => { amount: 1..3, cooked: Block::STEAK } }
   # minecraft.wiki/w/Chicken
-  define_mob CHICKEN, "CHICKEN", hp: 4.0, half: 0.2, tall: 0.7, passive: 1, tempt_pace: 1.0, panic_speed: 5.29,
+  define_mob CHICKEN, "CHICKEN", hp: 4.0, half: 0.2, tall: 0.7, tempt_pace: 1.0, panic_speed: 5.29,
                                  sound: Sfx::CLUCK, hurt: Sfx::CHICKEN_HURT, death: Sfx::CHICKEN_HURT,
                                  drops: { Block::FEATHER => { amount: 0..2 },
                                           Block::RAW_CHICKEN => { amount: 1..1, cooked: Block::COOKED_CHICKEN } }
@@ -183,7 +180,6 @@ class Mob
   # Only a Monster can be a guard of a treasure chest.
   def guard = false
 
-  # An Animal wanders, never attacks, and does not count as a monster.
   def passive? = false
 
   def burning? = @burning.lit?

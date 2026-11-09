@@ -89,6 +89,7 @@ class Animal < Mob
     @tempted = false
   end
 
+  # An animal wanders, never attacks, and does not count as a monster.
   def passive? = true
   def baby? = @grow_left > 0.0
 
