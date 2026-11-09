@@ -116,7 +116,9 @@ class Mesher
   def self.field(w, at, bits) = (w >> at) & ((1 << bits) - 1)
 
   # The fields of a face record as #defines for the shaders: NAME_AT and
-  # NAME_MASK for each, TORCH_SHAPE, and the texture layers of the fluids.
+  # NAME_MASK for each, TORCH_SHAPE, the texture layers of the fluids,
+  # TORCH_LIGHT, the first layer of the mob skins (SKINS), and the light of
+  # each face direction (SHADE_FACES, from Mesh3::SHADE).
   def self.shader_defines
     "#define TORCH_SHAPE #{TORCH_SHAPE}u\n#define WATER_LAYER #{Tex::WATER}u\n#define LAVA_LAYER #{Tex::LAVA}u\n" +
       "#define FIRE_FLOOR_SHAPE #{FIRE_FLOOR_SHAPE}u\n#define FIRE_SIDE_SHAPE #{FIRE_SIDE_SHAPE}u\n#define FIRE_BACK #{FIRE_BACK}u\n" +
@@ -130,7 +132,8 @@ class Mesher
       Mesher.define_field("SHAPE", SHAPE_AT, SHAPE_BITS) + Mesher.define_field("TINT", TINT_AT, TINT_BITS) +
       Mesher.define_field("HEIGHTS_LOW", HEIGHTS_LOW_AT, HEIGHTS_LOW_BITS) +
       Mesher.define_field("HEIGHTS_HIGH", HEIGHTS_HIGH_AT, HEIGHTS_HIGH_BITS) + "#define HEIGHTS_LOW_BITS #{HEIGHTS_LOW_BITS}u\n" \
-      "#define DEEP_WATER #{DEEP_WATER}.0\n#define BLOCKS_PER_WATER_STEP #{BLOCKS_PER_WATER_STEP}.0\n#define WATER_STEP_MAX #{WATER_STEP_MAX}.0\n"
+      "#define DEEP_WATER #{DEEP_WATER}.0\n#define BLOCKS_PER_WATER_STEP #{BLOCKS_PER_WATER_STEP}.0\n#define WATER_STEP_MAX #{WATER_STEP_MAX}.0\n" \
+      "#define TORCH_LIGHT #{TORCH_LIGHT}.0\n#define SKINS #{Tex::SKINS}.0\n#define SHADE_FACES #{Mesh3::SHADE.join(", ")}\n"
   end
 
   # A fluid height as a fluid face holds it, in fifteenths of a block.

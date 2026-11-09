@@ -2,7 +2,7 @@
 class Mesh3
   # Corner order: bit 0 is x, bit 1 is y, bit 2 is z.
   FACES = [[1, 5, 7, 3], [4, 0, 2, 6], [2, 3, 7, 6], [0, 4, 5, 1], [5, 4, 6, 7], [0, 1, 3, 2]]
-  # Light for each face direction. The same values as SHADE in the chunk shader (gfx.rb).
+  # Light for each face direction.
   SHADE = [0.82, 0.82, 1.0, 0.55, 0.9, 0.9]
 
   attr_reader :v
