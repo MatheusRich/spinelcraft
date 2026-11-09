@@ -68,7 +68,7 @@ class DisksTest < Minitest::Test
     assert_equal 64, DisksTest.small_disk_centers.uniq.size
   end
 
-  def test_a_disk_reaches_no_further_than_the_cells_next_to_its_own
+  def test_a_disk_radius_fits_in_one_cell
     assert_operator (0...256).map { |pick| Disks.radius(pick) }.max, :<=, 1 << Disks::SHIFT
   end
 end

@@ -5,7 +5,8 @@
 class DropSearch
   REACH = 4
   RADIUS = REACH + 1
-  SIDE = 1 << (2 * RADIUS).bit_length
+  SPAN = 2 * RADIUS + 1
+  SIDE = 1 << SPAN.bit_length
   MASK = SIDE - 1
   ALL_DIRECTIONS = 0b1111
   # A seen cell holds (its steps + 1) * STEPS plus the bits (1 << direction)
