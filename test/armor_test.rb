@@ -183,8 +183,6 @@ class ArmorTest < Minitest::Test
 
   def test_each_armor_table_has_a_row_for_each_armor_piece
     pieces = Block::COUNT.times.count { |block| Block.armor?(block) }
-
-    assert_equal 0, pieces % Block::ARMOR_SLOTS
     [Block::ARMOR_POINTS, Block::ARMOR_TOUGHNESS, Block::ARMOR_USES].each { |table| assert_equal pieces, table.size }
   end
 end

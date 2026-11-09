@@ -51,4 +51,12 @@ class TexTest < Minitest::Test
   def test_the_texture_array_stays_inside_the_eight_bits_of_a_face_record
     assert_operator Tex::LAYERS, :<=, 1 << Mesher::TEX_BITS
   end
+
+  def test_each_mob_kind_draws_with_the_skin_of_its_name
+    Mob::NAMES.each_with_index { |name, kind| assert_equal "skin_#{name.downcase}", Tex::SKIN_FILES[kind] }
+  end
+
+  def test_each_skin_has_a_height
+    assert_equal Tex::SKIN_FILES.size, Tex::SKIN_HEIGHTS.size
+  end
 end

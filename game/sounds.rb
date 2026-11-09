@@ -53,7 +53,7 @@ class Sfx
   # The cave sounds are CAVE to CAVE + CAVES - 1.
   CAVE = 47
   CAVES = 4
-  FUSE = 51
+  FUSE = CAVE + CAVES
   CLOTH = 52
   SNOW = 53
   LAVA = 54
@@ -71,7 +71,7 @@ class Sfx
   # The thunder sounds are THUNDER to THUNDER + THUNDERS - 1.
   THUNDER = 66
   THUNDERS = 3
-  ARMOR_IRON = 69
+  ARMOR_IRON = THUNDER + THUNDERS
   ARMOR_DIAMOND = 70
   IGNITE = 71
   # A sound from a point fades to silence at RANGE blocks, and an
@@ -97,6 +97,7 @@ class Sfx
     abort "Sfx.define_sound: id #{id} comes out of order" if id != FILES.size
     FILES << file
     GAINS << gain
+    # A nil return keeps Spinel from boxing it.
     nil
   end
 
