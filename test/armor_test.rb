@@ -180,4 +180,11 @@ class ArmorTest < Minitest::Test
     assert_equal false, Armor.new.quick_put_on(inv, 0)
     assert_equal 5, inv.count(0)
   end
+
+  def test_each_armor_table_has_a_row_for_each_armor_piece
+    pieces = Block::COUNT.times.count { |block| Block.armor?(block) }
+
+    assert_equal 0, pieces % Block::ARMOR_SLOTS
+    [Block::ARMOR_POINTS, Block::ARMOR_TOUGHNESS, Block::ARMOR_USES].each { |table| assert_equal pieces, table.size }
+  end
 end

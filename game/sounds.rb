@@ -74,7 +74,8 @@ class Sfx
   ARMOR_IRON = 69
   ARMOR_DIAMOND = 70
   IGNITE = 71
-  # A sound from a point fades to silence at RANGE blocks, and an  # explosion at EXPLOSION_RANGE. The wiki gives 64 blocks for TNT. It does
+  # A sound from a point fades to silence at RANGE blocks, and an
+  # explosion at EXPLOSION_RANGE. The wiki gives 64 blocks for TNT. It does
   # not say if a creeper explosion carries as far. minecraft.wiki/w/Sound
   RANGE = 16.0
   # The slot of each loop (Gfx.au_loop): the rain and the fire.
@@ -85,40 +86,93 @@ class Sfx
   # plays thunder at full volume in the whole dimension, so this range is not
   # a Minecraft value.
   THUNDER_RANGE = 192.0
-  # The file of each sound, in the order of the ids above.
-  FILES = ["default_dug_node.1", "default_place_node.1", "default_place_node_hard.1", "player_damage",
-           "default_grass_footstep.1", "default_dirt_footstep.1", "default_hard_footstep.1", "default_wood_footstep.1",
-           "default_dig_cracky.1", "default_dig_choppy.1", "default_dig_crumbly", "default_tool_breaks",
-           "mobs_pig", "mobs_mc_zombie_growl", "mobs_mc_skeleton_random.1", "mobs_mc_creeper_hurt",
-           "mcl_bows_bow_shoot", "mcl_bows_hit_other", "watersplash", "fire_extinguish_flame.1",
-           "tnt_explode", "weather_rain", "item_drop_pickup",
-           "mobs_pig_angry", "mobs_sheep", "mobs_mc_zombie_hurt", "mobs_mc_zombie_death",
-           "mobs_mc_skeleton_hurt", "mobs_mc_skeleton_death", "mobs_mc_creeper_death",
-           "mcl_hunger_bite.1", "player_falling_damage",
-           "doors_door_open", "doors_door_close", "default_chest_open", "default_chest_close",
-           "mcl_sounds_dug_water", "mcl_sounds_place_node_water", "default_place_node_lava",
-           "default_break_glass.1", "default_glass_footstep", "default_dig_snappy",
-           "default_gravel_dig.1", "default_gravel_dug.1", "default_gravel_footstep.1",
-           "default_sand_footstep.1", "default_water_footstep.1",
-           "cave1", "cave2", "cave4", "cave5",
-           "tnt_ignite", "mcl_sounds_cloth.1", "pedology_snow_soft_footstep.1",
-           "env_sounds_lava.1", "env_sounds_water.1", "fire_fire.1",
-           "mesecons_button_push", "mobs_mc_cow", "mobs_mc_cow_hurt", "mobs_mc_cow_milk",
-           "mcl_potions_drinking", "mobs_mc_chicken_buck.1", "mobs_mc_chicken_hurt", "mobs_mc_chicken_lay_egg",
-           "mobs_mc_chicken_child", "lightning_thunder.1", "lightning_thunder.2", "lightning_thunder.3",
-           "mcl_armor_equip_iron", "mcl_armor_equip_diamond", "fire_flint_and_steel"]
-  # The gain of each file in dB, in the order of the ids above. It sets the
-  # RMS of the loudest 0.1 seconds of each sound to -20 dBFS (-12 dBFS for
-  # the explosion and the thunder), so that all sounds are equally loud.
-  GAINS = [-4.1, 3.7, 0.0, 0.5, 2.4, 9.2, 3.3, 2.6,
-           3.1, -1.2, -2.0, -4.4, -2.8, -9.0, 19.8, 1.1,
-           7.4, 2.5, -6.1, -9.5, -4.3, 21.2, -11.5, -10.0,
-           -2.4, -5.7, -9.8, 1.2, -1.6, -5.3, -11.6, -9.5,
-           -10.0, -15.4, 1.0, -6.0, -5.4, -2.0, -8.0, -6.1,
-           -1.5, 1.8, -0.6, 6.8, 2.7, -6.0, -1.3, -9.5,
-           -10.4, -9.6, -15.5, 6.8, -8.5, 10.6, -6.0, 3.3, -9.7, 2.7,
-           -11.4, -8.4, -1.9, -0.6, 9.6, -2.7, -5.4, -2.7,
-           -5.6, -2.7, -0.5, -1.1, -2.4, -2.2]
+  # The file of each sound and its gain in dB. The gain sets the RMS of the
+  # loudest 0.1 seconds of each sound to -20 dBFS (-12 dBFS for the
+  # explosion and the thunder), so that all sounds are equally loud.
+  # Sfx.define_sound fills them, one call for each id, in the order of the ids.
+  FILES = []
+  GAINS = []
+
+  def self.define_sound(id, file, gain)
+    abort "Sfx.define_sound: id #{id} comes out of order" if id != FILES.size
+    FILES << file
+    GAINS << gain
+    nil
+  end
+
+  define_sound BREAK, "default_dug_node.1", -4.1
+  define_sound PLACE, "default_place_node.1", 3.7
+  define_sound PLACE_HARD, "default_place_node_hard.1", 0.0
+  define_sound HURT, "player_damage", 0.5
+  define_sound STEP_GRASS, "default_grass_footstep.1", 2.4
+  define_sound STEP_DIRT, "default_dirt_footstep.1", 9.2
+  define_sound STEP_HARD, "default_hard_footstep.1", 3.3
+  define_sound STEP_WOOD, "default_wood_footstep.1", 2.6
+  define_sound DIG_STONE, "default_dig_cracky.1", 3.1
+  define_sound DIG_WOOD, "default_dig_choppy.1", -1.2
+  define_sound DIG_SOFT, "default_dig_crumbly", -2.0
+  define_sound TOOL_BREAK, "default_tool_breaks", -4.4
+  define_sound OINK, "mobs_pig", -2.8
+  define_sound GROAN, "mobs_mc_zombie_growl", -9.0
+  define_sound RATTLE, "mobs_mc_skeleton_random.1", 19.8
+  define_sound CREEPER_HURT, "mobs_mc_creeper_hurt", 1.1
+  define_sound SHOOT, "mcl_bows_bow_shoot", 7.4
+  define_sound HIT, "mcl_bows_hit_other", 2.5
+  define_sound SPLASH, "watersplash", -6.1
+  define_sound FIZZ, "fire_extinguish_flame.1", -9.5
+  define_sound EXPLODE, "tnt_explode", -4.3
+  define_sound RAIN, "weather_rain", 21.2
+  define_sound POP, "item_drop_pickup", -11.5
+  define_sound PIG_DEATH, "mobs_pig_angry", -10.0
+  define_sound BAA, "mobs_sheep", -2.4
+  define_sound ZOMBIE_HURT, "mobs_mc_zombie_hurt", -5.7
+  define_sound ZOMBIE_DEATH, "mobs_mc_zombie_death", -9.8
+  define_sound SKELETON_HURT, "mobs_mc_skeleton_hurt", 1.2
+  define_sound SKELETON_DEATH, "mobs_mc_skeleton_death", -1.6
+  define_sound CREEPER_DEATH, "mobs_mc_creeper_death", -5.3
+  define_sound EAT, "mcl_hunger_bite.1", -11.6
+  define_sound FALL, "player_falling_damage", -9.5
+  define_sound DOOR_OPEN, "doors_door_open", -10.0
+  define_sound DOOR_CLOSE, "doors_door_close", -15.4
+  define_sound CHEST_OPEN, "default_chest_open", 1.0
+  define_sound CHEST_CLOSE, "default_chest_close", -6.0
+  define_sound WATER_TAKE, "mcl_sounds_dug_water", -5.4
+  define_sound WATER_POUR, "mcl_sounds_place_node_water", -2.0
+  define_sound LAVA_POUR, "default_place_node_lava", -8.0
+  define_sound BREAK_GLASS, "default_break_glass.1", -6.1
+  define_sound STEP_GLASS, "default_glass_footstep", -1.5
+  define_sound DIG_LEAVES, "default_dig_snappy", 1.8
+  define_sound DIG_GRAVEL, "default_gravel_dig.1", -0.6
+  define_sound BREAK_GRAVEL, "default_gravel_dug.1", 6.8
+  define_sound STEP_GRAVEL, "default_gravel_footstep.1", 2.7
+  define_sound STEP_SAND, "default_sand_footstep.1", -6.0
+  define_sound STEP_WATER, "default_water_footstep.1", -1.3
+  define_sound CAVE, "cave1", -9.5
+  define_sound CAVE + 1, "cave2", -10.4
+  define_sound CAVE + 2, "cave4", -9.6
+  define_sound CAVE + 3, "cave5", -15.5
+  define_sound FUSE, "tnt_ignite", 6.8
+  define_sound CLOTH, "mcl_sounds_cloth.1", -8.5
+  define_sound SNOW, "pedology_snow_soft_footstep.1", 10.6
+  define_sound LAVA, "env_sounds_lava.1", -6.0
+  define_sound FLOWING, "env_sounds_water.1", 3.3
+  define_sound CRACKLE, "fire_fire.1", -9.7
+  define_sound CLICK, "mesecons_button_push", 2.7
+  define_sound MOO, "mobs_mc_cow", -11.4
+  define_sound COW_HURT, "mobs_mc_cow_hurt", -8.4
+  define_sound MILK, "mobs_mc_cow_milk", -1.9
+  define_sound DRINK, "mcl_potions_drinking", -0.6
+  define_sound CLUCK, "mobs_mc_chicken_buck.1", 9.6
+  define_sound CHICKEN_HURT, "mobs_mc_chicken_hurt", -2.7
+  define_sound LAY_EGG, "mobs_mc_chicken_lay_egg", -5.4
+  define_sound CHICK, "mobs_mc_chicken_child", -2.7
+  define_sound THUNDER, "lightning_thunder.1", -5.6
+  define_sound THUNDER + 1, "lightning_thunder.2", -2.7
+  define_sound THUNDER + 2, "lightning_thunder.3", -0.5
+  define_sound ARMOR_IRON, "mcl_armor_equip_iron", -1.1
+  define_sound ARMOR_DIAMOND, "mcl_armor_equip_diamond", -2.4
+  define_sound IGNITE, "fire_flint_and_steel", -2.2
+
   # The distance in blocks at which each sound from a point fades to
   # silence, in the order of the ids above.
   RANGES = Array.new(FILES.size, RANGE)

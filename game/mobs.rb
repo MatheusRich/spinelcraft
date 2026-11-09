@@ -76,6 +76,7 @@ class Mob
   # optionally its chance, its cooked block and if it needs a player kill.
   def self.define_mob(kind, name, hp:, half:, tall:, sound:, hurt:, death:, passive: 0, tempt_pace: 0.0, panic_speed: 0.0, drops: {})
     abort "Mob.define_mob: kind #{kind} comes out of order" if kind != NAMES.size
+    abort "Mob.define_mob: kind #{kind} draws with the skin Tex::SKIN_FUR or after it" if kind >= Tex::SKIN_FUR
     NAMES << name
     HP << hp
     HALF << half

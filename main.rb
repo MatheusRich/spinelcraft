@@ -787,8 +787,8 @@ class Game
   # The index in AMBIENT of the sound that block x, y, z makes, or -1.
   def block_sound(x, y, z)
     block = @world.get(x, y, z)
-    return 0 if Block.lava?(block) && @world.get(x, y + 1, z) == Block::AIR
-    return 1 if Block.water?(block) && block != Block::WATER
+    return AMBIENT_LAVA if Block.lava?(block) && @world.get(x, y + 1, z) == Block::AIR
+    return AMBIENT_FLOWING if Block.water?(block) && block != Block::WATER
 
     -1
   end

@@ -54,6 +54,8 @@ class Game
   # time that Minecraft looks at a block, lava plays its sound at a chance
   # of 1 in 200, and flowing water 1 in 64. Fire and a lit furnace play a
   # loop (FireSound).
+  AMBIENT_LAVA = 0
+  AMBIENT_FLOWING = 1
   AMBIENT = [Sfx::LAVA, Sfx::FLOWING]
   AMBIENT_CHANCE = [1.0 / 200.0, 1.0 / 64.0]
   AMBIENT_VOLUME = [0.4, 0.3]
