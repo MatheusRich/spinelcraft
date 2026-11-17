@@ -2,9 +2,13 @@
 
 A small Minecraft-like game written in Ruby. The [Spinel](https://github.com/matz/spinel) compiler turns the Ruby into a native executable, and SDL3 GPU (Metal on macOS) draws it. All game logic is Ruby. The only C is a thin layer in `game/gfx.rb` that passes data to SDL.
 
-![Green hills with oaks and a river at the default 1600-block view](screenshots/landscape.png)
+[![The Spinelcraft demo video on YouTube](https://img.youtube.com/vi/pgh5JDb-nLs/maxresdefault.jpg)](https://youtu.be/pgh5JDb-nLs)
+
+▶ [Watch the 1-minute demo on YouTube](https://youtu.be/pgh5JDb-nLs)
 
 ## Screenshots
+
+![Green hills with oaks and a river at the default 1600-block view](screenshots/landscape.png)
 
 | | |
 | --- | --- |
